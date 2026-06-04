@@ -143,6 +143,14 @@ wss.on('connection', (ws) => {
         broadcast(salaCode, msg, ws);
         break;
       }
+          // ── Professor envia dados para alunos (ex: bloco atual) ────
+      case 'dados_aula':
+      case 'update_aula': {
+        const salaCode = ws._salaCode;
+        if (!salaCode || !salas[salaCode]) return;
+        broadcast(salaCode, msg, ws);
+        break;
+      }
 
       // ── Heartbeat / ping ───────────────────────────────────────
       case 'ping': {
