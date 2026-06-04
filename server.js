@@ -108,6 +108,7 @@ wss.on('connection', (ws) => {
             horario: new Date().toLocaleTimeString('pt-BR')
           }));
         }
+        ws.send(JSON.stringify({ tipo: 'conectado', codigo, nome }));
         ws.send(JSON.stringify({ tipo: 'entrou_sala', codigo, nome }));
         break;
       }
