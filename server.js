@@ -132,6 +132,16 @@ wss.on('connection', (ws) => {
         break;
       }
 
+
+      case 'iniciar_desafio':
+      case 'desafio_update':
+      case 'fim_desafio': {
+        const salaCode = ws._salaCode;
+        if (!salaCode || !salas[salaCode]) return;
+        log(${msg.tipo} na sala );
+        broadcastAlunos(salaCode, msg, ws);
+        break;
+      }
       case 'ping': {
         ws.send(JSON.stringify({ tipo: 'pong' }));
         break;
