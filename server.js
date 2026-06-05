@@ -6,7 +6,6 @@ const os = require('os');
 
 const PORT = process.env.PORT || 8080;
 
-// salas[codigo] = { professor, alunos: Map, estado: {iniciada, grafico, blocoIdx, nomeAula} }
 const salas = {};
 
 function log(msg) {
@@ -14,27 +13,12 @@ function log(msg) {
   console.log(`[${now}] ${msg}`);
 }
 
-function getLocalIPs() {
-  const interfaces = os.networkInterfaces();
-  const ips = [];
-  for (const name of Object.keys(interfaces)) {
-    for (const iface of interfaces[name]) {
-      if (iface.family === 'IPv4' && !iface.internal) {
-        ips.push({ name, ip: iface.address });
-      }
-    }
-  }
-  return ips;
-}
-
 function broadcastAlunos(salaCode, msg, excludeWs = null) {
   const sala = salas[salaCode];
   if (!sala) return;
   const data = JSON.stringify(msg);
   for (const [nome, ws] of sala.alunos) {
-    if (ws !== excludeWs && ws.readyState === WebSocket.OPEN) {
-      ws.send(data);
-    }
+    if (ws !== excludeWs && ws.readyState === WebSocket.OPEN) ws.send(data);
   }
 }
 
@@ -42,22 +26,16 @@ function broadcast(salaCode, msg, excludeWs = null) {
   const sala = salas[salaCode];
   if (!sala) return;
   const data = JSON.stringify(msg);
-  if (sala.professor && sala.professor !== excludeWs && sala.professor.readyState === WebSocket.OPEN) {
-    sala.professor.send(data);
-  }
+  if (sala.professor && sala.professor !== excludeWs && sala.professor.readyState === WebSocket.OPEN) sala.professor.send(data);
   for (const [nome, ws] of sala.alunos) {
-    if (ws !== excludeWs && ws.readyState === WebSocket.OPEN) {
-      ws.send(data);
-    }
+    if (ws !== excludeWs && ws.readyState === WebSocket.OPEN) ws.send(data);
   }
 }
 
 const wss = new WebSocket.Server({ port: PORT });
 
 wss.on('connection', (ws) => {
-  ws._salaCode = null;
-  ws._tipo = null;
-  ws._nome = null;
+  ws._salaCode = null; ws._tipo = null; ws._nome = null;
 
   ws.on('message', (raw) => {
     let msg;
@@ -65,80 +43,45 @@ wss.on('connection', (ws) => {
 
     switch (msg.tipo) {
 
-      // Professor cria a sala
       case 'criar_sala': {
         const codigo = msg.codigo;
         if (!codigo) return;
-        salas[codigo] = {
-          professor: ws,
-          alunos: new Map(),
-          estado: { iniciada: false, grafico: [], blocoIdx: 0, nomeAula: '' }
-        };
-        ws._salaCode = codigo;
-        ws._tipo = 'professor';
+        salas[codigo] = { professor: ws, alunos: new Map(), estado: { iniciada: false, grafico: [], blocoIdx: 0, nomeAula: '' } };
+        ws._salaCode = codigo; ws._tipo = 'professor';
         log(`Sala criada: ${codigo}`);
         ws.send(JSON.stringify({ tipo: 'sala_criada', codigo }));
         break;
       }
 
-      // Aluno entra na sala
       case 'entrar_sala': {
         const { codigo, nome, bike } = msg;
         if (!codigo || !nome) return;
         const sala = salas[codigo];
-        if (!sala) {
-          ws.send(JSON.stringify({ tipo: 'erro', msg: 'Sala nao encontrada' }));
-          return;
-        }
+        if (!sala) { ws.send(JSON.stringify({ tipo: 'erro', msg: 'Sala nao encontrada' })); return; }
         sala.alunos.set(nome, ws);
-        ws._salaCode = codigo;
-        ws._tipo = 'aluno';
-        ws._nome = nome;
+        ws._salaCode = codigo; ws._tipo = 'aluno'; ws._nome = nome;
         log(`Aluno entrou: ${nome} na sala ${codigo}`);
         if (sala.professor && sala.professor.readyState === WebSocket.OPEN) {
-          sala.professor.send(JSON.stringify({
-            tipo: 'aluno_conectou',
-            nome,
-            bike: bike || null,
-            horario: new Date().toLocaleTimeString('pt-BR')
-          }));
+          sala.professor.send(JSON.stringify({ tipo: 'aluno_conectou', nome, bike: bike || null, horario: new Date().toLocaleTimeString('pt-BR') }));
         }
         ws.send(JSON.stringify({ tipo: 'conectado', codigo, nome }));
         ws.send(JSON.stringify({ tipo: 'entrou_sala', codigo, nome }));
-        // Se aula ja iniciada, envia estado atual imediatamente
         if (sala.estado.iniciada && sala.estado.grafico.length > 0) {
-          ws.send(JSON.stringify({
-            tipo: 'aula_iniciada',
-            grafico: sala.estado.grafico,
-            blocoIdx: sala.estado.blocoIdx,
-            nomeAula: sala.estado.nomeAula
-          }));
+          ws.send(JSON.stringify({ tipo: 'aula_iniciada', grafico: sala.estado.grafico, blocoIdx: sala.estado.blocoIdx, nomeAula: sala.estado.nomeAula }));
         }
         break;
       }
 
-      // Aluno envia dados da bike ao professor
       case 'dados_aluno': {
         const salaCode = ws._salaCode;
         if (!salaCode || !salas[salaCode]) return;
         const sala = salas[salaCode];
         if (sala.professor && sala.professor.readyState === WebSocket.OPEN) {
-          sala.professor.send(JSON.stringify({
-            tipo: 'dados_aluno',
-            nome: ws._nome || msg.nome,
-            bike: msg.bike,
-            watts: msg.watts,
-            rpm: msg.rpm,
-            fc: msg.fc,
-            zona: msg.zona,
-            ftp: msg.ftp,
-            horario: msg.horario || new Date().toLocaleTimeString('pt-BR')
-          }));
+          sala.professor.send(JSON.stringify({ tipo: 'dados_aluno', nome: ws._nome || msg.nome, genero: msg.genero, watts: msg.watts, rpm: msg.rpm, fc: msg.fc, zona: msg.zona, ftp: msg.ftp, kcal: msg.kcal, dist: msg.dist, potMax: msg.potMax, horario: msg.horario || new Date().toLocaleTimeString('pt-BR') }));
         }
         break;
       }
 
-      // Professor inicia a aula — notifica todos os alunos em espera
       case 'iniciar_aula': {
         const salaCode = ws._salaCode;
         if (!salaCode || !salas[salaCode]) return;
@@ -148,16 +91,10 @@ wss.on('connection', (ws) => {
         sala.estado.blocoIdx = msg.blocoIdx || 0;
         sala.estado.nomeAula = msg.nomeAula || '';
         log(`Aula iniciada na sala ${salaCode}`);
-        broadcastAlunos(salaCode, {
-          tipo: 'aula_iniciada',
-          grafico: sala.estado.grafico,
-          blocoIdx: sala.estado.blocoIdx,
-          nomeAula: sala.estado.nomeAula
-        });
+        broadcastAlunos(salaCode, { tipo: 'aula_iniciada', grafico: sala.estado.grafico, blocoIdx: sala.estado.blocoIdx, nomeAula: sala.estado.nomeAula });
         break;
       }
 
-      // Professor envia atualizacao do bloco atual
       case 'dados_aula':
       case 'update_aula': {
         const salaCode = ws._salaCode;
@@ -170,18 +107,23 @@ wss.on('connection', (ws) => {
         break;
       }
 
-      // Professor encerra a aula
+      case 'iniciar_ftp': {
+        const salaCode = ws._salaCode;
+        if (!salaCode || !salas[salaCode]) return;
+        log(`Teste FTP ${msg.protocolo}min na sala ${salaCode}`);
+        broadcastAlunos(salaCode, { tipo: 'iniciar_ftp', protocolo: msg.protocolo });
+        break;
+      }
+
       case 'fim_aula': {
         const salaCode = ws._salaCode;
         if (!salaCode || !salas[salaCode]) return;
-        const sala = salas[salaCode];
-        sala.estado.iniciada = false;
-        log(`Aula encerrada pelo professor na sala ${salaCode}`);
+        salas[salaCode].estado.iniciada = false;
+        log(`Aula encerrada na sala ${salaCode}`);
         broadcastAlunos(salaCode, { tipo: 'fim_aula' });
         break;
       }
 
-      // Heartbeat
       case 'ping': {
         ws.send(JSON.stringify({ tipo: 'pong' }));
         break;
@@ -200,28 +142,18 @@ wss.on('connection', (ws) => {
     } else if (ws._tipo === 'aluno' && ws._nome) {
       sala.alunos.delete(ws._nome);
       log(`Aluno saiu: ${ws._nome}`);
-      if (sala.professor && sala.professor.readyState === WebSocket.OPEN) {
-        sala.professor.send(JSON.stringify({ tipo: 'aluno_saiu', nome: ws._nome }));
-      }
+      if (sala.professor && sala.professor.readyState === WebSocket.OPEN) sala.professor.send(JSON.stringify({ tipo: 'aluno_saiu', nome: ws._nome }));
     }
   });
 
-  ws.on('error', (err) => {
-    if (err.code !== 'ECONNRESET') console.error('WS error:', err.message);
-  });
+  ws.on('error', (err) => { if (err.code !== 'ECONNRESET') console.error('WS error:', err.message); });
 });
 
 setInterval(() => {
   for (const [codigo, sala] of Object.entries(salas)) {
     const profOk = sala.professor && sala.professor.readyState === WebSocket.OPEN;
-    if (!profOk && sala.alunos.size === 0) {
-      delete salas[codigo];
-      log(`Sala removida (vazia): ${codigo}`);
-    }
+    if (!profOk && sala.alunos.size === 0) { delete salas[codigo]; log(`Sala removida: ${codigo}`); }
   }
 }, 30000);
 
-console.log('\n╔══════════════════════════════════════════════╗');
-console.log('║  PRORIDER — Servidor iniciado                ║');
-console.log('╚══════════════════════════════════════════════╝\n');
-console.log('  Aguardando conexoes...\n');
+console.log('\nPRORI DER — Servidor iniciado. Aguardando conexoes...\n');
