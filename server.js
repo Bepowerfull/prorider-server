@@ -115,6 +115,14 @@ wss.on('connection', (ws) => {
         break;
       }
 
+      case 'fim_ftp': {
+        const salaCodeFtp = ws._salaCode;
+        if (!salaCodeFtp || !salas[salaCodeFtp]) return;
+        log(Teste FTP encerrado na sala ${salaCodeFtp});
+        broadcastAlunos(salaCodeFtp, { tipo: 'fim_ftp' });
+        break;
+      }
+
       case 'fim_aula': {
         const salaCode = ws._salaCode;
         if (!salaCode || !salas[salaCode]) return;
