@@ -118,7 +118,7 @@ wss.on('connection', (ws) => {
       case 'fim_ftp': {
         const salaCodeFtp = ws._salaCode;
         if (!salaCodeFtp || !salas[salaCodeFtp]) return;
-        log(Teste FTP encerrado na sala ${salaCodeFtp});
+        log(`Teste FTP encerrado na sala ${salaCodeFtp}`);
         broadcastAlunos(salaCodeFtp, { tipo: 'fim_ftp' });
         break;
       }
@@ -138,7 +138,7 @@ wss.on('connection', (ws) => {
       case 'fim_desafio': {
         const salaCode = ws._salaCode;
         if (!salaCode || !salas[salaCode]) return;
-        log(${msg.tipo} na sala );
+        log(`${msg.tipo} na sala ${salaCode}`);
         broadcastAlunos(salaCode, msg, ws);
         break;
       }
