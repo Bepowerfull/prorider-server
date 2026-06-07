@@ -93,5 +93,5 @@ CREATE INDEX IF NOT EXISTS idx_prof_req_license   ON professor_requests(license_
 -- IMPORTANTE: trocar imediatamente após deploy
 INSERT INTO users (email, name, role, password_hash)
 VALUES ('admin@prorider.app', 'Super Admin', 'super_admin',
-        '$2b$10$PLACEHOLDER_HASH_CHANGE_IMMEDIATELY')
+        '$2b$10$h/9oW7EowpDgdmR8A13MJeZdFwxAb8Vv/0RDPa2OkNgViSV1fm28S')
 ON CONFLICT (email) DO NOTHING;
