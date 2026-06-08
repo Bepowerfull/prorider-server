@@ -24,20 +24,28 @@ app.use(express.json());
 
 // ══ PostgreSQL ════════════════════════════════════════════════
 let db = null;
-log('DATABASE_URL: ' + (DB_URL ? DB_URL.substring(0,40)+'...' : 'NÃO DEFINIDA'));
-log('PGHOST: ' + (process.env.PGHOST || 'NÃO DEFINIDO'));
+// Tenta conectar via DATABASE_URL ou via variáveis individuais PGHOST/PGPASSWORD
+const PG_HOST = process.env.PGHOST;
+const PG_USER = process.env.PGUSER || process.env.POSTGRES_USER;
+const PG_PASS = process.env.PGPASSWORD || process.env.POSTGRES_PASSWORD;
+const PG_DB   = process.env.PGDATABASE || process.env.POSTGRES_DB || 'railway';
+const PG_PORT = parseInt(process.env.PGPORT || '5432');
 
-if (DB_URL) {
-  const isInternal = DB_URL.includes('.railway.internal');
-  db = new Pool({
-    connectionString: DB_URL,
-    ssl: isInternal ? false : { rejectUnauthorized: false }
-  });
+log('DB config: URL=' + (DB_URL?'sim':'não') + ' PGHOST=' + (PG_HOST||'não'));
+
+const poolConfig = DB_URL
+  ? { connectionString: DB_URL, ssl: DB_URL.includes('.railway.internal') ? false : { rejectUnauthorized: false } }
+  : PG_HOST
+    ? { host: PG_HOST, user: PG_USER, password: PG_PASS, database: PG_DB, port: PG_PORT, ssl: false }
+    : null;
+
+if (poolConfig) {
+  db = new Pool(poolConfig);
   db.connect()
     .then(client => { client.release(); log('PostgreSQL conectado ✅'); })
     .catch(e => { db = null; log('PostgreSQL ERRO: ' + e.message); });
 } else {
-  log('DATABASE_URL não definida — rodando sem banco (modo WebSocket only)');
+  log('Sem configuração de banco — modo WebSocket only');
 }
 
 // ══ Helpers ═══════════════════════════════════════════════════
