@@ -25,9 +25,10 @@ app.use(express.json());
 // ══ PostgreSQL ════════════════════════════════════════════════
 let db = null;
 if (DB_URL) {
+  const isInternal = DB_URL.includes('.railway.internal');
   db = new Pool({
     connectionString: DB_URL,
-    ssl: { rejectUnauthorized: false }
+    ssl: isInternal ? false : { rejectUnauthorized: false }
   });
   db.connect()
     .then(() => log('PostgreSQL conectado ✅'))
