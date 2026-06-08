@@ -91,7 +91,14 @@ function shortId() {
 
 // ── Health check ──────────────────────────────────────────────
 app.get('/ping', (req, res) => {
-  res.json({ status: 'ok', version: '2.0', db: !!db });
+  res.json({
+    status: 'ok',
+    version: '2.0',
+    db: !!db,
+    db_url_set: !!process.env.DATABASE_URL,
+    db_url_preview: process.env.DATABASE_URL ? process.env.DATABASE_URL.substring(0,30)+'...' : 'NOT SET',
+    pghost: process.env.PGHOST || 'NOT SET'
+  });
 });
 
 // ── Usuários ──────────────────────────────────────────────────
