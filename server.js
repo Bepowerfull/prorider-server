@@ -24,6 +24,9 @@ app.use(express.json());
 
 // ══ PostgreSQL ════════════════════════════════════════════════
 let db = null;
+log('DATABASE_URL: ' + (DB_URL ? DB_URL.substring(0,40)+'...' : 'NÃO DEFINIDA'));
+log('PGHOST: ' + (process.env.PGHOST || 'NÃO DEFINIDO'));
+
 if (DB_URL) {
   const isInternal = DB_URL.includes('.railway.internal');
   db = new Pool({
@@ -31,8 +34,8 @@ if (DB_URL) {
     ssl: isInternal ? false : { rejectUnauthorized: false }
   });
   db.connect()
-    .then(() => log('PostgreSQL conectado ✅'))
-    .catch(e => log('PostgreSQL ERRO: ' + e.message));
+    .then(client => { client.release(); log('PostgreSQL conectado ✅'); })
+    .catch(e => { db = null; log('PostgreSQL ERRO: ' + e.message); });
 } else {
   log('DATABASE_URL não definida — rodando sem banco (modo WebSocket only)');
 }
@@ -90,14 +93,20 @@ function shortId() {
 // ══════════════════════════════════════════════════════════════
 
 // ── Health check ──────────────────────────────────────────────
-app.get('/ping', (req, res) => {
+app.get('/ping', async (req, res) => {
+  res.setHeader('Cache-Control', 'no-store');
+  let dbOk = false;
+  if (db) {
+    try { const c = await db.query('SELECT 1'); dbOk = true; } catch(e) {}
+  }
   res.json({
     status: 'ok',
     version: '2.0',
-    db: !!db,
+    db: dbOk,
+    db_pool: !!db,
     db_url_set: !!process.env.DATABASE_URL,
-    db_url_preview: process.env.DATABASE_URL ? process.env.DATABASE_URL.substring(0,30)+'...' : 'NOT SET',
-    pghost: process.env.PGHOST || 'NOT SET'
+    db_url_preview: process.env.DATABASE_URL ? process.env.DATABASE_URL.substring(0,35)+'...' : 'NOT SET',
+    ts: Date.now()
   });
 });
 
