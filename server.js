@@ -477,11 +477,12 @@ app.post('/aula/complete', authMiddleware, async (req, res) => {
 // Atualizar perfil do usuário
 app.put('/user/profile', authMiddleware, async (req, res) => {
   if (!db) return res.status(503).json({ error: 'Banco não disponível' });
-  const { name, peso, ftp } = req.body;
+  const { name, email, peso, ftp } = req.body;
   try {
     const fields = [], vals = [];
     let idx = 1;
     if (name  && name.trim())        { fields.push(`name=$${idx++}`);  vals.push(name.trim()); }
+    if (email && email.trim())       { fields.push(`email=$${idx++}`); vals.push(email.trim().toLowerCase()); }
     if (peso  && parseFloat(peso)>0) { fields.push(`peso=$${idx++}`);  vals.push(parseFloat(peso)); }
     if (ftp   && parseFloat(ftp)>0)  { fields.push(`ftp=$${idx++}`);   vals.push(parseFloat(ftp)); }
     if (!fields.length) return res.status(400).json({ error: 'Nenhum campo para atualizar' });
