@@ -8,7 +8,7 @@ const WebSocket  = require('ws');
 const express    = require('express');
 const cors       = require('cors');
 const { Pool }   = require('pg');
-const bcrypt     = require('bcrypt');
+const bcrypt     = require('bcryptjs');  // pure-JS, sem compilação nativa
 const jwt        = require('jsonwebtoken');
 const crypto     = require('crypto');
 
