@@ -196,7 +196,7 @@ app.post('/user/register', async (req, res) => {
   } catch(e) {
     if (e.code === '23505') return res.status(409).json({ error: 'Email já cadastrado' });
     log('register error: ' + e.message);
-    res.status(500).json({ error: 'Erro interno', detail: e.message });
+    res.status(500).json({ error: 'Erro interno' });
   }
 });
 
@@ -216,7 +216,7 @@ app.post('/user/login', async (req, res) => {
     res.json({ user: { id: user.id, email: user.email, name: user.name, role: user.role, points: user.points, level: user.level }, token });
   } catch(e) {
     log('login error: ' + e.message);
-    res.status(500).json({ error: 'Erro interno', detail: e.message });
+    res.status(500).json({ error: 'Erro interno' });
   }
 });
 
