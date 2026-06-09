@@ -262,6 +262,40 @@ async function runMigrations() {
     `);
     log('Migração aulas_reservas OK');
 
+    // ── Sessões ao vivo (ProRider Jim / QR login) ─────────────────
+    // Uma sessão representa uma aula em andamento no mini PC da sala.
+    // O mini PC gera um QR code com o token. O aluno escaneia e "entra"
+    // na sessão com o app. Max conexões = bikes_disponiveis da licença.
+    await db.query(`
+      CREATE TABLE IF NOT EXISTS sessoes_ao_vivo (
+        id          SERIAL PRIMARY KEY,
+        license_id  TEXT NOT NULL,
+        agenda_id   INTEGER REFERENCES aulas_agenda(id) ON DELETE SET NULL,
+        token       TEXT UNIQUE NOT NULL,          -- token do QR code
+        nome_aula   TEXT,                          -- nome para exibição
+        professor   TEXT,
+        max_conexoes INTEGER NOT NULL DEFAULT 1,   -- = bikes_disponiveis no momento
+        status      TEXT DEFAULT 'ativa',          -- ativa | encerrada
+        created_at  TIMESTAMPTZ DEFAULT NOW(),
+        encerrada_at TIMESTAMPTZ
+      )
+    `);
+    await db.query(`
+      CREATE TABLE IF NOT EXISTS sessao_conexoes (
+        id          SERIAL PRIMARY KEY,
+        sessao_id   INTEGER REFERENCES sessoes_ao_vivo(id) ON DELETE CASCADE,
+        user_id     INTEGER REFERENCES users(id) ON DELETE CASCADE,
+        bike_num    SMALLINT,                      -- número do spot/bike na sala
+        connected_at TIMESTAMPTZ DEFAULT NOW(),
+        last_update  TIMESTAMPTZ DEFAULT NOW(),
+        -- Dados de telemetria enviados pelo app do aluno (via Bluetooth/ANT+ do celular)
+        dados       JSONB DEFAULT '{}',            -- {watts,rpm,hr,calorias,velocidade}
+        status      TEXT DEFAULT 'conectado',      -- conectado | desconectado
+        UNIQUE(sessao_id, user_id)
+      )
+    `);
+    log('Migração sessoes_ao_vivo OK');
+
   } catch(e) {
     log('Migração ERRO: ' + e.message);
   }
@@ -692,7 +726,7 @@ const wss    = new WebSocket.Server({ server });
 wss.on('connection', (ws) => {
   ws._salaCode = null; ws._tipo = null; ws._nome = null;
 
-  ws.on('message', (raw) => {
+  ws.on('message', async (raw) => {
     let msg;
     try { msg = JSON.parse(raw); } catch (e) { return; }
 
@@ -709,10 +743,33 @@ wss.on('connection', (ws) => {
       }
 
       case 'entrar_sala': {
-        const { codigo, nome, bike } = msg;
+        const { codigo, nome, bike, user_id } = msg;
         if (!codigo || !nome) return;
         const sala = salas[codigo];
         if (!sala) { ws.send(JSON.stringify({ tipo: 'erro', msg: 'Sala nao encontrada' })); return; }
+
+        // ── Verificar limite max_conexoes (= max_bikes da licença) ──
+        // O código da sala pode ser o token de uma sessao_ao_vivo no banco
+        if (db) {
+          try {
+            const sessaoR = await db.query(
+              "SELECT id, max_conexoes FROM sessoes_ao_vivo WHERE token=$1 AND status='ativa'",
+              [codigo]
+            );
+            if (sessaoR.rows.length) {
+              const { id: sessaoId, max_conexoes } = sessaoR.rows[0];
+              const alunosConectados = [...sala.alunos.values()].filter(w => w.readyState === WebSocket.OPEN).length;
+              if (alunosConectados >= max_conexoes) {
+                ws.send(JSON.stringify({
+                  tipo: 'erro',
+                  msg: `Sala cheia — limite de ${max_conexoes} bikes atingido. Aguarde uma vaga.`
+                }));
+                return;
+              }
+            }
+          } catch(dbErr) { /* não bloqueia se o banco falhar */ }
+        }
+
         sala.alunos.set(nome, ws);
         ws._salaCode = codigo; ws._tipo = 'aluno'; ws._nome = nome;
         log(`Aluno entrou: ${nome} na sala ${codigo}`);
@@ -1664,6 +1721,190 @@ app.delete('/aluno/reservar/:id', authMiddleware, async (req, res) => {
       [req.params.id, req.user.id]
     );
     res.json({ ok: true });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// ══════════════════════════════════════════════════════════════
+// SESSÕES AO VIVO — ProRider Jim (mini PC / QR login)
+// ══════════════════════════════════════════════════════════════
+// Fluxo:
+//   1. Mini PC chama POST /gestor/sessao → recebe token (= conteúdo do QR)
+//   2. Aluno abre app, escaneia QR → app chama POST /sessao/entrar
+//   3. Aluno envia telemetria periodicamente → PATCH /sessao/dados
+//   4. Mini PC faz polling em GET /gestor/sessao/ativa → exibe na tela
+//   5. Fim da aula → DELETE /gestor/sessao/:id
+
+// ── Gestor: criar sessão (ProRider Jim inicia a aula) ──────────
+app.post('/gestor/sessao', gestorAuth, async (req, res) => {
+  if (!db) return res.status(503).json({ error: 'Banco indisponível' });
+  const { agenda_id, nome_aula, professor } = req.body;
+  try {
+    // Encerrar sessão ativa anterior desta academia (se houver)
+    await db.query(
+      "UPDATE sessoes_ao_vivo SET status='encerrada', encerrada_at=NOW() WHERE license_id=$1 AND status='ativa'",
+      [req.user.license_id]
+    );
+    // Buscar bikes disponíveis (teto de conexões)
+    const lic = await db.query(
+      'SELECT bikes_disponiveis, max_bikes, nome_fantasia FROM licencas WHERE codigo=$1',
+      [req.user.license_id]
+    );
+    const licRow = lic.rows[0] || {};
+    const max_conexoes = licRow.bikes_disponiveis || licRow.max_bikes || 1;
+
+    const token = crypto.randomBytes(20).toString('hex');
+    const r = await db.query(`
+      INSERT INTO sessoes_ao_vivo (license_id, agenda_id, token, nome_aula, professor, max_conexoes)
+      VALUES ($1,$2,$3,$4,$5,$6) RETURNING *
+    `, [req.user.license_id, agenda_id||null, token,
+        nome_aula || 'Aula ao vivo', professor || null, max_conexoes]);
+
+    res.json({
+      sessao: r.rows[0],
+      token,
+      max_conexoes,
+      // QR deve codificar este token — o app do aluno lê e chama /sessao/entrar
+      qr_payload: `prorider://sessao?token=${token}`,
+    });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// ── Gestor: ver sessão ativa + conexões (polling do mini PC) ───
+app.get('/gestor/sessao/ativa', gestorAuth, async (req, res) => {
+  if (!db) return res.status(503).json({ error: 'Banco indisponível' });
+  try {
+    const s = await db.query(
+      "SELECT * FROM sessoes_ao_vivo WHERE license_id=$1 AND status='ativa' ORDER BY created_at DESC LIMIT 1",
+      [req.user.license_id]
+    );
+    if (!s.rows.length) return res.json({ sessao: null, conexoes: [] });
+    const sessao = s.rows[0];
+    const c = await db.query(`
+      SELECT sc.*, u.name, u.email,
+             EXTRACT(EPOCH FROM (NOW() - sc.last_update)) AS segundos_sem_update
+      FROM sessao_conexoes sc
+      JOIN users u ON u.id = sc.user_id
+      WHERE sc.sessao_id=$1 AND sc.status='conectado'
+      ORDER BY sc.bike_num NULLS LAST, sc.connected_at
+    `, [sessao.id]);
+    res.json({ sessao, conexoes: c.rows, total: c.rows.length });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// ── Gestor: encerrar sessão ─────────────────────────────────────
+app.delete('/gestor/sessao/:id', gestorAuth, async (req, res) => {
+  if (!db) return res.status(503).json({ error: 'Banco indisponível' });
+  try {
+    await db.query(
+      "UPDATE sessoes_ao_vivo SET status='encerrada', encerrada_at=NOW() WHERE id=$1 AND license_id=$2",
+      [req.params.id, req.user.license_id]
+    );
+    res.json({ ok: true });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// ── Aluno: entrar na sessão via QR ─────────────────────────────
+// O app do aluno chama este endpoint após escanear o QR code
+app.post('/sessao/entrar', authMiddleware, async (req, res) => {
+  if (!db) return res.status(503).json({ error: 'Banco indisponível' });
+  const { token } = req.body;
+  if (!token) return res.status(400).json({ error: 'Token obrigatório' });
+  try {
+    const s = await db.query(
+      "SELECT * FROM sessoes_ao_vivo WHERE token=$1 AND status='ativa'",
+      [token]
+    );
+    if (!s.rows.length) return res.status(404).json({ error: 'Sessão não encontrada ou já encerrada.' });
+    const sessao = s.rows[0];
+
+    // Verificar se já está conectado nesta sessão
+    const jaConectado = await db.query(
+      "SELECT id FROM sessao_conexoes WHERE sessao_id=$1 AND user_id=$2",
+      [sessao.id, req.user.id]
+    );
+    if (jaConectado.rows.length) {
+      // Reconectar (atualiza status)
+      await db.query(
+        "UPDATE sessao_conexoes SET status='conectado', last_update=NOW() WHERE sessao_id=$1 AND user_id=$2",
+        [sessao.id, req.user.id]
+      );
+      return res.json({ ok: true, reconectado: true, sessao_id: sessao.id, nome_aula: sessao.nome_aula });
+    }
+
+    // Verificar limite de conexões (= max_bikes da licença)
+    const contagem = await db.query(
+      "SELECT COUNT(*) FROM sessao_conexoes WHERE sessao_id=$1 AND status='conectado'",
+      [sessao.id]
+    );
+    const total = parseInt(contagem.rows[0].count);
+    if (total >= sessao.max_conexoes) {
+      return res.status(429).json({
+        error: `A sala está cheia (${sessao.max_conexoes} bikes). Aguarde uma vaga ou entre em contato com o professor.`
+      });
+    }
+
+    // Atribuir número de bike (próximo disponível)
+    const bikes_usadas = await db.query(
+      "SELECT bike_num FROM sessao_conexoes WHERE sessao_id=$1 AND status='conectado' ORDER BY bike_num",
+      [sessao.id]
+    );
+    const usadas = new Set(bikes_usadas.rows.map(r => r.bike_num));
+    let bike_num = null;
+    for (let i = 1; i <= sessao.max_conexoes; i++) {
+      if (!usadas.has(i)) { bike_num = i; break; }
+    }
+
+    await db.query(
+      "INSERT INTO sessao_conexoes (sessao_id, user_id, bike_num) VALUES ($1,$2,$3)",
+      [sessao.id, req.user.id, bike_num]
+    );
+
+    res.json({ ok: true, sessao_id: sessao.id, bike_num, nome_aula: sessao.nome_aula, max_conexoes: sessao.max_conexoes });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// ── Aluno: enviar telemetria da bike (dados ANT+/Bluetooth) ────
+app.patch('/sessao/dados', authMiddleware, async (req, res) => {
+  if (!db) return res.status(503).json({ error: 'Banco indisponível' });
+  // dados: { watts, rpm, hr (bpm), calorias, velocidade, distancia }
+  const { sessao_id, dados } = req.body;
+  if (!sessao_id) return res.status(400).json({ error: 'sessao_id obrigatório' });
+  try {
+    await db.query(`
+      UPDATE sessao_conexoes
+      SET dados=$1, last_update=NOW(), status='conectado'
+      WHERE sessao_id=$2 AND user_id=$3
+    `, [JSON.stringify(dados || {}), sessao_id, req.user.id]);
+    res.json({ ok: true });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// ── Aluno: sair da sessão ──────────────────────────────────────
+app.post('/sessao/sair', authMiddleware, async (req, res) => {
+  if (!db) return res.status(503).json({ error: 'Banco indisponível' });
+  const { sessao_id } = req.body;
+  try {
+    await db.query(
+      "UPDATE sessao_conexoes SET status='desconectado' WHERE sessao_id=$1 AND user_id=$2",
+      [sessao_id, req.user.id]
+    );
+    res.json({ ok: true });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// ── Aluno: ver sessão em que está conectado ────────────────────
+app.get('/sessao/minha', authMiddleware, async (req, res) => {
+  if (!db) return res.status(503).json({ error: 'Banco indisponível' });
+  try {
+    const r = await db.query(`
+      SELECT sc.*, s.nome_aula, s.professor, s.token, s.max_conexoes, s.status as sessao_status
+      FROM sessao_conexoes sc
+      JOIN sessoes_ao_vivo s ON s.id = sc.sessao_id
+      WHERE sc.user_id=$1 AND sc.status='conectado' AND s.status='ativa'
+      ORDER BY sc.connected_at DESC LIMIT 1
+    `, [req.user.id]);
+    if (!r.rows.length) return res.json({ sessao: null });
+    res.json({ sessao: r.rows[0] });
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
