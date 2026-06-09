@@ -142,6 +142,38 @@ async function runMigrations() {
       )
     `);
     log('Migração aula_historico OK');
+    // Tabela de licenças (academias/clientes)
+    await db.query(`
+      CREATE TABLE IF NOT EXISTS licencas (
+        id           SERIAL PRIMARY KEY,
+        codigo       TEXT UNIQUE NOT NULL,
+        nome         TEXT NOT NULL,
+        contato_nome TEXT,
+        contato_email TEXT,
+        contato_tel  TEXT,
+        plano        TEXT DEFAULT 'basico',
+        max_alunos   INTEGER DEFAULT 30,
+        max_profs    INTEGER DEFAULT 2,
+        status       TEXT DEFAULT 'ativa',
+        valor_mensal NUMERIC(8,2) DEFAULT 0,
+        vencimento   DATE,
+        obs          TEXT,
+        created_at   TIMESTAMPTZ DEFAULT NOW(),
+        updated_at   TIMESTAMPTZ DEFAULT NOW()
+      )
+    `);
+    await db.query(`
+      ALTER TABLE licencas
+        ADD COLUMN IF NOT EXISTS obs TEXT,
+        ADD COLUMN IF NOT EXISTS valor_mensal NUMERIC(8,2) DEFAULT 0
+    `);
+    // Vincular users à licença
+    await db.query(`
+      ALTER TABLE users
+        ADD COLUMN IF NOT EXISTS license_id TEXT,
+        ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'ativo'
+    `);
+    log('Migração licencas OK');
   } catch(e) {
     log('Migração ERRO: ' + e.message);
   }
@@ -700,6 +732,155 @@ wss.on('connection', (ws) => {
   });
 
   ws.on('error', (err) => { if (err.code !== 'ECONNRESET') console.error('WS error:', err.message); });
+});
+
+// ══════════════════════════════════════════════════════════════
+// ROTAS ADMIN (role = 'admin')
+// ══════════════════════════════════════════════════════════════
+
+function adminAuth(req, res, next) {
+  const header = req.headers.authorization || '';
+  const token = header.replace('Bearer ', '');
+  if (!token) return res.status(401).json({ error: 'Token necessário' });
+  try {
+    const payload = jwt.verify(token, JWT_SECRET);
+    if (payload.role !== 'admin') return res.status(403).json({ error: 'Acesso negado' });
+    req.user = payload;
+    next();
+  } catch(e) { res.status(401).json({ error: 'Token inválido' }); }
+}
+
+// ── Dashboard resumo ──
+app.get('/admin/dashboard', adminAuth, async (req, res) => {
+  if (!db) return res.status(503).json({ error: 'Banco indisponível' });
+  try {
+    const [alunos, licencas, aulas30] = await Promise.all([
+      db.query(`SELECT COUNT(*) FROM users WHERE role='aluno'`),
+      db.query(`SELECT COUNT(*), status FROM licencas GROUP BY status`),
+      db.query(`SELECT COUNT(*) FROM aula_historico WHERE data_aula > NOW()-INTERVAL '30 days'`),
+    ]);
+    res.json({
+      total_alunos: parseInt(alunos.rows[0].count),
+      licencas: licencas.rows,
+      aulas_30d: parseInt(aulas30.rows[0].count),
+    });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// ── Licenças CRUD ──
+app.get('/admin/licencas', adminAuth, async (req, res) => {
+  if (!db) return res.status(503).json({ error: 'Banco indisponível' });
+  try {
+    const r = await db.query(`
+      SELECT l.*,
+        (SELECT COUNT(*) FROM users u WHERE u.license_id=l.codigo AND u.role='aluno') AS total_alunos,
+        (SELECT COUNT(*) FROM users u WHERE u.license_id=l.codigo AND u.role='professor') AS total_profs
+      FROM licencas l ORDER BY l.created_at DESC
+    `);
+    res.json(r.rows);
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post('/admin/licencas', adminAuth, async (req, res) => {
+  if (!db) return res.status(503).json({ error: 'Banco indisponível' });
+  const { nome, contato_nome, contato_email, contato_tel, plano, max_alunos, max_profs, valor_mensal, vencimento, obs } = req.body;
+  if (!nome) return res.status(400).json({ error: 'nome obrigatório' });
+  const codigo = shortId().substring(0, 8).toUpperCase();
+  try {
+    const r = await db.query(
+      `INSERT INTO licencas (codigo, nome, contato_nome, contato_email, contato_tel, plano, max_alunos, max_profs, valor_mensal, vencimento, obs)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING *`,
+      [codigo, nome, contato_nome||null, contato_email||null, contato_tel||null,
+       plano||'basico', max_alunos||30, max_profs||2,
+       valor_mensal||0, vencimento||null, obs||null]
+    );
+    res.json(r.rows[0]);
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+app.put('/admin/licencas/:id', adminAuth, async (req, res) => {
+  if (!db) return res.status(503).json({ error: 'Banco indisponível' });
+  const { nome, contato_nome, contato_email, contato_tel, plano, max_alunos, max_profs, valor_mensal, vencimento, status, obs } = req.body;
+  try {
+    const r = await db.query(
+      `UPDATE licencas SET nome=$1, contato_nome=$2, contato_email=$3, contato_tel=$4,
+       plano=$5, max_alunos=$6, max_profs=$7, valor_mensal=$8, vencimento=$9,
+       status=$10, obs=$11, updated_at=NOW() WHERE id=$12 RETURNING *`,
+      [nome, contato_nome, contato_email, contato_tel, plano, max_alunos, max_profs,
+       valor_mensal, vencimento, status, obs, req.params.id]
+    );
+    res.json(r.rows[0]);
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+app.delete('/admin/licencas/:id', adminAuth, async (req, res) => {
+  if (!db) return res.status(503).json({ error: 'Banco indisponível' });
+  try {
+    await db.query('DELETE FROM licencas WHERE id=$1', [req.params.id]);
+    res.json({ ok: true });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// ── Alunos ──
+app.get('/admin/alunos', adminAuth, async (req, res) => {
+  if (!db) return res.status(503).json({ error: 'Banco indisponível' });
+  const { license_id, search } = req.query;
+  try {
+    let q = `SELECT u.id, u.name, u.email, u.role, u.license_id, u.status,
+               u.points, u.level, u.peso, u.ftp, u.created_at,
+               (SELECT COUNT(*) FROM aula_historico ah WHERE ah.user_id=u.id) AS total_aulas,
+               (SELECT MAX(data_aula) FROM aula_historico ah WHERE ah.user_id=u.id) AS ultima_aula
+             FROM users u WHERE u.role='aluno'`;
+    const params = [];
+    if (license_id) { params.push(license_id); q += ` AND u.license_id=$${params.length}`; }
+    if (search) { params.push('%'+search+'%'); q += ` AND (u.name ILIKE $${params.length} OR u.email ILIKE $${params.length})`; }
+    q += ' ORDER BY u.created_at DESC';
+    const r = await db.query(q, params);
+    res.json(r.rows);
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+app.get('/admin/alunos/:id', adminAuth, async (req, res) => {
+  if (!db) return res.status(503).json({ error: 'Banco indisponível' });
+  try {
+    const [user, hist] = await Promise.all([
+      db.query('SELECT id,name,email,role,license_id,status,points,level,peso,ftp,created_at FROM users WHERE id=$1', [req.params.id]),
+      db.query('SELECT * FROM aula_historico WHERE user_id=$1 ORDER BY data_aula DESC LIMIT 50', [req.params.id]),
+    ]);
+    if (!user.rows.length) return res.status(404).json({ error: 'Não encontrado' });
+    res.json({ ...user.rows[0], historico: hist.rows });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+app.put('/admin/alunos/:id', adminAuth, async (req, res) => {
+  if (!db) return res.status(503).json({ error: 'Banco indisponível' });
+  const { name, license_id, status, role } = req.body;
+  try {
+    const r = await db.query(
+      'UPDATE users SET name=$1, license_id=$2, status=$3, role=$4, updated_at=NOW() WHERE id=$5 RETURNING id,name,email,role,license_id,status',
+      [name, license_id, status||'ativo', role||'aluno', req.params.id]
+    );
+    res.json(r.rows[0]);
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// ── Criar conta admin (só via servidor, sem rota pública) ──
+app.post('/admin/criar-admin', async (req, res) => {
+  // Rota protegida por secret key de setup
+  if (req.headers['x-setup-key'] !== (process.env.SETUP_KEY || 'prorider_setup_2026')) {
+    return res.status(403).json({ error: 'Chave inválida' });
+  }
+  const { email, password, name } = req.body;
+  if (!email || !password) return res.status(400).json({ error: 'email e password obrigatórios' });
+  try {
+    const hash = await bcrypt.hash(password, 10);
+    const r = await db.query(
+      `INSERT INTO users (email, name, password_hash, role) VALUES ($1,$2,$3,'admin')
+       ON CONFLICT (email) DO UPDATE SET role='admin', password_hash=$3 RETURNING id, email, name, role`,
+      [email.toLowerCase(), name||email, hash]
+    );
+    res.json({ ok: true, user: r.rows[0] });
+  } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
 // Limpeza de salas inativas
