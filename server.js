@@ -180,6 +180,46 @@ async function runMigrations() {
       ON CONFLICT (email) DO NOTHING
     `, [await bcrypt.hash('prorider001', 10)]);
     log('Migração licencas OK');
+
+    // ── Grade de aulas ────────────────────────────────────────────
+    await db.query(`
+      CREATE TABLE IF NOT EXISTS aulas_agenda (
+        id           SERIAL PRIMARY KEY,
+        license_id   TEXT NOT NULL,
+        nome         TEXT NOT NULL,
+        professor_nome TEXT,
+        professor_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+        dia_semana   SMALLINT NOT NULL, -- 0=Dom 1=Seg ... 6=Sab
+        hora         TIME NOT NULL,
+        duracao_min  INTEGER DEFAULT 50,
+        vagas_max    INTEGER DEFAULT 20,
+        sala         TEXT,
+        cidade       TEXT,
+        ativa        BOOLEAN DEFAULT TRUE,
+        created_at   TIMESTAMPTZ DEFAULT NOW()
+      )
+    `);
+    await db.query(`
+      ALTER TABLE licencas
+        ADD COLUMN IF NOT EXISTS cidade TEXT,
+        ADD COLUMN IF NOT EXISTS nome_fantasia TEXT
+    `);
+    log('Migração aulas_agenda OK');
+
+    // ── Reservas de aulas ─────────────────────────────────────────
+    await db.query(`
+      CREATE TABLE IF NOT EXISTS aulas_reservas (
+        id         SERIAL PRIMARY KEY,
+        agenda_id  INTEGER REFERENCES aulas_agenda(id) ON DELETE CASCADE,
+        user_id    INTEGER REFERENCES users(id) ON DELETE CASCADE,
+        data_aula  DATE NOT NULL,  -- data específica da ocorrência
+        status     TEXT DEFAULT 'reservado', -- reservado | presente | ausente | cancelado
+        created_at TIMESTAMPTZ DEFAULT NOW(),
+        UNIQUE(agenda_id, user_id, data_aula)
+      )
+    `);
+    log('Migração aulas_reservas OK');
+
   } catch(e) {
     log('Migração ERRO: ' + e.message);
   }
@@ -977,6 +1017,220 @@ app.get('/aluno/portal/perfil', authMiddleware, async (req, res) => {
       db.query(`SELECT COUNT(*) as total_aulas, COALESCE(SUM(dur_seg),0) as total_seg, COALESCE(SUM(kcal),0) as total_kcal FROM aula_historico WHERE user_id=$1`, [req.user.id]),
     ]);
     res.json({ ...user.rows[0], ...stats.rows[0] });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// ══════════════════════════════════════════════════════════════
+// AGENDA — GESTOR (criar/editar grade de aulas)
+// ══════════════════════════════════════════════════════════════
+
+// Listar grade completa da academia
+app.get('/gestor/agenda', gestorAuth, async (req, res) => {
+  if (!db) return res.status(503).json({ error: 'Banco indisponível' });
+  try {
+    const r = await db.query(`
+      SELECT a.*,
+        (SELECT COUNT(*) FROM aulas_reservas r
+         WHERE r.agenda_id=a.id AND r.data_aula=CURRENT_DATE AND r.status<>'cancelado') as reservas_hoje
+      FROM aulas_agenda a
+      WHERE a.license_id=$1
+      ORDER BY a.dia_semana, a.hora
+    `, [req.user.license_id]);
+    res.json(r.rows);
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// Criar aula na grade
+app.post('/gestor/agenda', gestorAuth, async (req, res) => {
+  if (!db) return res.status(503).json({ error: 'Banco indisponível' });
+  const { nome, professor_nome, dia_semana, hora, duracao_min, vagas_max, sala } = req.body;
+  if (!nome || dia_semana === undefined || !hora)
+    return res.status(400).json({ error: 'nome, dia_semana e hora obrigatórios' });
+  try {
+    // buscar cidade da licença
+    const lic = await db.query('SELECT cidade FROM licencas WHERE codigo=$1', [req.user.license_id]);
+    const cidade = lic.rows[0]?.cidade || null;
+    const r = await db.query(`
+      INSERT INTO aulas_agenda (license_id, nome, professor_nome, dia_semana, hora, duracao_min, vagas_max, sala, cidade)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING *
+    `, [req.user.license_id, nome, professor_nome||null, dia_semana, hora, duracao_min||50, vagas_max||20, sala||null, cidade]);
+    res.json(r.rows[0]);
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// Editar aula
+app.put('/gestor/agenda/:id', gestorAuth, async (req, res) => {
+  if (!db) return res.status(503).json({ error: 'Banco indisponível' });
+  const { nome, professor_nome, dia_semana, hora, duracao_min, vagas_max, sala, ativa } = req.body;
+  try {
+    const r = await db.query(`
+      UPDATE aulas_agenda SET
+        nome=$1, professor_nome=$2, dia_semana=$3, hora=$4,
+        duracao_min=$5, vagas_max=$6, sala=$7, ativa=$8
+      WHERE id=$9 AND license_id=$10 RETURNING *
+    `, [nome, professor_nome, dia_semana, hora, duracao_min, vagas_max, sala, ativa !== false, req.params.id, req.user.license_id]);
+    if (!r.rows.length) return res.status(404).json({ error: 'Não encontrado' });
+    res.json(r.rows[0]);
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// Remover aula da grade
+app.delete('/gestor/agenda/:id', gestorAuth, async (req, res) => {
+  if (!db) return res.status(503).json({ error: 'Banco indisponível' });
+  try {
+    await db.query('DELETE FROM aulas_agenda WHERE id=$1 AND license_id=$2', [req.params.id, req.user.license_id]);
+    res.json({ ok: true });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// Lista de reservados numa aula (data específica) — professor e gestor
+app.get('/gestor/agenda/:id/reservas', gestorAuth, async (req, res) => {
+  if (!db) return res.status(503).json({ error: 'Banco indisponível' });
+  const data = req.query.data || new Date().toISOString().split('T')[0];
+  try {
+    const r = await db.query(`
+      SELECT r.id, r.status, r.created_at, u.id as user_id, u.name, u.email, u.ftp
+      FROM aulas_reservas r
+      JOIN users u ON u.id=r.user_id
+      WHERE r.agenda_id=$1 AND r.data_aula=$2
+      ORDER BY r.created_at
+    `, [req.params.id, data]);
+    // contar vagas
+    const aula = await db.query('SELECT vagas_max FROM aulas_agenda WHERE id=$1', [req.params.id]);
+    const vagas_max = aula.rows[0]?.vagas_max || 20;
+    const confirmados = r.rows.filter(x => x.status !== 'cancelado').length;
+    res.json({ reservas: r.rows, vagas_max, confirmados, vagas_livres: vagas_max - confirmados });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// Check-in / alterar status da reserva (professor/gestor)
+app.put('/gestor/reservas/:id/status', gestorAuth, async (req, res) => {
+  if (!db) return res.status(503).json({ error: 'Banco indisponível' });
+  const { status } = req.body; // presente | ausente | cancelado | reservado
+  if (!['presente','ausente','cancelado','reservado'].includes(status))
+    return res.status(400).json({ error: 'Status inválido' });
+  try {
+    const r = await db.query(
+      'UPDATE aulas_reservas SET status=$1 WHERE id=$2 RETURNING *',
+      [status, req.params.id]
+    );
+    res.json(r.rows[0]);
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// Adicionar aluno manualmente (walk-in)
+app.post('/gestor/agenda/:id/walkin', gestorAuth, async (req, res) => {
+  if (!db) return res.status(503).json({ error: 'Banco indisponível' });
+  const { user_id, data } = req.body;
+  const dataAula = data || new Date().toISOString().split('T')[0];
+  try {
+    const r = await db.query(`
+      INSERT INTO aulas_reservas (agenda_id, user_id, data_aula, status)
+      VALUES ($1,$2,$3,'presente')
+      ON CONFLICT (agenda_id, user_id, data_aula) DO UPDATE SET status='presente'
+      RETURNING *
+    `, [req.params.id, user_id, dataAula]);
+    res.json(r.rows[0]);
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// ══════════════════════════════════════════════════════════════
+// AGENDA — PÚBLICO (busca por cidade, sem autenticação)
+// ══════════════════════════════════════════════════════════════
+
+// Buscar academias por cidade
+app.get('/agenda/cidades', async (req, res) => {
+  if (!db) return res.status(503).json({ error: 'Banco indisponível' });
+  try {
+    const r = await db.query(`
+      SELECT DISTINCT l.codigo, l.nome, l.nome_fantasia, l.cidade
+      FROM licencas l
+      JOIN aulas_agenda a ON a.license_id=l.codigo
+      WHERE l.status='ativa' AND a.ativa=TRUE AND l.cidade IS NOT NULL
+      ORDER BY l.cidade, l.nome
+    `);
+    res.json(r.rows);
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// Grade de uma academia específica (próximos 7 dias)
+app.get('/agenda/grade/:license_id', async (req, res) => {
+  if (!db) return res.status(503).json({ error: 'Banco indisponível' });
+  try {
+    const [lic, aulas] = await Promise.all([
+      db.query('SELECT codigo, nome, nome_fantasia, cidade FROM licencas WHERE codigo=$1 AND status=$2',
+        [req.params.license_id, 'ativa']),
+      db.query(`
+        SELECT a.*,
+          (SELECT COUNT(*) FROM aulas_reservas r
+           WHERE r.agenda_id=a.id
+             AND r.data_aula=CURRENT_DATE + ((a.dia_semana - EXTRACT(DOW FROM CURRENT_DATE)::int + 7) % 7) * INTERVAL '1 day'
+             AND r.status<>'cancelado') as reservas
+        FROM aulas_agenda a
+        WHERE a.license_id=$1 AND a.ativa=TRUE
+        ORDER BY a.dia_semana, a.hora
+      `, [req.params.license_id]),
+    ]);
+    if (!lic.rows.length) return res.status(404).json({ error: 'Academia não encontrada' });
+    res.json({ academia: lic.rows[0], aulas: aulas.rows });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// ══════════════════════════════════════════════════════════════
+// AGENDA — ALUNO (reservar / cancelar / ver suas reservas)
+// ══════════════════════════════════════════════════════════════
+
+// Ver reservas futuras do aluno
+app.get('/aluno/reservas', authMiddleware, async (req, res) => {
+  if (!db) return res.status(503).json({ error: 'Banco indisponível' });
+  try {
+    const r = await db.query(`
+      SELECT r.*, a.nome as aula_nome, a.hora, a.dia_semana, a.professor_nome,
+             a.duracao_min, a.sala, l.nome as academia_nome, l.nome_fantasia, l.cidade
+      FROM aulas_reservas r
+      JOIN aulas_agenda a ON a.id=r.agenda_id
+      JOIN licencas l ON l.codigo=a.license_id
+      WHERE r.user_id=$1 AND r.data_aula >= CURRENT_DATE AND r.status<>'cancelado'
+      ORDER BY r.data_aula, a.hora
+    `, [req.user.id]);
+    res.json(r.rows);
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// Reservar vaga
+app.post('/aluno/reservar', authMiddleware, async (req, res) => {
+  if (!db) return res.status(503).json({ error: 'Banco indisponível' });
+  const { agenda_id, data_aula } = req.body;
+  if (!agenda_id || !data_aula) return res.status(400).json({ error: 'agenda_id e data_aula obrigatórios' });
+  try {
+    // verificar vagas
+    const aula = await db.query('SELECT vagas_max FROM aulas_agenda WHERE id=$1 AND ativa=TRUE', [agenda_id]);
+    if (!aula.rows.length) return res.status(404).json({ error: 'Aula não encontrada' });
+    const confirmados = await db.query(
+      "SELECT COUNT(*) FROM aulas_reservas WHERE agenda_id=$1 AND data_aula=$2 AND status<>'cancelado'",
+      [agenda_id, data_aula]
+    );
+    if (parseInt(confirmados.rows[0].count) >= aula.rows[0].vagas_max)
+      return res.status(409).json({ error: 'Aula lotada' });
+    const r = await db.query(`
+      INSERT INTO aulas_reservas (agenda_id, user_id, data_aula)
+      VALUES ($1,$2,$3)
+      ON CONFLICT (agenda_id, user_id, data_aula) DO UPDATE SET status='reservado'
+      RETURNING *
+    `, [agenda_id, req.user.id, data_aula]);
+    res.json(r.rows[0]);
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// Cancelar reserva
+app.delete('/aluno/reservar/:id', authMiddleware, async (req, res) => {
+  if (!db) return res.status(503).json({ error: 'Banco indisponível' });
+  try {
+    await db.query(
+      "UPDATE aulas_reservas SET status='cancelado' WHERE id=$1 AND user_id=$2",
+      [req.params.id, req.user.id]
+    );
+    res.json({ ok: true });
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
