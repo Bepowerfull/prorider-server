@@ -173,6 +173,12 @@ async function runMigrations() {
         ADD COLUMN IF NOT EXISTS license_id TEXT,
         ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'ativo'
     `);
+    // Criar conta gestor padrão para ProRider 001
+    await db.query(`
+      INSERT INTO users (email, name, password_hash, role, license_id)
+      VALUES ('gestor001@prorider.com', 'Gestor ProRider 001', $1, 'gestor', '7DB49082')
+      ON CONFLICT (email) DO NOTHING
+    `, [await bcrypt.hash('prorider001', 10)]);
     log('Migração licencas OK');
   } catch(e) {
     log('Migração ERRO: ' + e.message);
@@ -880,6 +886,97 @@ app.post('/admin/criar-admin', async (req, res) => {
       [email.toLowerCase(), name||email, hash]
     );
     res.json({ ok: true, user: r.rows[0] });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// ══════════════════════════════════════════════════════════════
+// ROTAS GESTOR (role = 'gestor' — acesso por licença)
+// ══════════════════════════════════════════════════════════════
+
+function gestorAuth(req, res, next) {
+  const token = (req.headers.authorization || '').replace('Bearer ', '');
+  if (!token) return res.status(401).json({ error: 'Token necessário' });
+  try {
+    const p = jwt.verify(token, JWT_SECRET);
+    if (p.role !== 'gestor' && p.role !== 'admin') return res.status(403).json({ error: 'Acesso negado' });
+    req.user = p;
+    next();
+  } catch(e) { res.status(401).json({ error: 'Token inválido' }); }
+}
+
+// Alunos da licença do gestor
+app.get('/gestor/alunos', gestorAuth, async (req, res) => {
+  if (!db) return res.status(503).json({ error: 'Banco indisponível' });
+  const licId = req.user.license_id;
+  try {
+    const r = await db.query(`
+      SELECT u.id, u.name, u.email, u.status, u.points, u.level, u.peso, u.ftp, u.created_at,
+        (SELECT COUNT(*) FROM aula_historico ah WHERE ah.user_id=u.id) AS total_aulas,
+        (SELECT MAX(data_aula) FROM aula_historico ah WHERE ah.user_id=u.id) AS ultima_aula
+      FROM users u WHERE u.license_id=$1 AND u.role='aluno'
+      ORDER BY u.created_at DESC`, [licId]);
+    res.json(r.rows);
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// Detalhes de aluno da licença
+app.get('/gestor/alunos/:id', gestorAuth, async (req, res) => {
+  if (!db) return res.status(503).json({ error: 'Banco indisponível' });
+  try {
+    const [user, hist] = await Promise.all([
+      db.query('SELECT id,name,email,role,license_id,status,points,level,peso,ftp,created_at FROM users WHERE id=$1', [req.params.id]),
+      db.query('SELECT * FROM aula_historico WHERE user_id=$1 ORDER BY data_aula DESC LIMIT 100', [req.params.id]),
+    ]);
+    if (!user.rows.length) return res.status(404).json({ error: 'Não encontrado' });
+    res.json({ ...user.rows[0], historico: hist.rows });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// Stats da academia
+app.get('/gestor/stats', gestorAuth, async (req, res) => {
+  if (!db) return res.status(503).json({ error: 'Banco indisponível' });
+  const licId = req.user.license_id;
+  try {
+    const [alunos, aulas7, aulas30, top] = await Promise.all([
+      db.query(`SELECT COUNT(*) FROM users WHERE license_id=$1 AND role='aluno'`, [licId]),
+      db.query(`SELECT COUNT(*) FROM aula_historico ah JOIN users u ON u.id=ah.user_id WHERE u.license_id=$1 AND ah.data_aula > NOW()-INTERVAL '7 days'`, [licId]),
+      db.query(`SELECT COUNT(*) FROM aula_historico ah JOIN users u ON u.id=ah.user_id WHERE u.license_id=$1 AND ah.data_aula > NOW()-INTERVAL '30 days'`, [licId]),
+      db.query(`SELECT u.name, COUNT(ah.id) as total FROM aula_historico ah JOIN users u ON u.id=ah.user_id WHERE u.license_id=$1 GROUP BY u.id, u.name ORDER BY total DESC LIMIT 5`, [licId]),
+    ]);
+    res.json({
+      total_alunos: parseInt(alunos.rows[0].count),
+      aulas_7d: parseInt(aulas7.rows[0].count),
+      aulas_30d: parseInt(aulas30.rows[0].count),
+      top_alunos: top.rows,
+    });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// ══════════════════════════════════════════════════════════════
+// ROTAS ALUNO PORTAL (qualquer aluno autenticado)
+// ══════════════════════════════════════════════════════════════
+
+// Histórico completo do aluno
+app.get('/aluno/portal/historico', authMiddleware, async (req, res) => {
+  if (!db) return res.status(503).json({ error: 'Banco indisponível' });
+  try {
+    const r = await db.query(
+      'SELECT * FROM aula_historico WHERE user_id=$1 ORDER BY data_aula DESC LIMIT 100',
+      [req.user.id]
+    );
+    res.json(r.rows);
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// Perfil completo do aluno
+app.get('/aluno/portal/perfil', authMiddleware, async (req, res) => {
+  if (!db) return res.status(503).json({ error: 'Banco indisponível' });
+  try {
+    const [user, stats] = await Promise.all([
+      db.query('SELECT id,name,email,role,license_id,points,level,peso,ftp,created_at FROM users WHERE id=$1', [req.user.id]),
+      db.query(`SELECT COUNT(*) as total_aulas, COALESCE(SUM(dur_seg),0) as total_seg, COALESCE(SUM(kcal),0) as total_kcal FROM aula_historico WHERE user_id=$1`, [req.user.id]),
+    ]);
+    res.json({ ...user.rows[0], ...stats.rows[0] });
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
