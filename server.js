@@ -187,7 +187,11 @@ async function runMigrations() {
         ADD COLUMN IF NOT EXISTS onboarding_token  TEXT UNIQUE,  -- token do formulário de onboarding
         -- Capacidade física da sala (bikes). Definida APENAS pelo admin Mario.
         -- O gestor NÃO pode alterar. É o teto máximo de vagas por aula.
-        ADD COLUMN IF NOT EXISTS max_bikes         INTEGER DEFAULT 0
+        ADD COLUMN IF NOT EXISTS max_bikes         INTEGER DEFAULT 0,
+        -- Bikes atualmente disponíveis na sala (pode ser < max_bikes se alguma estiver fora de serviço).
+        -- Ajustável pelo admin local / técnico, mas NUNCA pode superar max_bikes.
+        -- Inicializado com max_bikes quando o onboarding é concluído.
+        ADD COLUMN IF NOT EXISTS bikes_disponiveis INTEGER DEFAULT 0
     `);
     // Tabela de histórico de pagamentos
     await db.query(`
@@ -1292,8 +1296,14 @@ app.post('/onboarding/:token', async (req, res) => {
       await db.query('UPDATE licencas SET financeiro_email=$1, financeiro_nome=$2 WHERE id=$3',
         [fin_email, fin_nome||fin_email, l.id]);
     }
-    // Invalidar token de onboarding após uso
-    await db.query('UPDATE licencas SET onboarding_token=NULL WHERE id=$1', [l.id]);
+    // Ativar licença + inicializar bikes_disponiveis = max_bikes + invalidar token
+    await db.query(`
+      UPDATE licencas SET
+        onboarding_token  = NULL,
+        status            = 'ativa',
+        bikes_disponiveis = max_bikes
+      WHERE id = $1
+    `, [l.id]);
     res.json({ ok: true, message: 'Cadastro concluído! Faça login com suas credenciais.' });
   } catch(e) {
     if (e.code === '23505') return res.status(409).json({ error: 'Este e-mail já está cadastrado.' });
@@ -1384,17 +1394,42 @@ app.put('/academia/financeiro/cartao', finAuth, async (req, res) => {
 // CONFIG — GESTOR (ler configurações da licença)
 // ══════════════════════════════════════════════════════════════
 
-// Retorna configurações não-sensíveis da licença (incluindo max_bikes)
-// max_bikes é somente-leitura para o gestor — definido apenas pelo admin Mario
+// Retorna configurações da licença (max_bikes é somente-leitura — definido apenas pelo admin Mario)
 app.get('/gestor/config', gestorAuth, async (req, res) => {
   if (!db) return res.status(503).json({ error: 'Banco indisponível' });
   try {
     const r = await db.query(
-      'SELECT max_bikes, max_alunos, plano, nome_fantasia, cidade FROM licencas WHERE codigo=$1',
+      'SELECT max_bikes, bikes_disponiveis, max_alunos, plano, nome_fantasia, cidade FROM licencas WHERE codigo=$1',
       [req.user.license_id]
     );
     if (!r.rows.length) return res.status(404).json({ error: 'Licença não encontrada' });
     res.json(r.rows[0]);
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// Atualiza bikes_disponiveis (admin local / técnico da sala)
+// Regras:
+//   - Só gestor da própria academia pode chamar
+//   - Valor mínimo: 1
+//   - Valor máximo: max_bikes (teto definido por Mario — nunca pode ultrapassar)
+app.patch('/gestor/config/bikes', gestorAuth, async (req, res) => {
+  if (!db) return res.status(503).json({ error: 'Banco indisponível' });
+  const novas = parseInt(req.body.bikes_disponiveis);
+  if (isNaN(novas) || novas < 1)
+    return res.status(400).json({ error: 'Valor inválido. Mínimo: 1.' });
+  try {
+    const lic = await db.query('SELECT max_bikes FROM licencas WHERE codigo=$1', [req.user.license_id]);
+    if (!lic.rows.length) return res.status(404).json({ error: 'Licença não encontrada' });
+    const maxPermitido = lic.rows[0].max_bikes || 0;
+    if (maxPermitido > 0 && novas > maxPermitido)
+      return res.status(400).json({
+        error: `Limite da licença: ${maxPermitido} bikes. Você não pode adicionar mais spots do que o contratado.`
+      });
+    await db.query(
+      'UPDATE licencas SET bikes_disponiveis=$1 WHERE codigo=$2',
+      [novas, req.user.license_id]
+    );
+    res.json({ ok: true, bikes_disponiveis: novas, max_bikes: maxPermitido });
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
@@ -1425,15 +1460,18 @@ app.post('/gestor/agenda', gestorAuth, async (req, res) => {
   if (!nome || dia_semana === undefined || !hora)
     return res.status(400).json({ error: 'nome, dia_semana e hora obrigatórios' });
   try {
-    // buscar cidade e capacidade (max_bikes) da licença
-    const lic = await db.query('SELECT cidade, max_bikes FROM licencas WHERE codigo=$1', [req.user.license_id]);
-    const cidade    = lic.rows[0]?.cidade    || null;
-    const max_bikes = lic.rows[0]?.max_bikes || 0;
-    // Validar vagas contra capacidade física da sala
+    // buscar cidade e capacidade operacional da licença
+    // bikes_disponiveis = número real de bikes na sala agora (≤ max_bikes)
+    const lic = await db.query('SELECT cidade, max_bikes, bikes_disponiveis FROM licencas WHERE codigo=$1', [req.user.license_id]);
+    const cidade            = lic.rows[0]?.cidade            || null;
+    const max_bikes         = lic.rows[0]?.max_bikes         || 0;
+    const bikes_disponiveis = lic.rows[0]?.bikes_disponiveis || max_bikes || 0;
+    // Teto efetivo = bikes atualmente disponíveis (admin local pode ter reduzido)
+    const teto = bikes_disponiveis > 0 ? bikes_disponiveis : max_bikes;
     const vagasSolicitadas = parseInt(vagas_max) || 20;
-    if (max_bikes > 0 && vagasSolicitadas > max_bikes)
+    if (teto > 0 && vagasSolicitadas > teto)
       return res.status(400).json({
-        error: `A sala tem capacidade para ${max_bikes} bikes. Você não pode configurar mais vagas do que isso.`
+        error: `A sala tem ${teto} bikes disponíveis no momento. Você não pode configurar mais vagas do que isso.`
       });
     const r = await db.query(`
       INSERT INTO aulas_agenda (license_id, nome, professor_nome, dia_semana, hora, duracao_min, vagas_max, sala, cidade)
@@ -1448,13 +1486,15 @@ app.put('/gestor/agenda/:id', gestorAuth, async (req, res) => {
   if (!db) return res.status(503).json({ error: 'Banco indisponível' });
   const { nome, professor_nome, dia_semana, hora, duracao_min, vagas_max, sala, ativa } = req.body;
   try {
-    // Validar vagas contra capacidade física da sala
-    const lic = await db.query('SELECT max_bikes FROM licencas WHERE codigo=$1', [req.user.license_id]);
-    const max_bikes = lic.rows[0]?.max_bikes || 0;
+    // Validar vagas contra bikes disponíveis (teto operacional)
+    const lic = await db.query('SELECT max_bikes, bikes_disponiveis FROM licencas WHERE codigo=$1', [req.user.license_id]);
+    const max_bikes         = lic.rows[0]?.max_bikes         || 0;
+    const bikes_disponiveis = lic.rows[0]?.bikes_disponiveis || max_bikes || 0;
+    const teto = bikes_disponiveis > 0 ? bikes_disponiveis : max_bikes;
     const vagasSolicitadas = parseInt(vagas_max) || 20;
-    if (max_bikes > 0 && vagasSolicitadas > max_bikes)
+    if (teto > 0 && vagasSolicitadas > teto)
       return res.status(400).json({
-        error: `A sala tem capacidade para ${max_bikes} bikes. Você não pode configurar mais vagas do que isso.`
+        error: `A sala tem ${teto} bikes disponíveis no momento. Você não pode configurar mais vagas do que isso.`
       });
     const r = await db.query(`
       UPDATE aulas_agenda SET
