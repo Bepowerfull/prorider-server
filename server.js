@@ -96,6 +96,16 @@ function shortId() {
   return crypto.randomBytes(10).toString('hex'); // 20 chars
 }
 
+// ══ Migração de colunas (idempotente) ════════════════════════
+if (db) {
+  db.query(`
+    ALTER TABLE users
+      ADD COLUMN IF NOT EXISTS peso  NUMERIC(5,1) DEFAULT 70,
+      ADD COLUMN IF NOT EXISTS ftp   INTEGER      DEFAULT 130,
+      ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT NOW()
+  `).then(() => log('Migração users OK')).catch(e => log('Migração users: ' + e.message));
+}
+
 // ══════════════════════════════════════════════════════════════
 // ROTAS HTTP
 // ══════════════════════════════════════════════════════════════
@@ -123,14 +133,20 @@ app.get('/ping', async (req, res) => {
 // Cadastro
 app.post('/user/register', async (req, res) => {
   if (!db) return res.status(503).json({ error: 'Banco não disponível' });
-  const { email, name, password } = req.body;
+  // Aceita tanto inglês (name/password) quanto português (nome/senha)
+  const email    = req.body.email;
+  const name     = req.body.name  || req.body.nome;
+  const password = req.body.password || req.body.senha;
+  const peso     = parseFloat(req.body.peso)  || 70;
+  const ftp      = parseInt(req.body.ftp)     || 130;
+
   if (!email || !name || !password)
-    return res.status(400).json({ error: 'email, name e password obrigatórios' });
+    return res.status(400).json({ error: 'email, nome e senha obrigatórios' });
   try {
     const hash = await bcrypt.hash(password, 10);
     const r = await db.query(
-      'INSERT INTO users (email, name, password_hash) VALUES ($1,$2,$3) RETURNING id, email, name, role, points, level',
-      [email.toLowerCase(), name, hash]
+      'INSERT INTO users (email, name, password_hash, peso, ftp) VALUES ($1,$2,$3,$4,$5) RETURNING id, email, name, role, points, level, peso, ftp',
+      [email.toLowerCase(), name, hash, peso, ftp]
     );
     const user = r.rows[0];
     const token = jwt.sign({ id: user.id, email: user.email, role: user.role }, JWT_SECRET, { expiresIn: '30d' });
@@ -167,7 +183,7 @@ app.get('/user/me', authMiddleware, async (req, res) => {
   if (!db) return res.status(503).json({ error: 'Banco não disponível' });
   try {
     const r = await db.query(
-      'SELECT id, email, name, role, license_id, points, level, created_at FROM users WHERE id=$1',
+      'SELECT id, email, name, role, license_id, points, level, peso, ftp, created_at FROM users WHERE id=$1',
       [req.user.id]
     );
     if (!r.rows.length) return res.status(404).json({ error: 'Usuário não encontrado' });
@@ -330,6 +346,30 @@ app.post('/aula/complete', authMiddleware, async (req, res) => {
     res.json({ pontos_ganhos: pontos, total_pontos: newPoints, nivel: newLevel });
   } catch(e) {
     log('aula/complete error: ' + e.message);
+    res.status(500).json({ error: 'Erro interno' });
+  }
+});
+
+// Atualizar perfil do usuário
+app.put('/user/profile', authMiddleware, async (req, res) => {
+  if (!db) return res.status(503).json({ error: 'Banco não disponível' });
+  const { name, peso, ftp } = req.body;
+  try {
+    const fields = [], vals = [];
+    let idx = 1;
+    if (name  && name.trim())        { fields.push(`name=$${idx++}`);  vals.push(name.trim()); }
+    if (peso  && parseFloat(peso)>0) { fields.push(`peso=$${idx++}`);  vals.push(parseFloat(peso)); }
+    if (ftp   && parseFloat(ftp)>0)  { fields.push(`ftp=$${idx++}`);   vals.push(parseFloat(ftp)); }
+    if (!fields.length) return res.status(400).json({ error: 'Nenhum campo para atualizar' });
+    fields.push(`updated_at=NOW()`);
+    vals.push(req.user.id);
+    const r = await db.query(
+      `UPDATE users SET ${fields.join(',')} WHERE id=$${idx} RETURNING id, email, name, role, points, level, peso, ftp`,
+      vals
+    );
+    res.json({ user: r.rows[0] });
+  } catch(e) {
+    log('user/profile error: ' + e.message);
     res.status(500).json({ error: 'Erro interno' });
   }
 });
