@@ -980,6 +980,118 @@ app.get('/aluno/portal/perfil', authMiddleware, async (req, res) => {
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
+// ══════════════════════════════════════════════════════════════
+// LEADERBOARD GLOBAL (por licença)
+// ══════════════════════════════════════════════════════════════
+
+// Ranking acumulado de pontos — todos os alunos da academia
+app.get('/gestor/leaderboard', gestorAuth, async (req, res) => {
+  if (!db) return res.status(503).json({ error: 'Banco indisponível' });
+  const licId = req.user.license_id;
+  try {
+    const r = await db.query(`
+      SELECT u.id, u.name, u.points, u.level, u.ftp,
+             COUNT(ah.id) as total_aulas,
+             COALESCE(SUM(ah.kcal),0) as total_kcal,
+             COALESCE(SUM(ah.dur_seg),0) as total_seg,
+             MAX(ah.data_aula) as ultima_aula
+      FROM users u
+      LEFT JOIN aula_historico ah ON ah.user_id = u.id
+      WHERE u.license_id=$1 AND u.role='aluno' AND u.status='ativo'
+      GROUP BY u.id, u.name, u.points, u.level, u.ftp
+      ORDER BY u.points DESC, total_aulas DESC
+      LIMIT 50
+    `, [licId]);
+    res.json(r.rows);
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// ══════════════════════════════════════════════════════════════
+// RELATÓRIOS MENSAIS (gestor)
+// ══════════════════════════════════════════════════════════════
+
+// Relatório mensal: aulas por semana, top alunos, distribuição de zonas, totais
+app.get('/gestor/relatorio', gestorAuth, async (req, res) => {
+  if (!db) return res.status(503).json({ error: 'Banco indisponível' });
+  const licId = req.user.license_id;
+  const mes   = parseInt(req.query.mes  || new Date().getMonth() + 1);
+  const ano   = parseInt(req.query.ano  || new Date().getFullYear());
+  try {
+    const [totais, porSemana, topAlunos, zonas, aulasMes] = await Promise.all([
+      // Totais do mês
+      db.query(`
+        SELECT COUNT(ah.id) as total_aulas,
+               COALESCE(SUM(ah.kcal),0) as total_kcal,
+               COALESCE(SUM(ah.dur_seg),0) as total_seg,
+               COUNT(DISTINCT ah.user_id) as alunos_ativos
+        FROM aula_historico ah
+        JOIN users u ON u.id=ah.user_id
+        WHERE u.license_id=$1
+          AND EXTRACT(MONTH FROM ah.data_aula)=$2
+          AND EXTRACT(YEAR  FROM ah.data_aula)=$3
+      `, [licId, mes, ano]),
+      // Aulas por semana do mês
+      db.query(`
+        SELECT EXTRACT(WEEK FROM ah.data_aula) as semana,
+               COUNT(*) as aulas,
+               COALESCE(SUM(ah.kcal),0) as kcal
+        FROM aula_historico ah
+        JOIN users u ON u.id=ah.user_id
+        WHERE u.license_id=$1
+          AND EXTRACT(MONTH FROM ah.data_aula)=$2
+          AND EXTRACT(YEAR  FROM ah.data_aula)=$3
+        GROUP BY semana ORDER BY semana
+      `, [licId, mes, ano]),
+      // Top 10 alunos do mês
+      db.query(`
+        SELECT u.name, COUNT(ah.id) as aulas, COALESCE(SUM(ah.kcal),0) as kcal,
+               ROUND(AVG(ah.avg_ftp)::numeric,1) as avg_ftp
+        FROM aula_historico ah
+        JOIN users u ON u.id=ah.user_id
+        WHERE u.license_id=$1
+          AND EXTRACT(MONTH FROM ah.data_aula)=$2
+          AND EXTRACT(YEAR  FROM ah.data_aula)=$3
+        GROUP BY u.id, u.name ORDER BY aulas DESC LIMIT 10
+      `, [licId, mes, ano]),
+      // Distribuição de zonas média do mês
+      db.query(`
+        SELECT
+          ROUND(AVG((zona_pct->>'z1')::numeric),1) as z1,
+          ROUND(AVG((zona_pct->>'z2')::numeric),1) as z2,
+          ROUND(AVG((zona_pct->>'z3')::numeric),1) as z3,
+          ROUND(AVG((zona_pct->>'z4')::numeric),1) as z4,
+          ROUND(AVG((zona_pct->>'z5')::numeric),1) as z5,
+          ROUND(AVG((zona_pct->>'z6')::numeric),1) as z6,
+          ROUND(AVG((zona_pct->>'z7')::numeric),1) as z7
+        FROM aula_historico ah
+        JOIN users u ON u.id=ah.user_id
+        WHERE u.license_id=$1
+          AND EXTRACT(MONTH FROM ah.data_aula)=$2
+          AND EXTRACT(YEAR  FROM ah.data_aula)=$3
+          AND zona_pct IS NOT NULL
+      `, [licId, mes, ano]),
+      // Lista de aulas do mês
+      db.query(`
+        SELECT ah.nome, ah.data_aula, ah.kcal, ah.dur_seg, ah.avg_ftp, ah.avg_watts, u.name as aluno
+        FROM aula_historico ah
+        JOIN users u ON u.id=ah.user_id
+        WHERE u.license_id=$1
+          AND EXTRACT(MONTH FROM ah.data_aula)=$2
+          AND EXTRACT(YEAR  FROM ah.data_aula)=$3
+        ORDER BY ah.data_aula DESC LIMIT 100
+      `, [licId, mes, ano]),
+    ]);
+    res.json({
+      mes, ano,
+      totais: totais.rows[0],
+      por_semana: porSemana.rows,
+      top_alunos: topAlunos.rows,
+      zonas: zonas.rows[0] || {},
+      aulas: aulasMes.rows,
+    });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
 // Limpeza de salas inativas
 setInterval(() => {
   for (const [codigo, sala] of Object.entries(salas)) {
