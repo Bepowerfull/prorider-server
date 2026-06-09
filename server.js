@@ -184,7 +184,10 @@ async function runMigrations() {
         ADD COLUMN IF NOT EXISTS cartao_final      CHAR(4),
         ADD COLUMN IF NOT EXISTS cartao_validade   CHAR(7),  -- MM/AAAA
         ADD COLUMN IF NOT EXISTS cartao_titular    TEXT,
-        ADD COLUMN IF NOT EXISTS onboarding_token  TEXT UNIQUE  -- token do formulário de onboarding
+        ADD COLUMN IF NOT EXISTS onboarding_token  TEXT UNIQUE,  -- token do formulário de onboarding
+        -- Capacidade física da sala (bikes). Definida APENAS pelo admin Mario.
+        -- O gestor NÃO pode alterar. É o teto máximo de vagas por aula.
+        ADD COLUMN IF NOT EXISTS max_bikes         INTEGER DEFAULT 0
     `);
     // Tabela de histórico de pagamentos
     await db.query(`
@@ -865,16 +868,16 @@ app.get('/admin/licencas', adminAuth, async (req, res) => {
 
 app.post('/admin/licencas', adminAuth, async (req, res) => {
   if (!db) return res.status(503).json({ error: 'Banco indisponível' });
-  const { nome, contato_nome, contato_email, contato_tel, plano, max_alunos, max_profs, valor_mensal, vencimento, obs } = req.body;
+  const { nome, contato_nome, contato_email, contato_tel, plano, max_alunos, max_profs, valor_mensal, vencimento, obs, max_bikes } = req.body;
   if (!nome) return res.status(400).json({ error: 'nome obrigatório' });
   const codigo = shortId().substring(0, 8).toUpperCase();
   try {
     const r = await db.query(
-      `INSERT INTO licencas (codigo, nome, contato_nome, contato_email, contato_tel, plano, max_alunos, max_profs, valor_mensal, vencimento, obs)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING *`,
+      `INSERT INTO licencas (codigo, nome, contato_nome, contato_email, contato_tel, plano, max_alunos, max_profs, valor_mensal, vencimento, obs, max_bikes)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) RETURNING *`,
       [codigo, nome, contato_nome||null, contato_email||null, contato_tel||null,
        plano||'basico', max_alunos||30, max_profs||2,
-       valor_mensal||0, vencimento||null, obs||null]
+       valor_mensal||0, vencimento||null, obs||null, parseInt(max_bikes)||0]
     );
     res.json(r.rows[0]);
   } catch(e) { res.status(500).json({ error: e.message }); }
@@ -882,14 +885,14 @@ app.post('/admin/licencas', adminAuth, async (req, res) => {
 
 app.put('/admin/licencas/:id', adminAuth, async (req, res) => {
   if (!db) return res.status(503).json({ error: 'Banco indisponível' });
-  const { nome, contato_nome, contato_email, contato_tel, plano, max_alunos, max_profs, valor_mensal, vencimento, status, obs } = req.body;
+  const { nome, contato_nome, contato_email, contato_tel, plano, max_alunos, max_profs, valor_mensal, vencimento, status, obs, max_bikes } = req.body;
   try {
     const r = await db.query(
       `UPDATE licencas SET nome=$1, contato_nome=$2, contato_email=$3, contato_tel=$4,
        plano=$5, max_alunos=$6, max_profs=$7, valor_mensal=$8, vencimento=$9,
-       status=$10, obs=$11, updated_at=NOW() WHERE id=$12 RETURNING *`,
+       status=$10, obs=$11, max_bikes=$12, updated_at=NOW() WHERE id=$13 RETURNING *`,
       [nome, contato_nome, contato_email, contato_tel, plano, max_alunos, max_profs,
-       valor_mensal, vencimento, status, obs, req.params.id]
+       valor_mensal, vencimento, status, obs, parseInt(max_bikes)||0, req.params.id]
     );
     res.json(r.rows[0]);
   } catch(e) { res.status(500).json({ error: e.message }); }
@@ -1378,6 +1381,24 @@ app.put('/academia/financeiro/cartao', finAuth, async (req, res) => {
 });
 
 // ══════════════════════════════════════════════════════════════
+// CONFIG — GESTOR (ler configurações da licença)
+// ══════════════════════════════════════════════════════════════
+
+// Retorna configurações não-sensíveis da licença (incluindo max_bikes)
+// max_bikes é somente-leitura para o gestor — definido apenas pelo admin Mario
+app.get('/gestor/config', gestorAuth, async (req, res) => {
+  if (!db) return res.status(503).json({ error: 'Banco indisponível' });
+  try {
+    const r = await db.query(
+      'SELECT max_bikes, max_alunos, plano, nome_fantasia, cidade FROM licencas WHERE codigo=$1',
+      [req.user.license_id]
+    );
+    if (!r.rows.length) return res.status(404).json({ error: 'Licença não encontrada' });
+    res.json(r.rows[0]);
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// ══════════════════════════════════════════════════════════════
 // AGENDA — GESTOR (criar/editar grade de aulas)
 // ══════════════════════════════════════════════════════════════
 
@@ -1404,13 +1425,20 @@ app.post('/gestor/agenda', gestorAuth, async (req, res) => {
   if (!nome || dia_semana === undefined || !hora)
     return res.status(400).json({ error: 'nome, dia_semana e hora obrigatórios' });
   try {
-    // buscar cidade da licença
-    const lic = await db.query('SELECT cidade FROM licencas WHERE codigo=$1', [req.user.license_id]);
-    const cidade = lic.rows[0]?.cidade || null;
+    // buscar cidade e capacidade (max_bikes) da licença
+    const lic = await db.query('SELECT cidade, max_bikes FROM licencas WHERE codigo=$1', [req.user.license_id]);
+    const cidade    = lic.rows[0]?.cidade    || null;
+    const max_bikes = lic.rows[0]?.max_bikes || 0;
+    // Validar vagas contra capacidade física da sala
+    const vagasSolicitadas = parseInt(vagas_max) || 20;
+    if (max_bikes > 0 && vagasSolicitadas > max_bikes)
+      return res.status(400).json({
+        error: `A sala tem capacidade para ${max_bikes} bikes. Você não pode configurar mais vagas do que isso.`
+      });
     const r = await db.query(`
       INSERT INTO aulas_agenda (license_id, nome, professor_nome, dia_semana, hora, duracao_min, vagas_max, sala, cidade)
       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING *
-    `, [req.user.license_id, nome, professor_nome||null, dia_semana, hora, duracao_min||50, vagas_max||20, sala||null, cidade]);
+    `, [req.user.license_id, nome, professor_nome||null, dia_semana, hora, duracao_min||50, vagasSolicitadas, sala||null, cidade]);
     res.json(r.rows[0]);
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
@@ -1420,12 +1448,20 @@ app.put('/gestor/agenda/:id', gestorAuth, async (req, res) => {
   if (!db) return res.status(503).json({ error: 'Banco indisponível' });
   const { nome, professor_nome, dia_semana, hora, duracao_min, vagas_max, sala, ativa } = req.body;
   try {
+    // Validar vagas contra capacidade física da sala
+    const lic = await db.query('SELECT max_bikes FROM licencas WHERE codigo=$1', [req.user.license_id]);
+    const max_bikes = lic.rows[0]?.max_bikes || 0;
+    const vagasSolicitadas = parseInt(vagas_max) || 20;
+    if (max_bikes > 0 && vagasSolicitadas > max_bikes)
+      return res.status(400).json({
+        error: `A sala tem capacidade para ${max_bikes} bikes. Você não pode configurar mais vagas do que isso.`
+      });
     const r = await db.query(`
       UPDATE aulas_agenda SET
         nome=$1, professor_nome=$2, dia_semana=$3, hora=$4,
         duracao_min=$5, vagas_max=$6, sala=$7, ativa=$8
       WHERE id=$9 AND license_id=$10 RETURNING *
-    `, [nome, professor_nome, dia_semana, hora, duracao_min, vagas_max, sala, ativa !== false, req.params.id, req.user.license_id]);
+    `, [nome, professor_nome, dia_semana, hora, duracao_min, vagasSolicitadas, sala, ativa !== false, req.params.id, req.user.license_id]);
     if (!r.rows.length) return res.status(404).json({ error: 'Não encontrado' });
     res.json(r.rows[0]);
   } catch(e) { res.status(500).json({ error: e.message }); }
