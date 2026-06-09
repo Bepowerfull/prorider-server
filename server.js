@@ -75,10 +75,14 @@ function requireRole(...roles) {
 }
 
 function calcLevel(points) {
+  if (points >= 80000) return 'godmode';
+  if (points >= 40000) return 'legend';
+  if (points >= 20000) return 'champion';
   if (points >= 10000) return 'master';
   if (points >= 5000)  return 'elite';
   if (points >= 2000)  return 'avancado';
-  if (points >= 500)   return 'intermediario';
+  if (points >= 800)   return 'intermediario';
+  if (points >= 300)   return 'basico';
   return 'iniciante';
 }
 
