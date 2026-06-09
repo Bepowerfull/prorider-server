@@ -1123,6 +1123,53 @@ app.get('/gestor/alunos/:id', gestorAuth, async (req, res) => {
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
+// Editar dados de um aluno (gestor ou admin)
+app.put('/gestor/alunos/:id', gestorAuth, async (req, res) => {
+  if (!db) return res.status(503).json({ error: 'Banco indisponível' });
+  const { name, email, ftp, peso, status } = req.body;
+  try {
+    // Gestor só pode editar alunos da sua licença (admin pode qualquer)
+    const aluno = await db.query('SELECT * FROM users WHERE id=$1', [req.params.id]);
+    if (!aluno.rows.length) return res.status(404).json({ error: 'Aluno não encontrado' });
+    if (req.user.role === 'gestor' && aluno.rows[0].license_id !== req.user.license_id)
+      return res.status(403).json({ error: 'Aluno não pertence à sua academia' });
+    const fields = [], vals = []; let idx = 1;
+    if (name)   { fields.push(`name=$${idx++}`);  vals.push(name.trim()); }
+    if (email)  { fields.push(`email=$${idx++}`); vals.push(email.trim().toLowerCase()); }
+    if (ftp)    { fields.push(`ftp=$${idx++}`);   vals.push(parseInt(ftp)); }
+    if (peso)   { fields.push(`peso=$${idx++}`);  vals.push(parseFloat(peso)); }
+    if (status) { fields.push(`status=$${idx++}`);vals.push(status); }
+    if (!fields.length) return res.status(400).json({ error: 'Nenhum campo enviado' });
+    fields.push(`updated_at=NOW()`);
+    vals.push(req.params.id);
+    const r = await db.query(
+      `UPDATE users SET ${fields.join(',')} WHERE id=$${idx} RETURNING id,name,email,ftp,peso,status,level,points`,
+      vals
+    );
+    res.json(r.rows[0]);
+  } catch(e) {
+    if (e.code === '23505') return res.status(409).json({ error: 'Este e-mail já está em uso.' });
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// Reset de senha de um aluno (gestor ou admin)
+app.post('/gestor/alunos/:id/reset-senha', gestorAuth, async (req, res) => {
+  if (!db) return res.status(503).json({ error: 'Banco indisponível' });
+  const { password } = req.body;
+  if (!password || password.length < 6)
+    return res.status(400).json({ error: 'Senha deve ter no mínimo 6 caracteres' });
+  try {
+    const aluno = await db.query('SELECT * FROM users WHERE id=$1', [req.params.id]);
+    if (!aluno.rows.length) return res.status(404).json({ error: 'Aluno não encontrado' });
+    if (req.user.role === 'gestor' && aluno.rows[0].license_id !== req.user.license_id)
+      return res.status(403).json({ error: 'Aluno não pertence à sua academia' });
+    const hash = await bcrypt.hash(password, 10);
+    await db.query('UPDATE users SET password_hash=$1, updated_at=NOW() WHERE id=$2', [hash, req.params.id]);
+    res.json({ ok: true });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
 // Stats da academia
 app.get('/gestor/stats', gestorAuth, async (req, res) => {
   if (!db) return res.status(503).json({ error: 'Banco indisponível' });
