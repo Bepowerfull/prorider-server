@@ -111,7 +111,7 @@ async function runMigrations() {
         email        TEXT UNIQUE NOT NULL,
         name         TEXT,
         password_hash TEXT,
-        role         TEXT DEFAULT 'aluno',
+        role         TEXT DEFAULT 'aluno',  -- aluno | professor | gestor | financeiro | admin
         license_id   TEXT,
         points       INTEGER DEFAULT 0,
         level        TEXT DEFAULT 'Iniciante',
@@ -176,7 +176,15 @@ async function runMigrations() {
         ADD COLUMN IF NOT EXISTS financeiro_nome  TEXT,
         ADD COLUMN IF NOT EXISTS dia_vencimento   SMALLINT DEFAULT 10,
         ADD COLUMN IF NOT EXISTS ultimo_pagamento DATE,
-        ADD COLUMN IF NOT EXISTS status_pagamento TEXT DEFAULT 'em_dia'
+        ADD COLUMN IF NOT EXISTS status_pagamento TEXT DEFAULT 'em_dia',
+        -- Dados do cartão: NUNCA armazenar número completo nem CVV.
+        -- Apenas dados seguros para exibição (últimos 4 dígitos, bandeira, validade).
+        -- O número completo JAMAIS transita pelo nosso servidor — vai direto ao gateway.
+        ADD COLUMN IF NOT EXISTS cartao_bandeira   TEXT,
+        ADD COLUMN IF NOT EXISTS cartao_final      CHAR(4),
+        ADD COLUMN IF NOT EXISTS cartao_validade   CHAR(7),  -- MM/AAAA
+        ADD COLUMN IF NOT EXISTS cartao_titular    TEXT,
+        ADD COLUMN IF NOT EXISTS onboarding_token  TEXT UNIQUE  -- token do formulário de onboarding
     `);
     // Tabela de histórico de pagamentos
     await db.query(`
@@ -1215,6 +1223,157 @@ app.get('/aluno/portal/perfil', authMiddleware, async (req, res) => {
       db.query(`SELECT COUNT(*) as total_aulas, COALESCE(SUM(dur_seg),0) as total_seg, COALESCE(SUM(kcal),0) as total_kcal FROM aula_historico WHERE user_id=$1`, [req.user.id]),
     ]);
     res.json({ ...user.rows[0], ...stats.rows[0] });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// ══════════════════════════════════════════════════════════════
+// ONBOARDING — formulário público de nova academia
+// ══════════════════════════════════════════════════════════════
+
+// Gerar token de onboarding para uma licença (admin envia o link)
+app.post('/admin/licencas/:id/gerar-onboarding', adminAuth, async (req, res) => {
+  if (!db) return res.status(503).json({ error: 'Banco indisponível' });
+  try {
+    const token = crypto.randomBytes(16).toString('hex');
+    await db.query('UPDATE licencas SET onboarding_token=$1 WHERE id=$2', [token, req.params.id]);
+    const link = `${req.headers.origin || 'https://bepowerfull.github.io/prorider'}/onboarding.html?token=${token}`;
+    res.json({ token, link });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// Consultar dados da licença pelo token de onboarding (público)
+app.get('/onboarding/:token', async (req, res) => {
+  if (!db) return res.status(503).json({ error: 'Banco indisponível' });
+  try {
+    const r = await db.query(
+      'SELECT id, codigo, nome, nome_fantasia, cidade, plano, valor_mensal, dia_vencimento, financeiro_email, financeiro_nome FROM licencas WHERE onboarding_token=$1',
+      [req.params.token]
+    );
+    if (!r.rows.length) return res.status(404).json({ error: 'Link inválido ou expirado' });
+    res.json(r.rows[0]);
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// Submeter formulário de onboarding (público — cria gestor + financeiro)
+app.post('/onboarding/:token', async (req, res) => {
+  if (!db) return res.status(503).json({ error: 'Banco indisponível' });
+  const { gestor_nome, gestor_email, gestor_senha,
+          fin_nome, fin_email, fin_senha,
+          academia_nome_fantasia, cidade } = req.body;
+  if (!gestor_email || !gestor_senha)
+    return res.status(400).json({ error: 'Dados do gestor obrigatórios' });
+  try {
+    const lic = await db.query('SELECT * FROM licencas WHERE onboarding_token=$1', [req.params.token]);
+    if (!lic.rows.length) return res.status(404).json({ error: 'Link inválido' });
+    const l = lic.rows[0];
+    // Atualizar nome fantasia e cidade se fornecidos
+    if (academia_nome_fantasia || cidade) {
+      await db.query('UPDATE licencas SET nome_fantasia=COALESCE($1,nome_fantasia), cidade=COALESCE($2,cidade) WHERE id=$3',
+        [academia_nome_fantasia||null, cidade||null, l.id]);
+    }
+    // Criar conta gestor
+    const hashGestor = await bcrypt.hash(gestor_senha, 10);
+    await db.query(`
+      INSERT INTO users (email, name, password_hash, role, license_id)
+      VALUES ($1,$2,$3,'gestor',$4)
+      ON CONFLICT (email) DO UPDATE SET role='gestor', license_id=$4, password_hash=$3
+    `, [gestor_email.toLowerCase(), gestor_nome||gestor_email, hashGestor, l.codigo]);
+    // Criar conta financeiro (se fornecida)
+    if (fin_email && fin_senha) {
+      const hashFin = await bcrypt.hash(fin_senha, 10);
+      await db.query(`
+        INSERT INTO users (email, name, password_hash, role, license_id)
+        VALUES ($1,$2,$3,'financeiro',$4)
+        ON CONFLICT (email) DO UPDATE SET role='financeiro', license_id=$4, password_hash=$3
+      `, [fin_email.toLowerCase(), fin_nome||fin_email, hashFin, l.codigo]);
+      await db.query('UPDATE licencas SET financeiro_email=$1, financeiro_nome=$2 WHERE id=$3',
+        [fin_email, fin_nome||fin_email, l.id]);
+    }
+    // Invalidar token de onboarding após uso
+    await db.query('UPDATE licencas SET onboarding_token=NULL WHERE id=$1', [l.id]);
+    res.json({ ok: true, message: 'Cadastro concluído! Faça login com suas credenciais.' });
+  } catch(e) {
+    if (e.code === '23505') return res.status(409).json({ error: 'Este e-mail já está cadastrado.' });
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// ══════════════════════════════════════════════════════════════
+// FINANCEIRO DA ACADEMIA (role: financeiro ou gestor ou admin)
+// ══════════════════════════════════════════════════════════════
+
+function finAuth(req, res, next) {
+  const token = (req.headers.authorization || '').replace('Bearer ', '');
+  if (!token) return res.status(401).json({ error: 'Token necessário' });
+  try {
+    const p = jwt.verify(token, JWT_SECRET);
+    if (!['financeiro','gestor','admin'].includes(p.role))
+      return res.status(403).json({ error: 'Acesso negado' });
+    req.user = p;
+    next();
+  } catch(e) { return res.status(401).json({ error: 'Token inválido' }); }
+}
+
+// Ver situação financeira da própria academia
+app.get('/academia/financeiro', finAuth, async (req, res) => {
+  if (!db) return res.status(503).json({ error: 'Banco indisponível' });
+  const licId = req.user.license_id;
+  if (!licId) return res.status(403).json({ error: 'Sem licença associada' });
+  try {
+    const [lic, pgs] = await Promise.all([
+      db.query('SELECT * FROM licencas WHERE codigo=$1', [licId]),
+      db.query('SELECT id,data_pgto,referencia,valor,metodo,status FROM pagamentos WHERE license_id=$1 ORDER BY data_pgto DESC LIMIT 24', [licId]),
+    ]);
+    if (!lic.rows.length) return res.status(404).json({ error: 'Licença não encontrada' });
+    const l = lic.rows[0];
+    const isAdmin = req.user.role === 'admin' || req.user.impersonated_by;
+    // ⚠️ SEGURANÇA: dados do cartão são INVISÍVEIS para admin e gestor em modo suporte.
+    // Apenas o role 'financeiro' ou o gestor titular (sem impersonação) vê dados mascarados.
+    // Número completo e CVV NUNCA são armazenados — apenas últimos 4 dígitos e bandeira.
+    const podeVerCartao = req.user.role === 'financeiro' ||
+                          (req.user.role === 'gestor' && !req.user.impersonated_by);
+    res.json({
+      status_pagamento: calcStatusPagamento(l.ultimo_pagamento, l.dia_vencimento),
+      valor_mensal: l.valor_mensal,
+      dia_vencimento: l.dia_vencimento,
+      ultimo_pagamento: l.ultimo_pagamento,
+      financeiro_nome: l.financeiro_nome,
+      financeiro_email: l.financeiro_email,
+      // Cartão — apenas para financeiro/gestor titular; admin vê null
+      cartao: podeVerCartao ? {
+        bandeira:  l.cartao_bandeira,
+        final:     l.cartao_final,      // apenas últimos 4 dígitos
+        validade:  l.cartao_validade,   // MM/AAAA
+        titular:   l.cartao_titular,
+      } : null,
+      cartao_cadastrado: !!(l.cartao_final), // admin vê só se há cartão, mas não os dados
+      pagamentos: pgs.rows,
+    });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// Salvar dados do cartão (apenas financeiro ou gestor titular — NUNCA admin)
+app.put('/academia/financeiro/cartao', finAuth, async (req, res) => {
+  if (!db) return res.status(503).json({ error: 'Banco indisponível' });
+  // ⚠️ SEGURANÇA: admin e modo suporte não podem salvar nem ver dados completos do cartão.
+  // Qualquer tentativa de acesso via impersonação é bloqueada aqui no servidor.
+  if (req.user.role === 'admin' || req.user.impersonated_by)
+    return res.status(403).json({ error: 'Administradores não têm acesso a dados de cartão. Use o login do responsável financeiro.' });
+  const { bandeira, final, validade, titular } = req.body;
+  // Validação: final deve ser exatamente 4 dígitos
+  if (!final || !/^\d{4}$/.test(final))
+    return res.status(400).json({ error: 'Informe os últimos 4 dígitos do cartão.' });
+  if (!validade || !/^\d{2}\/\d{4}$/.test(validade))
+    return res.status(400).json({ error: 'Validade no formato MM/AAAA.' });
+  // IMPORTANTE: número completo e CVV NUNCA chegam aqui.
+  // O formulário do cliente envia APENAS estes campos seguros.
+  try {
+    await db.query(`
+      UPDATE licencas SET
+        cartao_bandeira=$1, cartao_final=$2, cartao_validade=$3, cartao_titular=$4, updated_at=NOW()
+      WHERE codigo=$5
+    `, [bandeira||null, final, validade, titular||null, req.user.license_id]);
+    res.json({ ok: true });
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
