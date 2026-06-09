@@ -169,8 +169,31 @@ async function runMigrations() {
     await db.query(`
       ALTER TABLE licencas
         ADD COLUMN IF NOT EXISTS obs TEXT,
-        ADD COLUMN IF NOT EXISTS valor_mensal NUMERIC(8,2) DEFAULT 0
+        ADD COLUMN IF NOT EXISTS valor_mensal NUMERIC(8,2) DEFAULT 0,
+        ADD COLUMN IF NOT EXISTS cidade TEXT,
+        ADD COLUMN IF NOT EXISTS nome_fantasia TEXT,
+        ADD COLUMN IF NOT EXISTS financeiro_email TEXT,
+        ADD COLUMN IF NOT EXISTS financeiro_nome  TEXT,
+        ADD COLUMN IF NOT EXISTS dia_vencimento   SMALLINT DEFAULT 10,
+        ADD COLUMN IF NOT EXISTS ultimo_pagamento DATE,
+        ADD COLUMN IF NOT EXISTS status_pagamento TEXT DEFAULT 'em_dia'
     `);
+    // Tabela de histórico de pagamentos
+    await db.query(`
+      CREATE TABLE IF NOT EXISTS pagamentos (
+        id           SERIAL PRIMARY KEY,
+        license_id   TEXT NOT NULL,
+        valor        NUMERIC(8,2) NOT NULL,
+        data_pgto    DATE NOT NULL DEFAULT CURRENT_DATE,
+        referencia   TEXT,  -- ex: "Junho/2026"
+        metodo       TEXT DEFAULT 'cartao',
+        status       TEXT DEFAULT 'confirmado',
+        obs          TEXT,
+        registrado_por TEXT,
+        created_at   TIMESTAMPTZ DEFAULT NOW()
+      )
+    `);
+    log('Migração pagamentos OK');
     // Vincular users à licença
     await db.query(`
       ALTER TABLE users
@@ -931,6 +954,129 @@ app.post('/admin/criar-admin', async (req, res) => {
       [email.toLowerCase(), name||email, hash]
     );
     res.json({ ok: true, user: r.rows[0] });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// ══════════════════════════════════════════════════════════════
+// IMPERSONAÇÃO — admin entra como gestor de qualquer licença
+// ══════════════════════════════════════════════════════════════
+app.post('/admin/impersonate/:license_id', adminAuth, async (req, res) => {
+  if (!db) return res.status(503).json({ error: 'Banco indisponível' });
+  try {
+    const lic = await db.query('SELECT * FROM licencas WHERE codigo=$1', [req.params.license_id]);
+    if (!lic.rows.length) return res.status(404).json({ error: 'Licença não encontrada' });
+    // Gera token temporário com role gestor + license_id desta academia
+    const token = jwt.sign(
+      { id: req.user.id, email: req.user.email, role: 'gestor',
+        license_id: req.params.license_id, impersonated_by: req.user.email },
+      JWT_SECRET, { expiresIn: '4h' }
+    );
+    res.json({ token, academia: lic.rows[0] });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// ══════════════════════════════════════════════════════════════
+// PAGAMENTOS — admin gerencia pagamentos de todas as licenças
+// ══════════════════════════════════════════════════════════════
+
+// Helper — calcula status de pagamento automático
+function calcStatusPagamento(ultimoPagamento, diaVenc) {
+  if (!ultimoPagamento) return 'pendente';
+  const hoje  = new Date(); hoje.setHours(0,0,0,0);
+  const pgto  = new Date(ultimoPagamento);
+  const mesAtual = hoje.getMonth(), anoAtual = hoje.getFullYear();
+  // Data de vencimento do mês atual
+  const vencMesAtual = new Date(anoAtual, mesAtual, diaVenc || 10);
+  // Se já pagou neste mês ou no mês passado e ainda não venceu
+  const mesUltimoPgto  = pgto.getMonth();
+  const anoUltimoPgto  = pgto.getFullYear();
+  const diffMeses = (anoAtual - anoUltimoPgto) * 12 + (mesAtual - mesUltimoPgto);
+  if (diffMeses === 0) return 'em_dia';
+  const diasAtraso = Math.floor((hoje - vencMesAtual) / 86400000);
+  if (diasAtraso < 0)  return 'em_dia';    // ainda não venceu
+  if (diasAtraso < 15) return 'atrasado';  // amarelo
+  return 'bloqueado';                       // vermelho — corta acesso
+}
+
+// Listar pagamentos de uma licença
+app.get('/admin/pagamentos/:license_id', adminAuth, async (req, res) => {
+  if (!db) return res.status(503).json({ error: 'Banco indisponível' });
+  try {
+    const [lic, pgs] = await Promise.all([
+      db.query('SELECT * FROM licencas WHERE codigo=$1', [req.params.license_id]),
+      db.query('SELECT * FROM pagamentos WHERE license_id=$1 ORDER BY data_pgto DESC LIMIT 24', [req.params.license_id]),
+    ]);
+    if (!lic.rows.length) return res.status(404).json({ error: 'Licença não encontrada' });
+    const l = lic.rows[0];
+    const status = calcStatusPagamento(l.ultimo_pagamento, l.dia_vencimento);
+    // Atualiza status_pagamento se mudou
+    if (status !== l.status_pagamento) {
+      await db.query('UPDATE licencas SET status_pagamento=$1, status=$2 WHERE codigo=$3',
+        [status, status === 'bloqueado' ? 'bloqueada' : 'ativa', req.params.license_id]);
+    }
+    res.json({ licenca: { ...l, status_pagamento: status }, pagamentos: pgs.rows });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// Registrar pagamento
+app.post('/admin/pagamentos/:license_id', adminAuth, async (req, res) => {
+  if (!db) return res.status(503).json({ error: 'Banco indisponível' });
+  const { valor, data_pgto, referencia, metodo, obs } = req.body;
+  if (!valor) return res.status(400).json({ error: 'Valor obrigatório' });
+  try {
+    const dataPgto = data_pgto || new Date().toISOString().split('T')[0];
+    await db.query(`
+      INSERT INTO pagamentos (license_id, valor, data_pgto, referencia, metodo, obs, registrado_por)
+      VALUES ($1,$2,$3,$4,$5,$6,$7)
+    `, [req.params.license_id, valor, dataPgto, referencia||null, metodo||'cartao', obs||null, req.user.email]);
+    // Atualiza ultimo_pagamento e status
+    await db.query(`
+      UPDATE licencas SET ultimo_pagamento=$1, status_pagamento='em_dia', status='ativa', updated_at=NOW()
+      WHERE codigo=$2
+    `, [dataPgto, req.params.license_id]);
+    res.json({ ok: true });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// Atualizar dados financeiros da licença (email financeiro, dia vencimento, valor)
+app.patch('/admin/licencas/:id/financeiro', adminAuth, async (req, res) => {
+  if (!db) return res.status(503).json({ error: 'Banco indisponível' });
+  const { financeiro_email, financeiro_nome, dia_vencimento, valor_mensal } = req.body;
+  try {
+    const r = await db.query(`
+      UPDATE licencas SET
+        financeiro_email=$1, financeiro_nome=$2,
+        dia_vencimento=$3, valor_mensal=$4, updated_at=NOW()
+      WHERE id=$5 RETURNING *
+    `, [financeiro_email||null, financeiro_nome||null, dia_vencimento||10, valor_mensal||0, req.params.id]);
+    res.json(r.rows[0]);
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// Status de pagamento de todas as licenças (dashboard financeiro)
+app.get('/admin/financeiro/dashboard', adminAuth, async (req, res) => {
+  if (!db) return res.status(503).json({ error: 'Banco indisponível' });
+  try {
+    const r = await db.query(`
+      SELECT l.*,
+        (SELECT COUNT(*) FROM users WHERE license_id=l.codigo AND role='aluno') as total_alunos,
+        (SELECT data_pgto FROM pagamentos WHERE license_id=l.codigo ORDER BY data_pgto DESC LIMIT 1) as ultimo_pgto_data
+      FROM licencas l ORDER BY l.nome
+    `);
+    // Recalcular status de cada licença
+    const licencas = r.rows.map(l => ({
+      ...l,
+      status_pagamento: calcStatusPagamento(l.ultimo_pagamento || l.ultimo_pgto_data, l.dia_vencimento)
+    }));
+    const resumo = {
+      total: licencas.length,
+      em_dia:   licencas.filter(l => l.status_pagamento === 'em_dia').length,
+      atrasado: licencas.filter(l => l.status_pagamento === 'atrasado').length,
+      bloqueado:licencas.filter(l => l.status_pagamento === 'bloqueado').length,
+      pendente: licencas.filter(l => l.status_pagamento === 'pendente').length,
+      receita_mensal: licencas.reduce((s,l) => s + parseFloat(l.valor_mensal||0), 0),
+    };
+    res.json({ licencas, resumo });
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
