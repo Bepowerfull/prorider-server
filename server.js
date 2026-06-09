@@ -119,7 +119,7 @@ app.get('/ping', async (req, res) => {
   }
   res.json({
     status: 'ok',
-    version: '2.0',
+    version: '2.1',
     db: dbOk,
     db_pool: !!db,
     db_url_set: !!process.env.DATABASE_URL,
@@ -154,7 +154,7 @@ app.post('/user/register', async (req, res) => {
   } catch(e) {
     if (e.code === '23505') return res.status(409).json({ error: 'Email já cadastrado' });
     log('register error: ' + e.message);
-    res.status(500).json({ error: 'Erro interno' });
+    res.status(500).json({ error: 'Erro interno', detail: e.message });
   }
 });
 
@@ -174,7 +174,7 @@ app.post('/user/login', async (req, res) => {
     res.json({ user: { id: user.id, email: user.email, name: user.name, role: user.role, points: user.points, level: user.level }, token });
   } catch(e) {
     log('login error: ' + e.message);
-    res.status(500).json({ error: 'Erro interno' });
+    res.status(500).json({ error: 'Erro interno', detail: e.message });
   }
 });
 
