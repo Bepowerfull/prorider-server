@@ -96,15 +96,57 @@ function shortId() {
   return crypto.randomBytes(10).toString('hex'); // 20 chars
 }
 
-// ══ Migração de colunas (idempotente) ════════════════════════
-if (db) {
-  db.query(`
-    ALTER TABLE users
-      ADD COLUMN IF NOT EXISTS peso  NUMERIC(5,1) DEFAULT 70,
-      ADD COLUMN IF NOT EXISTS ftp   INTEGER      DEFAULT 130,
-      ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT NOW()
-  `).then(() => log('Migração users OK')).catch(e => log('Migração users: ' + e.message));
+// ══ Migração completa (idempotente — CREATE IF NOT EXISTS + ADD COLUMN IF NOT EXISTS) ══
+async function runMigrations() {
+  if (!db) return;
+  try {
+    // Criar tabela principal se não existir
+    await db.query(`
+      CREATE TABLE IF NOT EXISTS users (
+        id           SERIAL PRIMARY KEY,
+        email        TEXT UNIQUE NOT NULL,
+        name         TEXT,
+        password_hash TEXT,
+        role         TEXT DEFAULT 'aluno',
+        license_id   TEXT,
+        points       INTEGER DEFAULT 0,
+        level        TEXT DEFAULT 'Iniciante',
+        peso         NUMERIC(5,1) DEFAULT 70,
+        ftp          INTEGER DEFAULT 130,
+        updated_at   TIMESTAMPTZ DEFAULT NOW(),
+        created_at   TIMESTAMPTZ DEFAULT NOW()
+      )
+    `);
+    log('Migração users OK (CREATE IF NOT EXISTS)');
+    // Adicionar colunas novas em instâncias antigas
+    await db.query(`
+      ALTER TABLE users
+        ADD COLUMN IF NOT EXISTS peso       NUMERIC(5,1) DEFAULT 70,
+        ADD COLUMN IF NOT EXISTS ftp        INTEGER      DEFAULT 130,
+        ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ  DEFAULT NOW()
+    `);
+    // Tabela de histórico de aulas
+    await db.query(`
+      CREATE TABLE IF NOT EXISTS aula_historico (
+        id         SERIAL PRIMARY KEY,
+        user_id    INTEGER REFERENCES users(id) ON DELETE CASCADE,
+        nome       TEXT,
+        data_aula  TIMESTAMPTZ DEFAULT NOW(),
+        dur_seg    INTEGER DEFAULT 0,
+        kcal       INTEGER DEFAULT 0,
+        zona_pct   JSONB,
+        avg_ftp    INTEGER DEFAULT 0,
+        avg_rpm    INTEGER DEFAULT 0,
+        max_rpm    INTEGER DEFAULT 0,
+        avg_watts  INTEGER DEFAULT 0
+      )
+    `);
+    log('Migração aula_historico OK');
+  } catch(e) {
+    log('Migração ERRO: ' + e.message);
+  }
 }
+runMigrations();
 
 // ══════════════════════════════════════════════════════════════
 // ROTAS HTTP
@@ -119,7 +161,7 @@ app.get('/ping', async (req, res) => {
   }
   res.json({
     status: 'ok',
-    version: '2.1',
+    version: '2.2',
     db: dbOk,
     db_pool: !!db,
     db_url_set: !!process.env.DATABASE_URL,
