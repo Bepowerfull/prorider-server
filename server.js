@@ -246,6 +246,13 @@ async function runMigrations() {
         ADD COLUMN IF NOT EXISTS cidade TEXT,
         ADD COLUMN IF NOT EXISTS nome_fantasia TEXT
     `);
+    // Adiciona modo_inicio na grade de aulas
+    // 'automatico'  = aula começa sozinha quando o cronômetro chega a zero
+    // 'professor'   = cronômetro zera, mas aguarda o professor pressionar "Iniciar" no mini PC
+    await db.query(`
+      ALTER TABLE aulas_agenda
+        ADD COLUMN IF NOT EXISTS modo_inicio TEXT DEFAULT 'professor'
+    `);
     log('Migração aulas_agenda OK');
 
     // ── Reservas de aulas ─────────────────────────────────────────
@@ -1448,6 +1455,111 @@ app.put('/academia/financeiro/cartao', finAuth, async (req, res) => {
 });
 
 // ══════════════════════════════════════════════════════════════
+// ══════════════════════════════════════════════════════════════
+// PRÓXIMA AULA — ProRider Jim (mini PC faz polling a cada 60s)
+// ══════════════════════════════════════════════════════════════
+// Retorna a próxima aula no horário de hoje que ainda não começou.
+// Se faltar ≤ MINUTOS_ANTECEDENCIA minutos, também cria a sessão ao vivo
+// automaticamente (caso não exista ainda) para o mini PC já exibir o QR.
+//
+// O mini PC usa esta resposta para:
+//   1. Calcular o countdown (segundos_ate_aula)
+//   2. Exibir nome da aula, professor, vagas disponíveis
+//   3. Mostrar o QR code quando segundos_ate_aula <= 600 (10 min)
+//   4. Se modo_inicio='automatico', disparar início da aula ao chegar em 0
+//   5. Se modo_inicio='professor', aguardar o professor pressionar Iniciar
+//
+// Parâmetro opcional: ?antecedencia=N  (default: 10, mínimo: 1, máximo: 60 minutos)
+app.get('/gestor/proxima-aula', gestorAuth, async (req, res) => {
+  if (!db) return res.status(503).json({ error: 'Banco indisponível' });
+  const MINUTOS = Math.min(60, Math.max(1, parseInt(req.query.antecedencia) || 10));
+  try {
+    // Hora atual no fuso de Brasília
+    const agora = new Date();
+    const horaAgora = agora.toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo', hour12: false });
+    const diaSemana = agora.toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo', weekday: 'short' });
+    // Mapeia nome curto do dia para número (0=Dom, 1=Seg...)
+    const diaMap = { 'dom': 0, 'seg': 1, 'ter': 2, 'qua': 3, 'qui': 4, 'sex': 5, 'sáb': 6, 'sab': 6 };
+    const diaN = diaMap[diaSemana.toLowerCase().replace('.', '')] ?? agora.getDay();
+
+    // Busca próxima aula de hoje que ainda não começou (ou está em até MINUTOS min)
+    const r = await db.query(`
+      SELECT a.*,
+        EXTRACT(EPOCH FROM (
+          (CURRENT_DATE + a.hora::time) AT TIME ZONE 'America/Sao_Paulo'
+          - NOW() AT TIME ZONE 'America/Sao_Paulo'
+        )) AS segundos_ate_aula
+      FROM aulas_agenda a
+      WHERE a.license_id = $1
+        AND a.dia_semana = $2
+        AND a.ativa = TRUE
+        AND (CURRENT_DATE + a.hora::time) AT TIME ZONE 'America/Sao_Paulo'
+            >= NOW() AT TIME ZONE 'America/Sao_Paulo' - INTERVAL '5 minutes'
+      ORDER BY a.hora
+      LIMIT 1
+    `, [req.user.license_id, diaN]);
+
+    if (!r.rows.length) return res.json({ proxima_aula: null });
+
+    const aula = r.rows[0];
+    const segsAte = Math.round(parseFloat(aula.segundos_ate_aula));
+
+    // Contar reservas confirmadas para hoje
+    const reservas = await db.query(`
+      SELECT COUNT(*) FROM aulas_reservas
+      WHERE agenda_id=$1 AND data_aula=CURRENT_DATE AND status<>'cancelado'
+    `, [aula.id]);
+    const reservadas = parseInt(reservas.rows[0].count);
+    const vagas_livres = (aula.vagas_max || 0) - reservadas;
+
+    // Se faltam ≤ MINUTOS minutos: criar sessão automaticamente (se não existir)
+    let sessao = null;
+    if (segsAte <= MINUTOS * 60 && segsAte >= -300) { // até 5 min depois do início
+      const sessaoExist = await db.query(
+        "SELECT * FROM sessoes_ao_vivo WHERE license_id=$1 AND status='ativa' ORDER BY created_at DESC LIMIT 1",
+        [req.user.license_id]
+      );
+      if (sessaoExist.rows.length) {
+        sessao = sessaoExist.rows[0];
+      } else {
+        // Buscar bikes disponíveis
+        const lic = await db.query('SELECT bikes_disponiveis, max_bikes FROM licencas WHERE codigo=$1', [req.user.license_id]);
+        const max_conexoes = lic.rows[0]?.bikes_disponiveis || lic.rows[0]?.max_bikes || aula.vagas_max || 1;
+        const token = require('crypto').randomBytes(20).toString('hex');
+        const ns = await db.query(`
+          INSERT INTO sessoes_ao_vivo (license_id, agenda_id, token, nome_aula, professor, max_conexoes)
+          VALUES ($1,$2,$3,$4,$5,$6) RETURNING *
+        `, [req.user.license_id, aula.id, token, aula.nome, aula.professor_nome, max_conexoes]);
+        sessao = ns.rows[0];
+        log(`[AutoSessão] Criada automaticamente para aula "${aula.nome}" — ${segsAte}s antes do início`);
+      }
+    }
+
+    res.json({
+      proxima_aula: {
+        ...aula,
+        segundos_ate_aula: segsAte,
+        reservadas,
+        vagas_livres,
+        // Janela de exibição do QR: aula começa em ≤ MINUTOS min
+        mostrar_qr: segsAte <= MINUTOS * 60,
+        // Disparar início automático: aula começa em ≤ 0s E modo é automático
+        iniciar_automatico: segsAte <= 0 && aula.modo_inicio === 'automatico',
+      },
+      sessao: sessao ? {
+        id:            sessao.id,
+        token:         sessao.token,
+        max_conexoes:  sessao.max_conexoes,
+        // QR payload — inclui token do servidor. O mini PC acrescenta ?local=IP:PORTA
+        // para que o app do aluno tente conexão local antes do servidor.
+        qr_payload_base: `prorider://sessao?token=${sessao.token}`,
+        // Exemplo com IP local (o mini PC substitui LOCAL_IP pelo IP real da rede):
+        // prorider://sessao?token=XXXX&local=192.168.1.10:3001
+      } : null,
+    });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
 // CONFIG — GESTOR (ler configurações da licença)
 // ══════════════════════════════════════════════════════════════
 
@@ -1513,27 +1625,26 @@ app.get('/gestor/agenda', gestorAuth, async (req, res) => {
 // Criar aula na grade
 app.post('/gestor/agenda', gestorAuth, async (req, res) => {
   if (!db) return res.status(503).json({ error: 'Banco indisponível' });
-  const { nome, professor_nome, dia_semana, hora, duracao_min, vagas_max, sala } = req.body;
+  const { nome, professor_nome, dia_semana, hora, duracao_min, vagas_max, sala, modo_inicio } = req.body;
   if (!nome || dia_semana === undefined || !hora)
     return res.status(400).json({ error: 'nome, dia_semana e hora obrigatórios' });
   try {
     // buscar cidade e capacidade operacional da licença
-    // bikes_disponiveis = número real de bikes na sala agora (≤ max_bikes)
     const lic = await db.query('SELECT cidade, max_bikes, bikes_disponiveis FROM licencas WHERE codigo=$1', [req.user.license_id]);
     const cidade            = lic.rows[0]?.cidade            || null;
     const max_bikes         = lic.rows[0]?.max_bikes         || 0;
     const bikes_disponiveis = lic.rows[0]?.bikes_disponiveis || max_bikes || 0;
-    // Teto efetivo = bikes atualmente disponíveis (admin local pode ter reduzido)
     const teto = bikes_disponiveis > 0 ? bikes_disponiveis : max_bikes;
     const vagasSolicitadas = parseInt(vagas_max) || 20;
     if (teto > 0 && vagasSolicitadas > teto)
       return res.status(400).json({
         error: `A sala tem ${teto} bikes disponíveis no momento. Você não pode configurar mais vagas do que isso.`
       });
+    const modoValido = ['automatico','professor'].includes(modo_inicio) ? modo_inicio : 'professor';
     const r = await db.query(`
-      INSERT INTO aulas_agenda (license_id, nome, professor_nome, dia_semana, hora, duracao_min, vagas_max, sala, cidade)
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING *
-    `, [req.user.license_id, nome, professor_nome||null, dia_semana, hora, duracao_min||50, vagasSolicitadas, sala||null, cidade]);
+      INSERT INTO aulas_agenda (license_id, nome, professor_nome, dia_semana, hora, duracao_min, vagas_max, sala, cidade, modo_inicio)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING *
+    `, [req.user.license_id, nome, professor_nome||null, dia_semana, hora, duracao_min||50, vagasSolicitadas, sala||null, cidade, modoValido]);
     res.json(r.rows[0]);
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
@@ -1541,7 +1652,7 @@ app.post('/gestor/agenda', gestorAuth, async (req, res) => {
 // Editar aula
 app.put('/gestor/agenda/:id', gestorAuth, async (req, res) => {
   if (!db) return res.status(503).json({ error: 'Banco indisponível' });
-  const { nome, professor_nome, dia_semana, hora, duracao_min, vagas_max, sala, ativa } = req.body;
+  const { nome, professor_nome, dia_semana, hora, duracao_min, vagas_max, sala, ativa, modo_inicio } = req.body;
   try {
     // Validar vagas contra bikes disponíveis (teto operacional)
     const lic = await db.query('SELECT max_bikes, bikes_disponiveis FROM licencas WHERE codigo=$1', [req.user.license_id]);
@@ -1553,12 +1664,13 @@ app.put('/gestor/agenda/:id', gestorAuth, async (req, res) => {
       return res.status(400).json({
         error: `A sala tem ${teto} bikes disponíveis no momento. Você não pode configurar mais vagas do que isso.`
       });
+    const modoValido = ['automatico','professor'].includes(modo_inicio) ? modo_inicio : 'professor';
     const r = await db.query(`
       UPDATE aulas_agenda SET
         nome=$1, professor_nome=$2, dia_semana=$3, hora=$4,
-        duracao_min=$5, vagas_max=$6, sala=$7, ativa=$8
-      WHERE id=$9 AND license_id=$10 RETURNING *
-    `, [nome, professor_nome, dia_semana, hora, duracao_min, vagasSolicitadas, sala, ativa !== false, req.params.id, req.user.license_id]);
+        duracao_min=$5, vagas_max=$6, sala=$7, ativa=$8, modo_inicio=$9
+      WHERE id=$10 AND license_id=$11 RETURNING *
+    `, [nome, professor_nome, dia_semana, hora, duracao_min, vagasSolicitadas, sala, ativa !== false, modoValido, req.params.id, req.user.license_id]);
     if (!r.rows.length) return res.status(404).json({ error: 'Não encontrado' });
     res.json(r.rows[0]);
   } catch(e) { res.status(500).json({ error: e.message }); }
