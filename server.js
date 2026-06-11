@@ -1023,7 +1023,8 @@ function adminAuth(req, res, next) {
   if (!token) return res.status(401).json({ error: 'Token necessário' });
   try {
     const payload = jwt.verify(token, JWT_SECRET);
-    if (payload.role !== 'admin') return res.status(403).json({ error: 'Acesso negado' });
+    if (payload.role !== 'admin' && payload.role !== 'super_admin' && !payload.impersonated_by)
+      return res.status(403).json({ error: 'Acesso negado' });
     req.user = payload;
     next();
   } catch(e) { res.status(401).json({ error: 'Token inválido' }); }
