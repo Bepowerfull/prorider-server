@@ -684,15 +684,17 @@ app.post('/admin/license/:id/impersonate', authMiddleware, requireRole('super_ad
 // Criar nova licença
 app.post('/admin/license/create', authMiddleware, requireRole('super_admin'), async (req, res) => {
   if (!db) return res.status(503).json({ error: 'Banco não disponível' });
-  const { type, name, admin_email, expires_at } = req.body;
+  const { type, name, nome_fantasia, cidade, max_bikes, admin_email, expires_at,
+          gestor_nome, gestor_email, fin_nome, fin_email } = req.body;
   if (!type || !name) return res.status(400).json({ error: 'type e name obrigatórios' });
   try {
-    // Gerar chave: PRDR-STDO-XXXX-XXXX-XXXX
     const suffix = crypto.randomBytes(6).toString('hex').toUpperCase();
     const key = `PRDR-${type.toUpperCase().substring(0,4)}-${suffix.substring(0,4)}-${suffix.substring(4,8)}-${suffix.substring(8,12)}`;
     const r = await db.query(
-      'INSERT INTO licenses (key, type, name, admin_email, expires_at) VALUES ($1,$2,$3,$4,$5) RETURNING *',
-      [key, type, name, admin_email||null, expires_at||null]
+      `INSERT INTO licenses (key, type, name, nome_fantasia, cidade, max_bikes, admin_email, expires_at, gestor_nome, gestor_email, fin_nome, fin_email)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) RETURNING *`,
+      [key, type, name, nome_fantasia||null, cidade||null, max_bikes||10,
+       admin_email||null, expires_at||null, gestor_nome||null, gestor_email||null, fin_nome||null, fin_email||null]
     );
     res.json(r.rows[0]);
   } catch(e) {
