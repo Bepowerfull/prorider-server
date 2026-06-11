@@ -648,19 +648,39 @@ app.get('/admin/users', authMiddleware, requireRole('super_admin', 'admin_licenc
   }
 });
 
-// Listar licenças
+// Listar licenças (une tabela licenses + licencas legado)
 app.get('/admin/licenses', authMiddleware, requireRole('super_admin'), async (req, res) => {
   if (!db) return res.status(503).json({ error: 'Banco não disponível' });
   try {
     const r = await db.query(`
-      SELECT id,key,type,name,nome_fantasia,cidade,status,admin_email,
-             gestor_email,gestor_nome,fin_email,fin_nome,
-             max_bikes,created_at,expires_at
-      FROM licenses ORDER BY created_at DESC
+      SELECT id, key, type, name, nome_fantasia, cidade, status, admin_email,
+             gestor_email, gestor_nome, fin_email, fin_nome,
+             max_bikes, created_at, expires_at, 'new' AS source
+      FROM licenses
+      UNION ALL
+      SELECT
+        id,
+        codigo        AS key,
+        plano         AS type,
+        nome          AS name,
+        nome_fantasia,
+        cidade,
+        status,
+        contato_email AS admin_email,
+        financeiro_email AS gestor_email,
+        financeiro_nome  AS gestor_nome,
+        NULL          AS fin_email,
+        NULL          AS fin_nome,
+        max_bikes,
+        created_at,
+        vencimento    AS expires_at,
+        'legacy'      AS source
+      FROM licencas
+      ORDER BY created_at DESC
     `);
     res.json(r.rows);
   } catch(e) {
-    res.status(500).json({ error: 'Erro interno' });
+    res.status(500).json({ error: 'Erro interno: ' + e.message });
   }
 });
 
