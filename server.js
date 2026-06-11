@@ -323,10 +323,17 @@ async function runMigrations() {
     // Adicionar colunas novas se não existirem (upgrade de schema)
     await db.query(`ALTER TABLE sessao_conexoes ADD COLUMN IF NOT EXISTS fonte TEXT DEFAULT 'qr'`);
     await db.query(`ALTER TABLE sessao_conexoes ADD COLUMN IF NOT EXISTS user_id_nullable INTEGER`);
-    // Status bt_anonimo: permitir user_id NULL para bikes Bluetooth sem login
-    // Remover constraint UNIQUE para permitir múltiplas entradas anônimas
-    // (a constraint já existente não impede isso pois NULL != NULL em SQL)
     log('Migração sessoes_ao_vivo OK');
+    // Onboarding token para licenses (sistema super_admin)
+    await db.query(`ALTER TABLE licenses ADD COLUMN IF NOT EXISTS onboarding_token TEXT`);
+    await db.query(`ALTER TABLE licenses ADD COLUMN IF NOT EXISTS max_bikes INTEGER DEFAULT 10`);
+    await db.query(`ALTER TABLE licenses ADD COLUMN IF NOT EXISTS gestor_email TEXT`);
+    await db.query(`ALTER TABLE licenses ADD COLUMN IF NOT EXISTS gestor_nome TEXT`);
+    await db.query(`ALTER TABLE licenses ADD COLUMN IF NOT EXISTS fin_email TEXT`);
+    await db.query(`ALTER TABLE licenses ADD COLUMN IF NOT EXISTS fin_nome TEXT`);
+    await db.query(`ALTER TABLE licenses ADD COLUMN IF NOT EXISTS cidade TEXT`);
+    await db.query(`ALTER TABLE licenses ADD COLUMN IF NOT EXISTS nome_fantasia TEXT`);
+    log('Migração licenses onboarding OK');
 
   } catch(e) {
     log('Migração ERRO: ' + e.message);
@@ -668,6 +675,76 @@ app.post('/admin/license/create', authMiddleware, requireRole('super_admin'), as
     res.json(r.rows[0]);
   } catch(e) {
     res.status(500).json({ error: 'Erro interno' });
+  }
+});
+
+// Gerar link de onboarding para uma license (super_admin)
+app.post('/admin/license/:id/gerar-onboarding', authMiddleware, requireRole('super_admin'), async (req, res) => {
+  if (!db) return res.status(503).json({ error: 'Banco indisponível' });
+  try {
+    const token = crypto.randomBytes(16).toString('hex');
+    const r = await db.query('UPDATE licenses SET onboarding_token=$1 WHERE id=$2 RETURNING id,name', [token, req.params.id]);
+    if (!r.rows.length) return res.status(404).json({ error: 'Licença não encontrada' });
+    const origin = req.headers.origin || 'https://bepowerfull.github.io/prorider';
+    const link = `${origin}/onboard.html?token=${token}`;
+    res.json({ token, link });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// Consultar license pelo token (público)
+app.get('/onboarding/lic/:token', async (req, res) => {
+  if (!db) return res.status(503).json({ error: 'Banco indisponível' });
+  try {
+    const r = await db.query(
+      'SELECT id,name,nome_fantasia,cidade,type,max_bikes,admin_email FROM licenses WHERE onboarding_token=$1',
+      [req.params.token]
+    );
+    if (!r.rows.length) return res.status(404).json({ error: 'Link inválido ou expirado' });
+    res.json(r.rows[0]);
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// Submeter onboarding (público)
+app.post('/onboarding/lic/:token', async (req, res) => {
+  if (!db) return res.status(503).json({ error: 'Banco indisponível' });
+  const { gestor_nome, gestor_email, gestor_senha, fin_nome, fin_email, fin_senha, nome_fantasia, cidade } = req.body;
+  if (!gestor_email || !gestor_senha) return res.status(400).json({ error: 'E-mail e senha do gestor são obrigatórios' });
+  try {
+    const lic = await db.query('SELECT * FROM licenses WHERE onboarding_token=$1', [req.params.token]);
+    if (!lic.rows.length) return res.status(404).json({ error: 'Link inválido' });
+    const l = lic.rows[0];
+    if (nome_fantasia || cidade) {
+      await db.query('UPDATE licenses SET nome_fantasia=COALESCE($1,nome_fantasia), cidade=COALESCE($2,cidade) WHERE id=$3',
+        [nome_fantasia||null, cidade||null, l.id]);
+    }
+    const hashGestor = await bcrypt.hash(gestor_senha, 10);
+    await db.query(`
+      INSERT INTO users (email, name, password_hash, role, license_id)
+      VALUES ($1,$2,$3,'gestor',$4)
+      ON CONFLICT (email) DO UPDATE SET role='gestor', license_id=$4, password_hash=$3
+    `, [gestor_email.toLowerCase(), gestor_nome||gestor_email, hashGestor, l.id.toString()]);
+    if (fin_email && fin_senha) {
+      const hashFin = await bcrypt.hash(fin_senha, 10);
+      await db.query(`
+        INSERT INTO users (email, name, password_hash, role, license_id)
+        VALUES ($1,$2,$3,'financeiro',$4)
+        ON CONFLICT (email) DO UPDATE SET role='financeiro', license_id=$4, password_hash=$3
+      `, [fin_email.toLowerCase(), fin_nome||fin_email, hashFin, l.id.toString()]);
+    }
+    await db.query(`
+      UPDATE licenses SET
+        onboarding_token = NULL,
+        status = 'active',
+        gestor_email = $1,
+        gestor_nome = $2,
+        fin_email = $3,
+        fin_nome = $4
+      WHERE id = $5
+    `, [gestor_email, gestor_nome||gestor_email, fin_email||null, fin_nome||null, l.id]);
+    res.json({ ok: true, message: 'Cadastro concluído! Faça login com suas credenciais.' });
+  } catch(e) {
+    if (e.code === '23505') return res.status(409).json({ error: 'Este e-mail já está cadastrado.' });
+    res.status(500).json({ error: e.message });
   }
 });
 
