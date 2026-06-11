@@ -296,7 +296,7 @@ async function runMigrations() {
         encerrada_at  TIMESTAMPTZ
       )
     `);
-    -- Garantir colunas novas em sessoes existentes
+    // Garantir colunas novas em sessoes existentes
     await db.query(`
       ALTER TABLE sessoes_ao_vivo
         ADD COLUMN IF NOT EXISTS status            TEXT DEFAULT 'aguardando',
