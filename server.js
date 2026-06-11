@@ -354,7 +354,7 @@ app.get('/ping', async (req, res) => {
   }
   res.json({
     status: 'ok',
-    version: '2.2',
+    version: '2.3-debug',
     db: dbOk,
     db_pool: !!db,
     db_url_set: !!process.env.DATABASE_URL,
