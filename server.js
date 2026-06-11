@@ -652,11 +652,33 @@ app.get('/admin/users', authMiddleware, requireRole('super_admin', 'admin_licenc
 app.get('/admin/licenses', authMiddleware, requireRole('super_admin'), async (req, res) => {
   if (!db) return res.status(503).json({ error: 'Banco não disponível' });
   try {
-    const r = await db.query('SELECT id,key,type,name,status,admin_email,created_at,expires_at FROM licenses ORDER BY created_at DESC');
+    const r = await db.query(`
+      SELECT id,key,type,name,nome_fantasia,cidade,status,admin_email,
+             gestor_email,gestor_nome,fin_email,fin_nome,
+             max_bikes,created_at,expires_at
+      FROM licenses ORDER BY created_at DESC
+    `);
     res.json(r.rows);
   } catch(e) {
     res.status(500).json({ error: 'Erro interno' });
   }
+});
+
+// Impersonar academia (super_admin → token 4h como gestor)
+app.post('/admin/license/:id/impersonate', authMiddleware, requireRole('super_admin'), async (req, res) => {
+  if (!db) return res.status(503).json({ error: 'Banco indisponível' });
+  try {
+    const lic = await db.query('SELECT * FROM licenses WHERE id=$1', [req.params.id]);
+    if (!lic.rows.length) return res.status(404).json({ error: 'Licença não encontrada' });
+    const l = lic.rows[0];
+    const token = jwt.sign(
+      { id: 0, email: req.user.email, name: req.user.name || req.user.email,
+        role: 'gestor', license_id: l.id.toString(),
+        impersonated_by: req.user.email },
+      JWT_SECRET, { expiresIn: '4h' }
+    );
+    res.json({ token, academia: { id: l.id, name: l.nome_fantasia || l.name, type: l.type } });
+  } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
 // Criar nova licença
