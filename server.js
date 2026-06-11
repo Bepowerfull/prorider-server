@@ -652,35 +652,19 @@ app.get('/admin/users', authMiddleware, requireRole('super_admin', 'admin_licenc
 app.get('/admin/licenses', authMiddleware, requireRole('super_admin'), async (req, res) => {
   if (!db) return res.status(503).json({ error: 'Banco não disponível' });
   try {
-    const r = await db.query(`
-      SELECT id::text, key::text, type::text, name::text,
-             nome_fantasia::text, cidade::text, status::text, admin_email::text,
-             gestor_email::text, gestor_nome::text, fin_email::text, fin_nome::text,
-             COALESCE(max_bikes,0)::int AS max_bikes,
-             created_at::timestamptz, expires_at::timestamptz,
-             'new' AS source
-      FROM licenses
-      UNION ALL
-      SELECT
-        id::text,
-        codigo::text          AS key,
-        plano::text           AS type,
-        nome::text            AS name,
-        nome_fantasia::text,
-        cidade::text,
-        status::text,
-        contato_email::text   AS admin_email,
-        financeiro_email::text AS gestor_email,
-        financeiro_nome::text  AS gestor_nome,
-        NULL::text            AS fin_email,
-        NULL::text            AS fin_nome,
-        COALESCE(max_bikes,0)::int AS max_bikes,
-        created_at::timestamptz,
-        vencimento::timestamptz AS expires_at,
-        'legacy' AS source
-      FROM licencas
-      ORDER BY created_at DESC
-    `);
+    // Busca separada para evitar incompatibilidade de tipos entre tabelas
+    const [rNew, rLeg] = await Promise.all([
+      db.query(`SELECT id, key, type, name, nome_fantasia, cidade, status, admin_email,
+                       gestor_email, gestor_nome, fin_email, fin_nome, max_bikes, created_at, expires_at,
+                       'new' AS source FROM licenses ORDER BY created_at DESC`),
+      db.query(`SELECT id, codigo AS key, plano AS type, nome AS name, nome_fantasia, cidade, status,
+                       contato_email AS admin_email, financeiro_email AS gestor_email, financeiro_nome AS gestor_nome,
+                       NULL AS fin_email, NULL AS fin_nome, COALESCE(max_bikes,0) AS max_bikes,
+                       created_at, vencimento AS expires_at,
+                       'legacy' AS source FROM licencas ORDER BY created_at DESC`)
+    ]);
+    const rows = [...rNew.rows, ...rLeg.rows].sort((a,b) => new Date(b.created_at) - new Date(a.created_at));
+    const r = { rows };
     res.json(r.rows);
   } catch(e) {
     res.status(500).json({ error: 'Erro interno: ' + e.message });
