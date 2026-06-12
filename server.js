@@ -1990,6 +1990,31 @@ app.patch('/gestor/config/bikes', gestorAuth, async (req, res) => {
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
+// ── TEMP: gestão de licenças (remover após uso) ────────────────
+app.get('/tmp/licenses', async (req, res) => {
+  if (!db) return res.status(503).json({ error: 'DB indisponível' });
+  try {
+    const r = await db.query('SELECT id, nome_fantasia, max_bikes, type, key FROM licenses ORDER BY id');
+    const r2 = await db.query('SELECT codigo, nome_fantasia, max_bikes, plano FROM licencas ORDER BY codigo');
+    res.json({ licenses: r.rows, licencas: r2.rows });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post('/tmp/set-max-bikes', async (req, res) => {
+  if (!db) return res.status(503).json({ error: 'DB indisponível' });
+  const { secret, table, id, max_bikes } = req.body;
+  if (secret !== 'prorider2026fix') return res.status(403).json({ error: 'forbidden' });
+  try {
+    if (table === 'licenses') {
+      await db.query('UPDATE licenses SET max_bikes=$1 WHERE id=$2', [max_bikes, id]);
+    } else {
+      await db.query('UPDATE licencas SET max_bikes=$1 WHERE codigo=$2', [max_bikes, id]);
+    }
+    res.json({ ok: true, table, id, max_bikes });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+// ── FIM TEMP ───────────────────────────────────────────────────
+
 // ══════════════════════════════════════════════════════════════
 // AGENDA — GESTOR (criar/editar grade de aulas)
 // ══════════════════════════════════════════════════════════════
