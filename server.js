@@ -405,8 +405,8 @@ app.post('/user/login', async (req, res) => {
     const user = r.rows[0];
     const ok = await bcrypt.compare(password, user.password_hash);
     if (!ok) return res.status(401).json({ error: 'Email ou senha incorretos' });
-    const token = jwt.sign({ id: user.id, email: user.email, role: user.role }, JWT_SECRET, { expiresIn: '30d' });
-    res.json({ user: { id: user.id, email: user.email, name: user.name, role: user.role, points: user.points, level: user.level }, token });
+    const token = jwt.sign({ id: user.id, email: user.email, role: user.role, license_id: user.license_id || undefined }, JWT_SECRET, { expiresIn: '30d' });
+    res.json({ user: { id: user.id, email: user.email, name: user.name, role: user.role, license_id: user.license_id || null, points: user.points, level: user.level }, token });
   } catch(e) {
     log('login error: ' + e.message);
     res.status(500).json({ error: 'Erro interno' });
@@ -1940,12 +1940,27 @@ function _sessaoPublica(s) {
 app.get('/gestor/config', gestorAuth, async (req, res) => {
   if (!db) return res.status(503).json({ error: 'Banco indisponível' });
   try {
-    const r = await db.query(
+    const lid = req.user.license_id;
+    let row = null;
+
+    // Tenta tabela licencas (sistema legado — license_id = codigo texto)
+    const rLeg = await db.query(
       'SELECT max_bikes, bikes_disponiveis, max_alunos, plano, nome_fantasia, cidade FROM licencas WHERE codigo=$1',
-      [req.user.license_id]
+      [lid]
     );
-    if (!r.rows.length) return res.status(404).json({ error: 'Licença não encontrada' });
-    res.json(r.rows[0]);
+    if (rLeg.rows.length) { row = rLeg.rows[0]; }
+
+    // Tenta tabela licenses (sistema novo — license_id = id numérico)
+    if (!row && !isNaN(parseInt(lid))) {
+      const rNew = await db.query(
+        'SELECT COALESCE(max_bikes,10) AS max_bikes, COALESCE(max_bikes,10) AS bikes_disponiveis, 50 AS max_alunos, type AS plano, nome_fantasia, cidade, key AS codigo FROM licenses WHERE id=$1',
+        [parseInt(lid)]
+      );
+      if (rNew.rows.length) { row = rNew.rows[0]; }
+    }
+
+    if (!row) return res.status(404).json({ error: 'Licença não encontrada' });
+    res.json(row);
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
