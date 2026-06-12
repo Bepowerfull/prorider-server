@@ -1993,11 +1993,10 @@ app.patch('/gestor/config/bikes', gestorAuth, async (req, res) => {
 // ── TEMP: gestão de licenças (remover após uso) ────────────────
 app.get('/tmp/licenses', async (req, res) => {
   if (!db) return res.status(503).json({ error: 'DB indisponível' });
-  try {
-    const r = await db.query('SELECT id, nome_fantasia, max_bikes, type, key FROM licenses ORDER BY id');
-    const r2 = await db.query('SELECT codigo, nome_fantasia, max_bikes, plano FROM licencas ORDER BY codigo');
-    res.json({ licenses: r.rows, licencas: r2.rows });
-  } catch(e) { res.status(500).json({ error: e.message }); }
+  let lic1 = [], lic2 = [];
+  try { const r = await db.query('SELECT id, nome_fantasia, max_bikes, type, key FROM licenses ORDER BY id'); lic1 = r.rows; } catch(e) {}
+  try { const r = await db.query('SELECT codigo, nome_fantasia, max_bikes, plano FROM licencas ORDER BY codigo'); lic2 = r.rows; } catch(e) {}
+  res.json({ licenses: lic1, licencas: lic2 });
 });
 
 app.post('/tmp/set-max-bikes', async (req, res) => {
