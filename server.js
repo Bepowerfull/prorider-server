@@ -353,8 +353,15 @@ app.post('/setup/bootstrap', async (req, res) => {
   if (secret !== 'prorider-setup-2026') return res.status(403).json({ error: 'Forbidden' });
   try {
     // Verificar se já existe super_admin
-    const existing = await db.query("SELECT id FROM users WHERE role='super_admin' LIMIT 1");
-    if (existing.rows.length) return res.json({ ok: true, msg: 'Super admin já existe', id: existing.rows[0].id });
+    const existing = await db.query("SELECT id, email FROM users WHERE role='super_admin' LIMIT 1");
+    if (existing.rows.length) {
+      // Criar licença demo mesmo que super_admin já exista
+      await db.query(
+        "INSERT INTO licencas (codigo, nome, status, max_bikes) VALUES ($1,$2,'ativa',$3) ON CONFLICT (codigo) DO NOTHING",
+        ['PRDR-DEMO-001', 'ProRider Demo', 15]
+      );
+      return res.json({ ok: true, msg: 'Super admin já existe', id: existing.rows[0].id, email: existing.rows[0].email, licenca: 'PRDR-DEMO-001' });
+    }
 
     // Criar super_admin
     const hash = await bcrypt.hash('123456', 10);
