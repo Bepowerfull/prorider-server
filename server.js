@@ -346,6 +346,33 @@ runMigrations();
 // ══════════════════════════════════════════════════════════════
 
 // ── Health check ──────────────────────────────────────────────
+// Bootstrap único — cria super_admin + licença demo se ainda não existirem
+app.post('/setup/bootstrap', async (req, res) => {
+  if (!db) return res.status(503).json({ error: 'Banco indisponível' });
+  const { secret } = req.body;
+  if (secret !== 'prorider-setup-2026') return res.status(403).json({ error: 'Forbidden' });
+  try {
+    // Verificar se já existe super_admin
+    const existing = await db.query("SELECT id FROM users WHERE role='super_admin' LIMIT 1");
+    if (existing.rows.length) return res.json({ ok: true, msg: 'Super admin já existe', id: existing.rows[0].id });
+
+    // Criar super_admin
+    const hash = await bcrypt.hash('123456', 10);
+    const u = await db.query(
+      "INSERT INTO users (email, name, password_hash, role) VALUES ($1,$2,$3,'super_admin') RETURNING id, email, role",
+      ['marioelite@hotmail.com', 'Mario Elite', hash]
+    );
+
+    // Criar licença demo
+    await db.query(
+      "INSERT INTO licencas (codigo, nome, status, max_bikes) VALUES ($1,$2,'ativa',$3) ON CONFLICT (codigo) DO NOTHING",
+      ['PRDR-DEMO-001', 'ProRider Demo', 15]
+    );
+
+    res.json({ ok: true, user: u.rows[0], licenca: 'PRDR-DEMO-001', max_bikes: 15 });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
 app.get('/ping', async (req, res) => {
   res.setHeader('Cache-Control', 'no-store');
   let dbOk = false;
@@ -2714,6 +2741,17 @@ app.post('/sessao/reservar', authMiddleware, async (req, res) => {
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
+// Notifica via WebSocket que uma bike foi identificada (fire & forget)
+async function notificarBikeId(sessaoToken, bikeNum, userId) {
+  if (!salas[sessaoToken]) return;
+  try {
+    const u = await db.query('SELECT name, ftp, foto_url FROM users WHERE id=$1', [userId]);
+    if (!u.rows.length) return;
+    const { name, ftp, foto_url } = u.rows[0];
+    broadcast(sessaoToken, { tipo: 'bike_identificada', bike_num: bikeNum, user: { nome: name, ftp: ftp || 150, foto: foto_url || null } });
+  } catch(e) { /* non-critical */ }
+}
+
 // POST /sessao/entrar-bike
 // Aluno escaneia QR fixo da bike (prorider://bike?n=7&lic=GYM-XYZ)
 // Sistema já sabe qual bike; entra na sessão ativa automaticamente
@@ -2758,16 +2796,18 @@ app.post('/sessao/entrar-bike', authMiddleware, async (req, res) => {
           "UPDATE sessao_conexoes SET user_id=$1, status='conectado', fonte='qr_bike', last_update=NOW() WHERE id=$2",
           [req.user.id, ocup.id]
         );
+        notificarBikeId(sessao.token, parseInt(bike_num), req.user.id);
         return res.json({ ok: true, bike_num: parseInt(bike_num), sessao_id: sessao.id,
-          nome_aula: sessao.nome_aula, upgrade_bt: true });
+          nome_aula: sessao.nome_aula, sessao_token: sessao.token, upgrade_bt: true });
       }
       // Se é o mesmo aluno reconectando
       if (ocup.user_id === req.user.id) {
         await db.query(
           "UPDATE sessao_conexoes SET status='conectado', last_update=NOW() WHERE id=$1", [ocup.id]
         );
+        notificarBikeId(sessao.token, parseInt(bike_num), req.user.id);
         return res.json({ ok: true, bike_num: parseInt(bike_num), sessao_id: sessao.id,
-          nome_aula: sessao.nome_aula, reconectado: true });
+          nome_aula: sessao.nome_aula, sessao_token: sessao.token, reconectado: true });
       }
       return res.status(409).json({ error: `Bike ${bike_num} já está ocupada por outro aluno.` });
     }
@@ -2781,16 +2821,18 @@ app.post('/sessao/entrar-bike', authMiddleware, async (req, res) => {
       const antiga = jaConectado.rows[0];
       if (antiga.bike_num === parseInt(bike_num)) {
         await db.query("UPDATE sessao_conexoes SET status='conectado', last_update=NOW() WHERE id=$1", [antiga.id]);
+        notificarBikeId(sessao.token, parseInt(bike_num), req.user.id);
         return res.json({ ok: true, bike_num: parseInt(bike_num), sessao_id: sessao.id,
-          nome_aula: sessao.nome_aula, reconectado: true });
+          nome_aula: sessao.nome_aula, sessao_token: sessao.token, reconectado: true });
       }
       // Mover para nova bike
       await db.query(
         "UPDATE sessao_conexoes SET bike_num=$1, fonte='qr_bike', last_update=NOW() WHERE id=$2",
         [parseInt(bike_num), antiga.id]
       );
+      notificarBikeId(sessao.token, parseInt(bike_num), req.user.id);
       return res.json({ ok: true, bike_num: parseInt(bike_num), sessao_id: sessao.id,
-        nome_aula: sessao.nome_aula, bike_trocada: true, bike_anterior: antiga.bike_num });
+        nome_aula: sessao.nome_aula, sessao_token: sessao.token, bike_trocada: true, bike_anterior: antiga.bike_num });
     }
 
     // Verificar limite de conexões
@@ -2808,7 +2850,8 @@ app.post('/sessao/entrar-bike', authMiddleware, async (req, res) => {
       [sessao.id, req.user.id, parseInt(bike_num)]
     );
 
-    res.json({ ok: true, bike_num: parseInt(bike_num), sessao_id: sessao.id, nome_aula: sessao.nome_aula });
+    notificarBikeId(sessao.token, parseInt(bike_num), req.user.id);
+    res.json({ ok: true, bike_num: parseInt(bike_num), sessao_id: sessao.id, nome_aula: sessao.nome_aula, sessao_token: sessao.token });
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
