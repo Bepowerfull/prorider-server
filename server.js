@@ -1396,7 +1396,7 @@ app.get('/display/agenda', displayAuth, async (req, res) => {
       `SELECT a.*, p.name AS professor_nome
        FROM aulas_agenda a
        LEFT JOIN users p ON p.id = a.professor_id
-       WHERE a.license_id=$1 AND a.dia_semana=$2 AND a.ativo=true
+       WHERE a.license_id=$1 AND a.dia_semana=$2 AND a.ativa=true
        ORDER BY a.hora`,
       [licId, diaN]
     );
@@ -1431,7 +1431,7 @@ app.get('/display/proxima-aula', displayAuth, async (req, res) => {
         )) AS segundos_programados
       FROM aulas_agenda a
       LEFT JOIN users p ON p.id = a.professor_id
-      WHERE a.license_id=$1 AND a.dia_semana=$2 AND a.ativo=true
+      WHERE a.license_id=$1 AND a.dia_semana=$2 AND a.ativa=true
         AND (CURRENT_DATE AT TIME ZONE 'America/Sao_Paulo' + a.hora::interval)
             >= NOW() AT TIME ZONE 'America/Sao_Paulo' - INTERVAL '2 hours'
       ORDER BY a.hora
@@ -2644,7 +2644,7 @@ app.get('/sessao/status', async (req, res) => {
         )) AS segundos_ate_aula
       FROM aulas_agenda a
       LEFT JOIN users p ON p.id = a.professor_id
-      WHERE a.license_id=$1 AND a.dia_semana=$2 AND a.ativo=true
+      WHERE a.license_id=$1 AND a.dia_semana=$2 AND a.ativa=true
         AND (CURRENT_DATE AT TIME ZONE 'America/Sao_Paulo' + a.hora::interval)
             > NOW() AT TIME ZONE 'America/Sao_Paulo'
       ORDER BY a.hora LIMIT 1
