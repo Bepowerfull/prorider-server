@@ -380,6 +380,26 @@ app.post('/setup/bootstrap', async (req, res) => {
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
+// Endpoint de teste: cria sessão ativa para PRDR-DEMO-001
+app.post('/setup/sessao-teste', async (req, res) => {
+  if (!db) return res.status(503).json({ error: 'Banco indisponível' });
+  const { secret } = req.body;
+  if (secret !== 'prorider-setup-2026') return res.status(403).json({ error: 'Forbidden' });
+  try {
+    // Encerrar sessão anterior se existir
+    await db.query(
+      "UPDATE sessoes_ao_vivo SET status='encerrada', encerrada_at=NOW() WHERE license_id='PRDR-DEMO-001' AND status IN ('aguardando','em_andamento')"
+    );
+    const token = crypto.randomBytes(20).toString('hex');
+    const r = await db.query(
+      `INSERT INTO sessoes_ao_vivo (license_id, token, nome_aula, professor, max_conexoes, status)
+       VALUES ('PRDR-DEMO-001', $1, 'Aula Teste', 'Mario', 15, 'em_andamento') RETURNING *`,
+      [token]
+    );
+    res.json({ ok: true, sessao: r.rows[0], token, qr_payload: `prorider://sessao?token=${token}` });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
 app.get('/ping', async (req, res) => {
   res.setHeader('Cache-Control', 'no-store');
   let dbOk = false;
