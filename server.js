@@ -1393,7 +1393,7 @@ app.get('/display/agenda', displayAuth, async (req, res) => {
     const licId = req.user.license_id;
     const diaN  = new Date().getDay();
     const r = await db.query(
-      `SELECT a.*, p.nome AS professor_nome
+      `SELECT a.*, p.name AS professor_nome
        FROM aulas_agenda a
        LEFT JOIN users p ON p.id = a.professor_id
        WHERE a.license_id=$1 AND a.dia_semana=$2 AND a.ativo=true
@@ -1423,7 +1423,7 @@ app.get('/display/proxima-aula', displayAuth, async (req, res) => {
     const aulaEmAndamento = sessaoAtiva.rows[0] || null;
 
     const r = await db.query(`
-      SELECT a.*, p.nome AS professor_nome,
+      SELECT a.*, p.name AS professor_nome,
         EXTRACT(EPOCH FROM (
           (CURRENT_DATE AT TIME ZONE 'America/Sao_Paulo')
           + a.hora::interval
@@ -2637,7 +2637,7 @@ app.get('/sessao/status', async (req, res) => {
     // Próxima aula agendada (mesmo que não haja sessão ativa)
     const diaN = new Date().getDay();
     const proxAula = await db.query(`
-      SELECT a.*, p.nome AS professor_nome,
+      SELECT a.*, p.name AS professor_nome,
         EXTRACT(EPOCH FROM (
           (CURRENT_DATE AT TIME ZONE 'America/Sao_Paulo') + a.hora::interval
           - NOW() AT TIME ZONE 'America/Sao_Paulo'
