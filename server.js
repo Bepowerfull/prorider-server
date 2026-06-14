@@ -2450,7 +2450,7 @@ app.post('/gestor/sessao/:id/reset-conexoes', gestorAuth, async (req, res) => {
 // O app do aluno chama este endpoint após escanear o QR code
 app.post('/sessao/entrar', authMiddleware, async (req, res) => {
   if (!db) return res.status(503).json({ error: 'Banco indisponível' });
-  const { token } = req.body;
+  const { token, bike_num: bikeEscolhida } = req.body;
   if (!token) return res.status(400).json({ error: 'Token obrigatório' });
   try {
     const s = await db.query(
@@ -2486,15 +2486,20 @@ app.post('/sessao/entrar', authMiddleware, async (req, res) => {
       });
     }
 
-    // Atribuir número de bike (próximo disponível)
+    // Atribuir número de bike — usa a escolhida pelo aluno, ou próxima disponível
     const bikes_usadas = await db.query(
       "SELECT bike_num FROM sessao_conexoes WHERE sessao_id=$1 AND status='conectado' ORDER BY bike_num",
       [sessao.id]
     );
     const usadas = new Set(bikes_usadas.rows.map(r => r.bike_num));
     let bike_num = null;
-    for (let i = 1; i <= sessao.max_conexoes; i++) {
-      if (!usadas.has(i)) { bike_num = i; break; }
+    const escolhida = bikeEscolhida ? parseInt(bikeEscolhida) : null;
+    if (escolhida && escolhida >= 1 && escolhida <= sessao.max_conexoes && !usadas.has(escolhida)) {
+      bike_num = escolhida; // aluno escolheu e está livre
+    } else {
+      for (let i = 1; i <= sessao.max_conexoes; i++) {
+        if (!usadas.has(i)) { bike_num = i; break; }
+      }
     }
 
     await db.query(
@@ -2615,6 +2620,27 @@ app.get('/sessao/minha', authMiddleware, async (req, res) => {
 
 // GET /sessao/status?lic=GYM-XYZ
 // Público (sem login) — aluno escaneia QR da porta e vê o estado da sala
+// Info básica da sessão pelo token (sem auth — usado pelo app para mostrar modal de bike)
+app.get('/sessao/info', async (req, res) => {
+  if (!db) return res.status(503).json({ error: 'Banco indisponível' });
+  const { token } = req.query;
+  if (!token) return res.status(400).json({ error: 'token obrigatório' });
+  try {
+    const s = await db.query(
+      "SELECT id, nome_aula, professor, max_conexoes, status FROM sessoes_ao_vivo WHERE token=$1 AND status IN ('aguardando','em_andamento')",
+      [token]
+    );
+    if (!s.rows.length) return res.status(404).json({ error: 'Sessão não encontrada' });
+    const sessao = s.rows[0];
+    const bikes_usadas = await db.query(
+      "SELECT bike_num FROM sessao_conexoes WHERE sessao_id=$1 AND status='conectado' ORDER BY bike_num",
+      [sessao.id]
+    );
+    const ocupadas = bikes_usadas.rows.map(r => r.bike_num).filter(Boolean);
+    res.json({ nome_aula: sessao.nome_aula, professor: sessao.professor, max_conexoes: sessao.max_conexoes, bikes_ocupadas: ocupadas });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
 app.get('/sessao/status', async (req, res) => {
   if (!db) return res.status(503).json({ error: 'Banco indisponível' });
   const { lic } = req.query;
