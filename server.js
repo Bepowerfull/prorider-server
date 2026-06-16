@@ -752,21 +752,23 @@ app.patch('/admin/license/:id/status', authMiddleware, requireRole('super_admin'
   if (!db) return res.status(503).json({ error: 'Banco indisponível' });
   const { status, expires_at } = req.body;
   if (!status) return res.status(400).json({ error: 'status obrigatório' });
+  // Tenta tabela nova (pode não existir)
   try {
-    // Tenta tabela nova
     const rNew = await db.query(
       `UPDATE licenses SET status=$1${expires_at ? ', expires_at=$3' : ''}, updated_at=NOW() WHERE id=$2 RETURNING id,name,status`,
       expires_at ? [status, req.params.id, expires_at] : [status, req.params.id]
     );
     if (rNew.rows.length) return res.json({ ok: true, source: 'new', ...rNew.rows[0] });
-    // Fallback: tabela legado
+  } catch(e1) { /* tabela não existe, continua */ }
+  // Fallback: tabela legado
+  try {
     const rLeg = await db.query(
       `UPDATE licencas SET status=$1${expires_at ? ', vencimento=$3' : ''}, updated_at=NOW() WHERE id=$2 RETURNING id,nome,status,codigo`,
       expires_at ? [status, req.params.id, expires_at] : [status, req.params.id]
     );
     if (rLeg.rows.length) return res.json({ ok: true, source: 'legacy', ...rLeg.rows[0] });
-    res.status(404).json({ error: 'Licença não encontrada' });
-  } catch(e) { res.status(500).json({ error: e.message }); }
+    return res.status(404).json({ error: 'Licença não encontrada' });
+  } catch(e2) { return res.status(500).json({ error: e2.message }); }
 });
 
 // Criar nova licença
