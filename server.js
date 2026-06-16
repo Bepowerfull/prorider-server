@@ -747,6 +747,28 @@ app.post('/admin/license/:id/impersonate', authMiddleware, requireRole('super_ad
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
+// Atualizar status de licença (super_admin) — suporta tabela nova e legado
+app.patch('/admin/license/:id/status', authMiddleware, requireRole('super_admin'), async (req, res) => {
+  if (!db) return res.status(503).json({ error: 'Banco indisponível' });
+  const { status, expires_at } = req.body;
+  if (!status) return res.status(400).json({ error: 'status obrigatório' });
+  try {
+    // Tenta tabela nova
+    const rNew = await db.query(
+      `UPDATE licenses SET status=$1${expires_at ? ', expires_at=$3' : ''}, updated_at=NOW() WHERE id=$2 RETURNING id,name,status`,
+      expires_at ? [status, req.params.id, expires_at] : [status, req.params.id]
+    );
+    if (rNew.rows.length) return res.json({ ok: true, source: 'new', ...rNew.rows[0] });
+    // Fallback: tabela legado
+    const rLeg = await db.query(
+      `UPDATE licencas SET status=$1${expires_at ? ', vencimento=$3' : ''}, updated_at=NOW() WHERE id=$2 RETURNING id,nome,status,codigo`,
+      expires_at ? [status, req.params.id, expires_at] : [status, req.params.id]
+    );
+    if (rLeg.rows.length) return res.json({ ok: true, source: 'legacy', ...rLeg.rows[0] });
+    res.status(404).json({ error: 'Licença não encontrada' });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
 // Criar nova licença
 app.post('/admin/license/create', authMiddleware, requireRole('super_admin'), async (req, res) => {
   if (!db) return res.status(503).json({ error: 'Banco não disponível' });
@@ -2402,6 +2424,16 @@ app.post('/gestor/sessao/:id/encerrar', gestorAuth, async (req, res) => {
       "UPDATE sessao_conexoes SET status='desconectado' WHERE sessao_id=$1",
       [req.params.id]
     );
+
+    // Notificar alunos via WebSocket que a aula encerrou
+    const salaCode = sess.token;
+    if (salas[salaCode]) {
+      broadcastAlunos(salaCode, {
+        tipo: 'aula_encerrada',
+        nome_aula: sess.nome_aula,
+        professor: sess.professor,
+      });
+    }
 
     log(`[Sessão] Encerrada: "${sess.nome_aula}" — atraso: ${atrasada_seg}s`);
     res.json({ ok: true, atrasada_seg, mensagem: atrasada_seg > 60
