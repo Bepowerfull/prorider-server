@@ -18,9 +18,11 @@ const JWT_SECRET = process.env.JWT_SECRET || 'prorider_dev_secret_change_in_prod
 const DB_URL     = process.env.DATABASE_URL;
 
 // ══ Express ═══════════════════════════════════════════════════
+const path = require('path');
 const app = express();
 app.use(cors());
 app.use(express.json());
+app.use(express.static(path.join(__dirname, 'public')));
 
 // ══ PostgreSQL ════════════════════════════════════════════════
 let db = null;
