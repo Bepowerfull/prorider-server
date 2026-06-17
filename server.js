@@ -1435,7 +1435,8 @@ app.get('/display/agenda', displayAuth, async (req, res) => {
   if (!db) return res.status(503).json({ error: 'Banco indisponível' });
   try {
     const licId = req.user.license_id;
-    const diaN  = new Date().getDay();
+    const nowBR = new Date(new Date().toLocaleString('en-US', {timeZone:'America/Sao_Paulo'}));
+    const diaN  = nowBR.getDay();
     const r = await db.query(
       `SELECT a.*, p.name AS professor_nome
        FROM aulas_agenda a
