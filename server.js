@@ -2103,7 +2103,7 @@ app.post('/gestor/agenda', gestorAuth, async (req, res) => {
     const max_bikes         = lic.rows[0]?.max_bikes         || 0;
     const bikes_disponiveis = lic.rows[0]?.bikes_disponiveis || max_bikes || 0;
     const teto = bikes_disponiveis > 0 ? bikes_disponiveis : max_bikes;
-    const vagasSolicitadas = parseInt(vagas_max) || 20;
+    const vagasSolicitadas = parseInt(vagas_max) || teto || 20;
     if (teto > 0 && vagasSolicitadas > teto)
       return res.status(400).json({
         error: `A sala tem ${teto} bikes disponíveis no momento. Você não pode configurar mais vagas do que isso.`
