@@ -856,17 +856,28 @@ input[type=file]{display:none}
               Roxo (z7): 93→100% — pequeno
             -->
             <linearGradient id="zoneGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-              <stop offset="0%"   stop-color="#888888" stop-opacity="0.15"/>
-              <stop offset="4%"   stop-color="#888888" stop-opacity="0.55"/>
-              <stop offset="8%"   stop-color="#295fe8"/>
-              <stop offset="22%"  stop-color="#295fe8"/>
-              <stop offset="38%"  stop-color="#5db13d"/>
-              <stop offset="55%"  stop-color="#d7c414"/>
-              <stop offset="72%"  stop-color="#ea860c"/>
-              <stop offset="86%"  stop-color="#d62d2d"/>
+              <!-- z1 cinza — pontinha esquerda, quase invisível -->
+              <stop offset="0%"   stop-color="#888888" stop-opacity="0.0"/>
+              <stop offset="2%"   stop-color="#888888" stop-opacity="0.5"/>
+              <stop offset="4%"   stop-color="#888888" stop-opacity="0.4"/>
+              <!-- z2 azul — faixa pequena -->
+              <stop offset="5%"   stop-color="#295fe8"/>
+              <stop offset="17%"  stop-color="#295fe8"/>
+              <!-- z3 verde — faixa média -->
+              <stop offset="21%"  stop-color="#5db13d"/>
+              <stop offset="35%"  stop-color="#5db13d"/>
+              <!-- z4 amarelo — faixa grande -->
+              <stop offset="39%"  stop-color="#d7c414"/>
+              <stop offset="54%"  stop-color="#d7c414"/>
+              <!-- z5 laranja — faixa grande -->
+              <stop offset="58%"  stop-color="#ea860c"/>
+              <stop offset="73%"  stop-color="#ea860c"/>
+              <!-- z6 vermelho — faixa grande -->
+              <stop offset="77%"  stop-color="#d62d2d"/>
               <stop offset="93%"  stop-color="#d62d2d"/>
-              <stop offset="96%"  stop-color="#9b30ff"/>
-              <stop offset="100%" stop-color="#9b30ff" stop-opacity="0.25"/>
+              <!-- z7 roxo — pontinha direita, quase invisível -->
+              <stop offset="96%"  stop-color="#9b30ff" stop-opacity="0.8"/>
+              <stop offset="100%" stop-color="#9b30ff" stop-opacity="0.15"/>
             </linearGradient>
             <filter id="arcGlow"><feGaussianBlur stdDeviation="1.5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
           </defs>
