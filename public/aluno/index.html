@@ -191,7 +191,7 @@ img{display:block;max-width:100%}
 .lg-dot{width:6px;height:6px;border-radius:50%}
 .lg-scroll{flex:1;overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;scrollbar-width:none}
 .lg-scroll::-webkit-scrollbar{display:none}
-.lg-timeline{display:flex;align-items:flex-end;gap:2px;height:116px;width:100%;min-width:0}
+.lg-timeline{display:block;width:100%;min-width:0;overflow:visible;}
 .lg-blk{border-radius:3px 3px 0 0;flex-shrink:0;position:relative;transition:opacity .8s ease}
 .lg-blk.past{opacity:.2}
 .lg-blk.cur{box-shadow:0 0 12px var(--c);outline:2px solid rgba(255,255,255,.6);outline-offset:1px}
@@ -3894,44 +3894,109 @@ function cycleGaugeMode(){
   var un=document.getElementById('gValueUnit'); if(un) un.textContent=units[gaugeMode];
 }
 
-// \u2500\u2500 gr\u00E1fico timeline \u2500\u2500
+// \u2500\u2500 gr\u00E1fico timeline SVG smooth area \u2500\u2500
+var _lgZoneVal={z1:12,z2:32,z3:58,z4:75,z5:87,z6:96,z7:100};
+
+function _lgSmoothPath(pts,W,H){
+  if(pts.length<2) return 'M 0 '+H+' L '+W+' '+H;
+  var d='M '+pts[0].x.toFixed(1)+' '+pts[0].y.toFixed(1);
+  for(var i=0;i<pts.length-1;i++){
+    var p0=pts[i],p1=pts[i+1];
+    var mx=((p0.x+p1.x)/2).toFixed(1),my=((p0.y+p1.y)/2).toFixed(1);
+    d+=' Q '+p0.x.toFixed(1)+' '+p0.y.toFixed(1)+','+mx+' '+my;
+  }
+  var last=pts[pts.length-1];
+  d+=' T '+last.x.toFixed(1)+' '+last.y.toFixed(1);
+  return d;
+}
+
+function _lgGetCurX(idx,blocos,totDur,W){
+  var cum=0;
+  for(var i=0;i<idx&&i<blocos.length;i++) cum+=Math.min(blocos[i].dur,120);
+  var d=blocos[idx]?Math.min(blocos[idx].dur,120):0;
+  return W>0?((cum+d/2)/totDur)*W:0;
+}
+
 function buildGraph(){
-  var g=document.getElementById('lgT'); g.innerHTML='';
+  var container=document.getElementById('lgT');
+  container.innerHTML='';
   if(!cAula||!cAula.blocos) return;
-  var isFree=(cAula.tipo==='free');
-  // Calcular total para proporcao flex
+  var blocos=cAula.blocos;
+  var W=360,H=110,margin=6;
+
+  // Calcular total duracao
   var totDur=0;
-  for(var i=0;i<cAula.blocos.length;i++) totDur+=Math.min(cAula.blocos[i].dur,120);
-  for(var i=0;i<cAula.blocos.length;i++){
-    var b=cAula.blocos[i];
-    var d=document.createElement('div');
-    d.className='lg-blk'+(i===cBloco?' cur':i<cBloco?' past':'');
-    d.id='lgb'+i;
-    var durClamped=Math.min(b.dur,120);
-    if(isFree){
-      // Free ride: barra unica preenchendo todo o container
-      d.style.cssText='--c:'+zC[b.z]+';flex:1;height:'+zH[b.z]+'px;background:'+zC[b.z]+';opacity:.85;';
+  for(var i=0;i<blocos.length;i++) totDur+=Math.min(blocos[i].dur,120);
+  if(!totDur) return;
+
+  // Gerar pontos ao longo do eixo X (proporcional \u00E0 dura\u00E7\u00E3o)
+  var pts=[];
+  var cum=0;
+  for(var i=0;i<blocos.length;i++){
+    var b=blocos[i];
+    var dur=Math.min(b.dur,120);
+    var val=_lgZoneVal[b.z]||50;
+    var y=H-margin-((val/100)*(H-margin*2));
+    var xStart=(cum/totDur)*W;
+    var xEnd=((cum+dur)/totDur)*W;
+    // ponto de entrada, meio e sa\u00EDda de cada bloco
+    if(i===0) pts.push({x:xStart,y:y});
+    pts.push({x:(xStart+xEnd)/2,y:y});
+    if(i<blocos.length-1){
+      var nextVal=_lgZoneVal[blocos[i+1].z]||50;
+      var nextY=H-margin-((nextVal/100)*(H-margin*2));
+      pts.push({x:xEnd,y:(y+nextY)/2}); // transi\u00E7\u00E3o suave entre blocos
     } else {
-      // Aula guiada: proporcional ao tempo
-      d.style.cssText='--c:'+zC[b.z]+';flex:'+durClamped+';height:'+zH[b.z]+'px;background:'+zC[b.z]+';opacity:'+(i<cBloco?.2:.85)+';min-width:8px;';
+      pts.push({x:xEnd,y:y});
     }
-    if(b.pos==='Standing') d.style.borderTop='3px solid rgba(255,255,255,.5)';
-    g.appendChild(d);
+    cum+=dur;
   }
+
+  var sp=_lgSmoothPath(pts,W,H);
+  var curX=_lgGetCurX(cBloco,blocos,totDur,W).toFixed(1);
+
+  container.innerHTML=
+    '<svg width="100%" viewBox="0 0 '+W+' '+H+'" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none" style="display:block;overflow:visible;">'
+    +'<defs>'
+    +'<linearGradient id="lgAreaGrad" x1="0%" y1="0%" x2="100%" y2="0%">'
+    +'<stop offset="0%" stop-color="#777777"/>'
+    +'<stop offset="8%" stop-color="#1E6BFF"/>'
+    +'<stop offset="22%" stop-color="#35C94A"/>'
+    +'<stop offset="42%" stop-color="#F5E600"/>'
+    +'<stop offset="60%" stop-color="#FF8A00"/>'
+    +'<stop offset="78%" stop-color="#FF2A2A"/>'
+    +'<stop offset="92%" stop-color="#8E2DE2"/>'
+    +'<stop offset="100%" stop-color="#777777"/>'
+    +'</linearGradient>'
+    +'<filter id="lgGlow" x="-20%" y="-20%" width="140%" height="140%">'
+    +'<feGaussianBlur stdDeviation="2.5" result="blur"/>'
+    +'<feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>'
+    +'</filter>'
+    +'</defs>'
+    // \u00E1rea preenchida
+    +'<path d="'+sp+' L '+W+' '+H+' L 0 '+H+' Z" fill="url(#lgAreaGrad)" opacity="0.88"/>'
+    // linha superior branca com glow
+    +'<path d="'+sp+'" fill="none" stroke="white" stroke-width="2" filter="url(#lgGlow)"/>'
+    // marcador bloco atual
+    +'<line id="lgMarker" x1="'+curX+'" y1="0" x2="'+curX+'" y2="'+H+'" stroke="#cc44ff" stroke-width="2" opacity="0.9"/>'
+    +'</svg>';
+
+  container.style.cssText='width:100%;height:'+H+'px;display:block;overflow:visible;';
 }
+
 function updGraph(){
-  for(var i=0;i<cAula.blocos.length;i++){
-    var e=document.getElementById('lgb'+i);
-    if(!e) continue;
-    e.className='lg-blk'+(i===cBloco?' cur':i<cBloco?' past':'');
-    e.style.opacity=i<cBloco?.2:.85;
-  }
+  if(!cAula||!cAula.blocos) return;
+  var marker=document.getElementById('lgMarker');
+  if(!marker) return;
+  var blocos=cAula.blocos;
+  var totDur=0;
+  for(var i=0;i<blocos.length;i++) totDur+=Math.min(blocos[i].dur,120);
+  var curX=_lgGetCurX(cBloco,blocos,totDur,360).toFixed(1);
+  marker.setAttribute('x1',curX);
+  marker.setAttribute('x2',curX);
 }
-function scrollGraph(){
-  var e=document.getElementById('lgb'+cBloco);
-  var g=document.getElementById('lgT');
-  if(e&&g) g.scrollLeft=Math.max(0,e.offsetLeft-g.parentElement.offsetWidth/2);
-}
+
+function scrollGraph(){} // SVG ocupa largura total \u2014 scroll desnecess\u00E1rio
 function updUpNext(){
   if(!cAula||!cAula.blocos) return;
   var n=cAula.blocos[cBloco+1];
