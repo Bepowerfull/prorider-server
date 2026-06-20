@@ -836,11 +836,11 @@ input[type=file]{display:none}
   <div class="lpages" id="lPages" ontouchstart="tS(event)" ontouchend="tE(event)">
 
     <!-- P1 -->
-    <div class="lpage center" id="lp0">
+    <div class="lpage center" id="lp0" style="display:flex;flex-direction:column;">
       <!-- UP NEXT removido daqui — está acima do gauge agora -->
 
-      <!-- GAUGE WRAP -->
-      <div style="flex:1;display:flex;flex-direction:column;align-items:center;padding:0 10px 0;min-height:0;overflow:hidden;cursor:pointer;-webkit-user-select:none;user-select:none" onclick="cycleGaugeMode()">
+      <!-- GAUGE WRAP — ocupa espaço disponível, centraliza o SVG -->
+      <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0 10px;min-height:0;overflow:hidden;cursor:pointer;-webkit-user-select:none;user-select:none" onclick="cycleGaugeMode()">
 
         <!-- SVG COM TEXTOS INTERNOS -->
         <svg id="gaugeSvg" width="100%" viewBox="0 15 360 200" xmlns="http://www.w3.org/2000/svg" style="max-width:380px;overflow:visible;display:block;">
@@ -919,29 +919,29 @@ input[type=file]{display:none}
           <text x="356" y="213" text-anchor="end" font-family="Barlow Condensed" font-size="11" fill="rgba(255,255,255,.28)" id="gMaxLbl">150+</text>
         </svg>
 
-        <!-- RPM / WATTS / BPM -->
-        <div style="display:flex;width:100%;max-width:360px;margin-top:6px;border-top:1px solid rgba(255,255,255,.07);padding-top:6px;flex-shrink:0;">
-          <div style="flex:1;text-align:center;border-right:1px solid rgba(255,255,255,.08);">
-            <div id="bigRpm" style="font-family:'Barlow Condensed',sans-serif;font-size:40px;font-weight:900;color:#fff;line-height:1;">83</div>
-            <div style="font-size:10px;font-weight:700;letter-spacing:3px;color:rgba(255,255,255,.3);text-transform:uppercase;margin-top:2px;">RPM</div>
-          </div>
-          <div style="flex:1;text-align:center;border-right:1px solid rgba(255,255,255,.08);">
-            <div id="bigWatts" style="font-family:'Barlow Condensed',sans-serif;font-size:40px;font-weight:900;color:#fff;line-height:1;">0</div>
-            <div style="font-size:10px;font-weight:700;letter-spacing:3px;color:rgba(255,255,255,.3);text-transform:uppercase;margin-top:2px;">Watts</div>
-          </div>
-          <div style="flex:1;text-align:center;border-right:1px solid rgba(255,255,255,.08);">
-            <div id="bigHR" style="font-family:'Barlow Condensed',sans-serif;font-size:40px;font-weight:900;color:#fff;line-height:1;">-</div>
-            <div style="font-size:10px;font-weight:700;letter-spacing:3px;color:rgba(255,255,255,.3);text-transform:uppercase;margin-top:2px;">BPM</div>
-          </div>
-          <div style="flex:1;text-align:center;">
-            <div id="bigGear" style="font-family:'Barlow Condensed',sans-serif;font-size:40px;font-weight:900;color:#fff;line-height:1;">-</div>
-            <div style="font-size:10px;font-weight:700;letter-spacing:3px;color:rgba(255,255,255,.3);text-transform:uppercase;margin-top:2px;">GEAR</div>
-          </div>
-        </div>
-
         <!-- gPosText oculto para JS -->
         <div id="gPosText" style="display:none!important;height:0;overflow:hidden;"></div>
         <div id="gModeHint" style="display:none;"></div>
+      </div>
+
+      <!-- RPM / WATTS / BPM / GEAR — fixo no fundo, acima dos CONTROLES -->
+      <div style="flex-shrink:0;display:flex;width:100%;border-top:1px solid rgba(255,255,255,.07);padding:8px 10px 10px;">
+        <div style="flex:1;text-align:center;border-right:1px solid rgba(255,255,255,.08);">
+          <div id="bigRpm" style="font-family:'Barlow Condensed',sans-serif;font-size:40px;font-weight:900;color:#fff;line-height:1;">83</div>
+          <div style="font-size:10px;font-weight:700;letter-spacing:3px;color:rgba(255,255,255,.3);text-transform:uppercase;margin-top:2px;">RPM</div>
+        </div>
+        <div style="flex:1;text-align:center;border-right:1px solid rgba(255,255,255,.08);">
+          <div id="bigWatts" style="font-family:'Barlow Condensed',sans-serif;font-size:40px;font-weight:900;color:#fff;line-height:1;">0</div>
+          <div style="font-size:10px;font-weight:700;letter-spacing:3px;color:rgba(255,255,255,.3);text-transform:uppercase;margin-top:2px;">Watts</div>
+        </div>
+        <div style="flex:1;text-align:center;border-right:1px solid rgba(255,255,255,.08);">
+          <div id="bigHR" style="font-family:'Barlow Condensed',sans-serif;font-size:40px;font-weight:900;color:#fff;line-height:1;">-</div>
+          <div style="font-size:10px;font-weight:700;letter-spacing:3px;color:rgba(255,255,255,.3);text-transform:uppercase;margin-top:2px;">BPM</div>
+        </div>
+        <div style="flex:1;text-align:center;">
+          <div id="bigGear" style="font-family:'Barlow Condensed',sans-serif;font-size:40px;font-weight:900;color:#fff;line-height:1;">-</div>
+          <div style="font-size:10px;font-weight:700;letter-spacing:3px;color:rgba(255,255,255,.3);text-transform:uppercase;margin-top:2px;">GEAR</div>
+        </div>
       </div>
     </div>
 
