@@ -2833,6 +2833,17 @@ var zoneConfig = {
 // \u2550\u2550 ESTADO \u2550\u2550
 var curAulaIdx=0, cAula=null, cBloco=0, segS=0, totS=0;
 var lInt=null, cPg=0, isPaused=false;
+var _wakeLock=null;
+function _acquireWakeLock(){
+  if(!('wakeLock' in navigator)) return;
+  navigator.wakeLock.request('screen').then(function(wl){ _wakeLock=wl; }).catch(function(){});
+}
+function _releaseWakeLock(){
+  if(_wakeLock){ try{ _wakeLock.release(); }catch(e){} _wakeLock=null; }
+}
+document.addEventListener('visibilitychange',function(){
+  if(document.visibilityState==='visible' && lInt) _acquireWakeLock();
+});
 var isFtpTest=false, ftpTestCalc=0.95, ftpTestDur=20, ftpTestWatts=[], ftpTestPhase=false;
 var maxRpm=0, sumRpm=0, cntRpm=0, dRpm=83, dGear=0;
 var audio=null, aPlay=false;
@@ -3761,6 +3772,7 @@ function startLive(){
   }catch(e){}
   clearInterval(lInt);
   lInt=setInterval(tick,1000);
+  _acquireWakeLock();
 }
 
 function tick(){
@@ -3968,6 +3980,7 @@ function nextB(){ if(cBloco<cAula.blocos.length-1){ cBloco++; segS=0; updUpNext(
 function quitW(){
   // 1. Parar timer da aula
   clearInterval(lInt); lInt=null;
+  _releaseWakeLock();
   // 2. Parar ping WebSocket e fechar conexão limpa
   clearInterval(wsAlunoPing); wsAlunoPing=null;
   if(wsConn){ try{ wsConn.onclose=null; wsConn.close(); }catch(e){} wsConn=null; }
