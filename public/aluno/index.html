@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
@@ -478,7 +478,7 @@ input[type=file]{display:none}
     </div>
   </div>
   <!-- Guest / Aluno: só Agenda (largura total) -->
-  <div id="homeAgendaBtn" style="padding:0 16px 4px;margin-top:10px;">
+  <div id="homeAgendaBtn" style="padding:0 16px 4px;margin-top:-2px;">
     <div onclick="goTab('sAgenda','navAgenda')" style="background:linear-gradient(135deg,rgba(41,95,232,.18),rgba(41,95,232,.05));border:1px solid rgba(41,95,232,.3);border-radius:18px;padding:14px 16px;cursor:pointer;display:flex;align-items:center;gap:14px;position:relative;overflow:hidden;">
       <div style="position:absolute;right:-10px;bottom:-10px;width:60px;height:60px;border-radius:50%;background:rgba(41,95,232,.06);"></div>
       <div style="width:42px;height:42px;background:rgba(41,95,232,.18);border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
@@ -840,10 +840,10 @@ input[type=file]{display:none}
       <!-- UP NEXT removido daqui — está acima do gauge agora -->
 
       <!-- GAUGE WRAP -->
-      <div style="flex:1;display:flex;flex-direction:column;align-items:center;padding:12px 10px 0;min-height:0;overflow:hidden;cursor:pointer;-webkit-user-select:none;user-select:none" onclick="cycleGaugeMode()">
+      <div style="flex:1;display:flex;flex-direction:column;align-items:center;padding:0 10px 0;min-height:0;overflow:hidden;cursor:pointer;-webkit-user-select:none;user-select:none" onclick="cycleGaugeMode()">
 
         <!-- SVG COM TEXTOS INTERNOS -->
-        <svg id="gaugeSvg" width="100%" viewBox="0 0 360 215" xmlns="http://www.w3.org/2000/svg" style="max-width:380px;overflow:visible;display:block;">
+        <svg id="gaugeSvg" width="100%" viewBox="0 15 360 200" xmlns="http://www.w3.org/2000/svg" style="max-width:380px;overflow:visible;display:block;">
           <defs>
             <!--
               Gradiente suave arco-íris — transições contínuas entre zonas
@@ -872,11 +872,11 @@ input[type=file]{display:none}
           </defs>
 
           <!-- Trilha escura de fundo -->
-          <path d="M 10 200 A 170 170 0 0 1 350 200" fill="none" stroke="rgba(255,255,255,0.07)" stroke-width="26" stroke-linecap="butt"/>
+          <path d="M 10 200 A 170 170 0 0 1 350 200" fill="none" stroke="rgba(255,255,255,0.07)" stroke-width="36" stroke-linecap="butt"/>
 
           <!-- Arco de zonas — gradiente contínuo suave, animado via stroke-dasharray -->
           <path id="zFill" d="M 10 200 A 170 170 0 0 1 350 200" fill="none"
-                stroke="url(#zoneGrad)" stroke-width="26" stroke-linecap="butt"
+                stroke="url(#zoneGrad)" stroke-width="36" stroke-linecap="butt"
                 stroke-dasharray="2 532"
                 style="transition:stroke-dasharray .35s ease"/>
 
@@ -893,12 +893,11 @@ input[type=file]{display:none}
               </linearGradient>
             </defs>
             <!-- raio ProRider escalado para caber como ponteiro -->
-            <!-- original: M30 4 L10 30 L20 30 L14 52 L34 26 L24 26Z -->
-            <!-- escalado ~0.6x e centrado em 180,200 apontando para cima -->
-            <path d="M 180,22 L 162,58 L 173,58 L 166,82 L 188,48 L 176,48 Z"
-                  fill="url(#boltG)" filter="url(#boltGlow)"/>
+            <path d="M 180,20 L 155,58 L 169,58 L 161,84 L 195,46 L 173,46 Z"
+                  fill="url(#boltG)" filter="url(#boltGlow)"
+                  stroke="rgba(255,255,255,.28)" stroke-width="1.8" stroke-linejoin="round"/>
             <!-- linha de suporte do ponteiro -->
-            <line x1="180" y1="64" x2="180" y2="72" stroke="rgba(255,255,255,.25)" stroke-width="2" stroke-linecap="round"/>
+            <line x1="180" y1="64" x2="180" y2="74" stroke="rgba(255,255,255,.35)" stroke-width="3.5" stroke-linecap="round"/>
           </g>
 
           <!-- NOME DA ZONA — bem alto no arco, sem sobrepor o numero -->
@@ -923,16 +922,20 @@ input[type=file]{display:none}
         <!-- RPM / WATTS / BPM -->
         <div style="display:flex;width:100%;max-width:360px;margin-top:6px;border-top:1px solid rgba(255,255,255,.07);padding-top:6px;flex-shrink:0;">
           <div style="flex:1;text-align:center;border-right:1px solid rgba(255,255,255,.08);">
-            <div id="bigRpm" style="font-family:'Barlow Condensed',sans-serif;font-size:40px;font-weight:900;color:#fff;line-height:1;">--</div>
+            <div id="bigRpm" style="font-family:'Barlow Condensed',sans-serif;font-size:40px;font-weight:900;color:#fff;line-height:1;">83</div>
             <div style="font-size:10px;font-weight:700;letter-spacing:3px;color:rgba(255,255,255,.3);text-transform:uppercase;margin-top:2px;">RPM</div>
           </div>
           <div style="flex:1;text-align:center;border-right:1px solid rgba(255,255,255,.08);">
             <div id="bigWatts" style="font-family:'Barlow Condensed',sans-serif;font-size:40px;font-weight:900;color:#fff;line-height:1;">0</div>
             <div style="font-size:10px;font-weight:700;letter-spacing:3px;color:rgba(255,255,255,.3);text-transform:uppercase;margin-top:2px;">Watts</div>
           </div>
-          <div style="flex:1;text-align:center;">
+          <div style="flex:1;text-align:center;border-right:1px solid rgba(255,255,255,.08);">
             <div id="bigHR" style="font-family:'Barlow Condensed',sans-serif;font-size:40px;font-weight:900;color:#fff;line-height:1;">-</div>
             <div style="font-size:10px;font-weight:700;letter-spacing:3px;color:rgba(255,255,255,.3);text-transform:uppercase;margin-top:2px;">BPM</div>
+          </div>
+          <div style="flex:1;text-align:center;">
+            <div id="bigGear" style="font-family:'Barlow Condensed',sans-serif;font-size:40px;font-weight:900;color:#fff;line-height:1;">-</div>
+            <div style="font-size:10px;font-weight:700;letter-spacing:3px;color:rgba(255,255,255,.3);text-transform:uppercase;margin-top:2px;">GEAR</div>
           </div>
         </div>
 
@@ -1018,17 +1021,11 @@ input[type=file]{display:none}
       <div class="drawer-next-info" id="dNextInfo">–</div>
     </div>
     <div class="drawer-ctrls">
-      <button class="dctrl-btn" id="btnPrevB" onclick="prevB()">⏮</button>
+      <button class="dctrl-btn" onclick="prevB()">⏮</button>
       <button class="dctrl-play" id="pauseBtn" onclick="togglePause()">⏸</button>
-      <button class="dctrl-btn" id="btnNextB" onclick="nextB()">⏭</button>
+      <button class="dctrl-btn" onclick="nextB()">⏭</button>
     </div>
     <button class="drawer-quit" onclick="quitW()">Encerrar Aula</button>
-  </div>
-
-  <!-- Indicador de reconexão — aparece quando WS cai durante aula ao vivo -->
-  <div id="liveConnIndicator" style="display:none;position:fixed;top:0;left:0;right:0;z-index:9000;background:rgba(0,0,0,.85);padding:10px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px;">
-    <span style="font-size:13px;color:#ea860c;font-weight:700;">⚠ Reconectando...</span>
-    <button onclick="quitW()" style="padding:6px 14px;border-radius:8px;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.08);color:#fff;font-size:12px;cursor:pointer;">Sair da aula</button>
   </div>
 </div>
 
@@ -1846,6 +1843,7 @@ input[type=file]{display:none}
 
 // ---- QR SCAN ----
 var wsConn=null;
+var wsAlunoPing=null;
 var SERVER_URL='wss://prorider-server-production-5784.up.railway.app';
 // Gráfico da aula recebido do professor
 var aulaGrafico=[], aulaBlocoIdx=0, aulaGraficoNome='';
@@ -1927,21 +1925,17 @@ function connectQR(code){
       var nome=document.getElementById('profNome');
       var nomeVal=(nome&&nome.textContent.trim()&&nome.textContent.trim()!=='—')?nome.textContent.trim():(localStorage.getItem('pr_nome')||'Aluno');
       wsConn.send(JSON.stringify({tipo:'entrar_sala',codigo:code,nome:nomeVal,bike:null}));
-      // esconde indicador de reconexão e bloqueia nav de blocos (modo professor)
-      var ind=document.getElementById('liveConnIndicator');
-      if(ind) ind.style.display='none';
-      var p=document.getElementById('btnPrevB'),n=document.getElementById('btnNextB');
-      if(p){p.style.opacity='0.2';p.style.pointerEvents='none';}
-      if(n){n.style.opacity='0.2';n.style.pointerEvents='none';}
     };
     wsConn.onmessage=function(e){
       var data=JSON.parse(e.data);
       if(data.tipo==='conectado'){
         if(statusEl){statusEl.textContent='Conectado!';statusEl.style.color='#5db13d';}
+        // Para câmera se estiver ativa
         pararCamera();
-        _resetEstadoLive();
+        // Navega para sLive com pequeno delay para iOS processar
         setTimeout(function(){
           go('sLive');
+          // Força scroll para o topo
           var sl=document.getElementById('sLive');
           if(sl) sl.scrollTop=0;
         }, 300);
@@ -2014,21 +2008,24 @@ function connectQR(code){
       if(data.tipo==='erro'){
         if(statusEl){statusEl.textContent='QR invalido. Tente novamente.';statusEl.style.color='#d62d2d';}
       }
-      if(data.tipo==='aula_encerrada'||data.tipo==='sala_encerrada'){
-        _mostrarFimAula(data.nome_aula||'Aula', data.professor||'');
-      }
     };
     wsConn.onclose=function(){
       wsConn=null;
-      var ind=document.getElementById('liveConnIndicator');
-      if(ind) ind.style.display='flex';
-      if(lastCode) setTimeout(function(){ connectQR(lastCode); }, 3000);
+      // Tenta reconectar automaticamente em 4s se na tela de live
+      var cur=document.querySelector('.screen.active');
+      // Reconecta automaticamente sempre que cair
+      if(lastCode){
+        setTimeout(function(){ connectQR(lastCode); }, 3000);
+        var ind=document.getElementById('liveConnIndicator');
+        if(ind){ind.textContent='Reconectando...';ind.style.color='#ea860c';}
+      }
     };
     wsConn.onerror=function(){
       if(statusEl){statusEl.textContent='Sem conexao. Verifique se esta na mesma rede.';statusEl.style.color='#d62d2d';}
     };
     // Keepalive ping a cada 25 segundos (iOS Safari para JS quando tela apaga)
-    var wsAlunoPing=setInterval(function(){
+    clearInterval(wsAlunoPing);
+    wsAlunoPing=setInterval(function(){
       if(wsConn&&wsConn.readyState===1){
         wsConn.send(JSON.stringify({tipo:'ping'}));
       } else {
@@ -2154,7 +2151,7 @@ function buildActivity(){
 
 // ---- PROFILE EDIT ----
 var profEditField='';
-var profData={nome:'',email:'',peso:'',ftp:'150',sapatilha:localStorage.getItem('pr_sapatilha')||'',uniforme:localStorage.getItem('pr_uniforme')||''};
+var profData={nome:'',email:'',peso:'',ftp:'130',sapatilha:localStorage.getItem('pr_sapatilha')||'',uniforme:localStorage.getItem('pr_uniforme')||''};
 
 function profEdit(field){
   profEditField=field;
@@ -2837,8 +2834,7 @@ var zoneConfig = {
 var curAulaIdx=0, cAula=null, cBloco=0, segS=0, totS=0;
 var lInt=null, cPg=0, isPaused=false;
 var isFtpTest=false, ftpTestCalc=0.95, ftpTestDur=20, ftpTestWatts=[], ftpTestPhase=false;
-var maxRpm=0, sumRpm=0, cntRpm=0, dRpm=0, dWatts=0, dHR=0, dKcal=0, dDist=0;
-var sumWatts=0;
+var maxRpm=0, sumRpm=0, cntRpm=0, dRpm=83, dGear=0;
 var audio=null, aPlay=false;
 var scanT={}, connected={bike:false,hr:false};
 var gaugeMode=0; // 0=FTP%, 1=RPM, 2=W/kg
@@ -2910,13 +2906,6 @@ function go(id){
   var bNav=document.getElementById('bNav');
   if(bNav) bNav.style.display=showNav?'flex':'none';
 
-  // Reset câmera ao entrar na tela QR (limpa estado de erros anteriores)
-  if(id === 'sQRScan'){
-    pararCamera();
-    var st = document.getElementById('qrStatus');
-    if(st){ st.textContent = ''; st.style.color = ''; }
-    setTimeout(function(){ iniciarCamera(); }, 150);
-  }
 }
 // ═══════════════════════════════════════════════
 // AGENDA — buscar aula, reservar, minhas reservas
@@ -3691,66 +3680,13 @@ function goConnect(){
   if(mb) mb.classList.remove('show');
   go('sConnect');
 }
-function _iniciarSelecaoBike(st, dEl, btn){
-  var fnd = document.getElementById('fndBike');
-  if(fnd){ fnd.style.display='block'; fnd.innerHTML='<div style="padding:12px 14px;font-size:12px;color:rgba(255,255,255,.4);text-align:center;">A procurar bikes...</div>'; }
-  if(dEl) dEl.classList.add('scanning');
-  if(st){ st.className='dev-status st-scan'; st.textContent='A procurar bikes...'; }
-  window._selecionarBikeBLE = function(bikeId){
-    window.BleNative.selectBike(bikeId);
-    connected.bike = true;
-    if(dEl){ dEl.classList.remove('scanning'); dEl.classList.add('connected'); }
-    if(st){ st.className='dev-status st-ok'; st.textContent='Connected Keiser M3i'+(bikeId!=null?' #'+bikeId:''); }
-    if(btn){ btn.className='dev-btn db-c'; btn.textContent='Connected'; btn.disabled=false; }
-    if(fnd) fnd.style.display='none';
-    if(typeof checkBothConnected==='function') checkBothConnected();
-  };
-  window.BleNative.startBikeScan(
-    function(dados){
-      var r=document.getElementById('bigRpm'); if(r) r.textContent=Math.round(dados.cadence);
-      var w=document.getElementById('bigWatts'); if(w) w.textContent=dados.power;
-      dRpm=dados.cadence; dWatts=dados.power;
-      if(dados.kcal>0) dKcal=dados.kcal;
-      if(dados.distance>0) dDist=dados.distance;
-    },
-    function(msg){ if(st) st.textContent=msg; },
-    function(bikes){
-      if(connected.bike || !fnd) return;
-      if(!bikes.length){ fnd.innerHTML='<div style="padding:12px 14px;font-size:12px;color:rgba(255,255,255,.4);text-align:center;">A procurar bikes...</div>'; return; }
-      if(st){ st.className='dev-status st-scan'; st.textContent='Escolha a sua bike ('+bikes.length+')'; }
-      fnd.innerHTML='<div style="padding:8px 14px;font-size:11px;color:rgba(255,255,255,.35);">Toque na sua bike:</div>'+
-        bikes.map(function(b){
-          return '<button onclick="window._selecionarBikeBLE('+b.bikeId+')" style="display:flex;align-items:center;justify-content:space-between;width:100%;padding:12px 14px;background:none;border:none;border-top:1px solid rgba(255,255,255,.06);color:#fff;font-size:14px;cursor:pointer;"><span style="font-weight:700;">&#128692; Bike '+b.bikeId+'</span><span style="font-size:12px;color:rgba(255,255,255,.4);">'+Math.round(b.cadence)+' RPM</span></button>';
-        }).join('');
-    }
-  );
-}
 function scanDev(type){
-  if(window.Capacitor && window.BleNative){
-    var st=document.getElementById(type==='bike'?'stBike':'stHR');
-    st.className='dev-status st-scan';
-    st.textContent='A procurar...';
-    if(type==='bike'){
-      _iniciarSelecaoBike(st, document.getElementById('devBike'), document.getElementById('btnBike'));
-    } else {
-      window.BleNative.startHRScan(function(hr){
-        dHR=hr;
-        document.getElementById('bigHR').textContent=hr;
-        var dEl=document.getElementById('devHR');
-        var btn=document.getElementById('btnHR');
-        if(!connected.hr){
-          connected.hr=true;
-          dEl.classList.remove('scanning'); dEl.classList.add('connected');
-          st.className='dev-status st-ok'; st.textContent='Connected HR';
-          btn.className='dev-btn db-c'; btn.textContent='Connected'; btn.disabled=false;
-          document.getElementById('fndHR').style.display='none';
-          checkBothConnected();
-        }
-      }, function(msg){ st.textContent=msg; });
-    }
+  // Se Bluetooth real dispon\u00EDvel, usar API nativa
+  if(navigator.bluetooth){
+    scanDevBT(type);
     return;
   }
-  if(navigator.bluetooth){ scanDevBT(type); return; }
+  // Sem Bluetooth — mostrar aviso
   var st=document.getElementById(type==='bike'?'stBike':'stHR');
   st.className='dev-status st-idle';
   st.textContent='Requer Chrome no Android';
@@ -3799,25 +3735,6 @@ function startCountdown(){
   },1000);
 }
 
-// Reset completo do estado de aula ao entrar numa nova sala
-function _resetEstadoLive(){
-  if(lInt){ clearInterval(lInt); lInt=null; }
-  totS=0; segS=0; cBloco=0; isPaused=false; cPg=0;
-  if(typeof sumFtp!=='undefined') sumFtp=0;
-  if(typeof cntFtp!=='undefined') cntFtp=0;
-  sumRpm=0; cntRpm=0; maxRpm=0; sumWatts=0;
-  dRpm=0; dWatts=0; dHR=0; dKcal=0; dDist=0;
-  if(typeof zoneTime!=='undefined') zoneTime={z1:0,z2:0,z3:0,z4:0,z5:0,z6:0,z7:0};
-  aulaGrafico=[]; aulaBlocoIdx=0; aulaGraficoNome='';
-  var gp=document.getElementById('aulaGraficoPainel');
-  if(gp){ gp.style.display='none'; gp.innerHTML=''; }
-  var gn=document.getElementById('graficoNativo');
-  if(gn) gn.style.display='flex';
-  if(typeof _fillBar==='function') _fillBar(0);
-  var resets={'bigRpm':'--','bigWatts':'0','p2Ftp':'0','p2Hr':'--','p2Kc':'0','p2Dist':'0.0','ltSeg':'00:00'};
-  Object.keys(resets).forEach(function(id){var el=document.getElementById(id);if(el)el.textContent=resets[id];});
-}
-
 // \u2550\u2550 LIVE \u2550\u2550
 function startLive(){
   // cAula=null → aula normal (setado em openDetail); free ride e FTP test já definem cAula antes
@@ -3825,8 +3742,8 @@ function startLive(){
   if(!cAula||!cAula.blocos){ console.error('startLive: cAula invalido',cAula); return; }
   cBloco=0; segS=0; totS=0;
   zoneTime={z1:0,z2:0,z3:0,z4:0,z5:0,z6:0,z7:0};
-  sumFtp=0; cntFtp=0; sumRpm=0; cntRpm=0; maxRpm=0; sumWatts=0;
-  maxRpm=0; sumRpm=0; cntRpm=0; dRpm=0; dWatts=0; dKcal=0; dDist=0; cPg=0;
+  sumFtp=0; cntFtp=0; sumRpm=0; cntRpm=0; maxRpm=0;
+  maxRpm=0; sumRpm=0; cntRpm=0; dRpm=83; cPg=0;
   if(!isFtpTest) ftpTestWatts=[];
   rpmAlertCool=0;
   isPaused=false; gaugeMode=0;
@@ -3852,23 +3769,26 @@ function tick(){
   segS++; totS++;
   var b=cAula&&cAula.blocos?cAula.blocos[cBloco]:null;
   if(!b){ clearInterval(lInt); return; }
+  dRpm=Math.max(70,Math.min(140,dRpm+(Math.random()-.46)*3));
   var rpm=Math.round(dRpm);
-  var watts=dWatts;
-  var userFtp=parseInt(profData&&profData.ftp)||150;
-  var userPeso=parseFloat(profData&&profData.peso)||70;
-  var ftpPct=watts>0?Math.round((watts/userFtp)*100):0;
-  var wkg=watts>0?(watts/userPeso).toFixed(1):'0.0';
-  var curRpm=dRpm||0;
-  if(curRpm>0){sumRpm+=curRpm;cntRpm++;if(curRpm>maxRpm)maxRpm=Math.round(curRpm);}
-  if(watts>0) sumWatts+=watts;
-  if(isFtpTest&&b.teste){
-    ftpTestWatts.push(watts>0?watts:0);
-  }
-  sumFtp+=ftpPct; cntFtp++;
+  // FTP% simulado pelo centro real de cada zona (Coggan & Allen)
+  // z1:<55 z2:56-75 z3:76-90 z4:91-105 z5:106-120 z6:121-150 z7:MAX
+  var zFtpSim={z1:27,z2:66,z3:83,z4:98,z5:113,z6:130,z7:148};
+  var ftpPct=zFtpSim[b.z]||Math.round(20+(cBloco/cAula.blocos.length)*80);
+  var watts=Math.round(ftpPct*1.3);
+  var wkg=(watts/90).toFixed(1);
+  sumRpm+=rpm; cntRpm++;
+  if(rpm>maxRpm) maxRpm=rpm;
 
   document.getElementById('ltSeg').textContent=fmMS(segS);
   document.getElementById('ltTot').textContent=fmMS(totS);
   if(zoneTime[b.z]!==undefined) zoneTime[b.z]++;
+  var curRpm=dRpm||0;
+  if(curRpm>0){sumRpm+=curRpm;cntRpm++;if(curRpm>maxRpm)maxRpm=Math.round(curRpm);}
+  if(isFtpTest&&b.teste){
+    ftpTestWatts.push(curRpm>0?Math.round(curRpm*1.8):0);
+  }
+  sumFtp+=Math.round(20+(cBloco/cAula.blocos.length)*80); cntFtp++;
   rpmAlertCool=rpmAlertCool>0?rpmAlertCool-1:0;
   if(rpmAlertCool===0&&curRpm>0&&b.rpm){
     var wattsNow=Math.round(curRpm*1.8);
@@ -3892,6 +3812,9 @@ function tick(){
     zPbar.style.boxShadow='0 0 8px '+( zC[b.z]||'#888' );
   }
   document.getElementById('botT').textContent=fmHMS(totS);
+  document.getElementById('bigRpm').textContent=rpm;
+  document.getElementById('bigWatts').textContent=watts;
+  var gearEl=document.getElementById('bigGear'); if(gearEl&&typeof dGear!=='undefined'&&dGear>0) gearEl.textContent=dGear;
 
   // gauge mode
   var ptr=document.getElementById('gPtr');
@@ -3928,29 +3851,17 @@ function tick(){
   }
 
   // p2
-  // Zona baseada em %FTP (para envio WS e exibição)
-  var zona=ftpPct<=55?'z1':ftpPct<=75?'z2':ftpPct<=87?'z3':ftpPct<=94?'z4':ftpPct<=105?'z5':ftpPct<=120?'z6':'z7';
   document.getElementById('p2Ftp').textContent=ftpPct;
-  document.getElementById('p2Hr').textContent=dHR>0?dHR:'--';
+  document.getElementById('p2Hr').textContent=Math.round(ftpPct*.85);
   document.getElementById('p2Rpm').textContent=rpm;
   document.getElementById('p2Spd').textContent=(rpm*.35).toFixed(1);
-  document.getElementById('p2AR').textContent=cntRpm>0?Math.round(sumRpm/cntRpm):'--';
-  document.getElementById('p2MR').textContent=maxRpm||'--';
-  document.getElementById('p2Dist').textContent=dDist>0?dDist.toFixed(1):(totS*.003).toFixed(1);
-  document.getElementById('p2Kc').textContent=dKcal>0?Math.round(dKcal):Math.round(totS*.06);
+  document.getElementById('p2AR').textContent=Math.round(sumRpm/cntRpm);
+  document.getElementById('p2MR').textContent=Math.round(maxRpm);
+  document.getElementById('p2Dist').textContent=(totS*.003).toFixed(1);
+  document.getElementById('p2Kc').textContent=Math.round(totS*.06);
   document.getElementById('p2KH').textContent=Math.round(.06*3600);
   document.getElementById('p2AS').textContent=(rpm*.35).toFixed(1);
   document.getElementById('p2Dur').textContent=fmMS(totS);
-  // Enviar dados ao vivo para o ginásio (a cada 3 ticks ~3s)
-  if(totS%3===0&&wsConn&&wsConn.readyState===1){
-    var nomeAluno=(profData&&profData.nome)||'Aluno';
-    try{ wsConn.send(JSON.stringify({
-      tipo:'dados_aluno', nome:nomeAluno,
-      rpm:rpm, watts:watts, ftp:ftpPct, zona:zona,
-      bpm:dHR||0, kcal:dKcal>0?Math.round(dKcal):Math.round(totS*.06),
-      dist:dDist>0?parseFloat(dDist.toFixed(2)):parseFloat((totS*.003).toFixed(2))
-    })); }catch(e){}
-  }
 
   if(segS>=b.dur*60){
     cBloco++;
@@ -4052,19 +3963,23 @@ function togglePause(){
   document.getElementById('pauseBtn').textContent=isPaused?'\u25B6':'\u23F8';
   if(audio){ if(isPaused) audio.pause(); else if(aPlay) audio.play(); }
 }
-function prevB(){ if(wsConn&&wsConn.readyState===1)return; if(cBloco>0){ cBloco--; segS=0; updUpNext(); updGraph(); scrollGraph(); } }
-function nextB(){ if(wsConn&&wsConn.readyState===1)return; if(cBloco<cAula.blocos.length-1){ cBloco++; segS=0; updUpNext(); updGraph(); scrollGraph(); } }
+function prevB(){ if(cBloco>0){ cBloco--; segS=0; updUpNext(); updGraph(); scrollGraph(); } }
+function nextB(){ if(cBloco<cAula.blocos.length-1){ cBloco++; segS=0; updUpNext(); updGraph(); scrollGraph(); } }
 function quitW(){
-  clearInterval(lInt); closeDrawer(); if(audio){audio.pause();audio.src='';}
-  // Fechar WS e limpar reconexão
-  lastCode=null;
-  if(wsConn){try{wsConn.close();}catch(ee){} wsConn=null;}
-  var ind=document.getElementById('liveConnIndicator');
-  if(ind) ind.style.display='none';
-  // Restaurar botões de navegação para modo solo
-  var p=document.getElementById('btnPrevB'),n=document.getElementById('btnNextB');
-  if(p){p.style.opacity='';p.style.pointerEvents='';}
-  if(n){n.style.opacity='';n.style.pointerEvents='';}
+  // 1. Parar timer da aula
+  clearInterval(lInt); lInt=null;
+  // 2. Parar ping WebSocket e fechar conexão limpa
+  clearInterval(wsAlunoPing); wsAlunoPing=null;
+  if(wsConn){ try{ wsConn.onclose=null; wsConn.close(); }catch(e){} wsConn=null; }
+  // 3. Parar BLE
+  try{ if(typeof BleNative!=='undefined'){ BleNative.stopBikeScan(); BleNative.stopHRScan(); } }catch(e){}
+  try{ if(typeof stopBikeScan==='function') stopBikeScan(); }catch(e){}
+  // 4. Parar áudio
+  if(audio){ try{ audio.pause(); audio.src=''; }catch(e){} }
+  // 5. Resetar estado
+  isPaused=false; cBloco=0; segS=0; dGear=0;
+  // 6. Fechar drawer e mostrar resultados
+  closeDrawer();
   showResults();
 }
 function showResults(){
@@ -4078,13 +3993,12 @@ function showResultsReal(){
   var nameEl=document.getElementById('resAulaName');
   if(nameEl&&cAula) nameEl.textContent=cAula.nome;
   var totEl=document.getElementById('resTot'); if(totEl) totEl.textContent=fmHMS(totS);
-  var kcalEl=document.getElementById('resKcal'); if(kcalEl) kcalEl.textContent=dKcal>0?Math.round(dKcal):Math.round(totS*.06);
-  var distEl=document.getElementById('resDist'); if(distEl) distEl.textContent=dDist>0?dDist.toFixed(1):(totS*.003).toFixed(1);
+  var kcalEl=document.getElementById('resKcal'); if(kcalEl) kcalEl.textContent=Math.round(totS*.06);
+  var distEl=document.getElementById('resDist'); if(distEl) distEl.textContent=(totS*.003).toFixed(1);
   var avgFEl=document.getElementById('resAvgFtp'); if(avgFEl) avgFEl.textContent=cntFtp>0?Math.round(sumFtp/cntFtp):0;
   var avgREl=document.getElementById('resAvgRpm'); if(avgREl) avgREl.textContent=cntRpm>0?Math.round(sumRpm/cntRpm):0;
   var maxREl=document.getElementById('resMaxRpm'); if(maxREl) maxREl.textContent=Math.round(maxRpm);
-  var avgWatts=sumWatts>0&&cntFtp>0?Math.round(sumWatts/cntFtp):0;
-  var wEl=document.getElementById('resWatts'); if(wEl) wEl.textContent=avgWatts;
+  var wEl=document.getElementById('resWatts'); if(wEl) wEl.textContent=cntFtp>0?Math.round((sumFtp/cntFtp)*1.3):0;
   buildResChart();
 
   // Se logado: salva no servidor e abre tela de pontos
@@ -4103,13 +4017,7 @@ function showResultsReal(){
       body:JSON.stringify({
         aula_nome:cAula.nome, duracao_sec:totS,
         zona_predominante:zPred, badge:cAula.badge||'', sem_pausas:true,
-        zonas:zonasPct,
-        avg_ftp:cntFtp>0?Math.round(sumFtp/cntFtp):0,
-        avg_watts:sumWatts>0&&cntFtp>0?Math.round(sumWatts/cntFtp):0,
-        avg_rpm:cntRpm>0?Math.round(sumRpm/cntRpm):0,
-        max_rpm:Math.round(maxRpm),
-        kcal:dKcal>0?Math.round(dKcal):Math.round(totS*.06),
-        dist:dDist>0?parseFloat(dDist.toFixed(2)):parseFloat((totS*.003).toFixed(2))
+        zonas:zonasPct
       })
     }).then(function(r){ return r.json(); })
       .then(function(d){
@@ -4417,9 +4325,10 @@ function btConnectKeiser(server, device){
             var cadence = d.getUint16(7, true) / 10;
             var power   = d.getUint16(9, true);
             var gear    = d.getUint8(3);
-            dRpm = cadence;
+            dRpm = cadence; dGear = gear;
             document.getElementById('bigRpm').textContent=Math.round(cadence);
             document.getElementById('bigWatts').textContent=power;
+            var gEl=document.getElementById('bigGear'); if(gEl&&gear>0) gEl.textContent=gear;
           }
         });
         connDev('bike', device.name, '');
@@ -4646,8 +4555,8 @@ function navCenterAtualizar() {
     if (lbl) lbl.textContent = 'Início';
     if (btn) { btn.style.background = 'linear-gradient(135deg,#ea860c,#d62d2d)'; btn.style.boxShadow = '0 4px 20px rgba(234,134,12,.45)'; }
     if (wrap) wrap.onclick = function(){ goTab('sHome','navRide'); };
-    if (tabDesafios) tabDesafios.style.display = '';
-    if (tabAgenda)   tabAgenda.style.display   = 'none';
+    if (tabDesafios) tabDesafios.style.display = 'none';
+    if (tabAgenda)   tabAgenda.style.display   = '';
     if (profBtns)  profBtns.style.display  = 'none';
     if (agendaBtn) agendaBtn.style.display = '';
     if (profBadge) profBadge.style.display = 'none';
@@ -4726,11 +4635,6 @@ function updateProfileUI(){
   } else {
     if(card) card.style.display='none';
     if(btnLogin) btnLogin.style.display='block';
-    // Limpar campos de dados pessoais ao deslogar
-    var pn=document.getElementById('profNome');  if(pn) pn.textContent='–';
-    var pe=document.getElementById('profEmail'); if(pe) pe.textContent='–';
-    var pp2=document.getElementById('profPeso'); if(pp2) pp2.textContent='–';
-    var pf=document.getElementById('ftpDisplay'); if(pf) pf.textContent='–';
   }
 }
 
@@ -4989,7 +4893,7 @@ function _drawShareCard(canvas){
     {label:'DURAÇÃO',   value:fmHMS(totS),                                         color:'#ffffff'},
     {label:'CALORIAS',  value:Math.round(totS*.06)+' kcal',                        color:'#ea860c'},
     {label:'RPM MÉD',   value:(cntRpm>0?Math.round(sumRpm/cntRpm):'-')+' rpm',     color:'#295fe8'},
-    {label:'WATTS MÉD', value:(sumWatts>0&&cntFtp>0?Math.round(sumWatts/cntFtp):'-')+' W', color:'#5db13d'}
+    {label:'WATTS MÉD', value:(cntFtp>0?Math.round((sumFtp/cntFtp)*1.3):'-')+' W', color:'#5db13d'}
   ];
   var sY=1390, sH=160, sGap=16, sCols=2;
   var sW=(W-PAD*2-(sGap*(sCols-1)))/sCols;
@@ -5139,17 +5043,9 @@ function iniciarCamera(){
 }
 
 function carregarJsQR(){
-  if(window.jsQR){ iniciarScanCanvas(); return; }
   var s = document.createElement('script');
-  s.src = 'jsqr.js'; // local — evita falha de CDN no Capacitor
+  s.src = 'https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js';
   s.onload = function(){ iniciarScanCanvas(); };
-  s.onerror = function(){
-    // fallback CDN
-    var s2 = document.createElement('script');
-    s2.src = 'https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js';
-    s2.onload = function(){ iniciarScanCanvas(); };
-    document.head.appendChild(s2);
-  };
   document.head.appendChild(s);
 }
 
@@ -5262,29 +5158,13 @@ async function entrarPorBike(bikeNum, lic){
       var msg = d.bike_trocada ? 'Bike trocada para '+d.bike_num
         : d.reconectado ? 'Reconectado na Bike '+d.bike_num
         : d.upgrade_bt ? 'Bike '+d.bike_num+' identificada! (era anônima)'
-        : 'Bike '+d.bike_num+' — '+d.nome_aula;
+        : '🚲 Bike '+d.bike_num+' — '+d.nome_aula;
       statusEl.textContent = msg;
       statusEl.style.color='#5db13d';
     }
     // Salvar contexto de sessão
     sessionStorage.setItem('pr_sessao_id', d.sessao_id);
     sessionStorage.setItem('pr_bike_num', d.bike_num);
-    // Conectar à sala via WebSocket (LAN first → cloud fallback)
-    if(d.sessao_token){
-      var dadosSessao = { bike_num: d.bike_num, sessao_id: d.sessao_id };
-      var localAddr = localStorage.getItem('pr_local_server');
-      if(localAddr){
-        try{
-          await _tentarConexaoWS('ws://'+localAddr, d.sessao_token, dadosSessao);
-          return;
-        }catch(e2){ /* fallback to cloud */ }
-      }
-      try{
-        await _tentarConexaoWS(SERVER_URL, d.sessao_token, dadosSessao);
-      }catch(e2){
-        if(statusEl){ statusEl.textContent='Bike identificada! Aguarda o professor iniciar a aula.'; }
-      }
-    }
   }catch(e){
     if(statusEl){ statusEl.textContent='Erro de conexão.'; statusEl.style.color='#d62d2d'; }
   }
@@ -5312,8 +5192,7 @@ async function verStatusSala(lic){
       // Sem aula ativa mas tem próxima
       _mostrarModalProxima(d, prToken);
     } else {
-      if(statusEl){ statusEl.textContent='Sem aula no momento. Explore os treinos disponíveis no app!'; statusEl.style.color='var(--muted)'; }
-      showToast('Sem aula ativa. Podes fazer os treinos disponíveis no app!');
+      if(statusEl){ statusEl.textContent='Nenhuma aula ativa ou agendada no momento.'; statusEl.style.color='var(--muted)'; }
     }
   }catch(e){
     if(statusEl){ statusEl.textContent='Erro de conexão.'; statusEl.style.color='#d62d2d'; }
@@ -5417,109 +5296,8 @@ async function _reservarProxima(lic, agendaId, btn){
   }catch(e){ alert('Erro de conexão.'); }
 }
 
-// ── Fim de aula — modal exibido quando professor encerra ──
-function _mostrarFimAula(nomeAula, professor){
-  // Remove modal anterior se existir
-  var old = document.getElementById('modalFimAula');
-  if(old) old.remove();
-
-  var overlay = document.createElement('div');
-  overlay.id = 'modalFimAula';
-  overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.88);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;box-sizing:border-box;';
-
-  overlay.innerHTML =
-    '<div style="text-align:center;max-width:320px;width:100%;">'
-    +'<div style="font-size:52px;margin-bottom:16px;">🏁</div>'
-    +'<div style="font-family:\'Bebas Neue\',sans-serif;font-size:32px;color:#fff;letter-spacing:2px;margin-bottom:6px;">AULA ENCERRADA</div>'
-    +(nomeAula?'<div style="font-size:15px;color:rgba(255,255,255,.5);margin-bottom:4px;">'+nomeAula+'</div>':'')
-    +(professor?'<div style="font-size:13px;color:rgba(255,255,255,.35);margin-bottom:28px;">Prof. '+professor+'</div>':'<div style="margin-bottom:28px;"></div>')
-    +'<div style="font-size:14px;color:rgba(255,255,255,.6);margin-bottom:28px;">O professor encerrou a sessão. O que deseja fazer?</div>'
-    +'<button id="btnFimSalvar" style="width:100%;padding:16px;border-radius:14px;border:none;background:#5db13d;color:#fff;font-size:16px;font-weight:700;margin-bottom:12px;cursor:pointer;">Salvar resumo da aula</button>'
-    +'<button id="btnFimCompartilhar" style="width:100%;padding:16px;border-radius:14px;border:none;background:rgba(255,255,255,.1);color:#fff;font-size:16px;font-weight:700;margin-bottom:12px;cursor:pointer;">Compartilhar</button>'
-    +'<button id="btnFimDispensar" style="width:100%;padding:14px;border-radius:14px;border:none;background:transparent;color:rgba(255,255,255,.35);font-size:14px;cursor:pointer;">Dispensar</button>'
-    +'</div>';
-
-  document.body.appendChild(overlay);
-
-  // Fechar WS
-  if(wsConn){ try{ wsConn.close(); }catch(ee){} wsConn=null; }
-
-  // Resumo básico: duração, calorias, etc. (a partir dos dados em memória se disponíveis)
-  function _irParaHome(){
-    overlay.remove();
-    go('sHome');
-  }
-
-  document.getElementById('btnFimSalvar').onclick = function(){
-    // Tenta compartilhar via Web Share API; se não disponível, mostra alert simples
-    var txt = 'ProRider – '+nomeAula+'\nAula encerrada pelo Prof. '+professor+'\n#ProRider #Cycling';
-    if(navigator.share){
-      navigator.share({title:'ProRider – '+nomeAula, text:txt}).catch(function(){});
-    } else {
-      alert('Aula concluída!\n\n'+txt);
-    }
-    overlay.remove();
-    go('sHome');
-  };
-
-  document.getElementById('btnFimCompartilhar').onclick = function(){
-    var txt = 'Acabei de completar a aula '+nomeAula+' no ProRider! 🚴 #ProRider #Cycling';
-    if(navigator.share){
-      navigator.share({title:'ProRider', text:txt}).catch(function(){});
-    } else {
-      // Fallback: WhatsApp
-      var url = 'https://wa.me/?text='+encodeURIComponent(txt);
-      window.open(url,'_blank');
-    }
-    overlay.remove();
-    go('sHome');
-  };
-
-  document.getElementById('btnFimDispensar').onclick = function(){
-    overlay.remove();
-    go('sHome');
-  };
-}
-
 // Entra em sessão ao vivo criada pelo ProRider Gym
 // QR payload: prorider://sessao?token=XXXX[&local=192.168.1.10:3001]
-function _modalEscolherBike(maxBikes, bikesOcupadas, callback){
-  // Remove modal anterior se existir
-  var old = document.getElementById('modalBikeEscolha');
-  if(old) old.remove();
-
-  var overlay = document.createElement('div');
-  overlay.id = 'modalBikeEscolha';
-  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:9999;display:flex;align-items:center;justify-content:center;padding:24px;';
-
-  var max = maxBikes || 20;
-  var ocupadas = new Set(bikesOcupadas || []);
-  // Gerar botões de bike
-  var btns = '';
-  for(var i=1; i<=max; i++){
-    var ocup = ocupadas.has(i);
-    btns += '<button '+(ocup ? 'disabled' : 'onclick="window._escolherBike('+i+')"')+' style="width:52px;height:52px;margin:4px;border-radius:12px;border:2px solid '+(ocup?'rgba(214,45,45,.4)':'rgba(255,255,255,.15)')+';background:'+(ocup?'rgba(214,45,45,.15)':'rgba(255,255,255,.07)')+';color:'+(ocup?'rgba(255,255,255,.25)':'#fff')+';font-size:16px;font-weight:700;cursor:'+(ocup?'default':'pointer')+';">'+i+'</button>';
-  }
-
-  overlay.innerHTML =
-    '<div style="background:#1a1a1a;border-radius:20px;padding:28px 24px;max-width:340px;width:100%;text-align:center;">' +
-      '<div style="font-size:32px;margin-bottom:8px;">🚴</div>' +
-      '<div style="font-family:\'Barlow Condensed\',sans-serif;font-size:22px;font-weight:900;letter-spacing:1px;color:#fff;margin-bottom:4px;">EM QUAL BIKE VOCÊ ESTÁ?</div>' +
-      '<div style="font-size:13px;color:rgba(255,255,255,.4);margin-bottom:20px;">Toque no número da sua bike</div>' +
-      '<div style="display:flex;flex-wrap:wrap;justify-content:center;margin-bottom:20px;">' + btns + '</div>' +
-      '<button onclick="window._escolherBike(null)" style="width:100%;padding:12px;border-radius:30px;border:1px solid rgba(255,255,255,.15);background:transparent;color:rgba(255,255,255,.4);font-size:13px;font-weight:700;cursor:pointer;">ENTRAR SEM INDICAR BIKE</button>' +
-    '</div>';
-
-  document.body.appendChild(overlay);
-
-  window._escolherBike = function(num){
-    overlay.remove();
-    delete window._escolherBike;
-    if(window.BleNative && window.BleNative.selectBike) window.BleNative.selectBike(num);
-    callback(num);
-  };
-}
-
 async function entrarSessaoAoVivo(token, localAddr){
   var statusEl = document.getElementById('qrStatus');
   var prToken = localStorage.getItem('pr_token') || localStorage.getItem('pr_gestor_token');
@@ -5527,27 +5305,11 @@ async function entrarSessaoAoVivo(token, localAddr){
     if(statusEl){ statusEl.textContent='Faça login no app antes de escanear o QR.'; statusEl.style.color='#d62d2d'; }
     return;
   }
-  // Primeiro obter info da sessão para saber quantas bikes tem
-  var bikeEscolhida = null;
-  try{
-    var infoR = await fetch(SERVER_HTTP+'/sessao/info?token='+encodeURIComponent(token));
-    var infoD = infoR.ok ? await infoR.json() : {};
-    var maxBikes = infoD.max_conexoes || 15;
-    var bikesOcup = infoD.bikes_ocupadas || [];
-    bikeEscolhida = await new Promise(function(resolve){
-      _modalEscolherBike(maxBikes, bikesOcup, resolve);
-    });
-  }catch(e){ /* se falhar info, mostrar modal com 15 bikes */
-    bikeEscolhida = await new Promise(function(resolve){
-      _modalEscolherBike(15, [], resolve);
-    });
-  }
-  if(statusEl){ statusEl.textContent = bikeEscolhida ? 'Entrando na Bike '+bikeEscolhida+'...' : 'Entrando na aula...'; statusEl.style.color='#ea860c'; }
   try{
     var r = await fetch(SERVER_HTTP+'/sessao/entrar',{
       method:'POST',
       headers:{'Content-Type':'application/json','Authorization':'Bearer '+prToken},
-      body:JSON.stringify({token:token, bike_num: bikeEscolhida})
+      body:JSON.stringify({token:token})
     });
     var d = await r.json();
     if(!r.ok){
@@ -5599,9 +5361,6 @@ function _tentarConexaoWS(wsUrl, token, dadosSessao){
         resolve(ws);
       }
       if(data.tipo==='erro'){ ws.close(); reject(new Error(data.msg)); }
-      if(data.tipo==='aula_encerrada'||data.tipo==='sala_encerrada'){
-        _mostrarFimAula(data.nome_aula||'Aula', data.professor||'');
-      }
     };
     ws.onerror = function(){ clearTimeout(timeout); reject(new Error('ws error')); };
     ws.onclose = function(e){ if(!e.wasClean) reject(new Error('closed')); };
@@ -5927,61 +5686,8 @@ updateProfileUI = function() {
 };
 
 </script>
-
-<!-- Capacitor runtime (injetado pelo build nativo) -->
-<script>
-  // Carrega o plugin BLE nativo quando dentro do app Capacitor
-  if(window.Capacitor){
-    var s1 = document.createElement('script');
-    s1.src = 'capacitor://localhost/node_modules/@capacitor-community/bluetooth-le/dist/plugin.js';
-    s1.onerror = function(){
-      // fallback path para Android
-      var s2 = document.createElement('script');
-      s2.src = 'node_modules/@capacitor-community/bluetooth-le/dist/plugin.js';
-      document.head.appendChild(s2);
-    };
-    document.head.appendChild(s1);
-  }
-</script>
-<script src="ble-native.js"></script>
-<script>
-// Bridge: quando dentro do Capacitor, sobrescreve scanDevBT com versão nativa
-if(window.Capacitor){
-  var _origScanDevBT = window.scanDevBT;
-  window.scanDevBT = function(type){
-    var dEl = document.getElementById(type==='bike'?'devBike':'devHR');
-    var btn  = document.getElementById(type==='bike'?'btnBike':'btnHR');
-    var st   = document.getElementById(type==='bike'?'stBike':'stHR');
-    if(dEl) dEl.classList.add('scanning');
-    if(btn){ btn.textContent='Searching...'; btn.disabled=true; }
-
-    if(type==='bike'){
-      _iniciarSelecaoBike(st, dEl, btn);
-    } else {
-      BleNative.startHRScan(
-        function(hr){
-          var hrEl = document.getElementById('bigHR');
-          if(hrEl) hrEl.textContent = hr;
-          if(st && !st._connected){
-            st._connected = true;
-            st.className = 'dev-status st-ok';
-            st.textContent = 'HR40 · ' + hr + ' bpm';
-            if(dEl) dEl.classList.remove('scanning');
-            if(btn){ btn.textContent='Search'; btn.disabled=false; }
-          }
-        },
-        function(msg){
-          if(st){ st.className='dev-status st-bloqueado'; st.textContent=msg; }
-          if(dEl) dEl.classList.remove('scanning');
-          if(btn){ btn.textContent='Search'; btn.disabled=false; }
-        }
-      );
-    }
-  };
-}
-</script>
 </body>
-</html>
+</html><!-- QR Scan screen -->
 <div class="screen" id="sQRScan" style="background:linear-gradient(160deg,#0a0812 0%,#110808 60%,#080a14 100%);">
 
   <!-- Header -->
