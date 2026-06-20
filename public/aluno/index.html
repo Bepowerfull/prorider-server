@@ -845,51 +845,36 @@ input[type=file]{display:none}
         <!-- SVG COM TEXTOS INTERNOS -->
         <svg id="gaugeSvg" width="100%" viewBox="0 15 360 200" xmlns="http://www.w3.org/2000/svg" style="max-width:380px;overflow:visible;display:block;">
           <defs>
-            <!--
-              Gradiente suave arco-íris — transições contínuas entre zonas
-              Cinza (z1): apenas 0→4% — quase invisível
-              Azul  (z2): 4→22%
-              Verde (z3): 22→40%
-              Amarelo (z4): 40→59%
-              Laranja (z5): 59→78%
-              Vermelho (z6): 78→93%
-              Roxo (z7): 93→100% — pequeno
-            -->
-            <linearGradient id="zoneGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-              <!-- z1 cinza — fiozinho na ponta esquerda -->
-              <stop offset="0%"   stop-color="#888888" stop-opacity="0.0"/>
-              <stop offset="1%"   stop-color="#888888" stop-opacity="0.55"/>
-              <stop offset="3%"   stop-color="#888888" stop-opacity="0.2"/>
-              <!-- z2 azul — faixa pequena -->
-              <stop offset="4%"   stop-color="#295fe8"/>
-              <stop offset="13%"  stop-color="#295fe8"/>
-              <!-- z3 verde — faixa maior -->
-              <stop offset="16%"  stop-color="#5db13d"/>
-              <stop offset="33%"  stop-color="#5db13d"/>
-              <!-- z4 amarelo — faixa grande -->
-              <stop offset="36%"  stop-color="#d7c414"/>
-              <stop offset="54%"  stop-color="#d7c414"/>
-              <!-- z5 laranja — faixa grande -->
-              <stop offset="57%"  stop-color="#ea860c"/>
-              <stop offset="73%"  stop-color="#ea860c"/>
-              <!-- z6 vermelho — faixa grande -->
-              <stop offset="76%"  stop-color="#d62d2d"/>
-              <stop offset="93%"  stop-color="#d62d2d"/>
-              <!-- z7 roxo — fiozinho na ponta direita -->
-              <stop offset="95%"  stop-color="#9b30ff" stop-opacity="0.7"/>
-              <stop offset="98%"  stop-color="#9b30ff" stop-opacity="0.3"/>
-              <stop offset="100%" stop-color="#9b30ff" stop-opacity="0.0"/>
-            </linearGradient>
             <filter id="arcGlow"><feGaussianBlur stdDeviation="1.5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
           </defs>
 
           <!-- Trilha escura de fundo -->
           <path d="M 10 200 A 170 170 0 0 1 350 200" fill="none" stroke="rgba(255,255,255,0.07)" stroke-width="36" stroke-linecap="butt"/>
 
-          <!-- Arco de zonas — gradiente contínuo suave, animado via stroke-dasharray -->
+          <!--
+            7 arcos calculados por comprimento de arco real (r=170, centro=180,200)
+            Zonas: z1 0-2% | z2 2-12% | z3 12-32% | z4 32-53% | z5 53-72% | z6 72-92% | z7 92-100%
+            Pontos calculados: angle = 180 - pct*1.8 graus
+          -->
+          <!-- z1 cinza 0-2% -->
+          <path d="M 10 200 A 170 170 0 0 1 10.3 189.3" fill="none" stroke="#888888" stroke-width="36" stroke-linecap="butt" stroke-opacity="0.45"/>
+          <!-- z2 azul 2-12% -->
+          <path d="M 10.3 189.3 A 170 170 0 0 1 21.8 137.7" fill="none" stroke="#295fe8" stroke-width="36" stroke-linecap="butt"/>
+          <!-- z3 verde 12-32% -->
+          <path d="M 21.8 137.7 A 170 170 0 0 1 88.9 56.5" fill="none" stroke="#5db13d" stroke-width="36" stroke-linecap="butt"/>
+          <!-- z4 amarelo 32-53% -->
+          <path d="M 88.9 56.5 A 170 170 0 0 1 196.0 30.8" fill="none" stroke="#d7c414" stroke-width="36" stroke-linecap="butt"/>
+          <!-- z5 laranja 53-72% -->
+          <path d="M 196.0 30.8 A 170 170 0 0 1 288.4 69.0" fill="none" stroke="#ea860c" stroke-width="36" stroke-linecap="butt"/>
+          <!-- z6 vermelho 72-92% -->
+          <path d="M 288.4 69.0 A 170 170 0 0 1 344.7 157.7" fill="none" stroke="#d62d2d" stroke-width="36" stroke-linecap="butt"/>
+          <!-- z7 roxo 92-100% -->
+          <path d="M 344.7 157.7 A 170 170 0 0 1 350 200" fill="none" stroke="#9b30ff" stroke-width="36" stroke-linecap="butt" stroke-opacity="0.55"/>
+
+          <!-- Arco cobertura escura — revela zonas conforme %FTP sobe (id=zFill mantido para JS) -->
           <path id="zFill" d="M 10 200 A 170 170 0 0 1 350 200" fill="none"
-                stroke="url(#zoneGrad)" stroke-width="36" stroke-linecap="butt"
-                stroke-dasharray="2 532"
+                stroke="#111" stroke-width="38" stroke-linecap="butt"
+                stroke-dasharray="0 0 534"
                 style="transition:stroke-dasharray .35s ease"/>
 
           <!-- PONTEIRO = RAIO PRORIDER -->
@@ -2865,14 +2850,14 @@ var botTY=0, drawerOpen=false;
 // Total arco = 534px
 var _zBreaks=[32,128,230,331,432,496,534];
 function _fillBar(ftpPct){
-  var filled=Math.max(2,Math.min(534,(ftpPct/150)*534));
+  var filled=Math.max(0,Math.min(534,(ftpPct/150)*534));
   var el=document.getElementById('zFill');
-  if(el) el.setAttribute('stroke-dasharray',filled+' '+(534-filled));
+  if(el) el.setAttribute('stroke-dasharray','0 '+filled+' '+(534-filled));
 }
 function _fillBarPx(px){
-  var filled=Math.max(2,Math.min(534,px));
+  var filled=Math.max(0,Math.min(534,px));
   var el=document.getElementById('zFill');
-  if(el) el.setAttribute('stroke-dasharray',filled+' '+(534-filled));
+  if(el) el.setAttribute('stroke-dasharray','0 '+filled+' '+(534-filled));
 }
 function _zoneFromPx(px){
   for(var i=0;i<_zBreaks.length;i++) if(px<=_zBreaks[i]) return i+1;
