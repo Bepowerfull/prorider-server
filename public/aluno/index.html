@@ -852,24 +852,24 @@ input[type=file]{display:none}
           <path d="M 10 200 A 170 170 0 0 1 350 200" fill="none" stroke="rgba(255,255,255,0.07)" stroke-width="36" stroke-linecap="butt"/>
 
           <!--
-            7 arcos calculados por comprimento de arco real (r=170, centro=180,200)
-            Zonas: z1 0-2% | z2 2-12% | z3 12-32% | z4 32-53% | z5 53-72% | z6 72-92% | z7 92-100%
-            Pontos calculados: angle = 180 - pct*1.8 graus
+            7 arcos por comprimento de arco real (r=170, centro=180,200)
+            Zonas: z1 0-5% | z2 5-15% | z3 15-33% | z4 33-53% | z5 53-72% | z6 72-87% | z7 87-100%
+            angle = 180 - pct*1.8 graus; x=180+170*cos(a); y=200-170*sin(a)
           -->
-          <!-- z1 cinza 0-2% -->
-          <path d="M 10 200 A 170 170 0 0 1 10.3 189.3" fill="none" stroke="#888888" stroke-width="36" stroke-linecap="butt" stroke-opacity="0.45"/>
-          <!-- z2 azul 2-12% -->
-          <path d="M 10.3 189.3 A 170 170 0 0 1 21.8 137.7" fill="none" stroke="#295fe8" stroke-width="36" stroke-linecap="butt"/>
-          <!-- z3 verde 12-32% -->
-          <path d="M 21.8 137.7 A 170 170 0 0 1 88.9 56.5" fill="none" stroke="#5db13d" stroke-width="36" stroke-linecap="butt"/>
-          <!-- z4 amarelo 32-53% -->
+          <!-- z1 cinza 0-5%: θ=171° → (12.1, 173.4) -->
+          <path d="M 10 200 A 170 170 0 0 1 12.1 173.4" fill="none" stroke="#888888" stroke-width="36" stroke-linecap="butt"/>
+          <!-- z2 azul 5-15%: θ=153° → (28.5, 122.8) -->
+          <path d="M 12.1 173.4 A 170 170 0 0 1 28.5 122.8" fill="none" stroke="#295fe8" stroke-width="36" stroke-linecap="butt"/>
+          <!-- z3 verde 15-33%: θ=120.6° → (88.9, 56.5) -->
+          <path d="M 28.5 122.8 A 170 170 0 0 1 88.9 56.5" fill="none" stroke="#5db13d" stroke-width="36" stroke-linecap="butt"/>
+          <!-- z4 amarelo 33-53%: θ=84.6° → (196.0, 30.8) -->
           <path d="M 88.9 56.5 A 170 170 0 0 1 196.0 30.8" fill="none" stroke="#d7c414" stroke-width="36" stroke-linecap="butt"/>
-          <!-- z5 laranja 53-72% -->
+          <!-- z5 laranja 53-72%: θ=50.4° → (288.4, 69.0) -->
           <path d="M 196.0 30.8 A 170 170 0 0 1 288.4 69.0" fill="none" stroke="#ea860c" stroke-width="36" stroke-linecap="butt"/>
-          <!-- z6 vermelho 72-92% -->
-          <path d="M 288.4 69.0 A 170 170 0 0 1 344.7 157.7" fill="none" stroke="#d62d2d" stroke-width="36" stroke-linecap="butt"/>
-          <!-- z7 roxo 92-100% -->
-          <path d="M 344.7 157.7 A 170 170 0 0 1 350 200" fill="none" stroke="#9b30ff" stroke-width="36" stroke-linecap="butt" stroke-opacity="0.55"/>
+          <!-- z6 vermelho 72-87%: θ=23.4° → (336.0, 132.5) -->
+          <path d="M 288.4 69.0 A 170 170 0 0 1 336.0 132.5" fill="none" stroke="#d62d2d" stroke-width="36" stroke-linecap="butt"/>
+          <!-- z7 roxo 87-100%: θ=0° → (350, 200) -->
+          <path d="M 336.0 132.5 A 170 170 0 0 1 350 200" fill="none" stroke="#9b30ff" stroke-width="36" stroke-linecap="butt"/>
 
           <!-- Arco cobertura escura — revela zonas conforme %FTP sobe (id=zFill mantido para JS) -->
           <path id="zFill" d="M 10 200 A 170 170 0 0 1 350 200" fill="none"
