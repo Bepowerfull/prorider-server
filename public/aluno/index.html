@@ -1903,10 +1903,63 @@ function hexToRgb(hex){
 }
 
 function openQRScan(){
+  _bikeSelNum=null; _salaInfo=null; liveRelay=null; // join novo: começa observando o mapa
   go('sQRScan');
 }
 
 var lastCode='';
+
+// ════════════════════════════════════════════════════════════
+// MAPA DE BIKES + RELAY (portado do app de aulas)
+// Fluxo: scan QR → assinar_sala (observa o mapa ao vivo) → escolhe a bike → entrar_sala
+// Fonte de dados na aula: relay do ginásio (iOS sem BLE) ou BLE do próprio celular (Android)
+// ════════════════════════════════════════════════════════════
+var _bikeSelNum = null;             // bike escolhida pelo aluno (null = ainda só observando)
+var _salaInfo   = null;             // {numBikes,bikes:[],ocupadas:[]} vindo do ginásio
+var liveRelay   = null;             // {w,r,ftp,z,ts} — dado da MINHA bike vindo do ginásio
+var _bleRpm=0, _bleWatts=0, _bleTs=0; // último dado REAL de BLE (Android)
+
+function _bikeCacheKey(){ return 'pr_sala_bikes_'+(lastCode||'_'); }
+function _bikeCacheSalvar(bikes){ try{ if(bikes&&bikes.length) localStorage.setItem(_bikeCacheKey(), JSON.stringify(bikes)); }catch(e){} }
+function _bikeCacheLer(){ try{ var s=localStorage.getItem(_bikeCacheKey()); return s?JSON.parse(s):null; }catch(e){ return null; } }
+
+function _renderBikeGrid(){
+  var grid=document.getElementById('bikeSelGrid'); if(!grid) return;
+  // 1) mapa ao vivo do ginásio nesta sessão; 2) cache da última vez nesta sala; 3) fallback 1..20
+  var lista=(_salaInfo && _salaInfo.bikes && _salaInfo.bikes.length) ? _salaInfo.bikes.slice() : null;
+  if(lista) _bikeCacheSalvar(lista);
+  if(!lista) lista=_bikeCacheLer();
+  var ocup=(_salaInfo && _salaInfo.ocupadas) ? _salaInfo.ocupadas : [];
+  var html='';
+  if(lista){
+    lista.forEach(function(i){
+      var taken=ocup.indexOf(i)>=0 && i!==_bikeSelNum;
+      var bg=taken?'rgba(214,45,45,.12)':'rgba(255,255,255,.06)';
+      var bc=taken?'rgba(214,45,45,.4)':(i===_bikeSelNum?'#ea860c':'rgba(255,255,255,.1)');
+      var op=taken?'opacity:.45;':'';
+      html+='<button '+(taken?'disabled':'onclick="selectBike('+i+')"')+' style="padding:18px 0;border-radius:14px;background:'+bg+';border:2px solid '+bc+';color:#fff;font-family:\'Bebas Neue\',sans-serif;font-size:28px;cursor:'+(taken?'not-allowed':'pointer')+';transition:all .15s;'+op+'" id="bikeBtnSel'+i+'">'+i+(taken?'<div style="font-size:9px;letter-spacing:1px;">ocupada</div>':'')+'</button>';
+    });
+  } else {
+    for(var i=1;i<=20;i++){
+      html+='<button onclick="selectBike('+i+')" style="padding:18px 0;border-radius:14px;background:rgba(255,255,255,.06);border:2px solid rgba(255,255,255,.1);color:#fff;font-family:\'Bebas Neue\',sans-serif;font-size:28px;cursor:pointer;transition:all .15s;" id="bikeBtnSel'+i+'">'+i+'</button>';
+    }
+  }
+  grid.innerHTML=html;
+}
+
+function selectBike(num){
+  _bikeSelNum=num;
+  _renderBikeGrid();
+  var nome=document.getElementById('profNome');
+  var nomeVal=(nome&&nome.textContent.trim()&&nome.textContent.trim()!=='—')?nome.textContent.trim():(localStorage.getItem('pr_nome')||'Aluno');
+  // Já estava observando (socket aberto) → vira participante de verdade na bike escolhida
+  if(wsConn && wsConn.readyState===1){
+    wsConn.send(JSON.stringify({tipo:'entrar_sala',codigo:lastCode,nome:nomeVal,bike:num,foto:(localStorage.getItem('pr_foto')||null)}));
+  } else {
+    connectQR(lastCode); // reabre; onopen manda entrar_sala porque _bikeSelNum já está setado
+  }
+}
+
 function connectQR(code){
   if(!code) return;
   lastCode=code;
@@ -1919,10 +1972,34 @@ function connectQR(code){
     wsConn.onopen=function(){
       var nome=document.getElementById('profNome');
       var nomeVal=(nome&&nome.textContent.trim()&&nome.textContent.trim()!=='—')?nome.textContent.trim():(localStorage.getItem('pr_nome')||'Aluno');
-      wsConn.send(JSON.stringify({tipo:'entrar_sala',codigo:code,nome:nomeVal,bike:null}));
+      if(_bikeSelNum){
+        // Já escolheu a bike (ou reconexão durante a aula) → entra como participante
+        wsConn.send(JSON.stringify({tipo:'entrar_sala',codigo:code,nome:nomeVal,bike:_bikeSelNum,foto:(localStorage.getItem('pr_foto')||null)}));
+      } else {
+        // Primeiro contato: observa o mapa da sala ao vivo e mostra a tela de seleção
+        wsConn.send(JSON.stringify({tipo:'assinar_sala',codigo:code}));
+        _renderBikeGrid();   // mostra cache imediatamente, se houver
+        go('sBikeSel');
+      }
     };
     wsConn.onmessage=function(e){
       var data=JSON.parse(e.data);
+      if(data.tipo==='sala_info'){
+        _salaInfo={ numBikes:data.numBikes||0, bikes:data.bikes||[], ocupadas:data.ocupadas||[] };
+        _bikeCacheSalvar(_salaInfo.bikes);
+        var sb=document.getElementById('sBikeSel');
+        if(sb && sb.classList.contains('active')) _renderBikeGrid();
+      }
+      if(data.tipo==='bikes_live' && Array.isArray(data.bikes)){
+        // pega só a MINHA bike (a que escolhi); o ginásio é a fonte do dado
+        for(var _i=0;_i<data.bikes.length;_i++){
+          if(parseInt(data.bikes[_i].b)===parseInt(_bikeSelNum)){
+            var bd=data.bikes[_i];
+            liveRelay={ w:bd.w||0, r:bd.r||0, ftp:bd.ftp||0, z:bd.z||'z1', ts:Date.now() };
+            break;
+          }
+        }
+      }
       if(data.tipo==='conectado'){
         if(statusEl){statusEl.textContent='Conectado!';statusEl.style.color='#5db13d';}
         // Para câmera se estiver ativa
@@ -2359,11 +2436,34 @@ function obCalcFtp(){
   if(bEl) bEl.textContent='Baseado em: '+obData.nivel+', '+obData.freq+'x/sem, '+obData.peso+'kg';
 }
 
+function obPickFoto(input){
+  var f=input.files&&input.files[0]; if(!f) return;
+  var rd=new FileReader();
+  rd.onload=function(e){
+    var img=new Image();
+    img.onload=function(){
+      var sz=128, cv=document.createElement('canvas'); cv.width=sz; cv.height=sz;
+      var ctx=cv.getContext('2d');
+      var s=Math.min(img.width,img.height);              // recorte quadrado central
+      ctx.drawImage(img,(img.width-s)/2,(img.height-s)/2,s,s,0,0,sz,sz);
+      var dataUrl=cv.toDataURL('image/jpeg',0.7);         // ~128px, leve p/ enviar 1x no login
+      obData.foto=dataUrl;
+      try{ localStorage.setItem('pr_foto',dataUrl); }catch(e){}
+      var pv=document.getElementById('obFotoPreview'), ic=document.getElementById('obFotoIcon');
+      if(pv){ pv.src=dataUrl; pv.style.display='block'; }
+      if(ic) ic.style.display='none';
+    };
+    img.src=e.target.result;
+  };
+  rd.readAsDataURL(f);
+}
+
 function obSaveProfile(){
   var nEl=document.getElementById('profNome'); if(nEl) nEl.textContent=obData.nome;
   var eEl=document.getElementById('profEmail'); if(eEl) eEl.textContent=obData.email;
   var pEl=document.getElementById('profPeso'); if(pEl) pEl.textContent=obData.peso+' kg';
   var fEl=document.getElementById('ftpDisplay'); if(fEl) fEl.textContent=obData.ftp+' W';
+  if(obData.foto){ try{ localStorage.setItem('pr_foto',obData.foto); }catch(e){} }
 }
 
 // Ação depois do registro no servidor
@@ -3783,6 +3883,14 @@ function tick(){
   var zFtpSim={z1:27,z2:66,z3:83,z4:98,z5:113,z6:130,z7:148};
   var ftpPct=zFtpSim[b.z]||Math.round(20+(cBloco/cAula.blocos.length)*80);
   var watts=Math.round(ftpPct*1.3);
+  // ── FONTE DE DADOS: relay do ginásio > BLE do celular > simulação ──
+  if(liveRelay && (Date.now()-liveRelay.ts)<3000){
+    dRpm=liveRelay.r; rpm=Math.round(liveRelay.r);
+    watts=Math.round(liveRelay.w); ftpPct=Math.round(liveRelay.ftp);
+  } else if(connected.bike && _bleTs && (Date.now()-_bleTs)<3000){
+    dRpm=_bleRpm; rpm=Math.round(_bleRpm);
+    watts=Math.round(_bleWatts); ftpPct=Math.round(_bleWatts/150*100);
+  }
   var wkg=(watts/90).toFixed(1);
   sumRpm+=rpm; cntRpm++;
   if(rpm>maxRpm) maxRpm=rpm;
@@ -4399,6 +4507,7 @@ function btConnectKeiser(server, device){
             var power   = d.getUint16(9, true);
             var gear    = d.getUint8(3);
             dRpm = cadence; dGear = gear;
+            _bleRpm=cadence; _bleWatts=power; _bleTs=Date.now();
             document.getElementById('bigRpm').textContent=Math.round(cadence);
             document.getElementById('bigWatts').textContent=power;
             var gEl=document.getElementById('bigGear'); if(gEl&&gear>0) gEl.textContent=gear;
@@ -4420,11 +4529,13 @@ function btConnectCyclingPower(server, device){
           // flags: byte 0-1; power: bytes 2-3 (sint16)
           var flags = d.getUint16(0, true);
           var power = d.getInt16(2, true);
+          _bleWatts=power; _bleTs=Date.now();
           document.getElementById('bigWatts').textContent=power;
           // cad\u00EAncia opcional \u2014 bit 2 flag
           if(flags & 0x0004 && d.byteLength >= 6){
             var rpm = (d.getUint16(4, true) / 2048) * 60;
             dRpm = rpm;
+            _bleRpm=rpm; _bleTs=Date.now();
             document.getElementById('bigRpm').textContent=Math.round(rpm);
           }
         });
@@ -4449,6 +4560,7 @@ function btConnectFTMS(server, device){
           if(flags & 0x0004){
             var rpm = d.getUint16(offset, true) * 0.5;
             dRpm = rpm;
+            _bleRpm=rpm; _bleTs=Date.now();
             document.getElementById('bigRpm').textContent=Math.round(rpm);
             offset+=2;
           }
@@ -4461,6 +4573,7 @@ function btConnectFTMS(server, device){
           // bit 6: Instantaneous Power (sint16, watts)
           if(flags & 0x0040){
             var power=d.getInt16(offset, true);
+            _bleWatts=power; _bleTs=Date.now();
             document.getElementById('bigWatts').textContent=power;
           }
         });
@@ -5808,6 +5921,21 @@ updateProfileUI = function() {
 
 </div>
 
+<!-- SELEÇÃO DE BIKE (mapa da sala ao vivo) -->
+<div class="screen" id="sBikeSel" style="background:linear-gradient(160deg,#0a0812 0%,#110808 60%,#080a14 100%);">
+  <div style="padding:20px 18px;display:flex;align-items:center;gap:14px;">
+    <button onclick="openQRScan()" style="width:38px;height:38px;border-radius:50%;background:rgba(255,255,255,.08);border:none;color:rgba(255,255,255,.5);font-size:18px;cursor:pointer;">&#8592;</button>
+    <div>
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:2px;color:#fff;">Qual é a tua bike?</div>
+      <div style="font-size:12px;color:rgba(255,255,255,.35);">Toca no número da bike onde estás</div>
+    </div>
+  </div>
+  <div style="padding:0 20px 30px;">
+    <div id="bikeSelGrid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:8px;"></div>
+    <div style="margin-top:20px;font-size:12px;color:rgba(255,255,255,.2);text-align:center;">Vermelho = ocupada · atualiza ao vivo conforme a sala enche</div>
+  </div>
+</div>
+
 <!-- ONBOARDING -->
 <div class="screen" id="sOnboard" style="background:linear-gradient(160deg,#0a0812 0%,#110808 60%,#080a14 100%);overflow:hidden;">
 
@@ -5829,7 +5957,13 @@ updateProfileUI = function() {
     <div id="obStep1" class="ob-step">
       <div style="font-size:36px;margin-bottom:16px;">&#128075;</div>
       <div style="font-family:'Bebas Neue',sans-serif;font-size:36px;letter-spacing:2px;color:#fff;margin-bottom:8px;">Qual seu nome?</div>
-      <div style="font-size:14px;color:rgba(255,255,255,.4);margin-bottom:32px;">Como vamos te chamar durante os treinos</div>
+      <div style="font-size:14px;color:rgba(255,255,255,.4);margin-bottom:24px;">Como vamos te chamar durante os treinos</div>
+      <input type="file" id="obFotoInput" accept="image/*" style="display:none;" onchange="obPickFoto(this)"/>
+      <div onclick="document.getElementById('obFotoInput').click()" style="cursor:pointer;margin:0 auto 10px;width:96px;height:96px;border-radius:50%;background:rgba(255,255,255,.07);border:2px dashed rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;overflow:hidden;">
+        <img id="obFotoPreview" alt="" style="display:none;width:100%;height:100%;object-fit:cover;"/>
+        <span id="obFotoIcon" style="font-size:30px;color:rgba(255,255,255,.4);">&#128247;</span>
+      </div>
+      <div style="font-size:11px;color:rgba(255,255,255,.25);margin-bottom:22px;">Foto (opcional) — aparece ao lado do teu nome na sala</div>
       <input id="obNome" type="text" placeholder="Seu nome" maxlength="30" oninput="obValidateStep()" style="width:100%;padding:16px 18px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);border-radius:14px;color:#fff;font-size:17px;text-align:center;outline:none;-webkit-appearance:none;"/>
     </div>
 

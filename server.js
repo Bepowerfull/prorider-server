@@ -960,7 +960,7 @@ wss.on('connection', (ws) => {
       case 'criar_sala': {
         const codigo = msg.codigo;
         if (!codigo) return;
-        salas[codigo] = { professor: ws, alunos: new Map(), estado: { iniciada: false, grafico: [], blocoIdx: 0, nomeAula: '' } };
+        salas[codigo] = { professor: ws, alunos: new Map(), observadores: new Set(), lastSalaInfo: null, estado: { iniciada: false, grafico: [], blocoIdx: 0, nomeAula: '' } };
         ws._salaCode = codigo; ws._tipo = 'professor';
         log(`Sala criada: ${codigo}`);
         ws.send(JSON.stringify({ tipo: 'sala_criada', codigo }));
@@ -996,10 +996,11 @@ wss.on('connection', (ws) => {
         }
 
         sala.alunos.set(nome, ws);
+        sala.observadores.delete(ws); // se estava só observando o mapa, agora é participante
         ws._salaCode = codigo; ws._tipo = 'aluno'; ws._nome = nome;
         log(`Aluno entrou: ${nome} na sala ${codigo}`);
         if (sala.professor && sala.professor.readyState === WebSocket.OPEN) {
-          sala.professor.send(JSON.stringify({ tipo: 'aluno_conectou', nome, bike: bike || null, horario: new Date().toLocaleTimeString('pt-BR') }));
+          sala.professor.send(JSON.stringify({ tipo: 'aluno_conectou', nome, bike: bike || null, foto: msg.foto || null, horario: new Date().toLocaleTimeString('pt-BR') }));
         }
         ws.send(JSON.stringify({ tipo: 'conectado', codigo, nome }));
         ws.send(JSON.stringify({ tipo: 'entrou_sala', codigo, nome }));
@@ -1016,6 +1017,45 @@ wss.on('connection', (ws) => {
         if (sala.professor && sala.professor.readyState === WebSocket.OPEN) {
           sala.professor.send(JSON.stringify({ tipo: 'dados_aluno', nome: ws._nome || msg.nome, genero: msg.genero, watts: msg.watts, rpm: msg.rpm, fc: msg.fc, zona: msg.zona, ftp: msg.ftp, kcal: msg.kcal, dist: msg.dist, potMax: msg.potMax, horario: msg.horario || new Date().toLocaleTimeString('pt-BR') }));
         }
+        break;
+      }
+
+      // Mapa da sala (bikes válidas + ocupadas) — vem do ginásio a cada mudança.
+      // Faz fan-out para TODOS que olham a sala: alunos logados + observadores (QR da porta).
+      case 'sala_info': {
+        const salaCode = ws._salaCode; // socket do professor
+        if (!salaCode || !salas[salaCode]) return;
+        const sala = salas[salaCode];
+        const info = { tipo: 'sala_info', numBikes: msg.numBikes || 0, bikes: msg.bikes || [], ocupadas: msg.ocupadas || [] };
+        sala.lastSalaInfo = info; // cache: novo observador recebe o mapa na hora
+        const data = JSON.stringify(info);
+        for (const [, aws] of sala.alunos) { if (aws.readyState === WebSocket.OPEN) aws.send(data); }
+        for (const ows of sala.observadores) { if (ows.readyState === WebSocket.OPEN) ows.send(data); }
+        break;
+      }
+
+      // Observador: escaneou o QR fixo da porta e quer só VER o mapa ao vivo (sem entrar).
+      case 'assinar_sala': {
+        const codigo = msg.codigo;
+        if (!codigo) return;
+        const sala = salas[codigo];
+        if (!sala) { ws.send(JSON.stringify({ tipo: 'erro', msg: 'Sala nao encontrada' })); return; }
+        ws._salaCode = codigo; ws._tipo = 'observador';
+        sala.observadores.add(ws);
+        ws.send(JSON.stringify({ tipo: 'assinado', codigo }));
+        if (sala.lastSalaInfo) {
+          ws.send(JSON.stringify(sala.lastSalaInfo)); // mapa atual na hora (cache)
+        } else if (sala.professor && sala.professor.readyState === WebSocket.OPEN) {
+          sala.professor.send(JSON.stringify({ tipo: 'pedir_sala_info' })); // pede ao ginásio se ainda não há cache
+        }
+        break;
+      }
+
+      // Dados ao vivo de todas as bikes (~4 Hz) — cada aluno filtra a sua pelo número.
+      case 'bikes_live': {
+        const salaCode = ws._salaCode;
+        if (!salaCode || !salas[salaCode]) return;
+        broadcastAlunos(salaCode, msg);
         break;
       }
 
@@ -1099,6 +1139,8 @@ wss.on('connection', (ws) => {
       log(`Aluno saiu: ${ws._nome}`);
       if (sala.professor && sala.professor.readyState === WebSocket.OPEN)
         sala.professor.send(JSON.stringify({ tipo: 'aluno_saiu', nome: ws._nome }));
+    } else if (ws._tipo === 'observador') {
+      sala.observadores.delete(ws);
     }
   });
 
