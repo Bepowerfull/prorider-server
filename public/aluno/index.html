@@ -2022,6 +2022,8 @@ function connectQR(code){
         return;
       }
       if(data.tipo==='conectado'){
+        window._reconTries=0;
+        if(typeof _reconStop==='function') _reconStop();
         if(statusEl){statusEl.textContent='Conectado!';statusEl.style.color='#5db13d';}
         // Para câmera se estiver ativa
         pararCamera();
@@ -2104,14 +2106,10 @@ function connectQR(code){
     };
     wsConn.onclose=function(){
       wsConn=null;
-      // Tenta reconectar automaticamente em 4s se na tela de live
-      var cur=document.querySelector('.screen.active');
-      // Reconecta automaticamente sempre que cair
-      if(lastCode){
-        setTimeout(function(){ connectQR(lastCode); }, 3000);
-        var ind=document.getElementById('liveConnIndicator');
-        if(ind){ind.textContent='Reconectando...';ind.style.color='#ea860c';}
-      }
+      var _sl=document.getElementById('sLive');
+      var _emAula=(typeof lInt!=='undefined' && lInt) || (_sl && _sl.classList.contains('active'));
+      // Em aula: mostra aviso visível e tenta reconectar por 2 min (com contagem regressiva)
+      if(lastCode && _emAula){ _reconStartFlow(); }
     };
     wsConn.onerror=function(){
       if(statusEl){statusEl.textContent='Sem conexao. Verifique se esta na mesma rede.';statusEl.style.color='#d62d2d';}
@@ -4033,7 +4031,7 @@ function tick(){
 
   if(segS>=b.dur*60){
     cBloco++;
-    if(cBloco>=cAula.blocos.length){ clearInterval(lInt); go('sHome'); return; }
+    if(cBloco>=cAula.blocos.length){ clearInterval(lInt); lInt=null; if(typeof quitW==='function'){ quitW(); } else { showResults(); } return; }
     segS=0; updUpNext(); updGraph(); scrollGraph();
     var zPbar2=document.getElementById('zoneProgressBar');
     if(zPbar2){zPbar2.style.width='0%';}
@@ -4198,6 +4196,40 @@ function togglePause(){
 }
 function prevB(){ if(cBloco>0){ cBloco--; segS=0; updUpNext(); updGraph(); scrollGraph(); } }
 function nextB(){ if(cBloco<cAula.blocos.length-1){ cBloco++; segS=0; updUpNext(); updGraph(); scrollGraph(); } }
+// ── Reconexão com aviso visível (2 min de contagem) ──
+var _reconRetryTimer=null, _reconCountdownTimer=null, _reconSecsLeft=0;
+var _RECON_TOTAL_SECS=120; // 2 minutos
+function _reconUpdateCount(){
+  var c=document.getElementById('reconCount');
+  if(c){ var m=Math.floor(_reconSecsLeft/60), s=_reconSecsLeft%60; c.textContent=m+':'+('0'+s).slice(-2); }
+}
+function _reconStartFlow(){
+  if(_reconCountdownTimer) return; // já em andamento
+  var ov=document.getElementById('reconOverlay'); if(ov) ov.style.display='flex';
+  var btn=document.getElementById('reconRetryBtn'); if(btn) btn.style.display='none';
+  var msg=document.getElementById('reconMsg'); if(msg) msg.textContent='Tentando reconectar à aula. Verifique a sua internet.';
+  _reconSecsLeft=_RECON_TOTAL_SECS; _reconUpdateCount();
+  _reconCountdownTimer=setInterval(function(){
+    _reconSecsLeft--; _reconUpdateCount();
+    if(_reconSecsLeft<=0){
+      if(_reconCountdownTimer){ clearInterval(_reconCountdownTimer); _reconCountdownTimer=null; }
+      if(_reconRetryTimer){ clearInterval(_reconRetryTimer); _reconRetryTimer=null; }
+      var c=document.getElementById('reconCount'); if(c) c.textContent='—';
+      var m2=document.getElementById('reconMsg'); if(m2) m2.textContent='Não foi possível reconectar.';
+      var b2=document.getElementById('reconRetryBtn'); if(b2) b2.style.display='inline-block';
+    }
+  },1000);
+  // tenta reconectar a cada 4s
+  _reconRetryTimer=setInterval(function(){ if(lastCode) connectQR(lastCode); },4000);
+  if(lastCode) connectQR(lastCode); // tenta já
+}
+function _reconStop(){
+  if(_reconRetryTimer){ clearInterval(_reconRetryTimer); _reconRetryTimer=null; }
+  if(_reconCountdownTimer){ clearInterval(_reconCountdownTimer); _reconCountdownTimer=null; }
+  var ov=document.getElementById('reconOverlay'); if(ov) ov.style.display='none';
+}
+function _reconManualRetry(){ _reconStop(); _reconStartFlow(); }
+
 // Encerramento robusto da aula no app — chamado quando o ginásio manda fim_aula/sala_encerrada.
 // Cobre os DOIS caminhos de conexão (QR e sessão) e nunca deixa a tela congelada.
 function _encerrarAulaApp(){
@@ -4207,11 +4239,12 @@ function _encerrarAulaApp(){
   try{
     if(typeof quitW==='function'){ quitW(); return; }
   }catch(err){ try{ console.error('[ProRider] fim_aula -> quitW erro:',err); }catch(e){} }
-  // Fallback: se quitW falhar, ao menos para o loop, fecha o socket e sai da tela travada
+  // Fallback: se quitW falhar, ao menos para o loop, fecha o socket e mostra os resultados
   try{ clearInterval(lInt); lInt=null; }catch(e){}
   try{ if(typeof _releaseWakeLock==='function') _releaseWakeLock(); }catch(e){}
   try{ if(wsConn){ wsConn.onclose=null; wsConn.close(); wsConn=null; } }catch(e){}
-  if(typeof go==='function') go('sHome');
+  try{ if(typeof showResults==='function'){ showResults(); return; } }catch(e){}
+  if(typeof go==='function') go('sResults');
 }
 
 function quitW(){
@@ -5946,6 +5979,14 @@ updateProfileUI = function() {
 };
 
 </script>
+<div id="reconOverlay" style="display:none;position:fixed;inset:0;z-index:99999;background:rgba(8,6,16,.94);flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:24px;text-align:center;">
+  <style>@keyframes prSpin{to{transform:rotate(360deg)}}</style>
+  <div style="width:54px;height:54px;border:4px solid rgba(234,134,12,.25);border-top-color:#ea860c;border-radius:50%;animation:prSpin 1s linear infinite;"></div>
+  <div style="font-size:21px;font-weight:800;color:#fff;letter-spacing:.5px;">Conexão perdida</div>
+  <div id="reconMsg" style="font-size:15px;color:rgba(255,255,255,.6);max-width:300px;line-height:1.4;">Tentando reconectar à aula. Verifique a sua internet.</div>
+  <div id="reconCount" style="font-family:'Bebas Neue',sans-serif;font-size:48px;color:#ea860c;letter-spacing:2px;line-height:1;">2:00</div>
+  <button id="reconRetryBtn" onclick="_reconManualRetry()" style="display:none;margin-top:6px;padding:14px 32px;border-radius:30px;border:none;background:linear-gradient(135deg,#ea860c,#d62d2d);font-size:15px;font-weight:800;letter-spacing:1px;color:#fff;cursor:pointer;">Tentar de novo</button>
+</div>
 </body>
 </html><!-- QR Scan screen -->
 <div class="screen" id="sQRScan" style="background:linear-gradient(160deg,#0a0812 0%,#110808 60%,#080a14 100%);">
