@@ -478,7 +478,7 @@ input[type=file]{display:none}
     </div>
   </div>
   <!-- Guest / Aluno: só Agenda (largura total) -->
-  <div id="homeAgendaBtn" style="padding:0 16px 4px;margin-top:-2px;">
+  <div id="homeAgendaBtn" style="padding:0 16px 4px;margin-top:10px;">
     <div onclick="goTab('sAgenda','navAgenda')" style="background:linear-gradient(135deg,rgba(41,95,232,.18),rgba(41,95,232,.05));border:1px solid rgba(41,95,232,.3);border-radius:18px;padding:14px 16px;cursor:pointer;display:flex;align-items:center;gap:14px;position:relative;overflow:hidden;">
       <div style="position:absolute;right:-10px;bottom:-10px;width:60px;height:60px;border-radius:50%;background:rgba(41,95,232,.06);"></div>
       <div style="width:42px;height:42px;background:rgba(41,95,232,.18);border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
@@ -1937,27 +1937,24 @@ var _bleRpm=0, _bleWatts=0, _bleTs=0; // último dado REAL de BLE (Android)
 function _bikeCacheKey(){ return 'pr_sala_bikes_'+(lastCode||'_'); }
 function _bikeCacheSalvar(bikes){ try{ if(bikes&&bikes.length) localStorage.setItem(_bikeCacheKey(), JSON.stringify(bikes)); }catch(e){} }
 function _bikeCacheLer(){ try{ var s=localStorage.getItem(_bikeCacheKey()); return s?JSON.parse(s):null; }catch(e){ return null; } }
+function _numBikesCacheSalvar(n){ try{ if(n) localStorage.setItem('pr_sala_nb_'+(lastCode||'_'), String(n)); }catch(e){} }
+function _numBikesCacheLer(){ try{ var s=localStorage.getItem('pr_sala_nb_'+(lastCode||'_')); return s?parseInt(s):0; }catch(e){ return 0; } }
 
 function _renderBikeGrid(){
   var grid=document.getElementById('bikeSelGrid'); if(!grid) return;
-  // 1) mapa ao vivo do ginásio nesta sessão; 2) cache da última vez nesta sala; 3) fallback 1..20
-  var lista=(_salaInfo && _salaInfo.bikes && _salaInfo.bikes.length) ? _salaInfo.bikes.slice() : null;
-  if(lista) _bikeCacheSalvar(lista);
-  if(!lista) lista=_bikeCacheLer();
+  // Mostra TODAS as posições da sala (numBikes configurado no ginásio) e marca as ocupadas.
+  // Fonte do número: 1) sala_info ao vivo; 2) cache da última vez nesta sala; 3) fallback 14.
+  var n=(_salaInfo && _salaInfo.numBikes) ? _salaInfo.numBikes : 0;
+  if(!n){ var cn=_numBikesCacheLer(); n = cn || 14; }
+  if(n) _numBikesCacheSalvar(n);
   var ocup=(_salaInfo && _salaInfo.ocupadas) ? _salaInfo.ocupadas : [];
   var html='';
-  if(lista){
-    lista.forEach(function(i){
-      var taken=ocup.indexOf(i)>=0 && i!==_bikeSelNum;
-      var bg=taken?'rgba(214,45,45,.12)':'rgba(255,255,255,.06)';
-      var bc=taken?'rgba(214,45,45,.4)':(i===_bikeSelNum?'#ea860c':'rgba(255,255,255,.1)');
-      var op=taken?'opacity:.45;':'';
-      html+='<button '+(taken?'disabled':'onclick="selectBike('+i+')"')+' style="padding:18px 0;border-radius:14px;background:'+bg+';border:2px solid '+bc+';color:#fff;font-family:\'Bebas Neue\',sans-serif;font-size:28px;cursor:'+(taken?'not-allowed':'pointer')+';transition:all .15s;'+op+'" id="bikeBtnSel'+i+'">'+i+(taken?'<div style="font-size:9px;letter-spacing:1px;">ocupada</div>':'')+'</button>';
-    });
-  } else {
-    for(var i=1;i<=20;i++){
-      html+='<button onclick="selectBike('+i+')" style="padding:18px 0;border-radius:14px;background:rgba(255,255,255,.06);border:2px solid rgba(255,255,255,.1);color:#fff;font-family:\'Bebas Neue\',sans-serif;font-size:28px;cursor:pointer;transition:all .15s;" id="bikeBtnSel'+i+'">'+i+'</button>';
-    }
+  for(var i=1;i<=n;i++){
+    var taken=ocup.indexOf(i)>=0 && i!==_bikeSelNum;
+    var bg=taken?'rgba(214,45,45,.12)':'rgba(255,255,255,.06)';
+    var bc=taken?'rgba(214,45,45,.4)':(i===_bikeSelNum?'#ea860c':'rgba(255,255,255,.1)');
+    var op=taken?'opacity:.45;':'';
+    html+='<button '+(taken?'disabled':'onclick="selectBike('+i+')"')+' style="padding:18px 0;border-radius:14px;background:'+bg+';border:2px solid '+bc+';color:#fff;font-family:\'Bebas Neue\',sans-serif;font-size:28px;cursor:'+(taken?'not-allowed':'pointer')+';transition:all .15s;'+op+'" id="bikeBtnSel'+i+'">'+i+(taken?'<div style="font-size:9px;letter-spacing:1px;">ocupada</div>':'')+'</button>';
   }
   grid.innerHTML=html;
 }
@@ -1973,6 +1970,14 @@ function selectBike(num){
   } else {
     connectQR(lastCode); // reabre; onopen manda entrar_sala porque _bikeSelNum já está setado
   }
+  // Anti-travamento: se em 6s não navegou pra aula nem deu erro, avisa (não fica preso em silêncio)
+  if(window._bikeJoinTimer) clearTimeout(window._bikeJoinTimer);
+  window._bikeJoinTimer=setTimeout(function(){
+    var at=document.querySelector('.screen.active');
+    if(at && at.id==='sBikeSel'){
+      if(typeof showToast==='function') showToast('⚠️ Sem resposta do servidor. Verifique a conexão e tente a bike de novo.');
+    }
+  }, 6000);
 }
 
 function connectQR(code){
@@ -2002,6 +2007,7 @@ function connectQR(code){
       if(data.tipo==='sala_info'){
         _salaInfo={ numBikes:data.numBikes||0, bikes:data.bikes||[], ocupadas:data.ocupadas||[] };
         _bikeCacheSalvar(_salaInfo.bikes);
+        if(_salaInfo.numBikes) _numBikesCacheSalvar(_salaInfo.numBikes);
         var sb=document.getElementById('sBikeSel');
         if(sb && sb.classList.contains('active')) _renderBikeGrid();
       }
@@ -2023,6 +2029,7 @@ function connectQR(code){
       }
       if(data.tipo==='conectado'){
         window._reconTries=0;
+        if(window._bikeJoinTimer){ clearTimeout(window._bikeJoinTimer); window._bikeJoinTimer=null; }
         if(typeof _reconStop==='function') _reconStop();
         if(statusEl){statusEl.textContent='Conectado!';statusEl.style.color='#5db13d';}
         // Para câmera se estiver ativa
@@ -2101,7 +2108,14 @@ function connectQR(code){
         }
       }
       if(data.tipo==='erro'){
-        if(statusEl){statusEl.textContent='QR invalido. Tente novamente.';statusEl.style.color='#d62d2d';}
+        var _msgErr=data.msg||'Não foi possível entrar na aula. Tente novamente.';
+        if(statusEl){statusEl.textContent=_msgErr;statusEl.style.color='#d62d2d';}
+        // Mostra o erro de forma VISÍVEL mesmo fora da tela de QR (antes só atualizava um campo oculto → parecia travado)
+        if(typeof showToast==='function') showToast('⚠️ '+_msgErr);
+        // Não deixa preso: volta para a seleção de bike para tentar de novo
+        var _sbErr=document.getElementById('sBikeSel');
+        var _atual=document.querySelector('.screen.active');
+        if(_sbErr && _atual && _atual.id!=='sBikeSel' && _atual.id!=='sLive'){ try{ go('sBikeSel'); }catch(e){} }
       }
     };
     wsConn.onclose=function(){
@@ -4843,8 +4857,8 @@ function navCenterAtualizar() {
     if (lbl) lbl.textContent = 'Início';
     if (btn) { btn.style.background = 'linear-gradient(135deg,#ea860c,#d62d2d)'; btn.style.boxShadow = '0 4px 20px rgba(234,134,12,.45)'; }
     if (wrap) wrap.onclick = function(){ goTab('sHome','navRide'); };
-    if (tabDesafios) tabDesafios.style.display = 'none';
-    if (tabAgenda)   tabAgenda.style.display   = '';
+    if (tabDesafios) tabDesafios.style.display = '';     // Desafios sempre na barra inferior
+    if (tabAgenda)   tabAgenda.style.display   = 'none'; // Agenda fica no botão azul da home
     if (profBtns)  profBtns.style.display  = 'none';
     if (agendaBtn) agendaBtn.style.display = '';
     if (profBadge) profBadge.style.display = 'none';
@@ -5638,12 +5652,27 @@ function _tentarConexaoWS(wsUrl, token, dadosSessao){
       var nomeVal = (nome&&nome.textContent.trim()&&nome.textContent.trim()!=='—')
         ? nome.textContent.trim() : (localStorage.getItem('pr_nome')||'Aluno');
       ws.send(JSON.stringify({tipo:'entrar_sala', codigo:token, nome:nomeVal, bike:dadosSessao.bike_num||null}));
+      if(dadosSessao.bike_num) _bikeSelNum=parseInt(dadosSessao.bike_num); // casa o relay com a bike da sessão
     };
     ws.onmessage = function(e){
       var data = JSON.parse(e.data);
       if(data.tipo==='fim_aula' || data.tipo==='sala_encerrada'){
         // mesmo encerramento do caminho QR — evita congelar quando entrou por sessão
         _encerrarAulaApp(); return;
+      }
+      // dados ao vivo da bike também precisam ser tratados aqui (este socket vira o wsConn)
+      if(data.tipo==='bikes_live' && Array.isArray(data.bikes)){
+        for(var _i=0;_i<data.bikes.length;_i++){
+          if(parseInt(data.bikes[_i].b)===parseInt(_bikeSelNum)){
+            var bd=data.bikes[_i];
+            liveRelay={ w:bd.w||0, r:bd.r||0, ftp:bd.ftp||0, z:bd.z||'z1', ts:Date.now() };
+            break;
+          }
+        }
+      }
+      if(data.tipo==='sala_info'){
+        _salaInfo={ numBikes:data.numBikes||0, bikes:data.bikes||[], ocupadas:data.ocupadas||[] };
+        if(_salaInfo.numBikes) _numBikesCacheSalvar(_salaInfo.numBikes);
       }
       if(data.tipo==='conectado' || data.tipo==='entrou_sala'){
         // Substituir wsConn pelo local
