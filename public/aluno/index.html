@@ -478,7 +478,7 @@ input[type=file]{display:none}
     </div>
   </div>
   <!-- Guest / Aluno: só Agenda (largura total) -->
-  <div id="homeAgendaBtn" style="padding:0 16px 4px;margin-top:14px;">
+  <div id="homeAgendaBtn" style="padding:0 16px 4px;margin-top:-2px;">
     <div onclick="goTab('sAgenda','navAgenda')" style="background:linear-gradient(135deg,rgba(41,95,232,.18),rgba(41,95,232,.05));border:1px solid rgba(41,95,232,.3);border-radius:18px;padding:14px 16px;cursor:pointer;display:flex;align-items:center;gap:14px;position:relative;overflow:hidden;">
       <div style="position:absolute;right:-10px;bottom:-10px;width:60px;height:60px;border-radius:50%;background:rgba(41,95,232,.06);"></div>
       <div style="width:42px;height:42px;background:rgba(41,95,232,.18);border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
@@ -2018,9 +2018,7 @@ function connectQR(code){
       if(data.tipo==='fim_aula' || data.tipo==='sala_encerrada'){
         // Professor encerrou a aula no ginásio → encerra no app e mostra resultados
         // (antes a tela só congelava porque o app não tratava essas mensagens)
-        var _sl=document.getElementById('sLive');
-        var _emAula = (typeof lInt!=='undefined' && lInt) || (_sl && _sl.classList.contains('active'));
-        if(_emAula && typeof quitW==='function'){ quitW(); }
+        _encerrarAulaApp();
         return;
       }
       if(data.tipo==='conectado'){
@@ -4200,6 +4198,22 @@ function togglePause(){
 }
 function prevB(){ if(cBloco>0){ cBloco--; segS=0; updUpNext(); updGraph(); scrollGraph(); } }
 function nextB(){ if(cBloco<cAula.blocos.length-1){ cBloco++; segS=0; updUpNext(); updGraph(); scrollGraph(); } }
+// Encerramento robusto da aula no app — chamado quando o ginásio manda fim_aula/sala_encerrada.
+// Cobre os DOIS caminhos de conexão (QR e sessão) e nunca deixa a tela congelada.
+function _encerrarAulaApp(){
+  var sl=document.getElementById('sLive');
+  var emAula=(typeof lInt!=='undefined' && lInt) || (sl && sl.classList.contains('active'));
+  if(!emAula) return;
+  try{
+    if(typeof quitW==='function'){ quitW(); return; }
+  }catch(err){ try{ console.error('[ProRider] fim_aula -> quitW erro:',err); }catch(e){} }
+  // Fallback: se quitW falhar, ao menos para o loop, fecha o socket e sai da tela travada
+  try{ clearInterval(lInt); lInt=null; }catch(e){}
+  try{ if(typeof _releaseWakeLock==='function') _releaseWakeLock(); }catch(e){}
+  try{ if(wsConn){ wsConn.onclose=null; wsConn.close(); wsConn=null; } }catch(e){}
+  if(typeof go==='function') go('sHome');
+}
+
 function quitW(){
   // 1. Parar timer da aula
   clearInterval(lInt); lInt=null;
@@ -4796,8 +4810,8 @@ function navCenterAtualizar() {
     if (lbl) lbl.textContent = 'Início';
     if (btn) { btn.style.background = 'linear-gradient(135deg,#ea860c,#d62d2d)'; btn.style.boxShadow = '0 4px 20px rgba(234,134,12,.45)'; }
     if (wrap) wrap.onclick = function(){ goTab('sHome','navRide'); };
-    if (tabDesafios) tabDesafios.style.display = '';
-    if (tabAgenda)   tabAgenda.style.display   = 'none';
+    if (tabDesafios) tabDesafios.style.display = 'none';
+    if (tabAgenda)   tabAgenda.style.display   = '';
     if (profBtns)  profBtns.style.display  = 'none';
     if (agendaBtn) agendaBtn.style.display = '';
     if (profBadge) profBadge.style.display = 'none';
@@ -5594,6 +5608,10 @@ function _tentarConexaoWS(wsUrl, token, dadosSessao){
     };
     ws.onmessage = function(e){
       var data = JSON.parse(e.data);
+      if(data.tipo==='fim_aula' || data.tipo==='sala_encerrada'){
+        // mesmo encerramento do caminho QR — evita congelar quando entrou por sessão
+        _encerrarAulaApp(); return;
+      }
       if(data.tipo==='conectado' || data.tipo==='entrou_sala'){
         // Substituir wsConn pelo local
         if(wsConn && wsConn !== ws) try{ wsConn.close(); }catch(e){}
