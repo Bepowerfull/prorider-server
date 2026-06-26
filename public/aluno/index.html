@@ -803,32 +803,32 @@ input[type=file]{display:none}
     </div>
 
     <!-- Gráfico do professor — aparece quando conectado, substitui o nativo -->
-    <div id="aulaGraficoPainel" style="position:absolute;inset:0;display:none;padding:12px 16px;box-sizing:border-box;background:#181818;z-index:2;overflow:hidden;"></div>
+    <div id="aulaGraficoPainel" style="position:absolute;inset:0;display:none;padding:12px 16px;box-sizing:border-box;background:#202028;z-index:2;overflow:hidden;"></div>
 
   </div>
 
   <!-- UP NEXT BAR — entre gráfico e gauge, altura fixa -->
-  <div id="upNextBar" style="flex-shrink:0;padding:10px 16px;background:rgba(255,255,255,.025);border-bottom:1px solid rgba(255,255,255,.07);">
-    <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;">
-      <span style="font-size:9px;font-weight:700;letter-spacing:2px;color:rgba(255,255,255,.28);text-transform:uppercase;">Próximo bloco</span>
-      <div class="un-dot" id="unDot" style="width:6px;height:6px;border-radius:50%;background:#295fe8;flex-shrink:0;display:inline-block;"></div>
+  <div id="upNextBar" style="flex-shrink:0;padding:11px 16px;background:rgba(255,255,255,.025);border-bottom:1px solid rgba(255,255,255,.07);">
+    <div style="display:flex;align-items:center;gap:6px;margin-bottom:7px;">
+      <span style="font-size:10px;font-weight:700;letter-spacing:2px;color:rgba(255,255,255,.32);text-transform:uppercase;">Próximo bloco</span>
+      <div class="un-dot" id="unDot" style="width:7px;height:7px;border-radius:50%;background:#295fe8;flex-shrink:0;display:inline-block;"></div>
     </div>
     <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px;">
-      <div style="text-align:center;padding:6px 4px;background:rgba(255,255,255,.03);border-radius:8px;">
-        <div style="font-size:9px;color:rgba(255,255,255,.28);text-transform:uppercase;letter-spacing:1px;margin-bottom:2px;">Tempo</div>
-        <div id="unT" style="font-family:'Barlow Condensed',sans-serif;font-size:17px;font-weight:700;color:#fff;line-height:1;">--</div>
+      <div style="text-align:center;padding:7px 4px;background:rgba(255,255,255,.03);border-radius:8px;">
+        <div style="font-size:10px;color:rgba(255,255,255,.3);text-transform:uppercase;letter-spacing:1px;margin-bottom:2px;">Tempo</div>
+        <div id="unT" style="font-family:'Barlow Condensed',sans-serif;font-size:19px;font-weight:700;color:#fff;line-height:1;">--</div>
       </div>
-      <div style="text-align:center;padding:6px 4px;background:rgba(255,255,255,.03);border-radius:8px;">
-        <div style="font-size:9px;color:rgba(255,255,255,.28);text-transform:uppercase;letter-spacing:1px;margin-bottom:2px;">%FTP</div>
-        <div id="unF" style="font-family:'Barlow Condensed',sans-serif;font-size:17px;font-weight:700;color:#fff;line-height:1;">--</div>
+      <div style="text-align:center;padding:7px 4px;background:rgba(255,255,255,.03);border-radius:8px;">
+        <div style="font-size:10px;color:rgba(255,255,255,.3);text-transform:uppercase;letter-spacing:1px;margin-bottom:2px;">%FTP</div>
+        <div id="unF" style="font-family:'Barlow Condensed',sans-serif;font-size:19px;font-weight:700;color:#fff;line-height:1;">--</div>
       </div>
-      <div style="text-align:center;padding:6px 4px;background:rgba(255,255,255,.03);border-radius:8px;">
-        <div style="font-size:9px;color:rgba(255,255,255,.28);text-transform:uppercase;letter-spacing:1px;margin-bottom:2px;">RPM</div>
-        <div id="unR" style="font-family:'Barlow Condensed',sans-serif;font-size:17px;font-weight:700;color:#fff;line-height:1;">--</div>
+      <div style="text-align:center;padding:7px 4px;background:rgba(255,255,255,.03);border-radius:8px;">
+        <div style="font-size:10px;color:rgba(255,255,255,.3);text-transform:uppercase;letter-spacing:1px;margin-bottom:2px;">RPM</div>
+        <div id="unR" style="font-family:'Barlow Condensed',sans-serif;font-size:19px;font-weight:700;color:#fff;line-height:1;">--</div>
       </div>
-      <div style="text-align:center;padding:6px 4px;background:rgba(255,255,255,.03);border-radius:8px;">
-        <div style="font-size:9px;color:rgba(255,255,255,.28);text-transform:uppercase;letter-spacing:1px;margin-bottom:2px;">Posição</div>
-        <div id="unP" style="font-family:'Barlow Condensed',sans-serif;font-size:17px;font-weight:700;color:#fff;line-height:1;">--</div>
+      <div style="text-align:center;padding:7px 4px;background:rgba(255,255,255,.03);border-radius:8px;">
+        <div style="font-size:10px;color:rgba(255,255,255,.3);text-transform:uppercase;letter-spacing:1px;margin-bottom:2px;">Posição</div>
+        <div id="unP" style="font-family:'Barlow Condensed',sans-serif;font-size:19px;font-weight:700;color:#fff;line-height:1;">--</div>
       </div>
     </div>
   </div>
@@ -1254,7 +1254,14 @@ input[type=file]{display:none}
   <!-- Card de usuário logado -->
   <div id="profUserCard" style="display:none;margin:0 16px 6px;background:linear-gradient(135deg,rgba(234,134,12,.15),rgba(214,45,45,.1));border:1px solid rgba(234,134,12,.25);border-radius:18px;padding:18px 20px;">
     <div style="display:flex;align-items:center;gap:14px;">
-      <div style="width:48px;height:48px;border-radius:50%;background:linear-gradient(135deg,#ea860c,#d62d2d);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;">⚡</div>
+      <div style="position:relative;flex-shrink:0;">
+        <div onclick="document.getElementById('profFotoInput').click()" title="Trocar foto" style="width:48px;height:48px;border-radius:50%;background:linear-gradient(135deg,#ea860c,#d62d2d);display:flex;align-items:center;justify-content:center;font-size:22px;cursor:pointer;overflow:hidden;">
+          <img id="profUserAvImg" alt="" style="display:none;width:100%;height:100%;object-fit:cover;"/>
+          <span id="profUserAvIcon">⚡</span>
+        </div>
+        <div onclick="document.getElementById('profFotoInput').click()" style="position:absolute;right:-2px;bottom:-2px;width:18px;height:18px;border-radius:50%;background:#1a1620;border:1px solid rgba(255,255,255,.25);display:flex;align-items:center;justify-content:center;font-size:9px;cursor:pointer;">📷</div>
+      </div>
+      <input type="file" id="profFotoInput" accept="image/*" style="display:none;" onchange="profPickFoto(this)"/>
       <div style="flex:1;min-width:0;">
         <div id="profUserName" style="font-size:17px;font-weight:700;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">–</div>
         <div id="profUserEmail" style="font-size:12px;color:rgba(255,255,255,.35);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">–</div>
@@ -1287,6 +1294,14 @@ input[type=file]{display:none}
   <div class="prof-sec" style="margin-top:6px;">
     <div class="prof-sec-title">Dados pessoais</div>
     <div class="prof-card">
+      <div class="prof-field" id="pfFoto">
+        <span class="prof-field-lbl">Foto</span>
+        <span class="prof-field-val" style="display:flex;align-items:center;justify-content:flex-end;gap:8px;">
+          <img id="pfFotoPrev" alt="" style="display:none;width:30px;height:30px;border-radius:50%;object-fit:cover;border:1px solid rgba(255,255,255,.18);"/>
+          <span id="pfFotoNone" style="color:rgba(255,255,255,.3);">Nenhuma</span>
+        </span>
+        <span class="prof-field-edit" onclick="document.getElementById('profFotoInput').click()">Trocar</span>
+      </div>
       <div class="prof-field" id="pfNome">
         <span class="prof-field-lbl">Nome</span>
         <span class="prof-field-val" id="profNome">–</span>
@@ -1854,32 +1869,32 @@ function renderAulaGrafico(){
   var corAt=bAt?zCores[bAt.z]||'#888':'#888';
   var html='';
 
-  // Bloco atual — destaque no topo
+  // Bloco atual — destaque no topo (+15% nos tamanhos)
   if(bAt){
-    html+='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">';
+    html+='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:11px;">';
     html+='<div>';
-    html+='<div style="font-size:10px;font-weight:700;letter-spacing:2px;color:rgba(255,255,255,.28);text-transform:uppercase;margin-bottom:2px;">Bloco atual</div>';
-    html+='<div style="font-size:18px;font-weight:700;color:'+corAt+';">'+(zNomes[bAt.z]||bAt.z)+'</div>';
+    html+='<div style="font-size:11px;font-weight:700;letter-spacing:2px;color:rgba(255,255,255,.32);text-transform:uppercase;margin-bottom:2px;">Bloco atual</div>';
+    html+='<div style="font-size:21px;font-weight:700;color:'+corAt+';">'+(zNomes[bAt.z]||bAt.z)+'</div>';
     html+='</div>';
     html+='<div style="text-align:right;">';
-    html+='<div style="font-size:22px;font-weight:700;color:'+corAt+';">'+bAt.ftpMin+'–'+bAt.ftpMax+'<span style="font-size:12px;color:rgba(255,255,255,.4);margin-left:2px;">%</span></div>';
-    html+='<div style="font-size:12px;color:rgba(255,255,255,.4);">'+bAt.rpmMin+'–'+bAt.rpmMax+' rpm</div>';
+    html+='<div style="font-size:25px;font-weight:700;color:'+corAt+';">'+bAt.ftpMin+'–'+bAt.ftpMax+'<span style="font-size:14px;color:rgba(255,255,255,.45);margin-left:2px;">%</span></div>';
+    html+='<div style="font-size:14px;color:rgba(255,255,255,.45);">'+bAt.rpmMin+'–'+bAt.rpmMax+' rpm</div>';
     html+='</div>';
     html+='</div>';
   }
 
-  // Gráfico de barras
-  html+='<div style="display:flex;align-items:flex-end;gap:2px;height:72px;width:100%;margin-bottom:4px;">';
+  // Gráfico de barras (+15% de altura; cores mais vivas; bloco atual marcado pela bolinha)
+  html+='<div style="display:flex;align-items:flex-end;gap:2px;height:83px;width:100%;margin-bottom:4px;">';
   aulaGrafico.forEach(function(b,i){
     var cor=zCores[b.z]||'#888';
     var h=zAlts[b.z]||15;
     var isAtual=(i===aulaBlocoIdx);
     var isPast=(i<aulaBlocoIdx);
     var flex=Math.max(4,Math.round((b.dur/totalDur)*200));
-    var opacity=isPast?'.2':isAtual?'1':'.4';
+    var opacity=isPast?'.28':isAtual?'1':'.6';   // futuros mais vivos
     html+='<div style="flex:'+flex+';height:'+h+'%;border-radius:3px 3px 0 0;background:'+cor+';opacity:'+opacity+';position:relative;transition:all .4s;">';
     if(isAtual){
-      html+='<div style="position:absolute;top:-7px;left:50%;transform:translateX(-50%);width:5px;height:5px;border-radius:50%;background:'+cor+';"></div>';
+      html+='<div style="position:absolute;top:-10px;left:50%;transform:translateX(-50%);width:7px;height:7px;border-radius:50%;background:'+cor+';box-shadow:0 0 6px '+cor+';"></div>';
     }
     html+='</div>';
   });
@@ -1999,6 +2014,14 @@ function connectQR(code){
             break;
           }
         }
+      }
+      if(data.tipo==='fim_aula' || data.tipo==='sala_encerrada'){
+        // Professor encerrou a aula no ginásio → encerra no app e mostra resultados
+        // (antes a tela só congelava porque o app não tratava essas mensagens)
+        var _sl=document.getElementById('sLive');
+        var _emAula = (typeof lInt!=='undefined' && lInt) || (_sl && _sl.classList.contains('active'));
+        if(_emAula && typeof quitW==='function'){ quitW(); }
+        return;
       }
       if(data.tipo==='conectado'){
         if(statusEl){statusEl.textContent='Conectado!';statusEl.style.color='#5db13d';}
@@ -2456,6 +2479,38 @@ function obPickFoto(input){
     img.src=e.target.result;
   };
   rd.readAsDataURL(f);
+}
+
+// Trocar a foto pela tela de Perfil (aluno pode mudar quando quiser).
+// Mesma compressão do onboarding; a nova foto vale a partir do próximo entrar_sala.
+function profPickFoto(input){
+  var f=input.files&&input.files[0]; if(!f) return;
+  var rd=new FileReader();
+  rd.onload=function(e){
+    var img=new Image();
+    img.onload=function(){
+      var sz=128, cv=document.createElement('canvas'); cv.width=sz; cv.height=sz;
+      var ctx=cv.getContext('2d');
+      var s=Math.min(img.width,img.height);
+      ctx.drawImage(img,(img.width-s)/2,(img.height-s)/2,s,s,0,0,sz,sz);
+      var dataUrl=cv.toDataURL('image/jpeg',0.7);
+      try{ localStorage.setItem('pr_foto',dataUrl); }catch(e){}
+      _profRefreshAvatar();
+    };
+    img.src=e.target.result;
+  };
+  rd.readAsDataURL(f);
+}
+
+function _profRefreshAvatar(){
+  var foto=null; try{ foto=localStorage.getItem('pr_foto'); }catch(e){}
+  var im=document.getElementById('profUserAvImg'), ic=document.getElementById('profUserAvIcon');
+  if(foto && im){ im.src=foto; im.style.display='block'; if(ic) ic.style.display='none'; }
+  else { if(im) im.style.display='none'; if(ic) ic.style.display='inline'; }
+  // preview na linha "Foto" dos Dados pessoais
+  var pv=document.getElementById('pfFotoPrev'), nn=document.getElementById('pfFotoNone');
+  if(foto && pv){ pv.src=foto; pv.style.display='block'; if(nn) nn.style.display='none'; }
+  else { if(pv) pv.style.display='none'; if(nn) nn.style.display='inline'; }
 }
 
 function obSaveProfile(){
@@ -4803,6 +4858,7 @@ function updateProfileUI(){
     // Card topo
     var n=document.getElementById('profUserName'); if(n) n.textContent=prUser.name||'–';
     var e=document.getElementById('profUserEmail'); if(e) e.textContent=prUser.email||'–';
+    _profRefreshAvatar();
     var pts=prUser.points||0;
     var li=lvlIndex(pts);
     var lv=document.getElementById('profLevel'); if(lv) lv.textContent=LVL_NAMES[li]||'Iniciante';
