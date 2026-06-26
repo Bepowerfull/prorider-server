@@ -478,7 +478,7 @@ input[type=file]{display:none}
     </div>
   </div>
   <!-- Guest / Aluno: só Agenda (largura total) -->
-  <div id="homeAgendaBtn" style="padding:0 16px 4px;margin-top:-2px;">
+  <div id="homeAgendaBtn" style="padding:0 16px 4px;margin-top:14px;">
     <div onclick="goTab('sAgenda','navAgenda')" style="background:linear-gradient(135deg,rgba(41,95,232,.18),rgba(41,95,232,.05));border:1px solid rgba(41,95,232,.3);border-radius:18px;padding:14px 16px;cursor:pointer;display:flex;align-items:center;gap:14px;position:relative;overflow:hidden;">
       <div style="position:absolute;right:-10px;bottom:-10px;width:60px;height:60px;border-radius:50%;background:rgba(41,95,232,.06);"></div>
       <div style="width:42px;height:42px;background:rgba(41,95,232,.18);border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
@@ -4796,8 +4796,8 @@ function navCenterAtualizar() {
     if (lbl) lbl.textContent = 'Início';
     if (btn) { btn.style.background = 'linear-gradient(135deg,#ea860c,#d62d2d)'; btn.style.boxShadow = '0 4px 20px rgba(234,134,12,.45)'; }
     if (wrap) wrap.onclick = function(){ goTab('sHome','navRide'); };
-    if (tabDesafios) tabDesafios.style.display = 'none';
-    if (tabAgenda)   tabAgenda.style.display   = '';
+    if (tabDesafios) tabDesafios.style.display = '';
+    if (tabAgenda)   tabAgenda.style.display   = 'none';
     if (profBtns)  profBtns.style.display  = 'none';
     if (agendaBtn) agendaBtn.style.display = '';
     if (profBadge) profBadge.style.display = 'none';
