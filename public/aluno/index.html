@@ -5708,6 +5708,48 @@ var SERVER_HTTP='https://prorider-server-production-5784.up.railway.app';
   setInterval(function(){fetch(SERVER_HTTP+'/ping',{method:'GET',cache:'no-store'}).catch(function(){});},30000);
 })();
 
+// ── Telemetria ao vivo aplicada DIRETO na tela (independente do tick da aula) ──
+// Corrige RPM travado / Watts 0: o dado do ginásio (liveRelay) chegava mas só
+// era exibido dentro do tick(), que depende do ciclo da aula e tinha um
+// try/catch que engolia erros. Agora um atualizador próprio roda sempre (250ms)
+// e escreve o dado fresco na tela assim que ele chega.
+function _pushLiveTelemetria(){
+  try{
+    var src=null;
+    if(typeof liveRelay!=='undefined' && liveRelay && (Date.now()-liveRelay.ts)<3000){
+      src={ r:liveRelay.r||0, w:liveRelay.w||0, ftp:liveRelay.ftp||0, z:liveRelay.z||'z1' };
+    } else if(_bleTs && (Date.now()-_bleTs)<3000){
+      src={ r:_bleRpm||0, w:_bleWatts||0, ftp:Math.round((_bleWatts||0)/150*100), z:'z1' };
+    }
+    if(!src) return; // sem dado fresco → não mexe (deixa tick/simulação/padrão)
+    var rpmR=Math.round(src.r), wR=Math.round(src.w), ftpR=Math.round(src.ftp);
+    var elR=document.getElementById('bigRpm');   if(elR) elR.textContent=rpmR;
+    var elW=document.getElementById('bigWatts');  if(elW) elW.textContent=wR;
+    var ptr=document.getElementById('gPtr');
+    var gVal=document.getElementById('gValue');
+    if(typeof gaugeMode==='undefined') return;
+    if(gaugeMode===0){
+      var ang=-90+(Math.min(ftpR,150)/150)*180;
+      if(ptr) ptr.style.transform='rotate('+ang+'deg)';
+      if(gVal) gVal.textContent=ftpR;
+      if(typeof _fillBar==='function') _fillBar(ftpR);
+    } else if(gaugeMode===1){
+      var ang2=-90+(rpmR/140)*180;
+      if(ptr) ptr.style.transform='rotate('+ang2+'deg)';
+      if(gVal) gVal.textContent=rpmR;
+      if(typeof _fillBarPx==='function') _fillBarPx((rpmR/140)*534);
+    } else {
+      var wkgN=wR/90, wkgPx=Math.min(wkgN/6,1)*534;
+      var ang3=-90+(wkgPx/534)*180;
+      if(ptr) ptr.style.transform='rotate('+ang3+'deg)';
+      if(gVal) gVal.textContent=wkgN.toFixed(1);
+      if(typeof _fillBarPx==='function') _fillBarPx(wkgPx);
+    }
+  }catch(e){}
+}
+var _liveTelInt=null;
+(function(){ if(_liveTelInt) return; _liveTelInt=setInterval(_pushLiveTelemetria,250); })();
+
 // ── Leitura automática do código na URL (?sala=PR-XXXX-XXXX) ──
 (function(){
   try{
