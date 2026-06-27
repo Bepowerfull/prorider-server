@@ -765,7 +765,7 @@ input[type=file]{display:none}
   </div>
 
   <div class="lt">
-    <div class="lt-left"><div class="lt-lbl">Segment Time</div><div class="lt-val" id="ltSeg">00:00</div></div>
+    <div class="lt-left"><div class="lt-lbl">Segmento</div><div class="lt-val" id="ltSeg">00:00</div></div>
     <div class="lt-center">
       <svg width="30" height="28" viewBox="0 0 44 44" fill="none">
         <defs><filter id="lg"><feGaussianBlur stdDeviation="2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter><linearGradient id="lG" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#ffe033"/><stop offset="50%" stop-color="#ea860c"/><stop offset="100%" stop-color="#d62d2d"/></linearGradient></defs>
@@ -773,11 +773,11 @@ input[type=file]{display:none}
       </svg>
       <div class="lt-bolt-tag">PRORIDER</div>
     </div>
-    <div class="lt-right"><div class="lt-lbl" style="text-align:right">Time Total</div><div class="lt-val lt-val-dim" id="ltTot">00:00</div></div>
+    <div class="lt-right"><div class="lt-lbl" style="text-align:right">Tempo Restante</div><div class="lt-val" id="ltTot">00:00</div></div>
   </div>
 
   <!-- ÁREA DO GRÁFICO — altura fixa, alterna entre nativo e professor -->
-  <div id="graficoArea" style="flex-shrink:0;height:120px;position:relative;overflow:hidden;border-bottom:1px solid rgba(255,255,255,.06);">
+  <div id="graficoArea" style="flex-shrink:0;height:168px;position:relative;overflow:hidden;border-bottom:1px solid rgba(255,255,255,.06);">
 
     <!-- Gráfico nativo (bolinhas) — padrão quando não conectado -->
     <div id="graficoNativo" style="position:absolute;inset:0;display:flex;flex-direction:column;">
@@ -1883,18 +1883,18 @@ function renderAulaGrafico(){
     html+='</div>';
   }
 
-  // Gráfico de barras (+15% de altura; cores mais vivas; bloco atual marcado pela bolinha)
-  html+='<div style="display:flex;align-items:flex-end;gap:2px;height:83px;width:100%;margin-bottom:4px;">';
+  // Gráfico de barras — mais alto e cores mais vivas (bloco atual marcado pela bolinha)
+  html+='<div style="display:flex;align-items:flex-end;gap:2px;height:118px;width:100%;margin-bottom:4px;">';
   aulaGrafico.forEach(function(b,i){
     var cor=zCores[b.z]||'#888';
     var h=zAlts[b.z]||15;
     var isAtual=(i===aulaBlocoIdx);
     var isPast=(i<aulaBlocoIdx);
     var flex=Math.max(4,Math.round((b.dur/totalDur)*200));
-    var opacity=isPast?'.28':isAtual?'1':'.6';   // futuros mais vivos
+    var opacity=isPast?'.45':isAtual?'1':'.88';   // mais vivo geral; passados menos apagados
     html+='<div style="flex:'+flex+';height:'+h+'%;border-radius:3px 3px 0 0;background:'+cor+';opacity:'+opacity+';position:relative;transition:all .4s;">';
     if(isAtual){
-      html+='<div style="position:absolute;top:-10px;left:50%;transform:translateX(-50%);width:7px;height:7px;border-radius:50%;background:'+cor+';box-shadow:0 0 6px '+cor+';"></div>';
+      html+='<div style="position:absolute;top:-10px;left:50%;transform:translateX(-50%);width:8px;height:8px;border-radius:50%;background:'+cor+';box-shadow:0 0 8px '+cor+';"></div>';
     }
     html+='</div>';
   });
@@ -1905,8 +1905,8 @@ function renderAulaGrafico(){
 
   // Nome aula + progresso
   html+='<div style="display:flex;justify-content:space-between;">';
-  html+='<div style="font-size:10px;color:rgba(255,255,255,.22);text-transform:uppercase;letter-spacing:1px;">'+(aulaGraficoNome||'ProRider')+'</div>';
-  html+='<div style="font-size:10px;color:rgba(255,255,255,.22);">'+( aulaBlocoIdx+1)+' / '+aulaGrafico.length+'</div>';
+  html+='<div style="font-size:10px;color:rgba(255,255,255,.42);text-transform:uppercase;letter-spacing:1px;">'+(aulaGraficoNome||'ProRider')+'</div>';
+  html+='<div style="font-size:10px;color:rgba(255,255,255,.42);">'+( aulaBlocoIdx+1)+' / '+aulaGrafico.length+'</div>';
   html+='</div>';
 
   wrap.innerHTML=html;
@@ -2105,6 +2105,10 @@ function connectQR(code){
           segS=Math.ceil(data.segTime);
           var tEl=document.getElementById('ltSeg');
           if(tEl) tEl.textContent=fmMS(segS);
+        }
+        if(data.totRest!==undefined){
+          var ttEl=document.getElementById('ltTot');
+          if(ttEl) ttEl.textContent=fmMS(Math.max(0,Math.ceil(data.totRest)));
         }
       }
       if(data.tipo==='erro'){
@@ -3002,7 +3006,10 @@ function _releaseWakeLock(){
   if(_wakeLock){ try{ _wakeLock.release(); }catch(e){} _wakeLock=null; }
 }
 document.addEventListener('visibilitychange',function(){
-  if(document.visibilityState==='visible' && lInt) _acquireWakeLock();
+  if(document.visibilityState==='visible'){
+    var _sl=document.getElementById('sLive');
+    if(lInt || (_sl && _sl.classList.contains('active'))) _acquireWakeLock();
+  }
 });
 var isFtpTest=false, ftpTestCalc=0.95, ftpTestDur=20, ftpTestWatts=[], ftpTestPhase=false;
 var maxRpm=0, sumRpm=0, cntRpm=0, dRpm=83, dGear=0;
@@ -3076,7 +3083,8 @@ function go(id){
   var showNav=(id!=='sLive' && id!=='sCountdown' && id!=='sSplash' && id!=='sOnboard');
   var bNav=document.getElementById('bNav');
   if(bNav) bNav.style.display=showNav?'flex':'none';
-
+  // Mantém a tela do celular acesa durante a aula (usa o wake lock já existente)
+  if(id==='sLive'){ try{ _acquireWakeLock(); }catch(e){} } else { try{ _releaseWakeLock(); }catch(e){} }
 }
 // ═══════════════════════════════════════════════
 // AGENDA — buscar aula, reservar, minhas reservas
@@ -3960,8 +3968,10 @@ function tick(){
   sumRpm+=rpm; cntRpm++;
   if(rpm>maxRpm) maxRpm=rpm;
 
-  document.getElementById('ltSeg').textContent=fmMS(segS);
-  document.getElementById('ltTot').textContent=fmMS(totS);
+  var _segDur=(b.dur||0)*60;
+  var _totDur=cAula.blocos.reduce(function(a,x){return a+(x.dur||0)*60;},0);
+  document.getElementById('ltSeg').textContent=fmMS(Math.max(0,_segDur-segS));
+  document.getElementById('ltTot').textContent=fmMS(Math.max(0,_totDur-totS));
   if(zoneTime[b.z]!==undefined) zoneTime[b.z]++;
   var curRpm=dRpm||0;
   if(curRpm>0){sumRpm+=curRpm;cntRpm++;if(curRpm>maxRpm)maxRpm=Math.round(curRpm);}
