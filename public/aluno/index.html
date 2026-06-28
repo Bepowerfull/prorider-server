@@ -856,20 +856,22 @@ input[type=file]{display:none}
             Zonas: z1 0-5% | z2 5-15% | z3 15-33% | z4 33-53% | z5 53-72% | z6 72-87% | z7 87-100%
             angle = 180 - pct*1.8 graus; x=180+170*cos(a); y=200-170*sin(a)
           -->
-          <!-- z1 cinza 0-5%: θ=171° → (12.1, 173.4) -->
-          <path d="M 10 200 A 170 170 0 0 1 12.1 173.4" fill="none" stroke="#888888" stroke-width="36" stroke-linecap="butt"/>
-          <!-- z2 azul 5-15%: θ=153° → (28.5, 122.8) -->
-          <path d="M 12.1 173.4 A 170 170 0 0 1 28.5 122.8" fill="none" stroke="#295fe8" stroke-width="36" stroke-linecap="butt"/>
-          <!-- z3 verde 15-33%: θ=120.6° → (88.9, 56.5) -->
-          <path d="M 28.5 122.8 A 170 170 0 0 1 88.9 56.5" fill="none" stroke="#5db13d" stroke-width="36" stroke-linecap="butt"/>
-          <!-- z4 amarelo 33-53%: θ=84.6° → (196.0, 30.8) -->
-          <path d="M 88.9 56.5 A 170 170 0 0 1 196.0 30.8" fill="none" stroke="#d7c414" stroke-width="36" stroke-linecap="butt"/>
-          <!-- z5 laranja 53-72%: θ=50.4° → (288.4, 69.0) -->
-          <path d="M 196.0 30.8 A 170 170 0 0 1 288.4 69.0" fill="none" stroke="#ea860c" stroke-width="36" stroke-linecap="butt"/>
-          <!-- z6 vermelho 72-87%: θ=23.4° → (336.0, 132.5) -->
-          <path d="M 288.4 69.0 A 170 170 0 0 1 336.0 132.5" fill="none" stroke="#d62d2d" stroke-width="36" stroke-linecap="butt"/>
-          <!-- z7 roxo 87-100%: θ=0° → (350, 200) -->
-          <path d="M 336.0 132.5 A 170 170 0 0 1 350 200" fill="none" stroke="#9b30ff" stroke-width="36" stroke-linecap="butt"/>
+          <!-- FAIXAS DE ZONA — largura IGUAL (1/7 do arco cada). O ponteiro é
+               posicionado por zona+fração (ver _ftpArcFrac), então sempre cai na cor certa. -->
+          <!-- z1 cinza -->
+          <path d="M 10 200 A 170 170 0 0 1 26.8 126.2" fill="none" stroke="#888888" stroke-width="36" stroke-linecap="butt"/>
+          <!-- z2 azul -->
+          <path d="M 26.8 126.2 A 170 170 0 0 1 74.0 67.1" fill="none" stroke="#295fe8" stroke-width="36" stroke-linecap="butt"/>
+          <!-- z3 verde -->
+          <path d="M 74.0 67.1 A 170 170 0 0 1 142.2 34.3" fill="none" stroke="#5db13d" stroke-width="36" stroke-linecap="butt"/>
+          <!-- z4 amarelo -->
+          <path d="M 142.2 34.3 A 170 170 0 0 1 217.8 34.3" fill="none" stroke="#d7c414" stroke-width="36" stroke-linecap="butt"/>
+          <!-- z5 laranja -->
+          <path d="M 217.8 34.3 A 170 170 0 0 1 286.0 67.1" fill="none" stroke="#ea860c" stroke-width="36" stroke-linecap="butt"/>
+          <!-- z6 vermelho -->
+          <path d="M 286.0 67.1 A 170 170 0 0 1 333.2 126.2" fill="none" stroke="#d62d2d" stroke-width="36" stroke-linecap="butt"/>
+          <!-- z7 roxo -->
+          <path d="M 333.2 126.2 A 170 170 0 0 1 350 200" fill="none" stroke="#9b30ff" stroke-width="36" stroke-linecap="butt"/>
 
           <!-- Arco cobertura escura — revela zonas conforme %FTP sobe (id=zFill mantido para JS) -->
           <path id="zFill" d="M 10 200 A 170 170 0 0 1 350 200" fill="none"
@@ -3020,7 +3022,18 @@ var botTY=0, drawerOpen=false;
 
 // ── Gauge barra contínua — gradiente suave arco-íris ──
 // Total arco = 534px
-var _zBreaks=[32,128,230,331,432,496,534];
+var _zBreaks=[76.3,152.6,228.9,305.1,381.4,457.7,534]; // 7 zonas iguais (534/7)
+// Limites Coggan IGUAIS ao ginásio (_zonaFromPct): z1<56 z2<76 z3<91 z4<106 z5<121 z6<151 z7≥151
+var ZEDGES=[0,56,76,91,106,121,151,200];
+// %FTP → fração do arco (0..1) com zonas de LARGURA IGUAL (1/7 cada).
+// O ponteiro cai sempre na cor da zona correta; dentro da zona, interpola pela fração.
+function _ftpArcFrac(p){
+  if(!(p>0)) return 0;
+  var i; for(i=0;i<7;i++){ if(p<ZEDGES[i+1]||i===6) break; }
+  var lo=ZEDGES[i], hi=ZEDGES[i+1];
+  var fr=(hi>lo)?(p-lo)/(hi-lo):0; if(fr<0)fr=0; if(fr>1)fr=1;
+  return (i+fr)/7;
+}
 function _fillBar(ftpPct){
   var filled=Math.max(0,Math.min(534,(ftpPct/150)*534));
   var el=document.getElementById('zFill');
@@ -3923,6 +3936,7 @@ function startLive(){
   zoneTime={z1:0,z2:0,z3:0,z4:0,z5:0,z6:0,z7:0};
   sumFtp=0; cntFtp=0; sumRpm=0; cntRpm=0; maxRpm=0;
   maxRpm=0; sumRpm=0; cntRpm=0; dRpm=83; cPg=0;
+  if(typeof _lsReset==='function') _lsReset();
   if(!isFtpTest) ftpTestWatts=[];
   rpmAlertCool=0;
   isPaused=false; gaugeMode=0;
@@ -4018,11 +4032,12 @@ function tick(){
   var posEl=document.getElementById('gPosText');
   if(posEl) posEl.textContent=b.pos==='Standing'?'STANDING':'SEATED';
   if(gaugeMode===0){
-    // FTP% \u2014 barra cont\u00EDnua cresce com o ponteiro
-    var ang=-90+(Math.min(ftpPct,150)/150)*180;
+    // FTP% — ponteiro por zona+fração (alinhado às faixas de cor)
+    var fFtp=_ftpArcFrac(ftpPct);
+    var ang=-90+fFtp*180;
     if(ptr) ptr.style.transform='rotate('+ang+'deg)';
     if(gVal) gVal.textContent=ftpPct;
-    _fillBar(ftpPct);
+    _fillBarPx(fFtp*534);
   } else if(gaugeMode===1){
     // RPM \u2014 barra por rpm/140
     var rpmPx=(rpm/140)*534;
@@ -4297,6 +4312,14 @@ function showResults(){
 function showResultsReal(){
   closeDrawer();
   if(audio){audio.pause();}
+  // Se o tick não acumulou (totS=0) mas o acumulador ao vivo tem dado real, usa-o.
+  // Assim a tela de resultado (duração, médias, zonas e payload do servidor) sai correta.
+  if(typeof _lsAcc!=='undefined' && _lsAcc.dur>0 && (!totS || totS===0)){
+    totS=_lsAcc.dur;
+    sumRpm=_lsAcc.rpmSum; cntRpm=_lsAcc.rpmCnt; maxRpm=_lsAcc.rpmMax;
+    sumFtp=_lsAcc.ftpSum; cntFtp=_lsAcc.ftpCnt;
+    zoneTime={z1:_lsAcc.zt.z1,z2:_lsAcc.zt.z2,z3:_lsAcc.zt.z3,z4:_lsAcc.zt.z4,z5:_lsAcc.zt.z5,z6:_lsAcc.zt.z6,z7:_lsAcc.zt.z7};
+  }
   var nameEl=document.getElementById('resAulaName');
   if(nameEl&&cAula) nameEl.textContent=cAula.nome;
   var totEl=document.getElementById('resTot'); if(totEl) totEl.textContent=fmHMS(totS);
@@ -4305,7 +4328,7 @@ function showResultsReal(){
   var avgFEl=document.getElementById('resAvgFtp'); if(avgFEl) avgFEl.textContent=cntFtp>0?Math.round(sumFtp/cntFtp):0;
   var avgREl=document.getElementById('resAvgRpm'); if(avgREl) avgREl.textContent=cntRpm>0?Math.round(sumRpm/cntRpm):0;
   var maxREl=document.getElementById('resMaxRpm'); if(maxREl) maxREl.textContent=Math.round(maxRpm);
-  var wEl=document.getElementById('resWatts'); if(wEl) wEl.textContent=cntFtp>0?Math.round((sumFtp/cntFtp)*1.3):0;
+  var wEl=document.getElementById('resWatts'); if(wEl){ var _rw=(typeof _lsAcc!=='undefined'&&_lsAcc.wCnt>0)?Math.round(_lsAcc.wSum/_lsAcc.wCnt):(cntFtp>0?Math.round((sumFtp/cntFtp)*1.3):0); wEl.textContent=_rw; }
   buildResChart();
 
   // Se logado: salva no servidor e abre tela de pontos
@@ -5729,10 +5752,11 @@ function _pushLiveTelemetria(){
     var gVal=document.getElementById('gValue');
     if(typeof gaugeMode==='undefined') return;
     if(gaugeMode===0){
-      var ang=-90+(Math.min(ftpR,150)/150)*180;
+      var fF=(typeof _ftpArcFrac==='function')?_ftpArcFrac(ftpR):(Math.min(ftpR,150)/150);
+      var ang=-90+fF*180;
       if(ptr) ptr.style.transform='rotate('+ang+'deg)';
       if(gVal) gVal.textContent=ftpR;
-      if(typeof _fillBar==='function') _fillBar(ftpR);
+      if(typeof _fillBarPx==='function') _fillBarPx(fF*534);
     } else if(gaugeMode===1){
       var ang2=-90+(rpmR/140)*180;
       if(ptr) ptr.style.transform='rotate('+ang2+'deg)';
@@ -5749,6 +5773,35 @@ function _pushLiveTelemetria(){
 }
 var _liveTelInt=null;
 (function(){ if(_liveTelInt) return; _liveTelInt=setInterval(_pushLiveTelemetria,250); })();
+
+// ── Acumulador de estatísticas ao vivo (independente do tick) ──
+// Garante que a tela de RESULTADO tenha dados (duração, médias, zonas) mesmo
+// quando o tick da aula não rodou. Só conta na tela da aula (sLive) e com dado fresco.
+var _lsAcc={dur:0,rpmSum:0,rpmCnt:0,rpmMax:0,ftpSum:0,ftpCnt:0,wSum:0,wCnt:0,zt:{z1:0,z2:0,z3:0,z4:0,z5:0,z6:0,z7:0}};
+function _lsReset(){ _lsAcc={dur:0,rpmSum:0,rpmCnt:0,rpmMax:0,ftpSum:0,ftpCnt:0,wSum:0,wCnt:0,zt:{z1:0,z2:0,z3:0,z4:0,z5:0,z6:0,z7:0}}; }
+function _lsZonaFromFtp(p){ var i; for(i=0;i<7;i++){ if(p<ZEDGES[i+1]||i===6) break; } return 'z'+(i+1); }
+function _lsTick(){
+  try{
+    var live=document.getElementById('sLive');
+    if(!live || !live.classList.contains('active')) return; // só durante a aula
+    if(typeof isPaused!=='undefined' && isPaused) return;
+    var src=null;
+    if(typeof liveRelay!=='undefined' && liveRelay && (Date.now()-liveRelay.ts)<3000){
+      src={ r:liveRelay.r||0, w:liveRelay.w||0, ftp:liveRelay.ftp||0, z:liveRelay.z||null };
+    } else if(_bleTs && (Date.now()-_bleTs)<3000){
+      src={ r:_bleRpm||0, w:_bleWatts||0, ftp:Math.round((_bleWatts||0)/150*100), z:null };
+    }
+    if(!src) return; // sem dado fresco → não conta
+    _lsAcc.dur++;
+    if(src.r>0){ _lsAcc.rpmSum+=src.r; _lsAcc.rpmCnt++; if(src.r>_lsAcc.rpmMax)_lsAcc.rpmMax=src.r; }
+    _lsAcc.ftpSum+=src.ftp; _lsAcc.ftpCnt++;
+    _lsAcc.wSum+=src.w; _lsAcc.wCnt++;
+    var z=src.z||_lsZonaFromFtp(src.ftp);
+    if(_lsAcc.zt[z]!==undefined) _lsAcc.zt[z]++;
+  }catch(e){}
+}
+var _lsInt=null;
+(function(){ if(_lsInt) return; _lsInt=setInterval(_lsTick,1000); })();
 
 // ── Leitura automática do código na URL (?sala=PR-XXXX-XXXX) ──
 (function(){
