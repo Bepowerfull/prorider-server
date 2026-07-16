@@ -3101,9 +3101,14 @@ function goFtpTest(id){
 }
 
 function go(id){
+  // Ao SAIR da tela de scan, para a câmera (evita QR/frame congelado ao voltar depois)
+  var _atual=document.querySelector('.screen.active');
+  if(_atual && _atual.id==='sQRScan' && id!=='sQRScan'){ try{ pararCamera(); }catch(e){} }
   var ss=document.querySelectorAll('.screen');
   for(var i=0;i<ss.length;i++) ss[i].classList.remove('active');
   document.getElementById(id).classList.add('active');
+  // Ao ENTRAR na tela de scan, volta ao estado limpo (câmera parada, "Ativar câmera" visível)
+  if(id==='sQRScan'){ try{ _resetScanUI(); }catch(e){} }
   var showNav=(id!=='sLive' && id!=='sCountdown' && id!=='sSplash' && id!=='sOnboard');
   var bNav=document.getElementById('bNav');
   if(bNav) bNav.style.display=showNav?'flex':'none';
@@ -5371,7 +5376,19 @@ function nativeShare(){
 var qrStream = null;
 var qrScanInterval = null;
 
+function _resetScanUI(){
+  try{ pararCamera(); }catch(e){}   // garante câmera parada + tracks liberadas
+  var video  = document.getElementById('qrVideo');
+  var prompt = document.getElementById('qrScanPrompt');
+  var line   = document.getElementById('qrScanLine');
+  var status = document.getElementById('qrStatus');
+  if(video){ try{ video.pause(); }catch(e){} video.srcObject=null; video.style.display='none'; }
+  if(prompt) prompt.style.display='flex';   // "Ativar câmera" de volta
+  if(line)   line.style.display='none';
+  if(status) status.textContent='';
+}
 function iniciarCamera(){
+  try{ pararCamera(); }catch(e){}   // sempre começa do zero (evita frame congelado)
   var prompt = document.getElementById('qrScanPrompt');
   var video  = document.getElementById('qrVideo');
   var line   = document.getElementById('qrScanLine');
