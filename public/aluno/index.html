@@ -858,26 +858,23 @@ input[type=file]{display:none}
           -->
           <!-- FAIXAS DE ZONA — largura IGUAL (1/7 do arco cada). O ponteiro é
                posicionado por zona+fração (ver _ftpArcFrac), então sempre cai na cor certa. -->
-          <!-- z1 cinza -->
-          <path d="M 10 200 A 170 170 0 0 1 26.8 126.2" fill="none" stroke="#888888" stroke-width="36" stroke-linecap="butt"/>
-          <!-- z2 azul -->
-          <path d="M 26.8 126.2 A 170 170 0 0 1 74.0 67.1" fill="none" stroke="#295fe8" stroke-width="36" stroke-linecap="butt"/>
-          <!-- z3 verde -->
-          <path d="M 74.0 67.1 A 170 170 0 0 1 142.2 34.3" fill="none" stroke="#5db13d" stroke-width="36" stroke-linecap="butt"/>
-          <!-- z4 amarelo -->
-          <path d="M 142.2 34.3 A 170 170 0 0 1 217.8 34.3" fill="none" stroke="#d7c414" stroke-width="36" stroke-linecap="butt"/>
-          <!-- z5 laranja -->
-          <path d="M 217.8 34.3 A 170 170 0 0 1 286.0 67.1" fill="none" stroke="#ea860c" stroke-width="36" stroke-linecap="butt"/>
-          <!-- z6 vermelho -->
-          <path d="M 286.0 67.1 A 170 170 0 0 1 333.2 126.2" fill="none" stroke="#d62d2d" stroke-width="36" stroke-linecap="butt"/>
-          <!-- z7 roxo -->
-          <path d="M 333.2 126.2 A 170 170 0 0 1 350 200" fill="none" stroke="#9b30ff" stroke-width="36" stroke-linecap="butt"/>
+          <!-- ARCO ARCO-ÍRIS espalhado (estilo da imagem de referência) — sempre visível.
+               Degradê contínuo azul→verde→amarelo→laranja→vermelho→roxo, com brilho.
+               A posição/zona é indicada pelo PONTEIRO (gPtr). -->
+          <defs>
+            <filter id="gaugeGlow" x="-20%" y="-20%" width="140%" height="140%">
+              <feGaussianBlur stdDeviation="3.5" result="b"/>
+              <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+            </filter>
+          </defs>
+          <!-- trilha escura de base -->
+          <path d="M 10 200 A 170 170 0 0 1 350 200" fill="none" stroke="#17171c" stroke-width="34" stroke-linecap="butt"/>
+          <!-- arco arco-íris: montado por SEGMENTOS ANGULARES (a cor acompanha a curva) via JS (buildGaugeArc) -->
+          <g id="gaugeArc" filter="url(#gaugeGlow)"></g>
 
-          <!-- Arco cobertura escura — revela zonas conforme %FTP sobe (id=zFill mantido para JS) -->
+          <!-- zFill neutralizado: arco sempre visível. Mantido p/ compatibilidade com o JS. -->
           <path id="zFill" d="M 10 200 A 170 170 0 0 1 350 200" fill="none"
-                stroke="#111" stroke-width="38" stroke-linecap="butt"
-                stroke-dasharray="0 0 534"
-                style="transition:stroke-dasharray .35s ease"/>
+                stroke="transparent" stroke-width="0" stroke-dasharray="0 0 534"/>
 
           <!-- PONTEIRO = RAIO PRORIDER -->
           <!-- O raio aponta para cima por padrao, rotaciona em torno de 180,200 -->
@@ -912,7 +909,7 @@ input[type=file]{display:none}
           <!-- LABEL MODO -->
           <text x="180" y="204" text-anchor="middle" font-family="Barlow Condensed" font-size="16" font-weight="700" letter-spacing="5" fill="rgba(255,255,255,.38)" id="gModeLabel">FTP</text>
 
-          <!-- label 150+ no final do arco -->
+          <!-- label 150+ no final do arco (segue o padrão de 140 rpm / 6.0) -->
           <text x="356" y="213" text-anchor="end" font-family="Barlow Condensed" font-size="11" fill="rgba(255,255,255,.28)" id="gMaxLbl">150+</text>
         </svg>
 
@@ -1859,12 +1856,24 @@ var wsAlunoPing=null;
 var SERVER_URL='wss://prorider-server-production-5784.up.railway.app';
 // Gráfico da aula recebido do professor
 var aulaGrafico=[], aulaBlocoIdx=0, aulaGraficoNome='';
+var _graficoLocalAtivo=false; // true = gráfico desenhado localmente (aula do sistema, sem ginásio)
+function _syncGraficoLocal(){
+  if(!_graficoLocalAtivo) return;
+  aulaBlocoIdx = (typeof cBloco==='number')?cBloco:0;
+  try{ renderAulaGrafico(); }catch(e){}
+}
 
+function _parseRange(v){
+  if(Array.isArray(v)) return [parseInt(v[0])||0, parseInt(v[1]!=null?v[1]:v[0])||0];
+  if(typeof v==='number') return [v, v];
+  if(typeof v==='string'){ var m=v.split(/[-\u2013]/); return [parseInt(m[0])||0, parseInt(m[1]!=null?m[1]:m[0])||0]; }
+  return [0,0];
+}
 function renderAulaGrafico(){
   var wrap=document.getElementById('aulaGraficoPainel');
   if(!wrap||!aulaGrafico||!aulaGrafico.length) return;
-  var zCores={z1:'#a1a1a1',z2:'#295fe8',z3:'#5db13d',z4:'#d7c414',z5:'#ea860c',z6:'#d62d2d',z7:'#9b30ff'};
-  var zAlts ={z1:15,z2:28,z3:42,z4:57,z5:71,z6:85,z7:100};
+  var zCores={z1:'#c2c2c2',z2:'#295fe8',z3:'#5db13d',z4:'#d7c414',z5:'#ea860c',z6:'#d62d2d',z7:'#9b30ff'};
+  var zAlts ={z1:26,z2:36,z3:48,z4:61,z5:74,z6:87,z7:100};
   var zNomes={z1:'Recovery',z2:'Endurance',z3:'Tempo',z4:'Threshold',z5:'VO2 Max',z6:'Anaerobic',z7:'Neuromuscular'};
   var totalDur=aulaGrafico.reduce(function(a,x){return a+x.dur;},0)||1;
   var bAt=aulaGrafico[aulaBlocoIdx];
@@ -1876,7 +1885,7 @@ function renderAulaGrafico(){
     html+='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:11px;">';
     html+='<div>';
     html+='<div style="font-size:11px;font-weight:700;letter-spacing:2px;color:rgba(255,255,255,.32);text-transform:uppercase;margin-bottom:2px;">Bloco atual</div>';
-    html+='<div style="font-size:21px;font-weight:700;color:'+corAt+';">'+(zNomes[bAt.z]||bAt.z)+'</div>';
+    html+='<div style="font-size:21px;font-weight:700;color:'+corAt+';">'+((bAt.nome)||zNomes[bAt.z]||bAt.z)+'</div>';
     html+='</div>';
     html+='<div style="text-align:right;">';
     html+='<div style="font-size:25px;font-weight:700;color:'+corAt+';">'+bAt.ftpMin+'–'+bAt.ftpMax+'<span style="font-size:14px;color:rgba(255,255,255,.45);margin-left:2px;">%</span></div>';
@@ -2046,7 +2055,7 @@ function connectQR(code){
       }
       if(data.tipo==='update_aula'){
         if(data.grafico && data.grafico.length>0){
-          aulaGrafico=data.grafico; aulaBlocoIdx=data.blocoIdx||0;
+          aulaGrafico=data.grafico; aulaBlocoIdx=data.blocoIdx||0; _graficoLocalAtivo=false;
           aulaGraficoNome=data.nomeAula||'ProRider';
           renderAulaGrafico();
           // Mostra gráfico professor, oculta nativo
@@ -3028,6 +3037,8 @@ var ZEDGES=[0,56,76,91,106,121,151,200];
 // %FTP → fração do arco (0..1) com zonas de LARGURA IGUAL (1/7 cada).
 // O ponteiro cai sempre na cor da zona correta; dentro da zona, interpola pela fração.
 function _ftpArcFrac(p){
+  // Ponteiro por ZONA + fração dentro da zona (distribuição ESPALHADA, 1/7 por zona).
+  // As cores do arco (buildGaugeArc) usam a MESMA distribuição, então o ponteiro cai na cor certa.
   if(!(p>0)) return 0;
   var i; for(i=0;i<7;i++){ if(p<ZEDGES[i+1]||i===6) break; }
   var lo=ZEDGES[i], hi=ZEDGES[i+1];
@@ -3945,6 +3956,25 @@ function startLive(){
   go('sLive');
   try{ setPage(0); }catch(e){ console.error('setPage',e); }
   try{ buildGraph(); }catch(e){ console.error('buildGraph',e); }
+  // Gráfico local (aula do SISTEMA): usa o renderizador bonito (aulaGraficoPainel), com colunas.
+  // Aula LIVRE (tipo 'free') não mostra gráfico. Aula ONLINE é preenchida pelo ginásio.
+  try{
+    var _gp=document.getElementById('aulaGraficoPainel');
+    if(cAula && cAula.tipo!=='free' && cAula.blocos && cAula.blocos.length){
+      aulaGrafico    = cAula.blocos.map(function(b){
+        var f=_parseRange(b.ftp), r=_parseRange(b.rpm);
+        return { z:b.z, dur:(b.dur||1), ftpMin:f[0], ftpMax:f[1], rpmMin:r[0], rpmMax:r[1], nome:(b.label||b.nome||null) };
+      });
+      aulaBlocoIdx   = 0;
+      aulaGraficoNome= cAula.nome || 'ProRider';
+      _graficoLocalAtivo = true;
+      renderAulaGrafico();
+      if(_gp) _gp.classList.add('visible');
+    } else {
+      _graficoLocalAtivo = false;
+      if(_gp){ _gp.classList.remove('visible'); _gp.style.display='none'; }
+    }
+  }catch(e){ console.error('grafico local',e); }
   try{ updUpNext(); }catch(e){ console.error('updUpNext',e); }
   try{
     var now=new Date();
@@ -4070,6 +4100,7 @@ function tick(){
 
   if(segS>=b.dur*60){
     cBloco++;
+    _syncGraficoLocal();
     if(cBloco>=cAula.blocos.length){ clearInterval(lInt); lInt=null; if(typeof quitW==='function'){ quitW(); } else { showResults(); } return; }
     segS=0; updUpNext(); updGraph(); scrollGraph();
     var zPbar2=document.getElementById('zoneProgressBar');
@@ -4153,28 +4184,35 @@ function buildGraph(){
   var sp=_lgSmoothPath(pts,W,H);
   var curX=_lgGetCurX(cBloco,blocos,totDur,W).toFixed(1);
 
+  // ── COLUNAS (uma por bloco): cor da zona, altura pela intensidade, largura pela duração ──
+  var ZC={z1:'#a1a1a1',z2:'#295fe8',z3:'#5db13d',z4:'#d7c414',z5:'#ea860c',z6:'#d62d2d',z7:'#9b30ff'};
+  var gap=1.5, bars='', cum2=0;
+  for(var k=0;k<blocos.length;k++){
+    var bk=blocos[k];
+    var dk=Math.min(bk.dur,120);
+    var vk=_lgZoneVal[bk.z]||50;
+    var x0=(cum2/totDur)*W;
+    var wk=Math.max(2,((dk/totDur)*W)-gap);
+    var hk=(vk/100)*(H-margin*2);
+    var yk=H-margin-hk;
+    var ck=ZC[bk.z]||'#888';
+    var op=(k===cBloco)?1:(k<cBloco?0.45:0.9);
+    bars+='<rect x="'+x0.toFixed(1)+'" y="'+yk.toFixed(1)+'" width="'+wk.toFixed(1)+'" height="'+hk.toFixed(1)+'"'
+        + ' rx="2" fill="'+ck+'" opacity="'+op+'"'+((k===cBloco)?' filter="url(#lgGlow)"':'')+'/>';
+    cum2+=dk;
+  }
+
   container.innerHTML=
     '<svg width="100%" viewBox="0 0 '+W+' '+H+'" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none" style="display:block;overflow:visible;">'
     +'<defs>'
-    +'<linearGradient id="lgAreaGrad" x1="0%" y1="0%" x2="100%" y2="0%">'
-    +'<stop offset="0%" stop-color="#777777"/>'
-    +'<stop offset="8%" stop-color="#1E6BFF"/>'
-    +'<stop offset="22%" stop-color="#35C94A"/>'
-    +'<stop offset="42%" stop-color="#F5E600"/>'
-    +'<stop offset="60%" stop-color="#FF8A00"/>'
-    +'<stop offset="78%" stop-color="#FF2A2A"/>'
-    +'<stop offset="92%" stop-color="#8E2DE2"/>'
-    +'<stop offset="100%" stop-color="#777777"/>'
-    +'</linearGradient>'
     +'<filter id="lgGlow" x="-20%" y="-20%" width="140%" height="140%">'
     +'<feGaussianBlur stdDeviation="2.5" result="blur"/>'
     +'<feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>'
     +'</filter>'
     +'</defs>'
-    // \u00E1rea preenchida
-    +'<path d="'+sp+' L '+W+' '+H+' L 0 '+H+' Z" fill="url(#lgAreaGrad)" opacity="0.88"/>'
-    // linha superior branca com glow
-    +'<path d="'+sp+'" fill="none" stroke="white" stroke-width="2" filter="url(#lgGlow)"/>'
+    + bars
+    // linha de base
+    +'<line x1="0" y1="'+(H-margin)+'" x2="'+W+'" y2="'+(H-margin)+'" stroke="rgba(255,255,255,.10)" stroke-width="1"/>'
     // marcador bloco atual
     +'<line id="lgMarker" x1="'+curX+'" y1="0" x2="'+curX+'" y2="'+H+'" stroke="#cc44ff" stroke-width="2" opacity="0.9"/>'
     +'</svg>';
@@ -4234,7 +4272,7 @@ function togglePause(){
   if(audio){ if(isPaused) audio.pause(); else if(aPlay) audio.play(); }
 }
 function prevB(){ if(cBloco>0){ cBloco--; segS=0; updUpNext(); updGraph(); scrollGraph(); } }
-function nextB(){ if(cBloco<cAula.blocos.length-1){ cBloco++; segS=0; updUpNext(); updGraph(); scrollGraph(); } }
+function nextB(){ if(cBloco<cAula.blocos.length-1){ cBloco++; segS=0; updUpNext(); updGraph(); scrollGraph(); _syncGraficoLocal(); } }
 // ── Reconexão com aviso visível (2 min de contagem) ──
 var _reconRetryTimer=null, _reconCountdownTimer=null, _reconSecsLeft=0;
 var _RECON_TOTAL_SECS=120; // 2 minutos
@@ -6121,6 +6159,47 @@ updateProfileUI = function() {
   <div id="reconCount" style="font-family:'Bebas Neue',sans-serif;font-size:48px;color:#ea860c;letter-spacing:2px;line-height:1;">2:00</div>
   <button id="reconRetryBtn" onclick="_reconManualRetry()" style="display:none;margin-top:6px;padding:14px 32px;border-radius:30px;border:none;background:linear-gradient(135deg,#ea860c,#d62d2d);font-size:15px;font-weight:800;letter-spacing:1px;color:#fff;cursor:pointer;">Tentar de novo</button>
 </div>
+<script>
+// Monta o arco do gauge em SEGMENTOS ANGULARES — cada pedaço pega a cor da sua posição
+// NA CURVA (não na horizontal). Corrige as pontas: cinza->azul no começo, roxo só na pontinha.
+(function(){
+  function buildGaugeArc(){
+    var g=document.getElementById('gaugeArc'); if(!g) return;
+    var cx=180, cy=200, r=170, N=84;
+    // paleta: começo cinza->azul, miolo verde/amarelo/laranja/vermelho bem espalhado, pontinha roxa
+    // Cores ESPALHADAS (cada zona ~1/7 do arco, igual ao ponteiro): cinza pequeno no começo,
+    // azul entrando na ponta de baixo, miolo bem visível, pontinha roxa. Tons um pouco mais sutis.
+    // Começo espelha a ponta do roxo: cinza curto -> azul entra suave, liberando espaço pro miolo.
+    var stops=[[0,'#9a9a9a'],[0.04,'#8f97b0'],[0.075,'#3f7bd8'],[0.15,'#2f6bff'],
+               [0.24,'#4fb24a'],[0.35,'#4fb24a'],
+               [0.415,'#d9cb2a'],[0.52,'#d9cb2a'],
+               [0.575,'#ef9420'],[0.68,'#ef9420'],
+               [0.735,'#e0342f'],[0.83,'#e0342f'],
+               [0.885,'#e33a86'],[0.95,'#c246c4'],[1,'#a94bea']];
+    function hx(c){return [parseInt(c.slice(1,3),16),parseInt(c.slice(3,5),16),parseInt(c.slice(5,7),16)];}
+    function col(f){
+      for(var i=0;i<stops.length-1;i++){
+        if(f<=stops[i+1][0]){
+          var a=stops[i],b=stops[i+1], t=(f-a[0])/((b[0]-a[0])||1), ca=hx(a[1]),cb=hx(b[1]);
+          return 'rgb('+Math.round(ca[0]+(cb[0]-ca[0])*t)+','+Math.round(ca[1]+(cb[1]-ca[1])*t)+','+Math.round(ca[2]+(cb[2]-ca[2])*t)+')';
+        }
+      }
+      return stops[stops.length-1][1];
+    }
+    function pt(f){ var th=Math.PI*(1-f); return [cx+r*Math.cos(th), cy-r*Math.sin(th)]; }
+    var out='';
+    for(var i=0;i<N;i++){
+      var f0=i/N, f1=(i+1)/N, fm=(f0+f1)/2, p0=pt(f0), p1=pt(f1);
+      var cap='butt';   // as duas pontas retas (simétricas)
+      out+='<path d="M '+p0[0].toFixed(2)+' '+p0[1].toFixed(2)+' A '+r+' '+r+' 0 0 1 '+p1[0].toFixed(2)+' '+p1[1].toFixed(2)+'"'
+         + ' fill="none" stroke="'+col(fm)+'" stroke-width="30" stroke-linecap="'+cap+'"/>';
+    }
+    g.innerHTML=out;
+  }
+  if(document.readyState!=='loading') buildGaugeArc();
+  else document.addEventListener('DOMContentLoaded', buildGaugeArc);
+})();
+</script>
 </body>
 </html><!-- QR Scan screen -->
 <div class="screen" id="sQRScan" style="background:linear-gradient(160deg,#0a0812 0%,#110808 60%,#080a14 100%);">
