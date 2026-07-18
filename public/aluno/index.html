@@ -2125,13 +2125,26 @@ function connectQR(code){
       }
       if(data.tipo==='erro'){
         var _msgErr=data.msg||'Não foi possível entrar na aula. Tente novamente.';
+        var _salaMorta=/n[ãa]o encontrada|inexistente|encerrad|expirad/i.test(_msgErr);
+        if(_salaMorta){
+          // Código antigo — o ginásio gerou uma sala nova. Limpa a sessão salva e manda escanear.
+          try{ localStorage.removeItem('pr_last_sala'); }catch(e){}
+          try{ if(typeof _prVoltarUsar==='function') _prVoltarUsar(); }catch(e){}
+          _msgErr='Essa aula não está mais ativa. Escaneie o QR da sala de novo.';
+        }
         if(statusEl){statusEl.textContent=_msgErr;statusEl.style.color='#d62d2d';}
         // Mostra o erro de forma VISÍVEL mesmo fora da tela de QR (antes só atualizava um campo oculto → parecia travado)
         if(typeof showToast==='function') showToast('⚠️ '+_msgErr);
-        // Não deixa preso: volta para a seleção de bike para tentar de novo
-        var _sbErr=document.getElementById('sBikeSel');
         var _atual=document.querySelector('.screen.active');
-        if(_sbErr && _atual && _atual.id!=='sBikeSel' && _atual.id!=='sLive'){ try{ go('sBikeSel'); }catch(e){} }
+        if(_salaMorta){
+          // manda pra tela de escanear (não pra bike de uma sala que não existe)
+          var _scan=document.getElementById('sQRScan')||document.getElementById('sHome');
+          if(_scan){ try{ go(_scan.id); }catch(e){} }
+        } else {
+          // Não deixa preso: volta para a seleção de bike para tentar de novo
+          var _sbErr=document.getElementById('sBikeSel');
+          if(_sbErr && _atual && _atual.id!=='sBikeSel' && _atual.id!=='sLive'){ try{ go('sBikeSel'); }catch(e){} }
+        }
       }
     };
     wsConn.onclose=function(){
