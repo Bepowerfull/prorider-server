@@ -1994,6 +1994,7 @@ function selectBike(num){
 function connectQR(code){
   if(!code) return;
   lastCode=code;
+  try{ localStorage.setItem('pr_last_sala', JSON.stringify({code:code, bike:_bikeSelNum||0, ts:Date.now()})); }catch(e){}
   // Se já está conectado, vai direto para sLive
   if(wsConn && wsConn.readyState===1){ go('sLive'); return; }
   var statusEl=document.getElementById('qrStatus');
@@ -6214,10 +6215,32 @@ updateProfileUI = function() {
          + ' fill="none" stroke="'+col(fm)+'" stroke-width="30" stroke-linecap="'+cap+'"/>';
     }
     g.innerHTML=out;
-    try{ console.log('%c[ProRider Aluno] gauge alinhado v2 + tempo do bloco em MM:SS (fim do 0.35min)','color:#ea860c;font-weight:700;'); }catch(e){}
+    try{ console.log('%c[ProRider Aluno] gauge + tempo MM:SS + Voltar pra ultima aula (rejoin)','color:#ea860c;font-weight:700;'); }catch(e){}
   }
   if(document.readyState!=='loading') buildGaugeArc();
   else document.addEventListener('DOMContentLoaded', buildGaugeArc);
+})();
+
+// ── Voltar pra última aula (rejoin) — usa a máquina de conexão existente ──
+(function(){
+  function _prVoltarInit(){
+    var s; try{ s=JSON.parse(localStorage.getItem('pr_last_sala')||'null'); }catch(e){ s=null; }
+    if(!s || !s.code) return;
+    if(Date.now()-(s.ts||0) > 90*60*1000) return; // ignora sessão de mais de 90 min
+    if(document.getElementById('prVoltarAula')) return;
+    var b=document.createElement('div');
+    b.id='prVoltarAula';
+    b.style.cssText='position:fixed;left:12px;right:12px;bottom:14px;z-index:99999;display:flex;align-items:center;justify-content:center;gap:10px;background:linear-gradient(135deg,#ea860c,#d62d2d);color:#fff;font-family:Barlow Condensed,sans-serif;font-weight:900;letter-spacing:1px;font-size:16px;padding:14px;border-radius:14px;box-shadow:0 6px 24px rgba(214,45,45,.4);cursor:pointer;';
+    b.innerHTML='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg> VOLTAR PRA ÚLTIMA AULA ('+s.code+')';
+    b.onclick=function(){
+      try{ lastCode=s.code; if(s.bike) _bikeSelNum=s.bike; }catch(e){}
+      try{ b.remove(); }catch(e){}
+      try{ connectQR(s.code); }catch(e){}
+    };
+    document.body.appendChild(b);
+  }
+  if(document.readyState!=='loading') _prVoltarInit();
+  else document.addEventListener('DOMContentLoaded', _prVoltarInit);
 })();
 </script>
 </body>
