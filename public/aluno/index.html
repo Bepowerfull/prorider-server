@@ -2071,7 +2071,7 @@ function connectQR(code){
           var elD=document.getElementById('unDot');
           if(nb){
             var corNb=zCUp[nb.z]||'#888';
-            if(elT) elT.textContent=nb.dur+'min';
+            if(elT) elT.textContent=fmMS(Math.round((nb.dur||nb.duration||0)*60));
             if(elF){elF.textContent=nb.ftpMin+'–'+nb.ftpMax+'%';elF.style.color=corNb;}
             if(elR) elR.textContent=nb.rpmMin+'–'+nb.rpmMax;
             if(elP) elP.textContent=nb.pos||'–';
@@ -2100,7 +2100,7 @@ function connectQR(code){
             var nz=nb.intensity||nb.z||'z1';
             var nzNome=zNomes[nz]||nz;
             var nCor=zCores[nz]||'#888';
-            e=document.getElementById('unT'); if(e) e.textContent=(nb.duration||'—')+'min';
+            e=document.getElementById('unT'); if(e) e.textContent=((nb.duration!=null||nb.dur!=null)?fmMS(Math.round((nb.duration||nb.dur||0)*60)):'—');
             e=document.getElementById('unF'); if(e){e.textContent=(nb.ftpMin||'—')+'–'+(nb.ftpMax||'—')+'%'; e.style.color=nCor;}
             e=document.getElementById('unR'); if(e) e.textContent=(nb.rpmMin||'—')+'–'+(nb.rpmMax||'—');
             e=document.getElementById('unP'); if(e) e.textContent=nb.pos||nb.position||'—';
@@ -6214,7 +6214,7 @@ updateProfileUI = function() {
          + ' fill="none" stroke="'+col(fm)+'" stroke-width="30" stroke-linecap="'+cap+'"/>';
     }
     g.innerHTML=out;
-    try{ console.log('%c[ProRider Aluno] gauge alinhado v2 — zonas 1/7 + nome por %FTP + vermelho estendido','color:#ea860c;font-weight:700;'); }catch(e){}
+    try{ console.log('%c[ProRider Aluno] gauge alinhado v2 + tempo do bloco em MM:SS (fim do 0.35min)','color:#ea860c;font-weight:700;'); }catch(e){}
   }
   if(document.readyState!=='loading') buildGaugeArc();
   else document.addEventListener('DOMContentLoaded', buildGaugeArc);
