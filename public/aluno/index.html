@@ -3115,6 +3115,8 @@ function go(id){
   if(bNav) bNav.style.display=showNav?'flex':'none';
   // Mantém a tela do celular acesa durante a aula (usa o wake lock já existente)
   if(id==='sLive'){ try{ _acquireWakeLock(); }catch(e){} } else { try{ _releaseWakeLock(); }catch(e){} }
+  if(id==='sQRScan'){ try{ _prVoltarUsar(); }catch(e){} } // foi escanear → some de vez
+  try{ _prVoltarSync(); }catch(e){}
 }
 // ═══════════════════════════════════════════════
 // AGENDA — buscar aula, reservar, minhas reservas
@@ -6221,26 +6223,39 @@ updateProfileUI = function() {
   else document.addEventListener('DOMContentLoaded', buildGaugeArc);
 })();
 
-// ── Voltar pra última aula (rejoin) — usa a máquina de conexão existente ──
+// ── Voltar pra última aula (rejoin) — só aparece no início (sHome), some ao navegar/escanear ──
+var _prVoltarUsado=false;
+var _prBannerEl=null;
+function _prBuildBanner(){
+  if(_prBannerEl) return _prBannerEl;
+  var s; try{ s=JSON.parse(localStorage.getItem('pr_last_sala')||'null'); }catch(e){ s=null; }
+  if(!s || !s.code) return null;
+  var b=document.createElement('div');
+  b.id='prVoltarAula';
+  b.style.cssText='position:fixed;left:12px;right:12px;bottom:74px;z-index:9998;display:none;align-items:center;justify-content:center;gap:10px;background:linear-gradient(135deg,#ea860c,#d62d2d);color:#fff;font-family:Barlow Condensed,sans-serif;font-weight:900;letter-spacing:1px;font-size:16px;padding:14px;border-radius:14px;box-shadow:0 6px 24px rgba(214,45,45,.4);cursor:pointer;';
+  b.innerHTML='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg> VOLTAR PRA ÚLTIMA AULA ('+s.code+')';
+  b.onclick=function(){
+    _prVoltarUsado=true;
+    try{ b.style.display='none'; }catch(e){}
+    try{ lastCode=s.code; if(s.bike) _bikeSelNum=s.bike; }catch(e){}
+    try{ connectQR(s.code); }catch(e){}
+  };
+  document.body.appendChild(b);
+  _prBannerEl=b;
+  return b;
+}
+function _prVoltarUsar(){ _prVoltarUsado=true; }
+function _prVoltarSync(){
+  var s; try{ s=JSON.parse(localStorage.getItem('pr_last_sala')||'null'); }catch(e){ s=null; }
+  var recente = s && s.code && (Date.now()-(s.ts||0) <= 90*60*1000);
+  var cur=document.querySelector('.screen.active'); var curId=cur?cur.id:'';
+  var mostra = recente && !_prVoltarUsado && curId==='sHome';
+  var b=_prBuildBanner();
+  if(b) b.style.display = mostra ? 'flex' : 'none';
+}
 (function(){
-  function _prVoltarInit(){
-    var s; try{ s=JSON.parse(localStorage.getItem('pr_last_sala')||'null'); }catch(e){ s=null; }
-    if(!s || !s.code) return;
-    if(Date.now()-(s.ts||0) > 90*60*1000) return; // ignora sessão de mais de 90 min
-    if(document.getElementById('prVoltarAula')) return;
-    var b=document.createElement('div');
-    b.id='prVoltarAula';
-    b.style.cssText='position:fixed;left:12px;right:12px;bottom:14px;z-index:99999;display:flex;align-items:center;justify-content:center;gap:10px;background:linear-gradient(135deg,#ea860c,#d62d2d);color:#fff;font-family:Barlow Condensed,sans-serif;font-weight:900;letter-spacing:1px;font-size:16px;padding:14px;border-radius:14px;box-shadow:0 6px 24px rgba(214,45,45,.4);cursor:pointer;';
-    b.innerHTML='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg> VOLTAR PRA ÚLTIMA AULA ('+s.code+')';
-    b.onclick=function(){
-      try{ lastCode=s.code; if(s.bike) _bikeSelNum=s.bike; }catch(e){}
-      try{ b.remove(); }catch(e){}
-      try{ connectQR(s.code); }catch(e){}
-    };
-    document.body.appendChild(b);
-  }
-  if(document.readyState!=='loading') _prVoltarInit();
-  else document.addEventListener('DOMContentLoaded', _prVoltarInit);
+  if(document.readyState!=='loading') setTimeout(_prVoltarSync,300);
+  else document.addEventListener('DOMContentLoaded', function(){ setTimeout(_prVoltarSync,300); });
 })();
 </script>
 </body>
