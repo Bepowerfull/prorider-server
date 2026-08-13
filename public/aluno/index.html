@@ -1019,6 +1019,18 @@ input[type=file]{display:none}
       <button class="dctrl-play" id="pauseBtn" onclick="togglePause()">⏸</button>
       <button class="dctrl-btn" onclick="nextB()">⏭</button>
     </div>
+    <div id="ftpLiveBox" style="margin:14px 4px 4px;padding:14px 14px 16px;background:rgba(234,134,12,.06);border:1px solid rgba(234,134,12,.3);border-radius:16px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:13px;letter-spacing:2px;color:rgba(255,255,255,.55);text-transform:uppercase;">Meu FTP (watts)</div>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <button onclick="_prFtpStep(-1)" style="width:40px;height:40px;border-radius:50%;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.04);color:#fff;font-size:24px;font-weight:700;line-height:1;">−</button>
+          <div id="ftpLiveVal" style="font-family:'Barlow Condensed',sans-serif;font-size:34px;font-weight:900;color:#ea860c;min-width:70px;text-align:center;">150</div>
+          <button onclick="_prFtpStep(1)" style="width:40px;height:40px;border-radius:50%;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.04);color:#fff;font-size:24px;font-weight:700;line-height:1;">+</button>
+        </div>
+      </div>
+      <input id="ftpLiveSlider" type="range" min="0" max="500" step="1" value="150" oninput="_prFtpSlider(this.value)" style="width:100%;accent-color:#ea860c;height:28px;">
+      <div style="display:flex;justify-content:space-between;font-size:11px;color:rgba(255,255,255,.3);margin-top:2px;"><span>0</span><span>250</span><span>500</span></div>
+    </div>
     <button class="drawer-quit" onclick="quitW()">Encerrar Aula</button>
   </div>
 </div>
@@ -1977,7 +1989,7 @@ function selectBike(num){
   var nomeVal=(nome&&nome.textContent.trim()&&nome.textContent.trim()!=='—')?nome.textContent.trim():(localStorage.getItem('pr_nome')||'Aluno');
   // Já estava observando (socket aberto) → vira participante de verdade na bike escolhida
   if(wsConn && wsConn.readyState===1){
-    wsConn.send(JSON.stringify({tipo:'entrar_sala',codigo:lastCode,nome:nomeVal,bike:num,foto:(localStorage.getItem('pr_foto')||null)}));
+    wsConn.send(JSON.stringify({tipo:'entrar_sala',codigo:lastCode,nome:nomeVal,bike:num,foto:(localStorage.getItem('pr_foto')||null),ftpBase:(typeof _prFtpVal!=="undefined"?_prFtpVal:150)}));
   } else {
     connectQR(lastCode); // reabre; onopen manda entrar_sala porque _bikeSelNum já está setado
   }
@@ -2006,7 +2018,7 @@ function connectQR(code){
       var nomeVal=(nome&&nome.textContent.trim()&&nome.textContent.trim()!=='—')?nome.textContent.trim():(localStorage.getItem('pr_nome')||'Aluno');
       if(_bikeSelNum){
         // Já escolheu a bike (ou reconexão durante a aula) → entra como participante
-        wsConn.send(JSON.stringify({tipo:'entrar_sala',codigo:code,nome:nomeVal,bike:_bikeSelNum,foto:(localStorage.getItem('pr_foto')||null)}));
+        wsConn.send(JSON.stringify({tipo:'entrar_sala',codigo:code,nome:nomeVal,bike:_bikeSelNum,foto:(localStorage.getItem('pr_foto')||null),ftpBase:(typeof _prFtpVal!=="undefined"?_prFtpVal:150)}));
       } else {
         // Primeiro contato: observa o mapa da sala ao vivo e mostra a tela de seleção
         wsConn.send(JSON.stringify({tipo:'assinar_sala',codigo:code}));
@@ -2336,6 +2348,8 @@ function profModalSave(){
   } else if(profEditField==='ftp'){
     var el=document.getElementById('ftpDisplay'); if(el) el.textContent=val+' W';
     profData.ftp=val;
+    // Editar o FTP no perfil também passa a valer ao vivo (e no ginásio, se em aula)
+    try{ if(typeof _prFtpAplica==='function') _prFtpAplica(parseInt(val,10)||150, true); }catch(e){}
   }
   // Sincronizar com servidor se logado
   if(prToken && ['nome','email','peso','ftp'].indexOf(profEditField)>-1){
@@ -4027,7 +4041,7 @@ function tick(){
     watts=Math.round(liveRelay.w); ftpPct=Math.round(liveRelay.ftp);
   } else if(connected.bike && _bleTs && (Date.now()-_bleTs)<3000){
     dRpm=_bleRpm; rpm=Math.round(_bleRpm);
-    watts=Math.round(_bleWatts); ftpPct=Math.round(_bleWatts/150*100);
+    watts=Math.round(_bleWatts); ftpPct=Math.round(_bleWatts/((typeof _prFtpVal!=='undefined'&&_prFtpVal>0)?_prFtpVal:150)*100);
   }
   var wkg=(watts/90).toFixed(1);
   sumRpm+=rpm; cntRpm++;
@@ -4295,6 +4309,40 @@ function togglePause(){
 }
 function prevB(){ if(cBloco>0){ cBloco--; segS=0; updUpNext(); updGraph(); scrollGraph(); } }
 function nextB(){ if(cBloco<cAula.blocos.length-1){ cBloco++; segS=0; updUpNext(); updGraph(); scrollGraph(); _syncGraficoLocal(); } }
+
+// ── FTP ao vivo ──────────────────────────────────────────────
+// O app não lê a bike; ele MANDA o FTP pro ginásio, que recalcula %FTP = watts / ftpBase * 100.
+// Sem recálculo retroativo: vale a partir da troca.
+var _prFtpVal = parseInt(localStorage.getItem('pr_ftp')||'150',10); if(isNaN(_prFtpVal)) _prFtpVal=150;
+var _prFtpSendT=null;
+function _prFtpAplica(v, envia){
+  v=Math.max(0,Math.min(500, parseInt(v,10)||0));
+  _prFtpVal=v;
+  try{ localStorage.setItem('pr_ftp', String(v)); }catch(e){}
+  var d=document.getElementById('ftpLiveVal'); if(d) d.textContent=v;
+  var sl=document.getElementById('ftpLiveSlider'); if(sl && parseInt(sl.value,10)!==v) sl.value=v;
+  if(envia){
+    if(_prFtpSendT) clearTimeout(_prFtpSendT);
+    _prFtpSendT=setTimeout(_prFtpEnviar, 250); // debounce enquanto arrasta
+  }
+}
+function _prFtpStep(delta){ _prFtpAplica(_prFtpVal+delta, true); }
+function _prFtpSlider(v){ _prFtpAplica(v, true); }
+function _prFtpEnviar(){
+  try{
+    if(typeof wsConn==='undefined' || !wsConn || wsConn.readyState!==1) return;
+    var nomeEl=document.getElementById('profNome');
+    var nomeVal=(nomeEl&&nomeEl.textContent.trim()&&nomeEl.textContent.trim()!=='—')?nomeEl.textContent.trim():(localStorage.getItem('pr_nome')||'Aluno');
+    // Envia via dados_aluno (canal que o servidor JÁ repassa app→ginásio).
+    // Depende de o servidor incluir 'ftpBase' no repasse (ver CARTA_DEV). ftp vai junto p/ aluno remoto.
+    var _msg={tipo:'dados_aluno', codigo:lastCode, nome:nomeVal, bike:_bikeSelNum||0, ftpBase:_prFtpVal};
+    if(_bleWatts>0) _msg.ftp=Math.round(_bleWatts/_prFtpVal*100);
+    wsConn.send(JSON.stringify(_msg));
+    try{ console.log('[ProRider Aluno] FTP ao vivo ->', _prFtpVal, 'W (via dados_aluno)'); }catch(e){}
+  }catch(e){}
+}
+function _prFtpInit(){ _prFtpAplica(_prFtpVal, false); }
+try{ if(document.readyState!=='loading') _prFtpInit(); else document.addEventListener('DOMContentLoaded', _prFtpInit); }catch(e){}
 // ── Reconexão com aviso visível (2 min de contagem) ──
 var _reconRetryTimer=null, _reconCountdownTimer=null, _reconSecsLeft=0;
 var _RECON_TOTAL_SECS=120; // 2 minutos
@@ -5027,6 +5075,8 @@ function updateProfileUI(){
     if(prUser.ftp){
       var pf=document.getElementById('ftpDisplay'); if(pf) pf.textContent=prUser.ftp+' W';
       profData.ftp=String(prUser.ftp);
+      // FTP da conta passa a valer ao vivo (login define o FTP do aluno, não 150)
+      try{ if(typeof _prFtpAplica==='function') _prFtpAplica(parseInt(prUser.ftp,10)||150, false); }catch(e){}
     }
   } else {
     if(card) card.style.display='none';
@@ -5756,7 +5806,7 @@ function _tentarConexaoWS(wsUrl, token, dadosSessao){
       var nome = document.getElementById('profNome');
       var nomeVal = (nome&&nome.textContent.trim()&&nome.textContent.trim()!=='—')
         ? nome.textContent.trim() : (localStorage.getItem('pr_nome')||'Aluno');
-      ws.send(JSON.stringify({tipo:'entrar_sala', codigo:token, nome:nomeVal, bike:dadosSessao.bike_num||null}));
+      ws.send(JSON.stringify({tipo:'entrar_sala', codigo:token, nome:nomeVal, bike:dadosSessao.bike_num||null,ftpBase:(typeof _prFtpVal!=="undefined"?_prFtpVal:150)}));
       if(dadosSessao.bike_num) _bikeSelNum=parseInt(dadosSessao.bike_num); // casa o relay com a bike da sessão
     };
     ws.onmessage = function(e){
@@ -6230,7 +6280,7 @@ updateProfileUI = function() {
          + ' fill="none" stroke="'+col(fm)+'" stroke-width="30" stroke-linecap="'+cap+'"/>';
     }
     g.innerHTML=out;
-    try{ console.log('%c[ProRider Aluno] v18/07 — gauge + MM:SS + Voltar so no inicio + trata sala encerrada','color:#ea860c;font-weight:700;'); }catch(e){}
+    try{ console.log('%c[ProRider Aluno] v18/07f — FTP ao vivo + FTP da conta/login/perfil passa a valer ao vivo (nao fica mais em 150)','color:#ea860c;font-weight:700;'); }catch(e){}
   }
   if(document.readyState!=='loading') buildGaugeArc();
   else document.addEventListener('DOMContentLoaded', buildGaugeArc);
@@ -6248,10 +6298,56 @@ function _prBuildBanner(){
   b.style.cssText='position:fixed;left:12px;right:12px;bottom:74px;z-index:9998;display:none;align-items:center;justify-content:center;gap:10px;background:linear-gradient(135deg,#ea860c,#d62d2d);color:#fff;font-family:Barlow Condensed,sans-serif;font-weight:900;letter-spacing:1px;font-size:16px;padding:14px;border-radius:14px;box-shadow:0 6px 24px rgba(214,45,45,.4);cursor:pointer;';
   b.innerHTML='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg> VOLTAR PRA ÚLTIMA AULA ('+s.code+')';
   b.onclick=function(){
-    _prVoltarUsado=true;
-    try{ b.style.display='none'; }catch(e){}
-    try{ lastCode=s.code; if(s.bike) _bikeSelNum=s.bike; }catch(e){}
-    try{ connectQR(s.code); }catch(e){}
+    var sv; try{ sv=JSON.parse(localStorage.getItem('pr_last_sala')||'null'); }catch(e){ sv=null; }
+    var code=(sv&&sv.code)?sv.code:s.code;
+    var bike=(sv&&sv.bike)?sv.bike:(s.bike||0);
+    // FEEDBACK IMEDIATO: se o texto mudar, o toque foi registrado.
+    var _htmlOrig=b.innerHTML;
+    b.innerHTML='ENTRANDO NA AULA…';
+    b.style.pointerEvents='none';
+    b.style.opacity='.75';
+    try{ console.log('[ProRider Aluno] Voltar: clique OK — sala',code,'bike',bike,'| socket',(typeof wsConn!=='undefined'&&wsConn)?wsConn.readyState:'nenhum'); }catch(e){}
+    try{ lastCode=code; if(bike) _bikeSelNum=bike; }catch(e){}
+    var nomeEl=document.getElementById('profNome');
+    var nomeVal=(nomeEl&&nomeEl.textContent.trim()&&nomeEl.textContent.trim()!=='—')?nomeEl.textContent.trim():(localStorage.getItem('pr_nome')||'Aluno');
+    // Se o socket já está aberto, connectQR pularia direto pro sLive SEM entrar na sala.
+    // Então mandamos o entrar_sala explicitamente (mesmo caminho da escolha de bike).
+    try{
+      if(typeof wsConn!=='undefined' && wsConn && wsConn.readyState===1){
+        wsConn.send(JSON.stringify({tipo:'entrar_sala',codigo:code,nome:nomeVal,bike:bike,foto:(localStorage.getItem('pr_foto')||null),ftpBase:(typeof _prFtpVal!=="undefined"?_prFtpVal:150)}));
+      } else {
+        connectQR(code);
+      }
+    }catch(err){
+      try{ console.log('[ProRider Aluno] Voltar: erro ->',err); }catch(e){}
+      try{ connectQR(code); }catch(e2){}
+    }
+    // 2ª tentativa aos 4s: se não entrou, o socket velho pode estar "zumbi" (aberto mas surdo).
+    // Derruba e refaz a conexão do zero — cobre o caso em que o toque parecia não fazer nada.
+    if(window._prVoltarT1) clearTimeout(window._prVoltarT1);
+    window._prVoltarT1=setTimeout(function(){
+      var at1=document.querySelector('.screen.active');
+      if(at1 && (at1.id==='sLive' || at1.id==='sCountdown')) return; // já entrou
+      b.innerHTML='RECONECTANDO…';
+      try{ console.log('[ProRider Aluno] Voltar: 4s sem entrar — refazendo conexao do zero'); }catch(e){}
+      try{ if(typeof wsConn!=='undefined' && wsConn){ wsConn.onclose=null; wsConn.onmessage=null; wsConn.close(); } }catch(e){}
+      try{ wsConn=null; }catch(e){}
+      try{ connectQR(code); }catch(e){}
+    }, 4000);
+    // Rede de segurança: se em 8s não entrou na aula, devolve o botão e avisa (nunca fica mudo)
+    if(window._prVoltarTimer) clearTimeout(window._prVoltarTimer);
+    window._prVoltarTimer=setTimeout(function(){
+      if(window._prVoltarT1) clearTimeout(window._prVoltarT1);
+      var at=document.querySelector('.screen.active');
+      if(at && (at.id==='sLive' || at.id==='sCountdown')){
+        _prVoltarUsado=true; b.style.display='none'; return; // entrou: some o botão
+      }
+      b.innerHTML='↻ TENTAR DE NOVO ('+code+')';
+      b.style.pointerEvents='';
+      b.style.opacity='';
+      if(typeof showToast==='function') showToast('⚠️ Não consegui entrar. Toque de novo ou escaneie o QR da sala.');
+      try{ console.log('[ProRider Aluno] Voltar: nao entrou em 8s — tela atual:', at?at.id:'?'); }catch(e){}
+    }, 8000);
   };
   document.body.appendChild(b);
   _prBannerEl=b;
