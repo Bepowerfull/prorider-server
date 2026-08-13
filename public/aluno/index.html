@@ -2045,6 +2045,23 @@ function connectQR(code){
           }
         }
       }
+      if(data.tipo==='ftp_resultado'){
+        // O ginásio encerrou o teste de FTP: o valor atingido vira o meu FTP (a partir de agora).
+        var _nf=parseInt(data.ftp,10);
+        if(_nf>0){
+          try{ if(typeof _prFtpAplica==='function') _prFtpAplica(_nf,false); }catch(e){}
+          profData.ftp=String(_nf);
+          var _fd=document.getElementById('ftpDisplay'); if(_fd) _fd.textContent=_nf+' W';
+          try{
+            if(prToken){
+              fetch(SERVER_HTTP+'/user/profile',{method:'PUT',headers:{'Content-Type':'application/json','Authorization':'Bearer '+prToken},body:JSON.stringify({ftp:_nf})})
+                .then(function(r){return r.json();}).then(function(res){ if(res&&res.token) prToken=res.token; }).catch(function(){});
+            }
+          }catch(e){}
+          if(typeof showToast==='function') showToast('🎯 Novo FTP do teste: '+_nf+' W');
+          try{ console.log('[ProRider Aluno] ftp_resultado recebido:',_nf,'W (salvo)'); }catch(e){}
+        }
+      }
       if(data.tipo==='fim_aula' || data.tipo==='sala_encerrada'){
         // Professor encerrou a aula no ginásio → encerra no app e mostra resultados
         // (antes a tela só congelava porque o app não tratava essas mensagens)
@@ -6280,7 +6297,7 @@ updateProfileUI = function() {
          + ' fill="none" stroke="'+col(fm)+'" stroke-width="30" stroke-linecap="'+cap+'"/>';
     }
     g.innerHTML=out;
-    try{ console.log('%c[ProRider Aluno] v18/07f — FTP ao vivo + FTP da conta/login/perfil passa a valer ao vivo (nao fica mais em 150)','color:#ea860c;font-weight:700;'); }catch(e){}
+    try{ console.log('%c[ProRider Aluno] v18/07g — recebe ftp_resultado do teste coletivo (aplica + salva local + salva na conta) + FTP ao vivo','color:#ea860c;font-weight:700;'); }catch(e){}
   }
   if(document.readyState!=='loading') buildGaugeArc();
   else document.addEventListener('DOMContentLoaded', buildGaugeArc);
