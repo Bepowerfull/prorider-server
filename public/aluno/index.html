@@ -267,8 +267,8 @@ input[type=file]{display:none}
 .lbot-hint-r{flex:1;text-align:right;font-size:9px;font-weight:700;letter-spacing:1px;color:rgba(255,255,255,.18);text-transform:uppercase}
 
 /* DRAWER */
-.drawer{position:absolute;bottom:-280px;left:0;right:0;z-index:50;background:#1c1c1c;border-radius:20px 20px 0 0;border-top:1px solid rgba(255,255,255,.1);padding:10px 20px 28px;transition:bottom .35s cubic-bezier(.4,0,.2,1)}
-.drawer.open{bottom:0}
+.drawer{position:absolute;bottom:0;left:0;right:0;z-index:50;background:#1c1c1c;border-radius:20px 20px 0 0;border-top:1px solid rgba(255,255,255,.1);padding:10px 20px 28px;transform:translateY(100%);transition:transform .35s cubic-bezier(.4,0,.2,1);max-height:88vh;overflow-y:auto}
+.drawer.open{transform:translateY(0)}
 .drawer-handle{width:40px;height:4px;background:rgba(255,255,255,.2);border-radius:2px;margin:0 auto 16px}
 .drawer-next{text-align:center;padding:10px;background:rgba(255,255,255,.04);border-radius:10px;margin-bottom:14px}
 .drawer-next-lbl{font-size:9px;font-weight:700;letter-spacing:3px;color:rgba(255,255,255,.28);text-transform:uppercase;margin-bottom:3px}
@@ -1000,7 +1000,7 @@ input[type=file]{display:none}
     </div>
   </div>
 
-  <div class="lbot" ontouchstart="botTS(event)" ontouchend="botTE(event)" style="justify-content:center;">
+  <div class="lbot" onclick="toggleDrawer()" ontouchstart="botTS(event)" ontouchend="botTE(event)" style="justify-content:center;cursor:pointer;">
     <div class="lbot-hint" style="flex:none;text-align:center;">▲ &nbsp;CONTROLES&nbsp; ▲</div>
     <span id="botT" style="display:none;"></span>
   </div>
@@ -1913,7 +1913,12 @@ function renderAulaGrafico(){
     var h=zAlts[b.z]||15;
     var isAtual=(i===aulaBlocoIdx);
     var isPast=(i<aulaBlocoIdx);
-    var flex=Math.max(4,Math.round((b.dur/totalDur)*200));
+    // Largura mais LINEAR: mistura proporcional (50%) com igual (50%) + piso maior.
+    // Blocos curtos deixam de ficar fininhos/distorcidos; os longos ainda são maiores, mas sem exagero.
+    var _nB=aulaGrafico.length||1;
+    var _frac=(b.dur/totalDur);
+    var _w=0.5*_frac + 0.5*(1/_nB);
+    var flex=Math.max(12,Math.round(_w*300));
     var opacity=isPast?'.45':isAtual?'1':'.88';   // mais vivo geral; passados menos apagados
     html+='<div style="flex:'+flex+';height:'+h+'%;border-radius:3px 3px 0 0;background:'+cor+';opacity:'+opacity+';position:relative;transition:all .4s;">';
     if(isAtual){
@@ -3072,7 +3077,7 @@ var maxRpm=0, sumRpm=0, cntRpm=0, dRpm=83, dGear=0;
 var audio=null, aPlay=false;
 var scanT={}, connected={bike:false,hr:false};
 var gaugeMode=0; // 0=FTP%, 1=RPM, 2=W/kg
-var botTY=0, drawerOpen=false;
+var botTY=0, drawerOpen=false, _drawerSwipe=false;
 
 // ── Gauge barra contínua — gradiente suave arco-íris ──
 // Total arco = 534px
@@ -4324,8 +4329,15 @@ function togglePause(){
   document.getElementById('pauseBtn').textContent=isPaused?'\u25B6':'\u23F8';
   if(audio){ if(isPaused) audio.pause(); else if(aPlay) audio.play(); }
 }
-function prevB(){ if(cBloco>0){ cBloco--; segS=0; updUpNext(); updGraph(); scrollGraph(); } }
-function nextB(){ if(cBloco<cAula.blocos.length-1){ cBloco++; segS=0; updUpNext(); updGraph(); scrollGraph(); _syncGraficoLocal(); } }
+function prevB(){
+  if(typeof aulaBlocoIdx==='number') cBloco=aulaBlocoIdx; // parte do bloco atual (inclusive ao vivo)
+  if(cBloco>0){ cBloco--; segS=0; _graficoLocalAtivo=true; updUpNext(); updGraph(); scrollGraph(); }
+}
+function nextB(){
+  if(typeof aulaBlocoIdx==='number') cBloco=aulaBlocoIdx;
+  var _n=(aulaGrafico&&aulaGrafico.length)?aulaGrafico.length:((cAula&&cAula.blocos)?cAula.blocos.length:0);
+  if(cBloco<_n-1){ cBloco++; segS=0; _graficoLocalAtivo=true; updUpNext(); updGraph(); scrollGraph(); if(typeof _syncGraficoLocal==='function')_syncGraficoLocal(); }
+}
 
 // ── FTP ao vivo ──────────────────────────────────────────────
 // O app não lê a bike; ele MANDA o FTP pro ginásio, que recalcula %FTP = watts / ftpBase * 100.
@@ -4596,11 +4608,16 @@ function closeDrawer(){
   document.getElementById('drawer').classList.remove('open');
   document.getElementById('dOverlay').classList.remove('open');
 }
-function botTS(e){ botTY=e.touches[0].clientY; }
+function botTS(e){ if(e&&e.touches&&e.touches[0]) botTY=e.touches[0].clientY; }
 function botTE(e){
+  if(!e||!e.changedTouches||!e.changedTouches[0]) return;
   var dy=botTY-e.changedTouches[0].clientY;
-  if(dy>30) openDrawer();
-  else if(dy<-20) closeDrawer();
+  if(dy>30){ _drawerSwipe=true; openDrawer(); }
+  else if(dy<-20){ _drawerSwipe=true; closeDrawer(); }
+}
+function toggleDrawer(){
+  if(_drawerSwipe){ _drawerSwipe=false; return; } // já tratado pelo swipe; ignora o clique que segue
+  if(drawerOpen) closeDrawer(); else openDrawer();
 }
 
 // \u2500\u2500 m\u00FAsica \u2500\u2500
@@ -6266,18 +6283,18 @@ updateProfileUI = function() {
 (function(){
   function buildGaugeArc(){
     var g=document.getElementById('gaugeArc'); if(!g) return;
-    var cx=180, cy=200, r=170, N=84;
-    // paleta: começo cinza->azul, miolo verde/amarelo/laranja/vermelho bem espalhado, pontinha roxa
-    // Cores ESPALHADAS (cada zona ~1/7 do arco, igual ao ponteiro): cinza pequeno no começo,
-    // azul entrando na ponta de baixo, miolo bem visível, pontinha roxa. Tons um pouco mais sutis.
-    // Começo espelha a ponta do roxo: cinza curto -> azul entra suave, liberando espaço pro miolo.
-    var stops=[[0,'#9a9a9a'],[0.123,'#9a9a9a'],
-               [0.163,'#2f6bff'],[0.266,'#2f6bff'],
-               [0.306,'#4fb24a'],[0.409,'#4fb24a'],
-               [0.449,'#d9cb2a'],[0.551,'#d9cb2a'],
-               [0.591,'#ef9420'],[0.694,'#ef9420'],
-               [0.734,'#e0342f'],[0.877,'#e0342f'],
-               [0.94,'#e33a86'],[1,'#a94bea']];
+    var cx=180, cy=200, r=170, N=176;
+    // CORES ALINHADAS ÀS ZONAS: cada zona ocupa EXATAMENTE 1/7 do arco (mesma divisão do
+    // ponteiro em _ftpArcFrac → (i+fr)/7). Sem divergência: o ponteiro sempre cai na cor da sua zona.
+    // Paleta por zona (z1..z7). Plateau sólido no meio de cada zona + transição uniforme no limite.
+    var ZCOL=['#9a9a9a','#2f6bff','#4fb24a','#d9cb2a','#ef9420','#e0342f','#a94bea'];
+    var pad=0.038; // metade da largura da transição em cada limite (igual para todas → linear)
+    var stops=[];
+    for(var _zi=0;_zi<7;_zi++){
+      var _a=_zi/7, _b=(_zi+1)/7;
+      stops.push([_zi===0?0:(_a+pad), ZCOL[_zi]]);   // início do plateau (transição antes)
+      stops.push([_zi===6?1:(_b-pad), ZCOL[_zi]]);   // fim do plateau (transição depois)
+    }
     function hx(c){return [parseInt(c.slice(1,3),16),parseInt(c.slice(3,5),16),parseInt(c.slice(5,7),16)];}
     function col(f){
       for(var i=0;i<stops.length-1;i++){
@@ -6297,7 +6314,7 @@ updateProfileUI = function() {
          + ' fill="none" stroke="'+col(fm)+'" stroke-width="30" stroke-linecap="'+cap+'"/>';
     }
     g.innerHTML=out;
-    try{ console.log('%c[ProRider Aluno] v18/07g — recebe ftp_resultado do teste coletivo (aplica + salva local + salva na conta) + FTP ao vivo','color:#ea860c;font-weight:700;'); }catch(e){}
+    try{ console.log('%c[ProRider Aluno] v18/07i — gaveta de controles abre no TOQUE (destrava pular-bloco e o FTP online) + gauge/blocos/gaveta do 18/07h','color:#ea860c;font-weight:700;'); }catch(e){}
   }
   if(document.readyState!=='loading') buildGaugeArc();
   else document.addEventListener('DOMContentLoaded', buildGaugeArc);
