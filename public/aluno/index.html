@@ -900,14 +900,19 @@ input[type=file]{display:none}
           <!-- POSICAO — logo abaixo do nome -->
           <text x="180" y="113" text-anchor="middle" font-family="Barlow Condensed" font-size="13" font-weight="700" letter-spacing="3" fill="rgba(255,255,255,.38)" id="gPosition">SEATED</text>
 
-          <!-- NUMERO GRANDE — centro baixo, bem separado dos textos acima -->
-          <text x="168" y="182" text-anchor="middle" font-family="Barlow Condensed" font-size="64" font-weight="900" fill="#fff" id="gValue">0</text>
+          <!-- NUMERO GRANDE — deslocado para a esquerda, junto do nome da zona,
+               abrindo espaco para o relogio do bloco no canto direito -->
+          <text x="132" y="182" text-anchor="middle" font-family="Barlow Condensed" font-size="64" font-weight="900" fill="#fff" id="gValue">0</text>
 
           <!-- % ao lado do numero -->
-          <text x="218" y="174" text-anchor="start" font-family="Barlow Condensed" font-size="36" font-weight="900" fill="rgba(255,255,255,.85)" id="gValueUnit">%</text>
+          <text x="176" y="174" text-anchor="start" font-family="Barlow Condensed" font-size="34" font-weight="900" fill="rgba(255,255,255,.85)" id="gValueUnit">%</text>
+
+          <!-- RELOGIO DO BLOCO ATUAL — pedido de aluna: quanto falta neste bloco -->
+          <text x="262" y="176" text-anchor="middle" font-family="Barlow Condensed" font-size="40" font-weight="900" fill="#fff" id="gBlocoTempo">0:00</text>
+          <text x="262" y="196" text-anchor="middle" font-family="Barlow Condensed" font-size="11" font-weight="700" letter-spacing="3" fill="rgba(255,255,255,.38)" id="gBlocoLbl">BLOCO</text>
 
           <!-- LABEL MODO -->
-          <text x="180" y="204" text-anchor="middle" font-family="Barlow Condensed" font-size="16" font-weight="700" letter-spacing="5" fill="rgba(255,255,255,.38)" id="gModeLabel">FTP</text>
+          <text x="132" y="204" text-anchor="middle" font-family="Barlow Condensed" font-size="16" font-weight="700" letter-spacing="5" fill="rgba(255,255,255,.38)" id="gModeLabel">FTP</text>
 
           <!-- label 150+ no final do arco (segue o padrão de 140 rpm / 6.0) -->
           <text x="356" y="213" text-anchor="end" font-family="Barlow Condensed" font-size="11" fill="rgba(255,255,255,.28)" id="gMaxLbl">150+</text>
@@ -2124,6 +2129,7 @@ function connectQR(code){
           }
         }
         if(data.segTime!==undefined){
+          if(data.blocoRest!=null){ _blocoRest=Math.max(0,Math.round(data.blocoRest)); _blocoRestTs=Date.now(); }
           segS=Math.ceil(data.segTime);
           var tEl=document.getElementById('ltSeg');
           if(tEl) tEl.textContent=fmMS(segS);
@@ -3018,6 +3024,7 @@ var zoneConfig = {
 
 // \u2550\u2550 ESTADO \u2550\u2550
 var curAulaIdx=0, cAula=null, cBloco=0, segS=0, totS=0;
+var _blocoRest=0, _blocoRestTs=0;   // tempo que falta no bloco atual (vem do ginásio)
 var lInt=null, cPg=0, isPaused=false;
 var _wakeLock=null;
 function _acquireWakeLock(){
@@ -4019,7 +4026,12 @@ function tick(){
   // ── FONTE DE DADOS: relay do ginásio > BLE do celular > simulação ──
   if(liveRelay && (Date.now()-liveRelay.ts)<3000){
     dRpm=liveRelay.r; rpm=Math.round(liveRelay.r);
-    watts=Math.round(liveRelay.w); ftpPct=Math.round(liveRelay.ftp);
+    watts=Math.round(liveRelay.w);
+    // O ginasio calcula o % com a FTP que ELE tem do aluno e, quando nao acha o
+    // aluno na bike, cai num padrao de 150W — dai o numero sair errado.
+    // Quem sabe a FTP de verdade e o proprio app: recalcula aqui com os watts.
+    var _meuFtp=_ftpDoAluno();
+    ftpPct = _meuFtp>0 ? Math.round(watts/_meuFtp*100) : Math.round(liveRelay.ftp);
     // marcha vinda do ginasio (bled112 -> relay). So sobrepoe se o celular nao
     // estiver ligado direto na bike por Bluetooth (essa fonte tem prioridade).
     if(!connected.bike && liveRelay.g>0) dGear=liveRelay.g;
@@ -4032,7 +4044,8 @@ function tick(){
     }
   } else if(connected.bike && _bleTs && (Date.now()-_bleTs)<3000){
     dRpm=_bleRpm; rpm=Math.round(_bleRpm);
-    watts=Math.round(_bleWatts); ftpPct=Math.round(_bleWatts/150*100);
+    watts=Math.round(_bleWatts);
+    var _mf=_ftpDoAluno(); ftpPct=Math.round(_bleWatts/(_mf>0?_mf:150)*100);
   }
   var wkg=(watts/90).toFixed(1);
   sumRpm+=rpm; cntRpm++;
@@ -4094,6 +4107,19 @@ function tick(){
     var ang=-90+fFtp*180;
     if(ptr) ptr.style.transform='rotate('+ang+'deg)';
     if(gVal) gVal.textContent=ftpPct;
+    try{
+      var _bt=document.getElementById('gBlocoTempo');
+      if(_bt){
+        var _restaB;
+        if(_blocoRestTs){
+          // o ginásio manda 1x por segundo; entre um e outro, desconta o relógio local
+          _restaB=Math.max(0,Math.round(_blocoRest-(Date.now()-_blocoRestTs)/1000));
+        } else {
+          _restaB=Math.max(0,Math.round(((b.dur||b.duration||0)*60)-segS));
+        }
+        _bt.textContent=Math.floor(_restaB/60)+':'+String(_restaB%60).padStart(2,'0');
+      }
+    }catch(e){}
     _fillBarPx(fFtp*534);
   } else if(gaugeMode===1){
     // RPM \u2014 barra por rpm/140
@@ -4494,6 +4520,14 @@ function showFtpResult(){
 // Ligado (padrao): o resultado do teste vira o FTP do aluno e e salvo.
 // Desligado: o teste vale so naquela aula; ao terminar, o FTP NAO e salvo.
 // ══════════════════════════════════════════════════════════════
+// FTP do aluno, na ordem: valor da aula em curso (teste de FTP) > perfil > localStorage.
+function _ftpDoAluno(){
+  var v=0;
+  try{ if(typeof _ftpDaAula!=='undefined' && _ftpDaAula>0) v=_ftpDaAula; }catch(e){}
+  if(!v){ try{ v=parseInt(profData&&profData.ftp)||0; }catch(e){} }
+  if(!v){ try{ v=parseInt(localStorage.getItem('pr_ftp'))||0; }catch(e){} }
+  return v>0?v:0;
+}
 function ftpAutoAtivo(){ return localStorage.getItem('pr_ftp_auto') !== '0'; }
 function ftpAutoRender(){
   var t=document.getElementById('ftpAutoTxt');
