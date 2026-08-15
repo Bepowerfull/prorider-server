@@ -1321,6 +1321,12 @@ input[type=file]{display:none}
         <span class="prof-field-val" id="ftpDisplay">130 W</span>
         <span class="prof-field-edit" onclick="profEdit('ftp')">Editar</span>
       </div>
+      <!-- Atualizar FTP automaticamente apos o teste feito na aula -->
+      <div class="prof-field" id="pfFtpAuto" style="align-items:flex-start;">
+        <span class="prof-field-lbl">Atualizar FTP<br><span style="font-size:11px;color:rgba(255,255,255,.35);font-weight:400;">após o teste na aula</span></span>
+        <span class="prof-field-val" id="ftpAutoTxt" style="font-size:13px;">Automático</span>
+        <span class="prof-field-edit" onclick="ftpAutoToggle()" id="ftpAutoBtn">Alterar</span>
+      </div>
       <div class="prof-field" id="pfSapatilha">
         <span class="prof-field-lbl">Sapatilha</span>
         <span class="prof-field-val" id="profSapatilha">–</span>
@@ -2032,6 +2038,10 @@ function connectQR(code){
             break;
           }
         }
+      }
+      if(data.tipo==='ftp_resultado' && data.nome){
+        // o ginasio manda um por aluno; cada celular pega o seu
+        try{ if(!prUser || !prUser.name || String(data.nome)===String(prUser.name)) aplicarFtpResultado(data.ftp); }catch(e){ aplicarFtpResultado(data.ftp); }
       }
       if(data.tipo==='fim_aula' || data.tipo==='sala_encerrada'){
         // Professor encerrou a aula no ginásio → encerra no app e mostra resultados
@@ -4479,6 +4489,53 @@ function showFtpResult(){
   }
   go('sFtpResult');
 }
+// ══════════════════════════════════════════════════════════════
+// FTP — atualizacao automatica apos o teste feito na aula
+// Ligado (padrao): o resultado do teste vira o FTP do aluno e e salvo.
+// Desligado: o teste vale so naquela aula; ao terminar, o FTP NAO e salvo.
+// ══════════════════════════════════════════════════════════════
+function ftpAutoAtivo(){ return localStorage.getItem('pr_ftp_auto') !== '0'; }
+function ftpAutoRender(){
+  var t=document.getElementById('ftpAutoTxt');
+  if(t){
+    var on=ftpAutoAtivo();
+    t.textContent = on ? 'Automático' : 'Só nesta aula';
+    t.style.color = on ? '#5db13d' : 'rgba(255,255,255,.45)';
+  }
+}
+function ftpAutoToggle(){
+  localStorage.setItem('pr_ftp_auto', ftpAutoAtivo() ? '0' : '1');
+  ftpAutoRender();
+}
+try{ ftpAutoRender(); }catch(e){}
+
+// Resultado do teste enviado pelo ginasio ao fim do teste de FTP.
+// O app NAO tratava esta mensagem — o novo FTP chegava e era descartado.
+function aplicarFtpResultado(novoFtp){
+  novoFtp = parseInt(novoFtp)||0;
+  if(novoFtp<=0) return;
+  _ftpDaAula = novoFtp;                 // vale para a aula em curso, sempre
+  var el=document.getElementById('ftpDisplay');
+  if(el) el.textContent = novoFtp+' W';
+  if(!ftpAutoAtivo()){
+    console.log('[ProRider] FTP do teste ('+novoFtp+'W) aplicado só nesta aula — atualização automática desligada.');
+    return;
+  }
+  profData.ftp = String(novoFtp);
+  localStorage.setItem('pr_ftp', String(novoFtp));
+  if(typeof prToken!=='undefined' && prToken){
+    fetch(SERVER_HTTP+'/user/profile',{
+      method:'PUT',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+prToken},
+      body:JSON.stringify({ftp:novoFtp})
+    }).then(function(r){return r.json();})
+      .then(function(res){ if(res.user && typeof prUser!=='undefined') prUser=Object.assign(prUser||{},res.user); })
+      .catch(function(){});
+  }
+  console.log('[ProRider] FTP atualizado para '+novoFtp+'W pelo teste da aula.');
+}
+var _ftpDaAula = 0;
+
 function saveFtp(){
   var vEl=document.getElementById('ftpResultVal');
   var ftp=vEl?parseInt(vEl.textContent)||130:130;
@@ -5769,6 +5826,9 @@ function _tentarConexaoWS(wsUrl, token, dadosSessao){
             break;
           }
         }
+      }
+      if(data.tipo==='ftp_resultado' && data.nome){
+        try{ if(!prUser || !prUser.name || String(data.nome)===String(prUser.name)) aplicarFtpResultado(data.ftp); }catch(e){ aplicarFtpResultado(data.ftp); }
       }
       if(data.tipo==='sala_info'){
         _salaInfo={ numBikes:data.numBikes||0, bikes:data.bikes||[], ocupadas:data.ocupadas||[] };
