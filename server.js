@@ -430,14 +430,26 @@ app.post('/user/register', async (req, res) => {
   const password = req.body.password || req.body.senha;
   const peso     = parseFloat(req.body.peso)  || 70;
   const ftp      = parseInt(req.body.ftp)     || 130;
+  // Dados fisicos para o metabolismo basal (Mifflin-St Jeor). Enviados pelo app
+  // desde a build 12/09b. Sao opcionais: cadastro antigo continua funcionando.
+  const altura   = parseInt(req.body.altura)  || null;
+  const idade    = parseInt(req.body.idade)   || null;
+  const sexo     = (req.body.sexo === 'M' || req.body.sexo === 'F') ? req.body.sexo : null;
+  // O app ja manda o basal calculado; recalculamos aqui para nao depender do
+  // cliente. Se faltar qualquer dado, fica null.
+  const tmb      = (peso && altura && idade && sexo)
+    ? Math.round(10*peso + 6.25*altura - 5*idade + (sexo === 'F' ? -161 : 5))
+    : null;
 
   if (!email || !name || !password)
     return res.status(400).json({ error: 'email, nome e senha obrigatórios' });
   try {
     const hash = await bcrypt.hash(password, 10);
     const r = await db.query(
-      'INSERT INTO users (email, name, password_hash, peso, ftp) VALUES ($1,$2,$3,$4,$5) RETURNING id, email, name, role, points, level, peso, ftp',
-      [email.toLowerCase(), name, hash, peso, ftp]
+      `INSERT INTO users (email, name, password_hash, peso, ftp, altura, idade, sexo, tmb)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
+       RETURNING id, email, name, role, points, level, peso, ftp, altura, idade, sexo, tmb`,
+      [email.toLowerCase(), name, hash, peso, ftp, altura, idade, sexo, tmb]
     );
     const user = r.rows[0];
     const token = jwt.sign({ id: user.id, email: user.email, role: user.role }, JWT_SECRET, { expiresIn: '30d' });
@@ -615,16 +627,23 @@ app.get('/aula/load/:share_id', async (req, res) => {
 app.post('/aula/complete', authMiddleware, async (req, res) => {
   if (!db) return res.status(503).json({ error: 'Banco não disponível' });
   const { aula_nome, duracao_sec, zona_predominante, badge, sem_pausas, zonas } = req.body;
+  // Enviados pelo app desde a build 12/09b. Sem eles a caloria do historico
+  // tinha de ser estimada pelo tempo. Opcionais: aula antiga grava 0.
+  const watts_med = parseInt(req.body.watts_med) || 0;
+  const rpm_med   = parseInt(req.body.rpm_med)   || 0;
+  const kcal      = parseInt(req.body.kcal)      || 0;
   try {
     const pontos = calcPoints({ zona_predominante, badge, sem_pausas });
     await db.query(
       `INSERT INTO aulas_completadas
         (user_id, aula_nome, duracao_sec, pontos, zona_predominante,
-         z1_pct, z2_pct, z3_pct, z4_pct, z5_pct, z6_pct, z7_pct)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)`,
+         z1_pct, z2_pct, z3_pct, z4_pct, z5_pct, z6_pct, z7_pct,
+         watts_med, rpm_medio, kcal)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)`,
       [req.user.id, aula_nome, duracao_sec, pontos, zona_predominante,
        zonas?.z1||0, zonas?.z2||0, zonas?.z3||0, zonas?.z4||0,
-       zonas?.z5||0, zonas?.z6||0, zonas?.z7||0]
+       zonas?.z5||0, zonas?.z6||0, zonas?.z7||0,
+       watts_med, rpm_med, kcal]
     );
     // Atualizar pontos e nível do usuário
     const r = await db.query(
@@ -644,7 +663,7 @@ app.post('/aula/complete', authMiddleware, async (req, res) => {
 // Atualizar perfil do usuário
 app.put('/user/profile', authMiddleware, async (req, res) => {
   if (!db) return res.status(503).json({ error: 'Banco não disponível' });
-  const { name, email, peso, ftp } = req.body;
+  const { name, email, peso, ftp, altura, idade, sexo } = req.body;
   try {
     const fields = [], vals = [];
     let idx = 1;
@@ -652,14 +671,27 @@ app.put('/user/profile', authMiddleware, async (req, res) => {
     if (email && email.trim())       { fields.push(`email=$${idx++}`); vals.push(email.trim().toLowerCase()); }
     if (peso  && parseFloat(peso)>0) { fields.push(`peso=$${idx++}`);  vals.push(parseFloat(peso)); }
     if (ftp   && parseFloat(ftp)>0)  { fields.push(`ftp=$${idx++}`);   vals.push(parseFloat(ftp)); }
+    if (altura && parseInt(altura)>0){ fields.push(`altura=$${idx++}`);vals.push(parseInt(altura)); }
+    if (idade  && parseInt(idade)>0) { fields.push(`idade=$${idx++}`); vals.push(parseInt(idade)); }
+    if (sexo === 'M' || sexo === 'F'){ fields.push(`sexo=$${idx++}`);  vals.push(sexo); }
     if (!fields.length) return res.status(400).json({ error: 'Nenhum campo para atualizar' });
     fields.push(`updated_at=NOW()`);
     vals.push(req.user.id);
     const r = await db.query(
-      `UPDATE users SET ${fields.join(',')} WHERE id=$${idx} RETURNING id, email, name, role, points, level, peso, ftp`,
+      `UPDATE users SET ${fields.join(',')} WHERE id=$${idx}
+       RETURNING id, email, name, role, points, level, peso, ftp, altura, idade, sexo, tmb`,
       vals
     );
-    res.json({ user: r.rows[0] });
+    // Mexeu em peso, altura, idade ou sexo -> o basal guardado ficou velho.
+    const u = r.rows[0];
+    if (u.peso && u.altura && u.idade && u.sexo) {
+      const novoTmb = Math.round(10*u.peso + 6.25*u.altura - 5*u.idade + (u.sexo === 'F' ? -161 : 5));
+      if (novoTmb !== u.tmb) {
+        await db.query('UPDATE users SET tmb=$1 WHERE id=$2', [novoTmb, u.id]);
+        u.tmb = novoTmb;
+      }
+    }
+    res.json({ user: u });
   } catch(e) {
     log('user/profile error: ' + e.message);
     res.status(500).json({ error: 'Erro interno' });
