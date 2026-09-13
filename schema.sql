@@ -88,10 +88,9 @@ CREATE INDEX IF NOT EXISTS idx_aulas_date         ON aulas_completadas(completed
 CREATE INDEX IF NOT EXISTS idx_shared_expire      ON shared_aulas(expires_at);
 CREATE INDEX IF NOT EXISTS idx_prof_req_license   ON professor_requests(license_id, status);
 
--- Super admin padrão (trocar senha após primeiro login)
--- Senha inicial: ProRider@2026 (hash abaixo)
--- IMPORTANTE: trocar imediatamente após deploy
+-- Super admin — senha trocada em 14/09/2026 (senha inicial removida por segurança)
+-- Para repor a senha, usar o comando em OneDrive\Documentos\ProRider\Senhas\SENHAS_PRORIDER.txt
 INSERT INTO users (email, name, role, password_hash)
 VALUES ('admin@prorider.app', 'Super Admin', 'super_admin',
-        '$2b$10$h/9oW7EowpDgdmR8A13MJeZdFwxAb8Vv/0RDPa2OkNgViSV1fm28S')
+        '$2a$10$Lo/AOagrhV2EZnMaugyt6.fkBmR73OCXyehcbNNoOkejX6xCbYgOe')
 ON CONFLICT (email) DO NOTHING;
