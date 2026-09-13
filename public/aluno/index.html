@@ -494,25 +494,75 @@ input[type=file]{display:none}
 
   <div class="home-sec">
     <div class="home-sec-title">FTP Tests</div>
-    <div class="home-row" style="gap:10px;">
-      <div class="home-card" onclick="goFtpTest('ftp5')" style="flex:1;min-height:120px;position:relative;cursor:pointer;">
+    <!-- Seis protocolos. A tira rola na horizontal: cabem todos sem espremer. -->
+    <div class="home-row" style="gap:10px;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:4px;">
+      <div class="home-card" onclick="goFtpTest('ftpramp')" style="flex:0 0 132px;min-height:120px;position:relative;cursor:pointer;">
         <div style="position:absolute;top:10px;right:10px;">
           <svg width="28" height="28" viewBox="0 0 100 100">
-            <circle cx="50" cy="50" r="40" fill="none" stroke="rgba(214,45,45,.3)" stroke-width="8"/>
+            <circle cx="50" cy="50" r="40" fill="none" stroke="#295fe833" stroke-width="8"/>
+            <path d="M50 10 A40 40 0 0 1 90 50" fill="none" stroke="#295fe8" stroke-width="8" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <div style="font-size:28px;margin-bottom:6px;">&#128200;</div>
+        <div style="font-weight:700;font-size:15px;color:#fff;">Rampa</div>
+        <div style="font-size:12px;color:rgba(255,255,255,.35);margin-top:2px;">35 min</div>
+      </div>
+      <div class="home-card" onclick="goFtpTest('ftp20')" style="flex:0 0 132px;min-height:120px;position:relative;cursor:pointer;">
+        <div style="position:absolute;top:10px;right:10px;">
+          <svg width="28" height="28" viewBox="0 0 100 100">
+            <circle cx="50" cy="50" r="40" fill="none" stroke="#ea860c33" stroke-width="8"/>
+            <path d="M50 10 A40 40 0 0 1 90 50" fill="none" stroke="#ea860c" stroke-width="8" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <div style="font-size:28px;margin-bottom:6px;">&#9889;</div>
+        <div style="font-weight:700;font-size:15px;color:#fff;">20' Test</div>
+        <div style="font-size:12px;color:rgba(255,255,255,.35);margin-top:2px;">45 min</div>
+      </div>
+      <div class="home-card" onclick="goFtpTest('ftp8')" style="flex:0 0 132px;min-height:120px;position:relative;cursor:pointer;">
+        <div style="position:absolute;top:10px;right:10px;">
+          <svg width="28" height="28" viewBox="0 0 100 100">
+            <circle cx="50" cy="50" r="40" fill="none" stroke="#5db13d33" stroke-width="8"/>
+            <path d="M50 10 A40 40 0 0 1 90 50" fill="none" stroke="#5db13d" stroke-width="8" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <div style="font-size:28px;margin-bottom:6px;">&#127937;</div>
+        <div style="font-weight:700;font-size:15px;color:#fff;">2 x 8'</div>
+        <div style="font-size:12px;color:rgba(255,255,255,.35);margin-top:2px;">40 min</div>
+      </div>
+      <div class="home-card" onclick="goFtpTest('ftp10')" style="flex:0 0 132px;min-height:120px;position:relative;cursor:pointer;">
+        <div style="position:absolute;top:10px;right:10px;">
+          <svg width="28" height="28" viewBox="0 0 100 100">
+            <circle cx="50" cy="50" r="40" fill="none" stroke="#d7c41433" stroke-width="8"/>
+            <path d="M50 10 A40 40 0 0 1 90 50" fill="none" stroke="#d7c414" stroke-width="8" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <div style="font-size:28px;margin-bottom:6px;">&#127937;</div>
+        <div style="font-weight:700;font-size:15px;color:#fff;">10' Test</div>
+        <div style="font-size:12px;color:rgba(255,255,255,.35);margin-top:2px;">32 min</div>
+      </div>
+      <div class="home-card" onclick="goFtpTest('ftp5')" style="flex:0 0 132px;min-height:120px;position:relative;cursor:pointer;">
+        <div style="position:absolute;top:10px;right:10px;">
+          <svg width="28" height="28" viewBox="0 0 100 100">
+            <circle cx="50" cy="50" r="40" fill="none" stroke="#d62d2d33" stroke-width="8"/>
             <path d="M50 10 A40 40 0 0 1 90 50" fill="none" stroke="#d62d2d" stroke-width="8" stroke-linecap="round"/>
           </svg>
         </div>
         <div style="font-size:28px;margin-bottom:6px;">&#128693;</div>
         <div style="font-weight:700;font-size:15px;color:#fff;">5' Test</div>
-        <div style="font-size:12px;color:rgba(255,255,255,.35);margin-top:2px;">22 min</div>
+        <div style="font-size:12px;color:rgba(255,255,255,.35);margin-top:2px;">30 min</div>
       </div>
-      <div class="home-card" onclick="goFtpTest('ftp20')" style="flex:1;min-height:120px;position:relative;cursor:pointer;">
+      <div class="home-card" onclick="goFtpTest('ftp60')" style="flex:0 0 132px;min-height:120px;position:relative;cursor:pointer;">
         <div style="position:absolute;top:10px;right:10px;">
           <svg width="28" height="28" viewBox="0 0 100 100">
-            <circle cx="50" cy="50" r="40" fill="none" stroke="rgba(234,134,12,.3)" stroke-width="8"/>
-            <path d="M50 10 A40 40 0 0 1 90 50" fill="none" stroke="#ea860c" stroke-width="8" stroke-linecap="round"/>
+            <circle cx="50" cy="50" r="40" fill="none" stroke="#b030ff33" stroke-width="8"/>
+            <path d="M50 10 A40 40 0 0 1 90 50" fill="none" stroke="#b030ff" stroke-width="8" stroke-linecap="round"/>
           </svg>
         </div>
+        <div style="font-size:28px;margin-bottom:6px;">&#127942;</div>
+        <div style="font-weight:700;font-size:15px;color:#fff;">60' Test</div>
+        <div style="font-size:12px;color:rgba(255,255,255,.35);margin-top:2px;">80 min</div>
+      </div>
+    </div>
         <div style="font-size:28px;margin-bottom:6px;">&#9889;</div>
         <div style="font-weight:700;font-size:15px;color:#fff;">20' Test</div>
         <div style="font-size:12px;color:rgba(255,255,255,.35);margin-top:2px;">42 min</div>
@@ -1018,6 +1068,19 @@ input[type=file]{display:none}
       <div class="drawer-next-lbl">Próximo segmento</div>
       <div class="drawer-next-zone" id="dNextZone">–</div>
       <div class="drawer-next-info" id="dNextInfo">–</div>
+    </div>
+    <!-- FTP na gaveta: o aluno ajusta sem sair da aula. aplicarFtpResultado()
+         ja trata "so nesta aula" x "salvar no perfil" conforme o automatico. -->
+    <div class="drawer-ftp" style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 16px;margin:0 16px 12px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.10);border-radius:14px;">
+      <div style="min-width:0;">
+        <div style="font-size:10px;font-weight:700;letter-spacing:2.5px;color:rgba(255,255,255,.32);">SEU FTP</div>
+        <div style="font-size:20px;font-weight:900;color:#ea860c;line-height:1.1;"><span id="dFtpVal">–</span><span style="font-size:12px;color:rgba(255,255,255,.35);"> W</span></div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;flex:none;">
+        <button type="button" onclick="dFtpStep(-5)" style="width:42px;height:42px;border-radius:12px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);color:#fff;font-size:20px;font-weight:900;cursor:pointer;">–</button>
+        <button type="button" onclick="dFtpStep(5)" style="width:42px;height:42px;border-radius:12px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);color:#fff;font-size:20px;font-weight:900;cursor:pointer;">+</button>
+        <button type="button" onclick="dFtpPrompt()" style="height:42px;padding:0 14px;border-radius:12px;background:rgba(234,134,12,.14);border:1px solid rgba(234,134,12,.35);color:#ea860c;font-size:13px;font-weight:800;cursor:pointer;">Digitar</button>
+      </div>
     </div>
     <div class="drawer-ctrls">
       <button class="dctrl-btn" onclick="prevB()">⏮</button>
@@ -2197,6 +2260,49 @@ function openFreeRide(){
 }
 // ---- FIM QR + FREE RIDE ----
 
+// ══ GASTO CALORICO ══════════════════════════════════════════
+// Base: trabalho mecanico MEDIDO, nao tempo. kJ = W x s / 1000.
+// A eficiencia bruta do ciclismo fica entre 20% e 25% (Ettema & Loras, 2009),
+// entao kcal = kJ / 4,184 / 0,24 — que na pratica devolve kcal ~= kJ, a conta
+// que o ciclismo usa ha anos. 200 W por 1 h = 717 kcal.
+// Sem watt medido cai no MET: 7,0 METs para spinning de intensidade moderada
+// (Compendium of Physical Activities, 2011), kcal/min = MET x 3,5 x kg / 200.
+var PR_EFIC=0.24, PR_MET_SPIN=7.0;
+function prKcalWatts(watts,segundos){
+  if(!watts||!segundos) return 0;
+  return Math.round((watts*segundos/1000)/4.184/PR_EFIC);
+}
+function prKcalMet(kg,segundos){
+  if(!segundos) return 0;
+  return Math.round(PR_MET_SPIN*3.5*(kg||70)/200*(segundos/60));
+}
+function prKcal(watts,segundos,kg){
+  return (watts>0)?prKcalWatts(watts,segundos):prKcalMet(kg,segundos);
+}
+// Peso do perfil. Sem peso cadastrado, 70 kg — so afeta o plano B (sem watt).
+function prPesoKg(){
+  var p=0;
+  try{ p=parseFloat(profData&&profData.peso)||0; }catch(e){}
+  if(!p){ try{ p=parseFloat(obData&&obData.peso)||0; }catch(e){} }
+  if(!p){ try{ p=parseFloat(localStorage.getItem('pr_peso'))||0; }catch(e){} }
+  return p||70;
+}
+// Watt medio real da aula em curso (acumulador ao vivo).
+function prWattsMed(){
+  try{ if(typeof _lsAcc!=='undefined' && _lsAcc.wCnt>0) return Math.round(_lsAcc.wSum/_lsAcc.wCnt); }catch(e){}
+  try{ if(cntFtp>0) return Math.round((sumFtp/cntFtp)*1.3); }catch(e){}
+  return 0;
+}
+// Metabolismo basal — Mifflin-St Jeor (1990). Continua sendo a equacao de
+// referencia da Academy of Nutrition and Dietetics para adultos: erra menos que
+// Harris-Benedict, que superestima. NAO entra no gasto da aula (o watt medido ja
+// e gasto total); serve para o perfil e para o plano B.
+function prTMB(sexo,kg,cm,idade){
+  if(!kg||!cm||!idade) return 0;
+  var b=10*kg+6.25*cm-5*idade;
+  return Math.round(String(sexo).toUpperCase()==='F'?(b-161):(b+5));
+}
+
 // ---- ACTIVITY SCREEN ----
 function _renderActivity(rows){
   var list=document.getElementById('actList');
@@ -2219,7 +2325,7 @@ function _renderActivity(rows){
     var h=rows[i];
     var durSec = h.duracao_sec || h.totS || 0;
     totalMin  += Math.round(durSec/60);
-    totalKcal += Math.round(durSec*.06);
+    totalKcal += (h.kcal!=null?h.kcal:prKcal(h.watts_med||0,durSec,prPesoKg()));
   }
   if(totAulas) totAulas.textContent=rows.length;
   if(totMin)   totMin.textContent=totalMin;
@@ -2227,7 +2333,7 @@ function _renderActivity(rows){
   for(var i=0;i<rows.length;i++){
     var h=rows[i];
     var durSec=h.duracao_sec||h.totS||0;
-    var kcal=Math.round(durSec*.06);
+    var kcal=(h.kcal!=null?h.kcal:prKcal(h.watts_med||0,durSec,prPesoKg()));
     var dist=(durSec*.003).toFixed(1);
     var mins=Math.floor(durSec/60), secs=durSec%60;
     var durStr=h.dur||(mins+'min'+(secs>0?' '+secs+'s':''));
@@ -2266,6 +2372,30 @@ function _renderActivity(rows){
   }
 }
 
+// Historico no proprio aparelho: 200 aulas, chave pr_hist.
+function prSalvarLocal(reg){
+  try{
+    var arr=JSON.parse(localStorage.getItem('pr_hist')||'[]');
+    if(!Array.isArray(arr)) arr=[];
+    arr.unshift(reg);
+    localStorage.setItem('pr_hist',JSON.stringify(arr.slice(0,200)));
+  }catch(e){ console.log('[ProRider] nao consegui gravar a aula localmente',e); }
+}
+function prLerLocal(){
+  try{ var a=JSON.parse(localStorage.getItem('pr_hist')||'[]'); return Array.isArray(a)?a:[]; }
+  catch(e){ return []; }
+}
+// Servidor manda; o que so existe no aparelho entra junto. Chave: nome + data.
+function prMesclaHist(srv){
+  var loc=prLerLocal();
+  if(!Array.isArray(srv)) srv=[];
+  function chave(h){ return (h.aula_nome||'')+'|'+String(h.completed_at||'').slice(0,16); }
+  var vistos={}; srv.forEach(function(h){ vistos[chave(h)]=1; });
+  var extra=loc.filter(function(h){ return !vistos[chave(h)]; });
+  return srv.concat(extra).sort(function(a,b){
+    return new Date(b.completed_at||0)-new Date(a.completed_at||0);
+  });
+}
 function buildActivity(){
   var list=document.getElementById('actList');
   if(!list) return;
@@ -2275,13 +2405,12 @@ function buildActivity(){
     fetch(SERVER_HTTP+'/aula/historico',{headers:{'Authorization':'Bearer '+prToken}})
       .then(function(r){ return r.json(); })
       .then(function(rows){
-        if(Array.isArray(rows)) _renderActivity(rows);
-        else _renderActivity([]);
+        _renderActivity(prMesclaHist(Array.isArray(rows)?rows:[]));
       })
-      .catch(function(){ _renderActivity(historico); });
+      .catch(function(){ _renderActivity(prMesclaHist([])); });
   } else {
-    // Não logado → mostrar histórico local (sessão atual)
-    _renderActivity(historico);
+    // Sem login: o historico gravado no aparelho continua valendo.
+    _renderActivity(prMesclaHist([]));
   }
 }
 // ---- FIM ACTIVITY ----
@@ -2396,7 +2525,7 @@ function profLoadLocalFields(){
 
 // ---- ONBOARDING ----
 var obStep=1, obTotalSteps=6;
-var obData={nome:'',email:'',senha:'',peso:70,altura:170,idade:30,nivel:'intermediario',freq:3,ftp:130};
+var obData={nome:'',email:'',senha:'',peso:70,altura:170,idade:30,sexo:'',nivel:'intermediario',freq:3,ftp:130,tmb:0};
 
 function obGoStep(n){
   for(var i=1;i<=obTotalSteps;i++){
@@ -2437,7 +2566,10 @@ function obNext(){
     var a=parseFloat(document.getElementById('obAltura').value)||0;
     var id=parseFloat(document.getElementById('obIdade').value)||0;
     if(!p||!a||!id){obShowErr('Preencha peso, altura e idade');return;}
+    if(!obData.sexo){ obShowErr('Selecione o sexo biológico'); return; }
     obData.peso=p; obData.altura=a; obData.idade=id;
+    obData.tmb=prTMB(obData.sexo,p,a,id);
+    try{ localStorage.setItem('pr_peso',String(p)); localStorage.setItem('pr_tmb',String(obData.tmb)); }catch(e){}
   } else if(obStep===4){
     if(!obData.nivel){obShowErr('Selecione seu nível');return;}
   } else if(obStep===5){
@@ -2485,6 +2617,17 @@ function obSelectFreq(freq,btn){
   obValidateStep();
 }
 
+function obSelectSexo(sx,el){
+  obData.sexo=sx;
+  var bs=document.querySelectorAll('#obSexoBtns .ob-sexo');
+  for(var i=0;i<bs.length;i++){
+    bs[i].style.background='rgba(255,255,255,.07)';
+    bs[i].style.borderColor='rgba(255,255,255,.12)';
+    bs[i].style.color='#fff';
+  }
+  if(el){ el.style.background='rgba(234,134,12,.16)'; el.style.borderColor='#ea860c'; el.style.color='#ea860c'; }
+  if(typeof obValidateStep==='function') obValidateStep();
+}
 function obCalcFtp(){
   var mult={iniciante:1.5, intermediario:2.2, avancado:3.0};
   var freqBonus={1:0.85,2:0.92,3:1.0,4:1.08,5:1.15};
@@ -2498,7 +2641,12 @@ function obCalcFtp(){
   var wEl=document.getElementById('obFtpWkg');
   if(wEl) wEl.textContent=wkg+' W/kg';
   var bEl=document.getElementById('obFtpBase');
-  if(bEl) bEl.textContent='Baseado em: '+obData.nivel+', '+obData.freq+'x/sem, '+obData.peso+'kg';
+  if(bEl){
+    var tmb=obData.tmb||prTMB(obData.sexo,obData.peso,obData.altura,obData.idade);
+    obData.tmb=tmb;
+    bEl.innerHTML='Baseado em: '+obData.nivel+', '+obData.freq+'x/sem, '+obData.peso+'kg'
+      +(tmb?'<br>Metabolismo basal: <b style="color:rgba(255,255,255,.55);">'+tmb+' kcal/dia</b>':'');
+  }
 }
 
 function obPickFoto(input){
@@ -2585,6 +2733,10 @@ function obDoRegister(){
     email:obData.email,
     password:obData.senha,
     peso:obData.peso,
+    altura:obData.altura,
+    idade:obData.idade,
+    sexo:obData.sexo,
+    tmb:obData.tmb,
     ftp:obData.ftp
   };
 
@@ -3041,6 +3193,7 @@ document.addEventListener('visibilitychange',function(){
   }
 });
 var isFtpTest=false, ftpTestCalc=0.95, ftpTestDur=20, ftpTestWatts=[], ftpTestPhase=false;
+var ftpTestModo='media';   // 'media' = media do bloco x calc · 'rampa' = melhor minuto x calc
 var maxRpm=0, sumRpm=0, cntRpm=0, dRpm=83, dGear=0;
 var audio=null, aPlay=false;
 var scanT={}, connected={bike:false,hr:false};
@@ -3105,6 +3258,73 @@ var ftpTests = [
      {z:'z3',ftp:'76-89',rpm:[85,90],dur:3,pos:'Seated'},
      {z:'z5',ftp:'All Out',rpm:[92,100],dur:20,pos:'Seated',teste:true},
      {z:'z1',ftp:'0-55',rpm:[70,75],dur:8,pos:'Seated'}
+   ]},
+
+  // ── RAMPA ─────────────────────────────────────────────────────────────
+  // Protocolo do Zwift/TrainerRoad: carga sobe ate a falha e o FTP sai de 75%
+  // do melhor minuto. Aqui a carga e manual, entao a rampa e por degrau de
+  // 1 min com alvo de zona; modo:'rampa' troca a media pelo melhor minuto.
+  {id:'ftpramp', nome:'FTP Test Rampa', calc:0.75, testDur:14, modo:'rampa', icon:'\uD83D\uDCC8', dur:35, badge:'Test', badgeColor:'#295fe8',
+   desc:'Rampa ate a falha. A cada minuto voce aumenta a carga um degrau e segue ate nao conseguir mais sustentar a rotacao. O FTP sai de 75% do seu melhor minuto. E o teste mais curto e o menos dependente de saber se dosar.',
+   blocos:[
+     {z:'z1',ftp:'0-55',rpm:[80,85],dur:5,pos:'Seated'},
+     {z:'z2',ftp:'56-75',rpm:[85,90],dur:3,pos:'Seated'},
+     {z:'z2',ftp:'56-75',rpm:[85,90],dur:1,pos:'Seated',teste:true},
+     {z:'z3',ftp:'76-89',rpm:[85,90],dur:1,pos:'Seated',teste:true},
+     {z:'z3',ftp:'76-89',rpm:[88,92],dur:1,pos:'Seated',teste:true},
+     {z:'z4',ftp:'90-104',rpm:[88,92],dur:1,pos:'Seated',teste:true},
+     {z:'z4',ftp:'90-104',rpm:[90,95],dur:1,pos:'Seated',teste:true},
+     {z:'z5',ftp:'105-120',rpm:[90,95],dur:1,pos:'Seated',teste:true},
+     {z:'z5',ftp:'105-120',rpm:[90,95],dur:1,pos:'Seated',teste:true},
+     {z:'z6',ftp:'121-150',rpm:[92,98],dur:1,pos:'Seated',teste:true},
+     {z:'z6',ftp:'121-150',rpm:[92,98],dur:1,pos:'Seated',teste:true},
+     {z:'z7',ftp:'All Out',rpm:[95,105],dur:1,pos:'Seated',teste:true},
+     {z:'z7',ftp:'All Out',rpm:[95,105],dur:1,pos:'Seated',teste:true},
+     {z:'z7',ftp:'All Out',rpm:[95,105],dur:1,pos:'Seated',teste:true},
+     {z:'z7',ftp:'All Out',rpm:[95,105],dur:1,pos:'Seated',teste:true},
+     {z:'z1',ftp:'0-55',rpm:[70,75],dur:8,pos:'Seated'}
+   ]},
+
+  // ── 2 x 8 MIN ─────────────────────────────────────────────────────────
+  // Hunter Allen / TrainerRoad. Media dos dois blocos x 0,90. Mais facil de
+  // dosar que o de 20 e com resultado proximo.
+  {id:'ftp8', nome:'FTP Test 2 x 8 min', calc:0.90, testDur:16, icon:'\uD83C\uDFC1', dur:40, badge:'Test', badgeColor:'#5db13d',
+   desc:'Dois blocos de 8 minutos no maximo sustentavel, com 10 minutos de recuperacao entre eles. O FTP e 90% da media dos dois. Mais facil de dosar que o de 20 minutos e menos punitivo se voce errar o ritmo no primeiro.',
+   blocos:[
+     {z:'z1',ftp:'0-55',rpm:[80,85],dur:5,pos:'Seated'},
+     {z:'z2',ftp:'56-75',rpm:[85,90],dur:3,pos:'Seated'},
+     {z:'z4',ftp:'90-104',rpm:[90,95],dur:2,pos:'Standing'},
+     {z:'z2',ftp:'56-75',rpm:[85,90],dur:2,pos:'Seated'},
+     {z:'z5',ftp:'All Out',rpm:[90,98],dur:8,pos:'Seated',teste:true},
+     {z:'z1',ftp:'0-55',rpm:[75,80],dur:10,pos:'Seated'},
+     {z:'z5',ftp:'All Out',rpm:[90,98],dur:8,pos:'Seated',teste:true},
+     {z:'z1',ftp:'0-55',rpm:[70,75],dur:5,pos:'Seated'}
+   ]},
+
+  // ── 60 MIN ────────────────────────────────────────────────────────────
+  // A definicao original de FTP: sem fator de correcao, o valor E a media.
+  {id:'ftp60', nome:'FTP Test 60 min', calc:1.00, testDur:60, icon:'\uD83C\uDFC6', dur:80, badge:'Test', badgeColor:'#d62d2d',
+   desc:'A definicao original de FTP: a maior potencia media que voce sustenta por uma hora. Nao tem fator de correcao — o que voce fizer na media da hora e o seu FTP. E o mais exato e o mais duro; use quando quiser confirmar um numero, nao como rotina.',
+   blocos:[
+     {z:'z1',ftp:'0-55',rpm:[80,85],dur:6,pos:'Seated'},
+     {z:'z2',ftp:'56-75',rpm:[85,90],dur:4,pos:'Seated'},
+     {z:'z4',ftp:'90-104',rpm:[90,95],dur:2,pos:'Seated'},
+     {z:'z2',ftp:'56-75',rpm:[85,90],dur:3,pos:'Seated'},
+     {z:'z4',ftp:'All Out',rpm:[85,95],dur:60,pos:'Seated',teste:true},
+     {z:'z1',ftp:'0-55',rpm:[70,75],dur:5,pos:'Seated'}
+   ]},
+
+  // ── 10 MIN ────────────────────────────────────────────────────────────
+  {id:'ftp10', nome:'FTP Test 10 min', calc:0.90, testDur:10, icon:'\uD83C\uDFC1', dur:32, badge:'Test', badgeColor:'#d7c414',
+   desc:'Dez minutos no maximo sustentavel, com o resultado a 90%. Fica entre o de 5 e o de 20: cabe numa aula normal e ja exige dosar o esforco, o que deixa a estimativa mais confiavel que a do teste de 5 minutos.',
+   blocos:[
+     {z:'z1',ftp:'0-55',rpm:[80,85],dur:5,pos:'Seated'},
+     {z:'z2',ftp:'56-75',rpm:[85,90],dur:3,pos:'Seated'},
+     {z:'z3',ftp:'76-89',rpm:[88,93],dur:2,pos:'Seated'},
+     {z:'z4',ftp:'90-104',rpm:[90,95],dur:2,pos:'Standing'},
+     {z:'z2',ftp:'56-75',rpm:[85,90],dur:3,pos:'Seated'},
+     {z:'z5',ftp:'All Out',rpm:[90,98],dur:10,pos:'Seated',teste:true},
+     {z:'z1',ftp:'0-55',rpm:[70,75],dur:7,pos:'Seated'}
    ]}
 ];
 
@@ -3113,6 +3333,7 @@ function goFtpTest(id){
   for(var i=0;i<ftpTests.length;i++) if(ftpTests[i].id===id){test=ftpTests[i];break;}
   if(!test) return;
   isFtpTest=true; ftpTestCalc=test.calc; ftpTestDur=test.testDur;
+  ftpTestModo=test.modo||'media';
   ftpTestWatts=[]; ftpTestPhase=false;
   cAula=test;
   openDetail(test);
@@ -4059,7 +4280,12 @@ function tick(){
   var curRpm=dRpm||0;
   if(curRpm>0){sumRpm+=curRpm;cntRpm++;if(curRpm>maxRpm)maxRpm=Math.round(curRpm);}
   if(isFtpTest&&b.teste){
-    ftpTestWatts.push(curRpm>0?Math.round(curRpm*1.8):0);
+    // Watt medido manda. rpm x 1,8 era a unica fonte e e chute: so entra quando
+    // nao ha bike conectada nem retransmissao do ginasio.
+    var _wReal=0;
+    try{ if(typeof dW!=='undefined' && dW>0) _wReal=dW; }catch(e){}
+    try{ if(!_wReal && liveRelay && liveRelay.w>0) _wReal=liveRelay.w; }catch(e){}
+    ftpTestWatts.push(_wReal>0?Math.round(_wReal):(curRpm>0?Math.round(curRpm*1.8):0));
   }
   sumFtp+=Math.round(20+(cBloco/cAula.blocos.length)*80); cntFtp++;
   rpmAlertCool=rpmAlertCool>0?rpmAlertCool-1:0;
@@ -4146,7 +4372,7 @@ function tick(){
   document.getElementById('p2AR').textContent=Math.round(sumRpm/cntRpm);
   document.getElementById('p2MR').textContent=Math.round(maxRpm);
   document.getElementById('p2Dist').textContent=(totS*.003).toFixed(1);
-  document.getElementById('p2Kc').textContent=Math.round(totS*.06);
+  document.getElementById('p2Kc').textContent=prKcal(prWattsMed(),totS,prPesoKg());
   document.getElementById('p2KH').textContent=Math.round(.06*3600);
   document.getElementById('p2AS').textContent=(rpm*.35).toFixed(1);
   document.getElementById('p2Dur').textContent=fmMS(totS);
@@ -4414,7 +4640,7 @@ function showResultsReal(){
   var nameEl=document.getElementById('resAulaName');
   if(nameEl&&cAula) nameEl.textContent=cAula.nome;
   var totEl=document.getElementById('resTot'); if(totEl) totEl.textContent=fmHMS(totS);
-  var kcalEl=document.getElementById('resKcal'); if(kcalEl) kcalEl.textContent=Math.round(totS*.06);
+  var kcalEl=document.getElementById('resKcal'); if(kcalEl) kcalEl.textContent=prKcal(prWattsMed(),totS,prPesoKg());
   var distEl=document.getElementById('resDist'); if(distEl) distEl.textContent=(totS*.003).toFixed(1);
   var avgFEl=document.getElementById('resAvgFtp'); if(avgFEl) avgFEl.textContent=cntFtp>0?Math.round(sumFtp/cntFtp):0;
   var avgREl=document.getElementById('resAvgRpm'); if(avgREl) avgREl.textContent=cntRpm>0?Math.round(sumRpm/cntRpm):0;
@@ -4432,13 +4658,27 @@ function showResultsReal(){
     ['z1','z2','z3','z4','z5','z6','z7'].forEach(function(z){
       zonasPct[z]=totalZT>0?Math.round(zoneTime[z]/totalZT*100):0;
     });
+    // A aula e gravada no aparelho ANTES de tentar o servidor. Era so isso que
+    // faltava: sem login, ou com o servidor fora, o historico vivia na memoria
+    // da sessao e sumia ao fechar o app.
+    prSalvarLocal({
+      aula_nome:cAula.nome, duracao_sec:totS, zona_predominante:zPred,
+      badge:cAula.badge||'', zonas:zonasPct, watts_med:prWattsMed(),
+      rpm_med:(cntRpm>0?Math.round(sumRpm/cntRpm):0),
+      kcal:prKcal(prWattsMed(),totS,prPesoKg()), completed_at:new Date().toISOString()
+    });
     fetch(SERVER_HTTP+'/aula/complete',{
       method:'POST',
       headers:{'Content-Type':'application/json','Authorization':'Bearer '+prToken},
       body:JSON.stringify({
         aula_nome:cAula.nome, duracao_sec:totS,
         zona_predominante:zPred, badge:cAula.badge||'', sem_pausas:true,
-        zonas:zonasPct
+        zonas:zonasPct,
+        // Sem estes tres a atividade voltava do servidor sem watt nenhum e a
+        // caloria tinha de ser chutada pelo tempo. Agora vai o que foi medido.
+        watts_med:prWattsMed(),
+        rpm_med:(cntRpm>0?Math.round(sumRpm/cntRpm):0),
+        kcal:prKcal(prWattsMed(),totS,prPesoKg())
       })
     }).then(function(r){ return r.json(); })
       .then(function(d){
@@ -4483,9 +4723,27 @@ function buildResChart(){
 }
 function showFtpResult(){
   clearInterval(lInt); closeDrawer(); if(audio){audio.pause();}
-  var sum=0;
-  for(var i=0;i<ftpTestWatts.length;i++) sum+=ftpTestWatts[i];
-  var avgW=ftpTestWatts.length>0?Math.round(sum/ftpTestWatts.length):100;
+  // A amostragem e de 1 por segundo, entao 60 amostras = 1 minuto.
+  var avgW;
+  if(ftpTestModo==='rampa'){
+    var melhor=0, jan=60;
+    if(ftpTestWatts.length<jan) jan=ftpTestWatts.length;
+    if(jan>0){
+      var acc=0;
+      for(var i=0;i<jan;i++) acc+=ftpTestWatts[i];
+      melhor=acc;
+      for(var i=jan;i<ftpTestWatts.length;i++){
+        acc+=ftpTestWatts[i]-ftpTestWatts[i-jan];
+        if(acc>melhor) melhor=acc;
+      }
+      melhor=melhor/jan;
+    }
+    avgW=Math.round(melhor)||100;
+  } else {
+    var sum=0;
+    for(var i=0;i<ftpTestWatts.length;i++) sum+=ftpTestWatts[i];
+    avgW=ftpTestWatts.length>0?Math.round(sum/ftpTestWatts.length):100;
+  }
   var ftp=Math.round(avgW*ftpTestCalc);
   var pesoEl=document.getElementById('profPeso');
   var peso=pesoEl?parseFloat(pesoEl.textContent)||70:70;
@@ -4545,6 +4803,29 @@ try{ ftpAutoRender(); }catch(e){}
 
 // Resultado do teste enviado pelo ginasio ao fim do teste de FTP.
 // O app NAO tratava esta mensagem — o novo FTP chegava e era descartado.
+// ── FTP pela gaveta ──
+function dFtpAtual(){
+  var v=0;
+  try{ if(typeof _ftpDaAula!=='undefined' && _ftpDaAula>0) v=parseInt(_ftpDaAula)||0; }catch(e){}
+  if(!v){ try{ v=parseInt(profData&&profData.ftp)||0; }catch(e){} }
+  return v||130;
+}
+function dFtpRender(){
+  var el=document.getElementById('dFtpVal');
+  if(el) el.textContent=dFtpAtual();
+}
+function dFtpStep(d){
+  var novo=dFtpAtual()+d;
+  if(novo<50) novo=50; if(novo>600) novo=600;
+  aplicarFtpResultado(novo); dFtpRender();
+}
+function dFtpPrompt(){
+  var v=prompt('Novo FTP em watts:',dFtpAtual());
+  if(v===null) return;
+  v=parseInt(v)||0;
+  if(v<50||v>600){ alert('Informe um FTP entre 50 e 600 W.'); return; }
+  aplicarFtpResultado(v); dFtpRender();
+}
 function aplicarFtpResultado(novoFtp){
   novoFtp = parseInt(novoFtp)||0;
   if(novoFtp<=0) return;
@@ -4610,6 +4891,7 @@ function openDrawer(){
   drawerOpen=true;
   document.getElementById('drawer').classList.add('open');
   document.getElementById('dOverlay').classList.add('open');
+  try{ dFtpRender(); }catch(e){}
   updUpNext();
 }
 function closeDrawer(){
@@ -5293,9 +5575,11 @@ function _drawShareCard(canvas){
     ov.addColorStop(0,    'rgba(0,0,0,0.92)');
     ov.addColorStop(0.22, 'rgba(0,0,0,0.65)');
     ov.addColorStop(0.30, 'rgba(0,0,0,0.10)');
-    ov.addColorStop(0.70, 'rgba(0,0,0,0.10)');
-    ov.addColorStop(0.78, 'rgba(0,0,0,0.70)');
-    ov.addColorStop(1,    'rgba(0,0,0,0.95)');
+    // O bloco de numeros comeca em y=1430 (0,745). A base escura tem de comecar
+    // ANTES disso, senao os cartoes ficam boiando sobre a parte clara da foto.
+    ov.addColorStop(0.62, 'rgba(0,0,0,0.10)');
+    ov.addColorStop(0.72, 'rgba(0,0,0,0.78)');
+    ov.addColorStop(1,    'rgba(0,0,0,0.97)');
     ctx.fillStyle=ov; ctx.fillRect(0,0,W,H);
   } else {
     ctx.fillStyle='#0f0e17'; ctx.fillRect(0,0,W,H);
@@ -5373,11 +5657,13 @@ function _drawShareCard(canvas){
   // ── Stats: 2 linhas × 2 cols no rodapé ──
   var stats=[
     {label:'DURAÇÃO',   value:fmHMS(totS),                                         color:'#ffffff'},
-    {label:'CALORIAS',  value:Math.round(totS*.06)+' kcal',                        color:'#ea860c'},
+    {label:'CALORIAS',  value:prKcal(prWattsMed(),totS,prPesoKg())+' kcal',        color:'#ea860c'},
     {label:'RPM MÉD',   value:(cntRpm>0?Math.round(sumRpm/cntRpm):'-')+' rpm',     color:'#295fe8'},
-    {label:'WATTS MÉD', value:(cntFtp>0?Math.round((sumFtp/cntFtp)*1.3):'-')+' W', color:'#5db13d'}
+    {label:'WATTS MÉD', value:(prWattsMed()>0?prWattsMed():'-')+' W',              color:'#5db13d'}
   ];
-  var sY=1390, sH=160, sGap=16, sCols=2;
+  // 1430 + 2 linhas de 160 + vao de 16 = termina em 1766, deixando 154 px de
+  // respiro ate a borda de baixo do 1080x1920 do Stories.
+  var sY=1430, sH=160, sGap=16, sCols=2;
   var sW=(W-PAD*2-(sGap*(sCols-1)))/sCols;
   stats.forEach(function(s,i){
     var col=i%sCols, row=Math.floor(i/sCols);
@@ -6030,9 +6316,7 @@ async function phCarregarAgenda() {
 }
 
 function phOpenFTP(tipo) {
-  showToast(tipo === 'ramp'
-    ? '⚡ Ramp Test — em breve neste app!'
-    : '🔥 Teste 20min — em breve neste app!');
+  goFtpTest(tipo === 'ramp' ? 'ftpramp' : 'ftp20');
 }
 
 function phAulaLivre() {
@@ -6319,7 +6603,7 @@ updateProfileUI = function() {
          + ' fill="none" stroke="'+col(fm)+'" stroke-width="30" stroke-linecap="'+cap+'"/>';
     }
     g.innerHTML=out;
-    try{ console.log('%c[ProRider Aluno] gauge + tempo MM:SS + Voltar pra ultima aula (rejoin)','color:#ea860c;font-weight:700;'); }catch(e){}
+    try{ console.log('%c[ProRider Aluno] BUILD 12/09b — caloria por watt (kJ/eficiencia) + basal Mifflin-St Jeor no cadastro + historico gravado no aparelho + FTP na gaveta + card 1080x1920 reposicionado + 6 protocolos de FTP (rampa, 20, 2x8, 10, 5, 60)','color:#ea860c;font-weight:700;'); }catch(e){}
   }
   if(document.readyState!=='loading') buildGaugeArc();
   else document.addEventListener('DOMContentLoaded', buildGaugeArc);
@@ -6470,6 +6754,16 @@ updateProfileUI = function() {
       <div style="width:100%;">
         <div style="font-size:11px;font-weight:700;letter-spacing:2px;color:rgba(255,255,255,.3);margin-bottom:8px;">IDADE</div>
         <input id="obIdade" type="number" placeholder="30" min="10" max="90" oninput="obValidateStep()" style="width:100%;padding:16px 10px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);border-radius:14px;color:#fff;font-size:22px;font-weight:700;text-align:center;outline:none;-webkit-appearance:none;box-sizing:border-box;"/>
+      </div>
+      <!-- Sexo biologico: entra aqui porque a equacao do metabolismo basal
+           (Mifflin-St Jeor) nao fecha sem ele. -->
+      <div style="width:100%;margin-top:12px;">
+        <div style="font-size:11px;font-weight:700;letter-spacing:2px;color:rgba(255,255,255,.3);margin-bottom:8px;">SEXO BIOLÓGICO</div>
+        <div style="display:flex;gap:12px;" id="obSexoBtns">
+          <button type="button" onclick="obSelectSexo('M',this)" class="ob-sexo" style="flex:1;padding:16px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);border-radius:14px;color:#fff;font-size:16px;font-weight:700;cursor:pointer;">Masculino</button>
+          <button type="button" onclick="obSelectSexo('F',this)" class="ob-sexo" style="flex:1;padding:16px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);border-radius:14px;color:#fff;font-size:16px;font-weight:700;cursor:pointer;">Feminino</button>
+        </div>
+        <div style="font-size:11px;color:rgba(255,255,255,.28);margin-top:8px;line-height:1.4;">Usado só no cálculo do metabolismo basal.</div>
       </div>
     </div>
 
