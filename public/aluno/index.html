@@ -267,8 +267,13 @@ input[type=file]{display:none}
 .lbot-hint-r{flex:1;text-align:right;font-size:9px;font-weight:700;letter-spacing:1px;color:rgba(255,255,255,.18);text-transform:uppercase}
 
 /* DRAWER */
-.drawer{position:absolute;bottom:-280px;left:0;right:0;z-index:50;background:#1c1c1c;border-radius:20px 20px 0 0;border-top:1px solid rgba(255,255,255,.1);padding:10px 20px 28px;transition:bottom .35s cubic-bezier(.4,0,.2,1)}
-.drawer.open{bottom:0}
+/* A gaveta se escondia com bottom:-280px — um valor fixo, chutado na altura que
+   ela tinha na epoca. Quando a caixa do FTP entrou, a gaveta passou de 280px e
+   o topo dela deixava de sair da tela: ficava preso por cima da rotacao, da
+   carga e da marcha. Com translateY(100%) ela desce exatamente a propria
+   altura, seja qual for — nunca mais precisa acertar numero nenhum. */
+.drawer{position:absolute;bottom:0;left:0;right:0;z-index:50;background:#1c1c1c;border-radius:20px 20px 0 0;border-top:1px solid rgba(255,255,255,.1);padding:10px 20px 28px;transform:translateY(100%);transition:transform .35s cubic-bezier(.4,0,.2,1);will-change:transform}
+.drawer.open{transform:translateY(0)}
 .drawer-handle{width:40px;height:4px;background:rgba(255,255,255,.2);border-radius:2px;margin:0 auto 16px}
 .drawer-next{text-align:center;padding:10px;background:rgba(255,255,255,.04);border-radius:10px;margin-bottom:14px}
 .drawer-next-lbl{font-size:9px;font-weight:700;letter-spacing:3px;color:rgba(255,255,255,.28);text-transform:uppercase;margin-bottom:3px}
@@ -6689,7 +6694,7 @@ updateProfileUI = function() {
          + ' fill="none" stroke="'+col(fm)+'" stroke-width="30" stroke-linecap="'+cap+'"/>';
     }
     g.innerHTML=out;
-    try{ console.log('%c[ProRider Aluno] BUILD 14/09b — caloria por watt (kJ/eficiencia) + basal Mifflin-St Jeor no cadastro + historico gravado no aparelho + FTP na gaveta + card 1080x1920 reposicionado + 6 protocolos de FTP + TSS + teste de 3 min + fator do teste de 5 min corrigido (era 1,05) + explicacao de FTP em cada teste','color:#ea860c;font-weight:700;'); }catch(e){}
+    try{ console.log('%c[ProRider Aluno] BUILD 14/09c — caloria por watt (kJ/eficiencia) + basal Mifflin-St Jeor no cadastro + historico gravado no aparelho + FTP na gaveta + card 1080x1920 reposicionado + 6 protocolos de FTP + TSS + teste de 3 min + fator do teste de 5 min corrigido (era 1,05) + explicacao de FTP em cada teste + gaveta esconde pela propria altura (a caixa de FTP ficava presa na tela)','color:#ea860c;font-weight:700;'); }catch(e){}
   }
   if(document.readyState!=='loading') buildGaugeArc();
   else document.addEventListener('DOMContentLoaded', buildGaugeArc);
