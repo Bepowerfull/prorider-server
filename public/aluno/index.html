@@ -540,6 +540,17 @@ input[type=file]{display:none}
         <div style="font-weight:700;font-size:15px;color:#fff;">10' Test</div>
         <div style="font-size:12px;color:rgba(255,255,255,.35);margin-top:2px;">32 min</div>
       </div>
+      <div class="home-card" onclick="goFtpTest('ftp3')" style="flex:0 0 132px;min-height:120px;position:relative;cursor:pointer;">
+        <div style="position:absolute;top:10px;right:10px;">
+          <svg width="28" height="28" viewBox="0 0 100 100">
+            <circle cx="50" cy="50" r="40" fill="none" stroke="#e0559e33" stroke-width="8"/>
+            <path d="M50 10 A40 40 0 0 1 90 50" fill="none" stroke="#e0559e" stroke-width="8" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <div style="font-size:28px;margin-bottom:6px;">&#9201;</div>
+        <div style="font-weight:700;font-size:15px;color:#fff;">3' Test</div>
+        <div style="font-size:12px;color:rgba(255,255,255,.35);margin-top:2px;">28 min</div>
+      </div>
       <div class="home-card" onclick="goFtpTest('ftp5')" style="flex:0 0 132px;min-height:120px;position:relative;cursor:pointer;">
         <div style="position:absolute;top:10px;right:10px;">
           <svg width="28" height="28" viewBox="0 0 100 100">
@@ -3269,7 +3280,7 @@ var cdTimer=null;
 
 // ── Testes de FTP ──
 var ftpTests = [
-  {id:'ftp5', nome:'FTP Test 5 min', calc:1.05, testDur:5, icon:'🏁', dur:30, badge:'Test', badgeColor:'#ea860c',
+  {id:'ftp5', nome:'FTP Test 5 min', calc:0.87, testDur:5, icon:'🏁', dur:30, badge:'Test', badgeColor:'#ea860c',
    desc:'5-minute all-out effort test to measure your current FTP. Warm up properly and give everything in the test segment.',
    blocos:[
      {z:'z1',ftp:'0-55',rpm:[80,85],dur:5,pos:'Seated'},
@@ -3290,6 +3301,23 @@ var ftpTests = [
      {z:'z3',ftp:'76-89',rpm:[85,90],dur:3,pos:'Seated'},
      {z:'z5',ftp:'All Out',rpm:[92,100],dur:20,pos:'Seated',teste:true},
      {z:'z1',ftp:'0-55',rpm:[70,75],dur:8,pos:'Seated'}
+   ]},
+
+  // ── 3 MIN ─────────────────────────────────────────────────────────────
+  // Teste "all-out" de 3 minutos (Vanhatalo, Burnley & Jones, 2007). Nao e um
+  // esforco dosado: e tudo desde o primeiro segundo. A potencia despenca e o
+  // que sobra no fim e a potencia critica, que na pratica equivale ao FTP —
+  // por isso o calculo usa os ULTIMOS 30 SEGUNDOS (modo:'final30'), nao a
+  // media. Usar a media dos 3 minutos superestimaria muito.
+  {id:'ftp3', nome:'FTP Test 3 min', calc:1.00, testDur:3, modo:'final30', icon:'\u23F1', dur:28, badge:'Test', badgeColor:'#e0559e',
+   desc:'Tres minutos em esforco maximo do primeiro ao ultimo segundo — sem dosar, sem guardar nada para o fim. A potencia vai cair muito ao longo do teste, e e isso mesmo que tem de acontecer: o que interessa sao os ultimos 30 segundos, quando o que sobra e exatamente o que voce consegue sustentar por muito tempo. E o teste mais curto e o mais duro de aguentar mentalmente, porque a queda da a sensacao de fracasso no meio. Nao desista antes do fim: parar aos 2:30 invalida o resultado.',
+   blocos:[
+     {z:'z1',ftp:'0-55',rpm:[80,85],dur:5,pos:'Seated'},
+     {z:'z2',ftp:'56-75',rpm:[85,90],dur:4,pos:'Seated'},
+     {z:'z4',ftp:'90-104',rpm:[90,95],dur:2,pos:'Seated'},
+     {z:'z2',ftp:'56-75',rpm:[85,90],dur:4,pos:'Seated'},
+     {z:'z7',ftp:'All Out',rpm:[95,110],dur:3,pos:'Seated',teste:true},
+     {z:'z1',ftp:'0-55',rpm:[70,75],dur:10,pos:'Seated'}
    ]},
 
   // ── RAMPA ─────────────────────────────────────────────────────────────
@@ -4045,7 +4073,30 @@ function openDetail(idx, from){
   var elDur=document.getElementById('detDur');
   if(elDur) elDur.textContent=a.dur;
   var elDesc=document.getElementById('detDesc');
-  if(elDesc) elDesc.textContent=a.desc;
+  if(elDesc){
+    // Todo teste de FTP ganha a explicacao do que e FTP antes da descricao do
+    // protocolo. Quem abre a tela pela primeira vez nao sabe o que esta medindo.
+    if(String(a.badge||'')==='Test'){
+      elDesc.innerHTML=
+        '<div style="background:rgba(234,134,12,.08);border:1px solid rgba(234,134,12,.22);border-radius:12px;padding:13px 15px;margin-bottom:14px;">'
+        +'<div style="font-size:11px;font-weight:700;letter-spacing:2.4px;color:#ea860c;text-transform:uppercase;margin-bottom:7px;">O que é FTP</div>'
+        +'<div style="font-size:13.5px;line-height:1.55;color:rgba(255,255,255,.72);">'
+        +'FTP é a maior potência média que você consegue sustentar por cerca de uma hora. '
+        +'É o número que separa o esforço que você aguenta manter do esforço que te obriga a parar — '
+        +'e é a partir dele que todas as suas zonas de treino são calculadas.'
+        +'<br><br>Nenhum teste curto mede o FTP diretamente: todos estimam. Por isso cada protocolo '
+        +'tem o seu fator de correção, e o resultado de um teste de 5 minutos não sai igual ao de 20. '
+        +'O importante é repetir sempre o mesmo protocolo, para comparar sua evolução com a mesma régua.'
+        +(a.testDur?('<br><br><b style="color:rgba(255,255,255,.9);">Neste teste:</b> '
+           +(a.modo==='rampa'?'o seu FTP sai de 75% do seu melhor minuto.'
+            :(a.modo==='final30'?'o seu FTP sai da sua potência nos últimos 30 segundos.'
+            :('o seu FTP sai de '+Math.round((a.calc||1)*100)+'% da média do bloco de esforço.')))):'')
+        +'</div></div>'
+        +'<div style="font-size:14px;line-height:1.6;color:rgba(255,255,255,.68);">'+(a.desc||'')+'</div>';
+    } else {
+      elDesc.textContent=a.desc;
+    }
+  }
   var elHero=document.getElementById('detHeroImg');
   if(elHero){
     elHero.textContent=a.icon;
@@ -4759,7 +4810,12 @@ function showFtpResult(){
   clearInterval(lInt); closeDrawer(); if(audio){audio.pause();}
   // A amostragem e de 1 por segundo, entao 60 amostras = 1 minuto.
   var avgW;
-  if(ftpTestModo==='rampa'){
+  if(ftpTestModo==='final30'){
+    // Potencia do fim do teste: media dos ultimos 30 segundos (30 amostras).
+    var n30=Math.min(30,ftpTestWatts.length), acc30=0;
+    for(var i=ftpTestWatts.length-n30;i<ftpTestWatts.length;i++) acc30+=ftpTestWatts[i];
+    avgW=n30>0?Math.round(acc30/n30):100;
+  } else if(ftpTestModo==='rampa'){
     var melhor=0, jan=60;
     if(ftpTestWatts.length<jan) jan=ftpTestWatts.length;
     if(jan>0){
@@ -6638,7 +6694,7 @@ updateProfileUI = function() {
          + ' fill="none" stroke="'+col(fm)+'" stroke-width="30" stroke-linecap="'+cap+'"/>';
     }
     g.innerHTML=out;
-    try{ console.log('%c[ProRider Aluno] BUILD 14/09a — caloria por watt (kJ/eficiencia) + basal Mifflin-St Jeor no cadastro + historico gravado no aparelho + FTP na gaveta + card 1080x1920 reposicionado + 6 protocolos de FTP + TSS na lista de aulas, no resultado e no card','color:#ea860c;font-weight:700;'); }catch(e){}
+    try{ console.log('%c[ProRider Aluno] BUILD 14/09a — caloria por watt (kJ/eficiencia) + basal Mifflin-St Jeor no cadastro + historico gravado no aparelho + FTP na gaveta + card 1080x1920 reposicionado + 6 protocolos de FTP + TSS + teste de 3 min + fator do teste de 5 min corrigido (era 1,05) + explicacao de FTP em cada teste','color:#ea860c;font-weight:700;'); }catch(e){}
   }
   if(document.readyState!=='loading') buildGaugeArc();
   else document.addEventListener('DOMContentLoaded', buildGaugeArc);
