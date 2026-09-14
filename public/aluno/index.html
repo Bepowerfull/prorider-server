@@ -1142,6 +1142,7 @@ input[type=file]{display:none}
   <div style="display:flex;gap:8px;padding:14px 18px 0;">
     <div style="flex:1;background:rgba(255,255,255,.05);border-radius:12px;padding:12px;text-align:center;border:1px solid rgba(255,255,255,.07);"><div style="font-size:32px;font-weight:900;color:#fff;line-height:1;" id="resTot">00:00</div><div style="font-size:10px;font-weight:700;letter-spacing:2px;color:rgba(255,255,255,.3);margin-top:3px;">DURACAO</div></div>
     <div style="flex:1;background:rgba(255,255,255,.05);border-radius:12px;padding:12px;text-align:center;border:1px solid rgba(255,255,255,.07);"><div style="font-size:32px;font-weight:900;color:#fff;line-height:1;" id="resKcal">0</div><div style="font-size:10px;font-weight:700;letter-spacing:2px;color:rgba(255,255,255,.3);margin-top:3px;">KCAL</div></div>
+    <div style="flex:1;background:rgba(255,255,255,.05);border-radius:12px;padding:12px;text-align:center;border:1px solid rgba(255,255,255,.07);"><div style="font-size:32px;font-weight:900;color:#ea860c;line-height:1;" id="resTSS">0</div><div style="font-size:10px;font-weight:700;letter-spacing:2px;color:rgba(255,255,255,.3);margin-top:3px;">TSS</div></div>
     <div style="flex:1;background:rgba(255,255,255,.05);border-radius:12px;padding:12px;text-align:center;border:1px solid rgba(255,255,255,.07);"><div style="font-size:32px;font-weight:900;color:#fff;line-height:1;" id="resDist">0.0</div><div style="font-size:10px;font-weight:700;letter-spacing:2px;color:rgba(255,255,255,.3);margin-top:3px;">KM</div></div>
   </div>
   <div style="display:flex;gap:8px;padding:8px 18px 0;">
@@ -2259,6 +2260,37 @@ function openFreeRide(){
   go('sConnect');
 }
 // ---- FIM QR + FREE RIDE ----
+
+// ══ TSS — TRAINING STRESS SCORE ═════════════════════════════
+// Definicao do Coggan: uma hora exatamente no FTP = 100 TSS.
+//   IF  = NP / FTP        (Intensity Factor)
+//   TSS = horas x IF^2 x 100
+// Para aula PLANEJADA nao existe potencia medida, entao a NP sai do alvo de
+// cada bloco: raiz quarta da media, ponderada pelo tempo, de (%FTP)^4 — que e
+// a mesma conta que o Ginasio ja usa. A quarta potencia e o que faz um bloco
+// curto e forte pesar muito mais que um longo e leve, que e o comportamento
+// fisiologico que o TSS tenta capturar.
+// Referencia: Allen & Coggan, "Training and Racing with a Power Meter".
+function _prFtpMid(b){
+  var t=String(b&&b.ftp||'');
+  var ns=t.match(/\d+/g);
+  if(ns&&ns.length>=2) return (parseInt(ns[0])+parseInt(ns[1]))/2;
+  if(ns&&ns.length===1) return parseInt(ns[0]);
+  // 'Max', 'All Out', 'Max 20min' — sem numero: usa o teto da zona do bloco
+  var zt={z1:45,z2:65,z3:83,z4:98,z5:113,z6:135,z7:170};
+  return zt[b&&b.z]||100;
+}
+function prTSS(blocos){
+  var sumSec=0,sum4=0;
+  (blocos||[]).forEach(function(b){
+    var sec=(Number(b.dur)||0)*60;
+    var ifb=_prFtpMid(b)/100;
+    sumSec+=sec; sum4+=Math.pow(ifb,4)*sec;
+  });
+  if(sumSec<=0) return {tss:0,ifa:0,np:0};
+  var IF=Math.pow(sum4/sumSec,0.25);
+  return {tss:Math.round((sumSec/3600)*IF*IF*100), ifa:Math.round(IF*100)/100, np:Math.round(IF*100)};
+}
 
 // ══ GASTO CALORICO ══════════════════════════════════════════
 // Base: trabalho mecanico MEDIDO, nao tempo. kJ = W x s / 1000.
@@ -3979,7 +4011,7 @@ function buildCategory(catId){
       '<div class="gsess-card-over"></div>'
       +'<div class="gsess-card-body">'
         +'<div class="gsess-card-name">'+a.nome+'</div>'
-        +'<div class="gsess-card-meta">'+a.dur+' min</div>'
+        +'<div class="gsess-card-meta">'+a.dur+' min &middot; TSS '+prTSS(a.blocos).tss+'</div>'
         +'<span class="gsess-badge" style="background:'+a.badgeColor+'33;border:1px solid '+a.badgeColor+'55;color:'+a.badgeColor+'">'+a.badge+'</span>'
         +'<div style="display:flex;gap:3px;align-items:flex-end;height:22px;margin-top:8px;">'
         +buildMiniBlocks(a)
@@ -4373,6 +4405,7 @@ function tick(){
   document.getElementById('p2MR').textContent=Math.round(maxRpm);
   document.getElementById('p2Dist').textContent=(totS*.003).toFixed(1);
   document.getElementById('p2Kc').textContent=prKcal(prWattsMed(),totS,prPesoKg());
+  var _p2t=document.getElementById('p2Tss'); if(_p2t) _p2t.textContent=(cAula&&cAula.blocos)?prTSS(cAula.blocos).tss:0;
   document.getElementById('p2KH').textContent=Math.round(.06*3600);
   document.getElementById('p2AS').textContent=(rpm*.35).toFixed(1);
   document.getElementById('p2Dur').textContent=fmMS(totS);
@@ -4641,6 +4674,7 @@ function showResultsReal(){
   if(nameEl&&cAula) nameEl.textContent=cAula.nome;
   var totEl=document.getElementById('resTot'); if(totEl) totEl.textContent=fmHMS(totS);
   var kcalEl=document.getElementById('resKcal'); if(kcalEl) kcalEl.textContent=prKcal(prWattsMed(),totS,prPesoKg());
+  var tssEl=document.getElementById('resTSS'); if(tssEl) tssEl.textContent=(cAula&&cAula.blocos)?prTSS(cAula.blocos).tss:0;
   var distEl=document.getElementById('resDist'); if(distEl) distEl.textContent=(totS*.003).toFixed(1);
   var avgFEl=document.getElementById('resAvgFtp'); if(avgFEl) avgFEl.textContent=cntFtp>0?Math.round(sumFtp/cntFtp):0;
   var avgREl=document.getElementById('resAvgRpm'); if(avgREl) avgREl.textContent=cntRpm>0?Math.round(sumRpm/cntRpm):0;
@@ -5659,7 +5693,8 @@ function _drawShareCard(canvas){
     {label:'DURAÇÃO',   value:fmHMS(totS),                                         color:'#ffffff'},
     {label:'CALORIAS',  value:prKcal(prWattsMed(),totS,prPesoKg())+' kcal',        color:'#ea860c'},
     {label:'RPM MÉD',   value:(cntRpm>0?Math.round(sumRpm/cntRpm):'-')+' rpm',     color:'#295fe8'},
-    {label:'WATTS MÉD', value:(prWattsMed()>0?prWattsMed():'-')+' W',              color:'#5db13d'}
+    {label:'WATTS MÉD', value:(prWattsMed()>0?prWattsMed():'-')+' W',              color:'#5db13d'},
+    {label:'TSS',       value:String((cAula&&cAula.blocos)?prTSS(cAula.blocos).tss:0), color:'#9b30ff'}
   ];
   // 1430 + 2 linhas de 160 + vao de 16 = termina em 1766, deixando 154 px de
   // respiro ate a borda de baixo do 1080x1920 do Stories.
@@ -6603,7 +6638,7 @@ updateProfileUI = function() {
          + ' fill="none" stroke="'+col(fm)+'" stroke-width="30" stroke-linecap="'+cap+'"/>';
     }
     g.innerHTML=out;
-    try{ console.log('%c[ProRider Aluno] BUILD 12/09b — caloria por watt (kJ/eficiencia) + basal Mifflin-St Jeor no cadastro + historico gravado no aparelho + FTP na gaveta + card 1080x1920 reposicionado + 6 protocolos de FTP (rampa, 20, 2x8, 10, 5, 60)','color:#ea860c;font-weight:700;'); }catch(e){}
+    try{ console.log('%c[ProRider Aluno] BUILD 14/09a — caloria por watt (kJ/eficiencia) + basal Mifflin-St Jeor no cadastro + historico gravado no aparelho + FTP na gaveta + card 1080x1920 reposicionado + 6 protocolos de FTP + TSS na lista de aulas, no resultado e no card','color:#ea860c;font-weight:700;'); }catch(e){}
   }
   if(document.readyState!=='loading') buildGaugeArc();
   else document.addEventListener('DOMContentLoaded', buildGaugeArc);
