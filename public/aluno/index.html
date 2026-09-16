@@ -482,19 +482,34 @@ input[type=file]{display:none}
       </div>
     </div>
   </div>
-  <!-- Guest / Aluno: só Agenda (largura total) -->
+  <!-- Aluno: Agenda + Treino do treinador, lado a lado (mesma grade 2x2 dos de cima) -->
   <div id="homeAgendaBtn" style="padding:0 16px 4px;margin-top:10px;">
-    <div onclick="goTab('sAgenda','navAgenda')" style="background:linear-gradient(135deg,rgba(41,95,232,.18),rgba(41,95,232,.05));border:1px solid rgba(41,95,232,.3);border-radius:18px;padding:14px 16px;cursor:pointer;display:flex;align-items:center;gap:14px;position:relative;overflow:hidden;">
-      <div style="position:absolute;right:-10px;bottom:-10px;width:60px;height:60px;border-radius:50%;background:rgba(41,95,232,.06);"></div>
-      <div style="width:42px;height:42px;background:rgba(41,95,232,.18);border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#295fe8" stroke-width="2.5"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+    <div style="display:flex;gap:10px;">
+
+      <div onclick="goTab('sAgenda','navAgenda')" style="flex:1;background:linear-gradient(135deg,rgba(41,95,232,.18),rgba(41,95,232,.05));border:1px solid rgba(41,95,232,.3);border-radius:18px;padding:16px 14px;cursor:pointer;display:flex;flex-direction:column;align-items:flex-start;gap:10px;min-height:120px;position:relative;overflow:hidden;">
+        <div style="position:absolute;right:-10px;bottom:-10px;width:60px;height:60px;border-radius:50%;background:rgba(41,95,232,.06);"></div>
+        <div style="width:42px;height:42px;background:rgba(41,95,232,.18);border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#295fe8" stroke-width="2.5"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        </div>
+        <div>
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:900;color:#fff;letter-spacing:.5px;line-height:1.1;">Agenda<br/>de Aulas</div>
+          <div style="font-size:11px;color:rgba(255,255,255,.35);margin-top:3px;">Horários e reservas</div>
+        </div>
       </div>
-      <div style="flex:1;">
-        <div style="font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:900;color:#fff;letter-spacing:.5px;line-height:1.1;">Agenda de Aulas</div>
-        <div style="font-size:11px;color:rgba(255,255,255,.35);margin-top:2px;">Ver horários e reservar uma vaga</div>
+
+      <div onclick="document.getElementById('tpFileHome').click()" style="flex:1;background:linear-gradient(135deg,rgba(155,48,255,.2),rgba(155,48,255,.05));border:1px solid rgba(155,48,255,.32);border-radius:18px;padding:16px 14px;cursor:pointer;display:flex;flex-direction:column;align-items:flex-start;gap:10px;min-height:120px;position:relative;overflow:hidden;">
+        <div style="position:absolute;right:-10px;bottom:-10px;width:60px;height:60px;border-radius:50%;background:rgba(155,48,255,.07);"></div>
+        <div style="width:42px;height:42px;background:rgba(155,48,255,.2);border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#9b30ff" stroke-width="2.5"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M4 19h16"/></svg>
+        </div>
+        <div>
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:900;color:#fff;letter-spacing:.5px;line-height:1.1;">Treino do<br/>Treinador</div>
+          <div style="font-size:11px;color:rgba(255,255,255,.35);margin-top:3px;">Abrir arquivo e pedalar</div>
+        </div>
       </div>
-      <div style="font-size:20px;color:rgba(255,255,255,.2);">›</div>
+
     </div>
+    <input type="file" id="tpFileHome" accept=".json,application/json" style="display:none" onchange="tpEscolheuArquivo(this)"/>
   </div>
 
   <div class="home-sec">
@@ -682,6 +697,24 @@ input[type=file]{display:none}
 <!-- ══════════════════════════════════
      WORKOUT CONSTRUCTOR
 ══════════════════════════════════ -->
+<!-- ══════════════════════════════════
+     CONFERENCIA DO TREINO IMPORTADO
+══════════════════════════════════ -->
+<div class="screen" id="sImport" style="padding-bottom:110px;overflow-y:auto;background:linear-gradient(160deg,#0a0812 0%,#110808 60%,#080a14 100%);">
+  <div style="display:flex;align-items:center;padding:20px 20px 10px;gap:12px;">
+    <span onclick="go(window._tpVoltar||'sHome')" style="font-size:28px;color:rgba(255,255,255,.5);cursor:pointer;line-height:1;">&larr;</span>
+    <div>
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:2px;color:#fff;line-height:1;">Conferir treino</div>
+      <div style="font-size:10px;letter-spacing:3px;color:rgba(255,255,255,.25);text-transform:uppercase;margin-top:2px;">Nada é salvo até você aprovar</div>
+    </div>
+  </div>
+  <div id="impCorpo" style="padding:0 14px;"></div>
+  <div style="position:fixed;bottom:0;left:0;right:0;padding:14px 16px 22px;background:linear-gradient(180deg,rgba(8,10,20,0) 0%,rgba(8,10,20,.95) 40%);display:flex;gap:10px;">
+    <button onclick="go(window._tpVoltar||'sHome')" style="flex:1;padding:15px;border-radius:14px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.14);color:#fff;font-size:15px;font-weight:700;cursor:pointer;">Descartar</button>
+    <button onclick="tpSalvar()" style="flex:2;padding:15px;border-radius:14px;background:#5db13d;border:none;color:#fff;font-size:15px;font-weight:800;cursor:pointer;">Salvar aula</button>
+  </div>
+</div>
+
 <div class="screen" id="sConstructor" style="padding-bottom:80px;overflow-y:auto;background:linear-gradient(160deg,#0a0812 0%,#110808 60%,#080a14 100%);">
   <!-- Header -->
   <div style="display:flex;align-items:center;padding:20px 20px 10px;gap:12px;">
@@ -691,6 +724,16 @@ input[type=file]{display:none}
       <div style="font-size:10px;letter-spacing:3px;color:rgba(255,255,255,.25);text-transform:uppercase;margin-top:2px;">Construtor de Aulas</div>
     </div>
   </div>
+
+  <!-- ── Importar treino de fora ── -->
+  <div style="margin:4px 14px 10px;background:rgba(155,48,255,.07);border:1px solid rgba(155,48,255,.22);border-radius:18px;padding:14px 16px;display:flex;align-items:center;gap:13px;cursor:pointer;" onclick="document.getElementById('tpFile').click()">
+    <div style="width:42px;height:42px;border-radius:12px;background:rgba(155,48,255,.16);display:flex;align-items:center;justify-content:center;font-size:20px;flex:none;">&#128229;</div>
+    <div style="min-width:0;">
+      <div style="font-size:15px;font-weight:700;color:#fff;">Importar treino</div>
+      <div style="font-size:12px;color:rgba(255,255,255,.4);line-height:1.4;">Arquivo do TrainingPeaks (.json) prescrito por potência</div>
+    </div>
+  </div>
+  <input type="file" id="tpFile" accept=".json,application/json" style="display:none" onchange="tpEscolheuArquivo(this)"/>
 
   <!-- ── Block Form ── -->
   <div style="margin:4px 14px 6px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.09);border-radius:22px;padding:18px 14px;">
@@ -2271,6 +2314,166 @@ function openFreeRide(){
   go('sConnect');
 }
 // ---- FIM QR + FREE RIDE ----
+
+
+// ══ IMPORTAR TREINO DO TRAININGPEAKS ════════════════════════
+// Regra combinada: o que vier, entra. O que o TrainingPeaks nao guarda —
+// a posicao de pe / sentado, que so existe no spinning — fica EM BRANCO,
+// para o professor preencher depois. Nada e inventado.
+var _SEG_TP = { WarmUp:'Aquecimento', CoolDown:'Volta à calma', Rest:'Recuperação', Active:'Bloco principal' };
+var _tpPendente = null;   // treino traduzido, aguardando aprovacao
+
+function _tpZonaPorPct(p){
+  if(p<=55) return 'z1'; if(p<=75) return 'z2'; if(p<=90) return 'z3';
+  if(p<=105) return 'z4'; if(p<=120) return 'z5'; if(p<=150) return 'z6'; return 'z7';
+}
+
+function tpTraduzir(texto){
+  var j;
+  try{ j=(typeof texto==='string')?JSON.parse(texto):texto; }
+  catch(e){ return {erro:'Não consegui ler o arquivo — não é um JSON válido.'}; }
+  if(!j||!j.Structure) return {erro:'Este arquivo não tem a estrutura de treino do TrainingPeaks.'};
+
+  var tipo=String(j.Type||'').toLowerCase();
+  if(tipo && tipo!=='bike' && tipo!=='mtb' && tipo!=='virtualbike'){
+    return {erro:'Este é um treino de '+(j.Type||'outro esporte')+', não de ciclismo. '
+      +'O ProRider ainda não roda treinos de corrida — quando rodar, este arquivo vai funcionar.'};
+  }
+
+  var blocos=[], avisos=[], mensagens=[], tempo=0;
+
+  function passo(p, segNome){
+    if(!p.Length || String(p.Length.Unit).toLowerCase()!=='second'){
+      avisos.push('O passo "'+(p.Name||'sem nome')+'" tem duração em '+(p.Length?p.Length.Unit:'?')+', que eu não sei converter — foi ignorado.');
+      return;
+    }
+    var seg=Number(p.Length.Value)||0;
+    if(p.OpenDuration) avisos.push('O passo "'+(p.Name||'')+'" era de duração aberta; usei '+Math.round(seg/60)+' min.');
+
+    var alvo=p.IntensityTarget||{}, un=String(alvo.Unit||'').toLowerCase(), lo=null, hi=null;
+    if(un==='percentofftp'){ lo=alvo.MinValue; hi=alvo.MaxValue; }
+    else if(un==='watts' && j.Ftp){
+      lo=(alvo.MinValue/j.Ftp)*100; hi=(alvo.MaxValue/j.Ftp)*100;
+      avisos.push('A intensidade vinha em watts; converti pelo FTP de '+j.Ftp+' W gravado no arquivo.');
+    } else if(un.indexOf('hr')>=0||un.indexOf('heart')>=0){
+      avisos.push('O passo "'+(p.Name||'')+'" é por frequência cardíaca, não por potência — ficou sem alvo de FTP.');
+    } else { lo=alvo.MinValue; hi=alvo.MaxValue; }
+    if(lo==null && alvo.Value!=null){ lo=hi=alvo.Value; }
+
+    var cad=p.CadenceTarget;
+    var b={
+      z:   (lo!=null&&hi!=null)?_tpZonaPorPct((lo+hi)/2):'z1',
+      ftp: (lo!=null&&hi!=null)?(Math.round(lo)+'-'+Math.round(hi)):'',
+      rpm: cad?[Math.round(cad.MinValue),Math.round(cad.MaxValue)]:null,
+      dur: +(seg/60).toFixed(2),
+      pos: '',
+      seg: segNome||_SEG_TP[p.IntensityClass]||'Bloco principal',
+      nome:p.Name||''
+    };
+    if(p.Notes && String(p.Notes).trim()){
+      b.nota=String(p.Notes).trim();
+      mensagens.push({em:tempo, texto:b.nota});
+    }
+    tempo+=seg; blocos.push(b);
+  }
+
+  j.Structure.forEach(function(it){
+    if(String(it.Type).toLowerCase()==='repetition' && it.Steps){
+      var vezes=Number(it.Length&&it.Length.Value)||1;
+      for(var r=0;r<vezes;r++) it.Steps.forEach(function(p){ passo(p,_SEG_TP[p.IntensityClass]); });
+    } else passo(it);
+  });
+
+  if(!blocos.length) return {erro:'O arquivo foi lido, mas não sobrou nenhum bloco que eu conseguisse converter.'};
+
+  var semRpm=blocos.filter(function(b){return !b.rpm;}).length;
+  if(semRpm) avisos.push(semRpm+' de '+blocos.length+' blocos vieram sem cadência — ficaram em branco.');
+  avisos.push('Nenhum bloco tem posição (em pé / sentado): o TrainingPeaks não guarda isso. Todos ficaram em branco.');
+
+  return {
+    id:'tp'+Date.now(), nome:j.Title||'Treino importado', ftpAutor:j.Ftp||null,
+    dur:Math.round(tempo/60), duracaoSec:tempo, blocos:blocos, mensagens:mensagens,
+    avisos:avisos, badge:'Importado', badgeColor:'#9b30ff', importado:true,
+    desc:'Treino importado do TrainingPeaks'+(j.Ftp?(' (montado sobre um FTP de '+j.Ftp+' W).'):'.')
+  };
+}
+
+function tpEscolheuArquivo(input){
+  var f=input.files&&input.files[0]; if(!f) return;
+  var fr=new FileReader();
+  fr.onload=function(){
+    var r=tpTraduzir(String(fr.result||''));
+    input.value='';
+    if(r.erro){ alert(r.erro); return; }
+    // guarda de onde veio: a tela inicial (aluno) ou o construtor (professor)
+    window._tpVoltar = (input.id==='tpFileHome') ? 'sHome' : 'sConstructor';
+    _tpPendente=r; tpRenderConferencia(r); go('sImport');
+  };
+  fr.onerror=function(){ alert('Não consegui abrir o arquivo.'); input.value=''; };
+  fr.readAsText(f);
+}
+
+function tpRenderConferencia(r){
+  var C={z1:'#c2c2c2',z2:'#295fe8',z3:'#5db13d',z4:'#d7c414',z5:'#ea860c',z6:'#d62d2d',z7:'#9b30ff'};
+  var h='<div style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.09);border-radius:16px;padding:16px;margin-bottom:12px;">'
+    +'<div style="font-size:19px;font-weight:800;color:#fff;line-height:1.25;">'+r.nome+'</div>'
+    +'<div style="font-size:13px;color:rgba(255,255,255,.45);margin-top:6px;">'
+      +r.dur+' min &middot; '+r.blocos.length+' blocos &middot; TSS '+prTSS(r.blocos).tss
+      +(r.ftpAutor?(' &middot; FTP do autor '+r.ftpAutor+' W'):'')+'</div></div>';
+
+  if(r.avisos.length){
+    h+='<div style="background:rgba(234,134,12,.08);border:1px solid rgba(234,134,12,.22);border-radius:14px;padding:13px 15px;margin-bottom:12px;">'
+      +'<div style="font-size:11px;font-weight:700;letter-spacing:2.4px;color:#ea860c;text-transform:uppercase;margin-bottom:7px;">O que ficou em branco</div>';
+    r.avisos.forEach(function(a){ h+='<div style="font-size:13px;line-height:1.5;color:rgba(255,255,255,.62);margin-bottom:4px;">&bull; '+a+'</div>'; });
+    h+='</div>';
+  }
+  if(r.mensagens.length){
+    h+='<div style="background:rgba(91,177,61,.07);border:1px solid rgba(91,177,61,.2);border-radius:14px;padding:13px 15px;margin-bottom:12px;">'
+      +'<div style="font-size:11px;font-weight:700;letter-spacing:2.4px;color:#5db13d;text-transform:uppercase;margin-bottom:7px;">Recados do treinador</div>';
+    r.mensagens.forEach(function(m){
+      h+='<div style="font-size:13px;color:rgba(255,255,255,.62);margin-bottom:4px;">aos '+Math.floor(m.em/60)+' min &mdash; '+m.texto+'</div>';
+    });
+    h+='</div>';
+  }
+
+  h+='<div style="font-size:11px;font-weight:700;letter-spacing:2.4px;color:rgba(255,255,255,.3);text-transform:uppercase;margin:16px 4px 8px;">Blocos traduzidos</div>';
+  r.blocos.forEach(function(b,i){
+    h+='<div style="display:flex;align-items:center;gap:11px;background:rgba(255,255,255,.035);border-radius:11px;padding:10px 13px;margin-bottom:6px;">'
+      +'<div style="width:5px;height:34px;border-radius:3px;background:'+(C[b.z]||'#888')+';flex:none;"></div>'
+      +'<div style="flex:1;min-width:0;">'
+        +'<div style="font-size:14px;font-weight:700;color:#fff;">'+b.seg+(b.nome?(' &middot; '+b.nome):'')+'</div>'
+        +'<div style="font-size:12px;color:rgba(255,255,255,.42);margin-top:2px;">'
+          +b.dur+' min &middot; '+(b.ftp?(b.ftp+'% FTP'):'sem alvo')
+          +' &middot; '+(b.rpm?(b.rpm[0]+'-'+b.rpm[1]+' rpm'):'cadência livre')
+          +' &middot; '+(b.pos||'posição em branco')+'</div>'
+      +'</div></div>';
+  });
+  var el=document.getElementById('impCorpo'); if(el) el.innerHTML=h;
+}
+
+// ── aulas importadas, guardadas no aparelho ──
+function tpLerSalvas(){
+  try{ var a=JSON.parse(localStorage.getItem('pr_aulas_tp')||'[]'); return Array.isArray(a)?a:[]; }
+  catch(e){ return []; }
+}
+function tpSalvar(){
+  if(!_tpPendente) return;
+  try{
+    var arr=tpLerSalvas(); arr.unshift(_tpPendente);
+    localStorage.setItem('pr_aulas_tp',JSON.stringify(arr.slice(0,50)));
+  }catch(e){ alert('Não consegui salvar a aula neste aparelho.'); return; }
+  var salva=_tpPendente; _tpPendente=null;
+  try{ if(typeof buildHome==='function') buildHome(); }catch(e){}
+  // O aluno acabou de receber o treino e quer pedalar agora — nao faz sentido
+  // devolver ele para a tela inicial para procurar a aula que acabou de salvar.
+  try{
+    if(confirm('"'+salva.nome+'" foi salva nas suas aulas.\n\nComeçar agora?')){
+      openDetail(salva,'sHome'); return;
+    }
+  }catch(e){}
+  go('sHome');
+  try{ if(typeof showToast==='function') showToast('✓ "'+salva.nome+'" salva nas suas aulas'); }catch(e){}
+}
 
 // ══ TSS — TRAINING STRESS SCORE ═════════════════════════════
 // Definicao do Coggan: uma hora exatamente no FTP = 100 TSS.
@@ -3919,6 +4122,9 @@ var CAT_DEFS = [
 ];
 
 function getAulaCat(a){
+  // Treino importado do TrainingPeaks vai para "custom", que ja existe na tela
+  // inicial — assim ele aparece sem precisar de categoria nova.
+  if(a.importado) return 'custom';
   var n=a.nome||'';
   if(n.indexOf('Endurance')>-1) return 'endurance';
   if(n.indexOf('HIIT')>-1)      return 'hiit';
@@ -3936,7 +4142,8 @@ function buildHome(){
     // Conta aulas por categoria (excluindo FTP Tests)
     var counts={};
     CAT_DEFS.forEach(function(c){ counts[c.id]=0; });
-    aulas.forEach(function(a){
+    // as importadas contam junto, senao a categoria aparece vazia e some
+    aulas.concat(tpLerSalvas()).forEach(function(a){
       if(a.badge==='Test') return; // FTP Tests ficam na seção própria
       var cat=getAulaCat(a);
       if(counts[cat]!==undefined) counts[cat]++;
@@ -4029,7 +4236,9 @@ function buildCategory(catId){
   var list=document.getElementById('catAulasList');
   if(!list) return;
   list.innerHTML='';
-  aulas.forEach(function(a,idx){
+  // as aulas importadas do TrainingPeaks entram junto, na propria categoria
+  var _todas=aulas.concat(tpLerSalvas());
+  _todas.forEach(function(a,idx){
     if(a.badge==='Test') return;
     if(getAulaCat(a)!==catId) return;
     var div=document.createElement('div');
@@ -6694,7 +6903,7 @@ updateProfileUI = function() {
          + ' fill="none" stroke="'+col(fm)+'" stroke-width="30" stroke-linecap="'+cap+'"/>';
     }
     g.innerHTML=out;
-    try{ console.log('%c[ProRider Aluno] BUILD 14/09c — caloria por watt (kJ/eficiencia) + basal Mifflin-St Jeor no cadastro + historico gravado no aparelho + FTP na gaveta + card 1080x1920 reposicionado + 6 protocolos de FTP + TSS + teste de 3 min + fator do teste de 5 min corrigido (era 1,05) + explicacao de FTP em cada teste + gaveta esconde pela propria altura (a caixa de FTP ficava presa na tela)','color:#ea860c;font-weight:700;'); }catch(e){}
+    try{ console.log('%c[ProRider Aluno] BUILD 14/09f — caloria por watt (kJ/eficiencia) + basal Mifflin-St Jeor no cadastro + historico gravado no aparelho + FTP na gaveta + card 1080x1920 reposicionado + 6 protocolos de FTP + TSS + teste de 3 min + fator do teste de 5 min corrigido (era 1,05) + explicacao de FTP em cada teste + gaveta esconde pela propria altura + importacao de treino do TrainingPeaks (grade 2x2 na tela inicial + construtor) com tela de conferencia','color:#ea860c;font-weight:700;'); }catch(e){}
   }
   if(document.readyState!=='loading') buildGaugeArc();
   else document.addEventListener('DOMContentLoaded', buildGaugeArc);
