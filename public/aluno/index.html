@@ -4284,7 +4284,13 @@ function buildMiniBlocks(a){
 function openDetail(idx, from){
   // Aceita tanto índice (número) quanto objeto (para FTP tests)
   var a;
-  if(typeof idx==='object'){a=idx;}else{curAulaIdx=idx;a=aulas[idx];cAula=null;}
+  if(typeof idx==='object'){
+    a=idx;
+    // Recebeu o objeto da aula (teste de FTP, aula importada): e ELA que vai
+    // rodar. Sem esta linha, startLive() caia no fallback aulas[curAulaIdx] e
+    // iniciava outra aula — a que estivesse no indice guardado de antes.
+    cAula=a;
+  } else { curAulaIdx=idx; a=aulas[idx]; cAula=null; }
   if(!a) return;
   window._detailFrom = from || 'sHome';
   go('sDetail');
@@ -6914,7 +6920,7 @@ updateProfileUI = function() {
          + ' fill="none" stroke="'+col(fm)+'" stroke-width="30" stroke-linecap="'+cap+'"/>';
     }
     g.innerHTML=out;
-    try{ console.log('%c[ProRider Aluno] BUILD 14/09g — caloria por watt (kJ/eficiencia) + basal Mifflin-St Jeor no cadastro + historico gravado no aparelho + FTP na gaveta + card 1080x1920 reposicionado + 6 protocolos de FTP + TSS + teste de 3 min + fator do teste de 5 min corrigido (era 1,05) + explicacao de FTP em cada teste + gaveta esconde pela propria altura + importacao de treino do TrainingPeaks (grade 2x2 na tela inicial + construtor) com tela de conferencia (botoes acima da navegacao)','color:#ea860c;font-weight:700;'); }catch(e){}
+    try{ console.log('%c[ProRider Aluno] BUILD 14/09h — caloria por watt (kJ/eficiencia) + basal Mifflin-St Jeor no cadastro + historico gravado no aparelho + FTP na gaveta + card 1080x1920 reposicionado + 6 protocolos de FTP + TSS + teste de 3 min + fator do teste de 5 min corrigido (era 1,05) + explicacao de FTP em cada teste + gaveta esconde pela propria altura + importacao de treino do TrainingPeaks (grade 2x2 na tela inicial + construtor) com tela de conferencia (botoes acima da navegacao) + corrigido: aula aberta por objeto (importada/teste FTP) agora e a que roda','color:#ea860c;font-weight:700;'); }catch(e){}
   }
   if(document.readyState!=='loading') buildGaugeArc();
   else document.addEventListener('DOMContentLoaded', buildGaugeArc);
