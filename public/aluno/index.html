@@ -509,7 +509,7 @@ input[type=file]{display:none}
       </div>
 
     </div>
-    <input type="file" id="tpFileHome" accept=".json,application/json" style="display:none" onchange="tpEscolheuArquivo(this)"/>
+    <input type="file" id="tpFileHome"  style="display:none" onchange="tpEscolheuArquivo(this)"/>
   </div>
 
   <div class="home-sec">
@@ -700,7 +700,7 @@ input[type=file]{display:none}
 <!-- ══════════════════════════════════
      CONFERENCIA DO TREINO IMPORTADO
 ══════════════════════════════════ -->
-<div class="screen" id="sImport" style="padding-bottom:110px;overflow-y:auto;background:linear-gradient(160deg,#0a0812 0%,#110808 60%,#080a14 100%);">
+<div class="screen" id="sImport" style="padding-bottom:190px;overflow-y:auto;background:linear-gradient(160deg,#0a0812 0%,#110808 60%,#080a14 100%);">
   <div style="display:flex;align-items:center;padding:20px 20px 10px;gap:12px;">
     <span onclick="go(window._tpVoltar||'sHome')" style="font-size:28px;color:rgba(255,255,255,.5);cursor:pointer;line-height:1;">&larr;</span>
     <div>
@@ -709,7 +709,9 @@ input[type=file]{display:none}
     </div>
   </div>
   <div id="impCorpo" style="padding:0 14px;"></div>
-  <div style="position:fixed;bottom:0;left:0;right:0;padding:14px 16px 22px;background:linear-gradient(180deg,rgba(8,10,20,0) 0%,rgba(8,10,20,.95) 40%);display:flex;gap:10px;">
+  <!-- Acima da navegacao de baixo (#bNav tem 66px e z-index 100), senao os
+       botoes ficam escondidos atras dela — so a bordinha de cima aparecia. -->
+  <div style="position:fixed;bottom:calc(66px + env(safe-area-inset-bottom,0px));left:0;right:0;z-index:120;padding:14px 16px 16px;background:linear-gradient(180deg,rgba(8,10,20,0) 0%,rgba(8,10,20,.97) 45%);display:flex;gap:10px;">
     <button onclick="go(window._tpVoltar||'sHome')" style="flex:1;padding:15px;border-radius:14px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.14);color:#fff;font-size:15px;font-weight:700;cursor:pointer;">Descartar</button>
     <button onclick="tpSalvar()" style="flex:2;padding:15px;border-radius:14px;background:#5db13d;border:none;color:#fff;font-size:15px;font-weight:800;cursor:pointer;">Salvar aula</button>
   </div>
@@ -733,7 +735,7 @@ input[type=file]{display:none}
       <div style="font-size:12px;color:rgba(255,255,255,.4);line-height:1.4;">Arquivo do TrainingPeaks (.json) prescrito por potência</div>
     </div>
   </div>
-  <input type="file" id="tpFile" accept=".json,application/json" style="display:none" onchange="tpEscolheuArquivo(this)"/>
+  <input type="file" id="tpFile"  style="display:none" onchange="tpEscolheuArquivo(this)"/>
 
   <!-- ── Block Form ── -->
   <div style="margin:4px 14px 6px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.09);border-radius:22px;padding:18px 14px;">
@@ -2330,9 +2332,18 @@ function _tpZonaPorPct(p){
 
 function tpTraduzir(texto){
   var j;
+  var amostra=String(texto||'').slice(0,400).toLowerCase();
+  if(amostra.indexOf('<!doctype')>=0 || amostra.indexOf('<html')>=0){
+    return {erro:'Esse é um arquivo de página (HTML), não um treino.\n\n'
+      +'Procure o arquivo que veio do TrainingPeaks — ele costuma ter o nome do treino '
+      +'e terminar em .json.'};
+  }
   try{ j=(typeof texto==='string')?JSON.parse(texto):texto; }
-  catch(e){ return {erro:'Não consegui ler o arquivo — não é um JSON válido.'}; }
-  if(!j||!j.Structure) return {erro:'Este arquivo não tem a estrutura de treino do TrainingPeaks.'};
+  catch(e){ return {erro:'Não consegui ler esse arquivo como treino.\n\n'
+      +'Confira se é o arquivo exportado do TrainingPeaks (.json). '
+      +'PDF, imagem ou planilha não servem.'}; }
+  if(!j||!j.Structure) return {erro:'Esse arquivo é um JSON, mas não tem a estrutura '
+      +'de treino do TrainingPeaks — falta a lista de blocos.'};
 
   var tipo=String(j.Type||'').toLowerCase();
   if(tipo && tipo!=='bike' && tipo!=='mtb' && tipo!=='virtualbike'){
@@ -6903,7 +6914,7 @@ updateProfileUI = function() {
          + ' fill="none" stroke="'+col(fm)+'" stroke-width="30" stroke-linecap="'+cap+'"/>';
     }
     g.innerHTML=out;
-    try{ console.log('%c[ProRider Aluno] BUILD 14/09f — caloria por watt (kJ/eficiencia) + basal Mifflin-St Jeor no cadastro + historico gravado no aparelho + FTP na gaveta + card 1080x1920 reposicionado + 6 protocolos de FTP + TSS + teste de 3 min + fator do teste de 5 min corrigido (era 1,05) + explicacao de FTP em cada teste + gaveta esconde pela propria altura + importacao de treino do TrainingPeaks (grade 2x2 na tela inicial + construtor) com tela de conferencia','color:#ea860c;font-weight:700;'); }catch(e){}
+    try{ console.log('%c[ProRider Aluno] BUILD 14/09g — caloria por watt (kJ/eficiencia) + basal Mifflin-St Jeor no cadastro + historico gravado no aparelho + FTP na gaveta + card 1080x1920 reposicionado + 6 protocolos de FTP + TSS + teste de 3 min + fator do teste de 5 min corrigido (era 1,05) + explicacao de FTP em cada teste + gaveta esconde pela propria altura + importacao de treino do TrainingPeaks (grade 2x2 na tela inicial + construtor) com tela de conferencia (botoes acima da navegacao)','color:#ea860c;font-weight:700;'); }catch(e){}
   }
   if(document.readyState!=='loading') buildGaugeArc();
   else document.addEventListener('DOMContentLoaded', buildGaugeArc);
