@@ -5095,6 +5095,7 @@ function _encerrarAulaApp(){
 function quitW(){
   // 1. Parar timer da aula
   clearInterval(lInt); lInt=null;
+  _prEsquecerSala('aula concluida');
   _releaseWakeLock();
   // 2. Parar ping WebSocket e fechar conexão limpa
   clearInterval(wsAlunoPing); wsAlunoPing=null;
