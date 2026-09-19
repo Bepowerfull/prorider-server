@@ -700,6 +700,23 @@ input[type=file]{display:none}
 <!-- ══════════════════════════════════
      CONFERENCIA DO TREINO IMPORTADO
 ══════════════════════════════════ -->
+<!-- Revisao do treino durante a aula — por cima da tela ao vivo -->
+<div id="revOverlay" style="display:none;position:fixed;inset:0;z-index:200;background:rgba(6,8,14,.93);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);">
+  <div style="display:flex;flex-direction:column;height:100%;">
+    <div style="display:flex;align-items:center;gap:12px;padding:20px 18px 12px;flex:none;">
+      <div style="flex:1;min-width:0;">
+        <div id="revNome" style="font-size:18px;font-weight:800;color:#fff;line-height:1.25;">—</div>
+        <div id="revSub" style="font-size:11px;letter-spacing:2.4px;color:rgba(255,255,255,.28);text-transform:uppercase;margin-top:3px;">—</div>
+      </div>
+      <div onclick="revFechar()" style="width:38px;height:38px;border-radius:12px;background:rgba(255,255,255,.08);display:flex;align-items:center;justify-content:center;font-size:20px;color:rgba(255,255,255,.65);cursor:pointer;flex:none;">&times;</div>
+    </div>
+    <div id="revLista" style="flex:1;overflow-y:auto;padding:0 14px 16px;"></div>
+    <div style="flex:none;padding:12px 16px 22px;">
+      <button onclick="revFechar()" style="width:100%;padding:15px;border-radius:14px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);color:#fff;font-size:15px;font-weight:700;cursor:pointer;">Voltar para a aula</button>
+    </div>
+  </div>
+</div>
+
 <div class="screen" id="sImport" style="padding-bottom:190px;overflow-y:auto;background:linear-gradient(160deg,#0a0812 0%,#110808 60%,#080a14 100%);">
   <div style="display:flex;align-items:center;padding:20px 20px 10px;gap:12px;">
     <span onclick="go(window._tpVoltar||'sHome')" style="font-size:28px;color:rgba(255,255,255,.5);cursor:pointer;line-height:1;">&larr;</span>
@@ -1006,19 +1023,27 @@ input[type=file]{display:none}
           <!-- POSICAO — logo abaixo do nome -->
           <text x="180" y="113" text-anchor="middle" font-family="Barlow Condensed" font-size="13" font-weight="700" letter-spacing="3" fill="rgba(255,255,255,.38)" id="gPosition">SEATED</text>
 
-          <!-- NUMERO GRANDE — deslocado para a esquerda, junto do nome da zona,
-               abrindo espaco para o relogio do bloco no canto direito -->
-          <text x="132" y="182" text-anchor="middle" font-family="Barlow Condensed" font-size="64" font-weight="900" fill="#fff" id="gValue">0</text>
+          <!-- ── DOIS NUMEROS, DUAS COLUNAS, MESMO TAMANHO ──────────────
+               Antes: o numero ficava centrado em x=132 com corpo 64 e o "%"
+               comecava fixo em x=176. Com tres digitos o numero passava dos 176
+               e escorregava por cima do relogio do bloco.
+               Agora cada lado tem a sua coluna, o numero e o "%" andam JUNTOS
+               (ancorados pela direita, entao crescem para a esquerda, para
+               dentro do espaco vazio) e os dois valores tem o mesmo corpo de
+               letra e o mesmo rotulo embaixo. -->
 
-          <!-- % ao lado do numero -->
-          <text x="176" y="174" text-anchor="start" font-family="Barlow Condensed" font-size="34" font-weight="900" fill="rgba(255,255,255,.85)" id="gValueUnit">%</text>
+          <!-- ESQUERDA: valor + unidade, ancorados pela direita em x=170 -->
+          <text x="170" y="180" text-anchor="end" font-family="Barlow Condensed" font-weight="900" fill="#fff">
+            <tspan font-size="54" id="gValue">0</tspan><tspan font-size="30" fill="rgba(255,255,255,.85)" id="gValueUnit">%</tspan>
+          </text>
+          <text x="170" y="201" text-anchor="end" font-family="Barlow Condensed" font-size="12" font-weight="700" letter-spacing="3.5" fill="rgba(255,255,255,.38)" id="gModeLabel">FTP</text>
 
-          <!-- RELOGIO DO BLOCO ATUAL — pedido de aluna: quanto falta neste bloco -->
-          <text x="262" y="176" text-anchor="middle" font-family="Barlow Condensed" font-size="40" font-weight="900" fill="#fff" id="gBlocoTempo">0:00</text>
-          <text x="262" y="196" text-anchor="middle" font-family="Barlow Condensed" font-size="11" font-weight="700" letter-spacing="3" fill="rgba(255,255,255,.38)" id="gBlocoLbl">BLOCO</text>
+          <!-- DIREITA: relogio do bloco, mesmo corpo e mesmo rotulo -->
+          <text x="272" y="180" text-anchor="middle" font-family="Barlow Condensed" font-size="54" font-weight="900" fill="#fff" id="gBlocoTempo">0:00</text>
+          <text x="272" y="201" text-anchor="middle" font-family="Barlow Condensed" font-size="12" font-weight="700" letter-spacing="3.5" fill="rgba(255,255,255,.38)" id="gBlocoLbl">BLOCO</text>
 
-          <!-- LABEL MODO -->
-          <text x="132" y="204" text-anchor="middle" font-family="Barlow Condensed" font-size="16" font-weight="700" letter-spacing="5" fill="rgba(255,255,255,.38)" id="gModeLabel">FTP</text>
+          <!-- separador entre as duas colunas -->
+          <line x1="196" y1="150" x2="196" y2="196" stroke="rgba(255,255,255,.10)" stroke-width="1"/>
 
           <!-- label 150+ no final do arco (segue o padrão de 140 rpm / 6.0) -->
           <text x="356" y="213" text-anchor="end" font-family="Barlow Condensed" font-size="11" fill="rgba(255,255,255,.28)" id="gMaxLbl">150+</text>
@@ -1138,6 +1163,11 @@ input[type=file]{display:none}
         <button type="button" onclick="dFtpPrompt()" style="height:42px;padding:0 14px;border-radius:12px;background:rgba(234,134,12,.14);border:1px solid rgba(234,134,12,.35);color:#ea860c;font-size:13px;font-weight:800;cursor:pointer;">Digitar</button>
       </div>
     </div>
+    <!-- Revisar o treino sem sair da aula: abre por cima, nada e pausado. -->
+    <button type="button" onclick="revAbrir()" style="display:flex;align-items:center;justify-content:center;gap:9px;width:calc(100% - 32px);margin:0 16px 12px;padding:13px;border-radius:14px;background:rgba(155,48,255,.13);border:1px solid rgba(155,48,255,.32);color:#c88bff;font-size:14px;font-weight:800;cursor:pointer;">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M4 6h16"/><path d="M4 12h16"/><path d="M4 18h10"/></svg>
+      Revisar o treino
+    </button>
     <div class="drawer-ctrls">
       <button class="dctrl-btn" onclick="prevB()">⏮</button>
       <button class="dctrl-play" id="pauseBtn" onclick="togglePause()">⏸</button>
@@ -2122,8 +2152,41 @@ function selectBike(num){
   }, 6000);
 }
 
+// O Ginasio mostra DOIS QR: o da esquerda tem o codigo da sala (PR-XXXX-XXXX) e
+// o da direita tem o endereco do navegador. Lendo o da direita, o app recebia a
+// URL inteira e tentava entrar numa sala chamada "https://...". O servidor nao
+// achava e vinha "Sala nao encontrada" — e a faixa de voltar exibia a URL no
+// lugar do codigo. Aqui o conteudo lido e sempre normalizado antes de usar.
+function _prNormalizaCodigo(bruto){
+  var t=String(bruto||'').trim();
+  // codigo puro
+  var m=t.match(/\bPR-[A-Z0-9]{4}-[A-Z0-9]{4}\b/i);
+  if(m) return m[0].toUpperCase();
+  // veio um endereco: procurar o codigo nos parametros ou no caminho
+  if(/^https?:\/\//i.test(t)){
+    try{
+      var u=new URL(t);
+      var q=u.searchParams.get('sala')||u.searchParams.get('code')||u.searchParams.get('c');
+      if(q){ var m2=String(q).match(/PR-[A-Z0-9]{4}-[A-Z0-9]{4}/i); if(m2) return m2[0].toUpperCase(); }
+      var m3=u.pathname.match(/PR-[A-Z0-9]{4}-[A-Z0-9]{4}/i);
+      if(m3) return m3[0].toUpperCase();
+    }catch(e){}
+    return null;   // endereco sem codigo: nao da para entrar por aqui
+  }
+  return t ? t.toUpperCase() : null;
+}
+
 function connectQR(code){
-  if(!code) return;
+  var bruto=code;
+  code=_prNormalizaCodigo(code);
+  if(!code){
+    if(/^https?:\/\//i.test(String(bruto||''))){
+      try{ if(typeof showToast==='function') showToast('Esse é o QR do navegador. Use o QR da esquerda, o azul, para entrar pelo app.'); }catch(e){}
+    } else {
+      try{ if(typeof showToast==='function') showToast('Não reconheci esse código de sala.'); }catch(e){}
+    }
+    return;
+  }
   lastCode=code;
   try{ localStorage.setItem('pr_last_sala', JSON.stringify({code:code, bike:_bikeSelNum||0, ts:Date.now()})); }catch(e){}
   // Se já está conectado, vai direto para sLive
@@ -2147,6 +2210,22 @@ function connectQR(code){
     };
     wsConn.onmessage=function(e){
       var data=JSON.parse(e.data);
+
+      // ── PROVA DE VIDA DA RECONEXAO ─────────────────────────────
+      // A janela de "Reconectando" so fechava ao receber a mensagem
+      // 'conectado'. Se o servidor respondesse QUALQUER outra coisa — o que
+      // acontece quando a sessao anterior do aluno ainda esta registrada
+      // naquela bike —, a janela nunca fechava: a contagem acabava, aparecia
+      // "Nao foi possivel reconectar" e so reiniciando o app.
+      // Receber dado do servidor JA e prova de que a conexao voltou.
+      try{
+        var _ovR=document.getElementById('reconOverlay');
+        if(_ovR && _ovR.style.display!=='none' && data && data.tipo && data.tipo!=='erro'){
+          if(typeof _reconStop==='function') _reconStop();
+          if(typeof showToast==='function') showToast('Reconectado à aula.');
+        }
+      }catch(_e){}
+
       if(data.tipo==='sala_info'){
         _salaInfo={ numBikes:data.numBikes||0, bikes:data.bikes||[], ocupadas:data.ocupadas||[] };
         _bikeCacheSalvar(_salaInfo.bikes);
@@ -2261,6 +2340,14 @@ function connectQR(code){
       }
       if(data.tipo==='erro'){
         var _msgErr=data.msg||'Não foi possível entrar na aula. Tente novamente.';
+        // ── SALA QUE NAO EXISTE MAIS: ESQUECER ─────────────────────
+        // A faixa "VOLTAR PRA ULTIMA AULA" vive do pr_last_sala guardado no
+        // aparelho. Se o servidor diz que a sala nao existe, esse dado esta
+        // velho e precisa sair — senao a faixa fica apontando para uma sala
+        // morta, e o aluno tenta voltar para ela indefinidamente.
+        if(/n[aã]o encontrada|inexistente|encerrada/i.test(String(_msgErr))){
+          _prEsquecerSala('sala nao existe mais');
+        }
         if(statusEl){statusEl.textContent=_msgErr;statusEl.style.color='#d62d2d';}
         // Mostra o erro de forma VISÍVEL mesmo fora da tela de QR (antes só atualizava um campo oculto → parecia travado)
         if(typeof showToast==='function') showToast('⚠️ '+_msgErr);
@@ -2317,6 +2404,50 @@ function openFreeRide(){
 }
 // ---- FIM QR + FREE RIDE ----
 
+
+// ══ REVISAR O TREINO DURANTE A AULA ═════════════════════════
+// Abre POR CIMA da tela ao vivo. Nao troca de tela, nao pausa, nao mexe em
+// nada — o relogio, a musica e a leitura da bike seguem correndo por baixo.
+// Serve para qualquer aula, nao so as importadas: o aluno que entrou na aula
+// do professor tambem pode querer ver o que vem pela frente.
+function revAbrir(){
+  if(!cAula||!cAula.blocos) return;
+  var C={z1:'#c2c2c2',z2:'#295fe8',z3:'#5db13d',z4:'#d7c414',z5:'#ea860c',z6:'#d62d2d',z7:'#9b30ff'};
+  var n=document.getElementById('revNome'); if(n) n.textContent=cAula.nome||'Treino';
+  var sub=document.getElementById('revSub');
+  if(sub){
+    var tot=0; cAula.blocos.forEach(function(b){ tot+=(Number(b.dur)||0); });
+    sub.textContent=Math.round(tot)+' min · '+cAula.blocos.length+' blocos · TSS '+prTSS(cAula.blocos).tss;
+  }
+  var h='';
+  cAula.blocos.forEach(function(b,i){
+    var atual=(i===cBloco), passou=(i<cBloco);
+    h+='<div style="display:flex;align-items:flex-start;gap:11px;border-radius:12px;padding:11px 13px;margin-bottom:6px;'
+      +(atual?'background:rgba(234,134,12,.13);border:1px solid rgba(234,134,12,.4);'
+             :'background:rgba(255,255,255,.035);border:1px solid transparent;')
+      +(passou?'opacity:.42;':'')+'">'
+      +'<div style="width:5px;min-height:36px;align-self:stretch;border-radius:3px;background:'+(C[b.z]||'#888')+';flex:none;"></div>'
+      +'<div style="flex:1;min-width:0;">'
+        +'<div style="font-size:14px;font-weight:700;color:#fff;">'
+          +(b.seg||b.z||'Bloco')+(b.nome?(' · '+b.nome):'')
+          +(atual?' <span style="font-size:10px;letter-spacing:1.6px;color:#ea860c;">AGORA</span>':'')+'</div>'
+        +'<div style="font-size:12px;color:rgba(255,255,255,.42);margin-top:3px;">'
+          +b.dur+' min · '+(b.ftp?(b.ftp+'% FTP'):'sem alvo')
+          +' · '+(b.rpm?(b.rpm[0]+'-'+b.rpm[1]+' rpm'):'cadência livre')
+          +(b.pos?(' · '+b.pos):'')+'</div>'
+        +(b.nota?('<div style="font-size:12.5px;color:#5db13d;margin-top:5px;line-height:1.4;">» '+b.nota+'</div>'):'')
+      +'</div></div>';
+  });
+  var l=document.getElementById('revLista');
+  if(l){ l.innerHTML=h;
+    // rola ate o bloco atual, para o aluno nao ter de procurar onde esta
+    try{ var alvo=l.children[cBloco]; if(alvo) l.scrollTop=Math.max(0,alvo.offsetTop-120); }catch(e){}
+  }
+  var ov=document.getElementById('revOverlay'); if(ov) ov.style.display='block';
+}
+function revFechar(){
+  var ov=document.getElementById('revOverlay'); if(ov) ov.style.display='none';
+}
 
 // ══ IMPORTAR TREINO DO TRAININGPEAKS ════════════════════════
 // Regra combinada: o que vier, entra. O que o TrainingPeaks nao guarda —
@@ -2674,7 +2805,11 @@ function buildActivity(){
 
 // ---- PROFILE EDIT ----
 var profEditField='';
-var profData={nome:'',email:'',peso:'',ftp:'130',sapatilha:localStorage.getItem('pr_sapatilha')||'',uniforme:localStorage.getItem('pr_uniforme')||''};
+// O FTP nascia FIXO em 130 aqui e nunca era lido do aparelho: qualquer
+// alteracao se perdia ao recarregar, e o aluno voltava a 130 sem entender.
+// Agora ele vem do mesmo pr_ftp que _ftpDoAluno() sempre procurou e que
+// ninguem gravava fora do teste de FTP.
+var profData={nome:'',email:'',peso:(localStorage.getItem('pr_peso')||''),ftp:(localStorage.getItem('pr_ftp')||'130'),sapatilha:localStorage.getItem('pr_sapatilha')||'',uniforme:localStorage.getItem('pr_uniforme')||''};
 
 function profEdit(field){
   profEditField=field;
@@ -2722,9 +2857,15 @@ function profModalSave(){
   } else if(profEditField==='peso'){
     var el=document.getElementById('profPeso'); if(el) el.textContent=val+' kg';
     profData.peso=val;
+    try{ localStorage.setItem('pr_peso', String(parseFloat(val)||0)); }catch(e){}
   } else if(profEditField==='ftp'){
     var el=document.getElementById('ftpDisplay'); if(el) el.textContent=val+' W';
     profData.ftp=val;
+    // grava no aparelho: sem isto a alteracao valia so ate recarregar o app
+    try{ localStorage.setItem('pr_ftp', String(parseInt(val)||0)); }catch(e){}
+    // e vale JA na aula em curso, se houver uma rodando
+    try{ if(typeof _ftpDaAula!=='undefined' && _ftpDaAula>0) _ftpDaAula=parseInt(val)||_ftpDaAula; }catch(e){}
+    try{ if(typeof dFtpRender==='function') dFtpRender(); }catch(e){}
   }
   // Sincronizar com servidor se logado
   if(prToken && ['nome','email','peso','ftp'].indexOf(profEditField)>-1){
@@ -4881,8 +5022,28 @@ function _reconStartFlow(){
       if(_reconCountdownTimer){ clearInterval(_reconCountdownTimer); _reconCountdownTimer=null; }
       if(_reconRetryTimer){ clearInterval(_reconRetryTimer); _reconRetryTimer=null; }
       var c=document.getElementById('reconCount'); if(c) c.textContent='—';
-      var m2=document.getElementById('reconMsg'); if(m2) m2.textContent='Não foi possível reconectar.';
+      var m2=document.getElementById('reconMsg');
+      if(m2) m2.textContent='Ainda tentando, agora mais devagar. Você pode tentar agora ou voltar ao início.';
       var b2=document.getElementById('reconRetryBtn'); if(b2) b2.style.display='inline-block';
+      // Antes, aqui tudo parava e o app ficava preso nesta tela ate ser
+      // reiniciado. Agora continua tentando de 15 em 15 segundos, em silencio,
+      // e oferece uma saida para o inicio.
+      if(!window._reconLento){
+        window._reconLento=setInterval(function(){ if(lastCode) connectQR(lastCode); }, 15000);
+      }
+      var _bs=document.getElementById('reconSairBtn');
+      if(!_bs && b2 && b2.parentNode){
+        _bs=document.createElement('button');
+        _bs.id='reconSairBtn';
+        _bs.textContent='Voltar ao início';
+        _bs.style.cssText='margin-left:10px;padding:10px 18px;background:transparent;border:1px solid rgba(255,255,255,.25);color:rgba(255,255,255,.75);border-radius:10px;font-size:13px;cursor:pointer;';
+        _bs.onclick=function(){
+          if(window._reconLento){ clearInterval(window._reconLento); window._reconLento=null; }
+          if(typeof _reconStop==='function') _reconStop();
+          try{ go('sHome'); }catch(e){}
+        };
+        b2.parentNode.appendChild(_bs);
+      }
     }
   },1000);
   // tenta reconectar a cada 4s
@@ -4890,6 +5051,7 @@ function _reconStartFlow(){
   if(lastCode) connectQR(lastCode); // tenta já
 }
 function _reconStop(){
+  if(window._reconLento){ clearInterval(window._reconLento); window._reconLento=null; }
   if(_reconRetryTimer){ clearInterval(_reconRetryTimer); _reconRetryTimer=null; }
   if(_reconCountdownTimer){ clearInterval(_reconCountdownTimer); _reconCountdownTimer=null; }
   var ov=document.getElementById('reconOverlay'); if(ov) ov.style.display='none';
@@ -4898,7 +5060,24 @@ function _reconManualRetry(){ _reconStop(); _reconStartFlow(); }
 
 // Encerramento robusto da aula no app — chamado quando o ginásio manda fim_aula/sala_encerrada.
 // Cobre os DOIS caminhos de conexão (QR e sessão) e nunca deixa a tela congelada.
+// Esquece a sala guardada e tira a faixa de voltar. Chamado quando a aula
+// acaba de verdade — por encerramento do professor ou por sala inexistente.
+// Sem isto, o aparelho continuava guardando o codigo de uma sala morta e a
+// faixa ficava apontando para ela.
+function _prEsquecerSala(motivo){
+  try{ localStorage.removeItem('pr_last_sala'); }catch(e){}
+  try{ lastCode=null; }catch(e){}
+  try{
+    var f=document.getElementById('prVoltarAula');
+    if(f) f.remove();
+    if(window._prVoltarVigia){ clearInterval(window._prVoltarVigia); window._prVoltarVigia=null; }
+  }catch(e){}
+  try{ if(typeof _reconStop==='function') _reconStop(); }catch(e){}
+  console.warn('[ProRider] sala esquecida ('+(motivo||'encerrada')+') — faixa de voltar removida.');
+}
+
 function _encerrarAulaApp(){
+  _prEsquecerSala('professor encerrou');
   var sl=document.getElementById('sLive');
   var emAula=(typeof lInt!=='undefined' && lInt) || (sl && sl.classList.contains('active'));
   if(!emAula) return;
@@ -6920,7 +7099,7 @@ updateProfileUI = function() {
          + ' fill="none" stroke="'+col(fm)+'" stroke-width="30" stroke-linecap="'+cap+'"/>';
     }
     g.innerHTML=out;
-    try{ console.log('%c[ProRider Aluno] BUILD 14/09h — caloria por watt (kJ/eficiencia) + basal Mifflin-St Jeor no cadastro + historico gravado no aparelho + FTP na gaveta + card 1080x1920 reposicionado + 6 protocolos de FTP + TSS + teste de 3 min + fator do teste de 5 min corrigido (era 1,05) + explicacao de FTP em cada teste + gaveta esconde pela propria altura + importacao de treino do TrainingPeaks (grade 2x2 na tela inicial + construtor) com tela de conferencia (botoes acima da navegacao) + corrigido: aula aberta por objeto (importada/teste FTP) agora e a que roda','color:#ea860c;font-weight:700;'); }catch(e){}
+    try{ console.log('%c[ProRider Aluno] BUILD 18/09b — caloria por watt (kJ/eficiencia) + basal Mifflin-St Jeor no cadastro + historico gravado no aparelho + FTP na gaveta + card 1080x1920 reposicionado + 6 protocolos de FTP + TSS + teste de 3 min + fator do teste de 5 min corrigido (era 1,05) + explicacao de FTP em cada teste + gaveta esconde pela propria altura + importacao de treino do TrainingPeaks (grade 2x2 na tela inicial + construtor) com tela de conferencia (botoes acima da navegacao) + corrigido: aula aberta por objeto agora e a que roda + botao Revisar o treino na gaveta + FTP e peso persistem no aparelho + gauge reequilibrado + textos do Brasil + codigo de sala normalizado (QR do navegador deixava a sala inexistente) + faixa de voltar corrigida + reconexao nao trava mais + sala encerrada ou inexistente limpa o codigo guardado e a faixa de voltar','color:#ea860c;font-weight:700;'); }catch(e){}
   }
   if(document.readyState!=='loading') buildGaugeArc();
   else document.addEventListener('DOMContentLoaded', buildGaugeArc);
@@ -6931,6 +7110,12 @@ updateProfileUI = function() {
   function _prVoltarInit(){
     var s; try{ s=JSON.parse(localStorage.getItem('pr_last_sala')||'null'); }catch(e){ s=null; }
     if(!s || !s.code) return;
+    // so com codigo de sala de verdade. Guardar uma URL aqui era o que fazia a
+    // faixa aparecer com o endereco inteiro escrito.
+    if(!/^PR-[A-Z0-9]{4}-[A-Z0-9]{4}$/i.test(String(s.code))){
+      try{ localStorage.removeItem('pr_last_sala'); }catch(e){}
+      return;
+    }
     if(Date.now()-(s.ts||0) > 90*60*1000) return; // ignora sessão de mais de 90 min
     if(document.getElementById('prVoltarAula')) return;
     var b=document.createElement('div');
@@ -6943,6 +7128,16 @@ updateProfileUI = function() {
       try{ connectQR(s.code); }catch(e){}
     };
     document.body.appendChild(b);
+
+    // A faixa e fixa sobre tudo: durante a aula ela tapava a tela. Some quando
+    // a tela ao vivo esta aberta e volta quando sai dela.
+    clearInterval(window._prVoltarVigia);
+    window._prVoltarVigia=setInterval(function(){
+      var f=document.getElementById('prVoltarAula'); if(!f){ clearInterval(window._prVoltarVigia); return; }
+      var live=document.getElementById('sLive');
+      var emAula = live && live.offsetParent !== null;
+      f.style.display = emAula ? 'none' : 'flex';
+    },600);
   }
   if(document.readyState!=='loading') _prVoltarInit();
   else document.addEventListener('DOMContentLoaded', _prVoltarInit);
@@ -7002,8 +7197,8 @@ updateProfileUI = function() {
   <div style="padding:20px 18px;display:flex;align-items:center;gap:14px;">
     <button onclick="openQRScan()" style="width:38px;height:38px;border-radius:50%;background:rgba(255,255,255,.08);border:none;color:rgba(255,255,255,.5);font-size:18px;cursor:pointer;">&#8592;</button>
     <div>
-      <div style="font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:2px;color:#fff;">Qual é a tua bike?</div>
-      <div style="font-size:12px;color:rgba(255,255,255,.35);">Toca no número da bike onde estás</div>
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:2px;color:#fff;">Qual é a sua bike?</div>
+      <div style="font-size:12px;color:rgba(255,255,255,.35);">Toque no número da bike onde você está</div>
     </div>
   </div>
   <div style="padding:0 20px 30px;">
@@ -7039,7 +7234,7 @@ updateProfileUI = function() {
         <img id="obFotoPreview" alt="" style="display:none;width:100%;height:100%;object-fit:cover;"/>
         <span id="obFotoIcon" style="font-size:30px;color:rgba(255,255,255,.4);">&#128247;</span>
       </div>
-      <div style="font-size:11px;color:rgba(255,255,255,.25);margin-bottom:22px;">Foto (opcional) — aparece ao lado do teu nome na sala</div>
+      <div style="font-size:11px;color:rgba(255,255,255,.25);margin-bottom:22px;">Foto (opcional) — aparece ao lado do seu nome na sala</div>
       <input id="obNome" type="text" placeholder="Seu nome" maxlength="30" oninput="obValidateStep()" style="width:100%;padding:16px 18px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);border-radius:14px;color:#fff;font-size:17px;text-align:center;outline:none;-webkit-appearance:none;"/>
     </div>
 
