@@ -255,7 +255,38 @@ async function runMigrations() {
       ALTER TABLE aulas_agenda
         ADD COLUMN IF NOT EXISTS modo_inicio TEXT DEFAULT 'professor'
     `);
+    // janela_reserva: quantas HORAS antes da aula a reserva abre.
+    //   NULL = sem limite (reserva sempre aberta, aula não exige reserva)
+    // cor: cor da aula na grade, escolhida numa paleta pelo gestor. Ela aparece
+    //   também na tela inicial do Ginásio, por isso fica guardada aqui.
+    await db.query(`
+      ALTER TABLE aulas_agenda
+        ADD COLUMN IF NOT EXISTS janela_reserva SMALLINT,
+        ADD COLUMN IF NOT EXISTS cor TEXT
+    `);
     log('Migração aulas_agenda OK');
+
+    // ── Colunas de 14/09, agora aplicadas pelo próprio servidor ────
+    // Estavam num migration_14-09.sql que dependia de alguém rodar à mão e
+    // ficou parado. Como o servidor já se migra sozinho no arranque, não há
+    // motivo para depender disso: ADD COLUMN IF NOT EXISTS é inofensivo se as
+    // colunas já existirem, e resolve de vez se não existirem.
+    await db.query(`
+      ALTER TABLE users
+        ADD COLUMN IF NOT EXISTS peso   NUMERIC(5,2) DEFAULT 70,
+        ADD COLUMN IF NOT EXISTS ftp    SMALLINT     DEFAULT 130,
+        ADD COLUMN IF NOT EXISTS altura SMALLINT,
+        ADD COLUMN IF NOT EXISTS idade  SMALLINT,
+        ADD COLUMN IF NOT EXISTS sexo   CHAR(1),
+        ADD COLUMN IF NOT EXISTS tmb    SMALLINT
+    `);
+    await db.query(`
+      ALTER TABLE aulas_completadas
+        ADD COLUMN IF NOT EXISTS watts_med SMALLINT DEFAULT 0,
+        ADD COLUMN IF NOT EXISTS kcal      SMALLINT DEFAULT 0,
+        ADD COLUMN IF NOT EXISTS rpm_medio SMALLINT DEFAULT 0
+    `);
+    log('Migração 14/09 (dados físicos + medições) OK');
 
     // ── Reservas de aulas ─────────────────────────────────────────
     await db.query(`
@@ -982,6 +1013,9 @@ const wss    = new WebSocket.Server({ server });
 
 wss.on('connection', (ws) => {
   ws._salaCode = null; ws._tipo = null; ws._nome = null;
+  // batimento: marcado vivo ao conectar e a cada resposta de ping
+  ws.isAlive = true;
+  ws.on('pong', () => { ws.isAlive = true; });
 
   ws.on('message', async (raw) => {
     let msg;
@@ -2169,7 +2203,7 @@ app.get('/gestor/agenda', gestorAuth, async (req, res) => {
 // Criar aula na grade
 app.post('/gestor/agenda', gestorAuth, async (req, res) => {
   if (!db) return res.status(503).json({ error: 'Banco indisponível' });
-  const { nome, professor_nome, dia_semana, hora, duracao_min, vagas_max, sala, modo_inicio } = req.body;
+  const { nome, professor_nome, dia_semana, hora, duracao_min, vagas_max, sala, modo_inicio, janela_reserva, cor } = req.body;
   if (!nome || dia_semana === undefined || !hora)
     return res.status(400).json({ error: 'nome, dia_semana e hora obrigatórios' });
   try {
@@ -2185,10 +2219,13 @@ app.post('/gestor/agenda', gestorAuth, async (req, res) => {
         error: `A sala tem ${teto} bikes disponíveis no momento. Você não pode configurar mais vagas do que isso.`
       });
     const modoValido = ['automatico','professor'].includes(modo_inicio) ? modo_inicio : 'professor';
+    // janela_reserva em horas; vazio ou 0 = sem limite (guardado como NULL)
+    const janela = (janela_reserva === '' || janela_reserva === null || janela_reserva === undefined)
+      ? null : (parseInt(janela_reserva) || null);
     const r = await db.query(`
-      INSERT INTO aulas_agenda (license_id, nome, professor_nome, dia_semana, hora, duracao_min, vagas_max, sala, cidade, modo_inicio)
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING *
-    `, [req.user.license_id, nome, professor_nome||null, dia_semana, hora, duracao_min||50, vagasSolicitadas, sala||null, cidade, modoValido]);
+      INSERT INTO aulas_agenda (license_id, nome, professor_nome, dia_semana, hora, duracao_min, vagas_max, sala, cidade, modo_inicio, janela_reserva, cor)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) RETURNING *
+    `, [req.user.license_id, nome, professor_nome||null, dia_semana, hora, duracao_min||50, vagasSolicitadas, sala||null, cidade, modoValido, janela, cor||null]);
     res.json(r.rows[0]);
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
@@ -2350,8 +2387,27 @@ app.post('/aluno/reservar', authMiddleware, async (req, res) => {
   if (!agenda_id || !data_aula) return res.status(400).json({ error: 'agenda_id e data_aula obrigatórios' });
   try {
     // verificar vagas
-    const aula = await db.query('SELECT vagas_max FROM aulas_agenda WHERE id=$1 AND ativa=TRUE', [agenda_id]);
+    const aula = await db.query('SELECT vagas_max, hora, janela_reserva, nome FROM aulas_agenda WHERE id=$1 AND ativa=TRUE', [agenda_id]);
     if (!aula.rows.length) return res.status(404).json({ error: 'Aula não encontrada' });
+
+    // ── Janela de reserva ──────────────────────────────────────
+    // O gestor define, POR AULA, quantas horas antes a reserva abre.
+    // NULL = sem limite: reserva sempre aberta.
+    const janela = aula.rows[0].janela_reserva;
+    if (janela !== null && janela !== undefined) {
+      const inicioAula = new Date(String(data_aula) + 'T' + String(aula.rows[0].hora));
+      const abreEm = new Date(inicioAula.getTime() - janela * 3600 * 1000);
+      const agora  = new Date();
+      if (agora < abreEm) {
+        return res.status(425).json({
+          error: 'A reserva desta aula abre ' + janela + 'h antes, a partir de '
+               + abreEm.toLocaleString('pt-BR', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' }) + '.'
+        });
+      }
+      if (agora > inicioAula) {
+        return res.status(425).json({ error: 'Esta aula já começou.' });
+      }
+    }
     const confirmados = await db.query(
       "SELECT COUNT(*) FROM aulas_reservas WHERE agenda_id=$1 AND data_aula=$2 AND status<>'cancelado'",
       [agenda_id, data_aula]
@@ -3131,12 +3187,40 @@ app.get('/gestor/relatorio', gestorAuth, async (req, res) => {
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
-// Limpeza de salas inativas
+// ── Limpeza de salas inativas, COM CARÊNCIA ────────────────────────
+// Antes a sala era apagada assim que o professor caía, se não houvesse aluno
+// conectado. Uma queda de poucos segundos — e elas acontecem: proxy, wi-fi,
+// suspensão de rede — destruía a sala. O aluno que escaneasse o QR nesse
+// intervalo recebia "Sala não encontrada", e o código na tela do Ginásio já não
+// valia mais. Agora a sala só é removida depois de 3 MINUTOS sem professor.
+const CARENCIA_SALA_MS = 3 * 60 * 1000;
 setInterval(() => {
+  const agora = Date.now();
   for (const [codigo, sala] of Object.entries(salas)) {
     const profOk = sala.professor && sala.professor.readyState === WebSocket.OPEN;
-    if (!profOk && sala.alunos.size === 0) { delete salas[codigo]; log(`Sala removida: ${codigo}`); }
+    if (profOk) { sala.profCaiuEm = null; continue; }
+    if (sala.alunos.size > 0) { sala.profCaiuEm = null; continue; }
+    if (!sala.profCaiuEm) { sala.profCaiuEm = agora; continue; }   // começa a contar
+    if (agora - sala.profCaiuEm >= CARENCIA_SALA_MS) {
+      delete salas[codigo];
+      log(`Sala removida apos ${Math.round((agora - sala.profCaiuEm)/1000)}s sem professor: ${codigo}`);
+    }
   }
+}, 30000);
+
+// ── Batimento do servidor ──────────────────────────────────────────
+// Duas funções: detectar conexões mortas (o socket pode ficar "aberto" para
+// sempre quando a rede some sem avisar) e gerar tráfego que impede o proxy do
+// Railway de derrubar a conexão por ociosidade — que é a causa mais provável
+// do "servidor caiu" repetido fora da aula.
+setInterval(() => {
+  try {
+    wss.clients.forEach((ws) => {
+      if (ws.isAlive === false) { try { ws.terminate(); } catch(e) {} return; }
+      ws.isAlive = false;
+      try { ws.ping(); } catch(e) {}
+    });
+  } catch(e) {}
 }, 30000);
 
 // ══════════════════════════════════════════════════════════════
