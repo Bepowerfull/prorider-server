@@ -1197,9 +1197,19 @@ wss.on('connection', (ws) => {
     if (!salaCode || !salas[salaCode]) return;
     const sala = salas[salaCode];
     if (ws._tipo === 'professor') {
-      log(`Professor saiu da sala ${salaCode}`);
-      broadcastAlunos(salaCode, { tipo: 'sala_encerrada' });
-      delete salas[salaCode];
+      // ── QUEDA DO PROFESSOR NAO ENCERRA A SALA ────────────────────
+      // Antes, qualquer fechamento da conexao do professor apagava a sala NA
+      // HORA e avisava os alunos que ela tinha acabado. Uma queda de poucos
+      // segundos — proxy, wi-fi, rede suspendendo — destruia a aula em curso.
+      // Era ESTE o caminho por tras do "Sala nao encontrada"; a carencia que eu
+      // tinha posto na limpeza periodica nao cobria ele.
+      // Agora a queda apenas marca a hora. Quem decide apagar e a limpeza
+      // periodica, depois de 3 minutos sem professor — e e ela que avisa os
+      // alunos. Se o professor voltar antes disso, ninguem percebe nada.
+      // Encerramento DELIBERADO continua imediato: vem pela mensagem
+      // 'fim_aula', tratada acima, nao por aqui.
+      log(`Professor caiu da sala ${salaCode} — aguardando ate 3 min antes de encerrar`);
+      sala.profCaiuEm = Date.now();
     } else if (ws._tipo === 'aluno' && ws._nome) {
       sala.alunos.delete(ws._nome);
       log(`Aluno saiu: ${ws._nome}`);
@@ -3202,6 +3212,9 @@ setInterval(() => {
     if (sala.alunos.size > 0) { sala.profCaiuEm = null; continue; }
     if (!sala.profCaiuEm) { sala.profCaiuEm = agora; continue; }   // começa a contar
     if (agora - sala.profCaiuEm >= CARENCIA_SALA_MS) {
+      // avisa quem ainda estiver na sala ANTES de apaga-la, para o app do aluno
+      // poder limpar o codigo guardado e nao tentar voltar para uma sala morta
+      try { broadcastAlunos(codigo, { tipo: 'sala_encerrada' }); } catch(e) {}
       delete salas[codigo];
       log(`Sala removida apos ${Math.round((agora - sala.profCaiuEm)/1000)}s sem professor: ${codigo}`);
     }
