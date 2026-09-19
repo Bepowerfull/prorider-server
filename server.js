@@ -280,22 +280,41 @@ async function runMigrations() {
         ADD COLUMN IF NOT EXISTS sexo   CHAR(1),
         ADD COLUMN IF NOT EXISTS tmb    SMALLINT
     `);
+    // ── A TABELA PRIMEIRO, SEMPRE ────────────────────────────────
+    // ERRO MEU, de 16/09: acrescentei o ALTER TABLE abaixo sem garantir que a
+    // tabela existia. Num banco onde aulas_completadas nunca tinha sido criada,
+    // o PostgreSQL recusava, o processo morria e o Railway reiniciava — em
+    // ciclo, a noite inteira e durante as duas aulas de 19/09. Foi isto que
+    // derrubou os 13 alunos: nao era volume de mensagens nem memoria.
+    // CREATE TABLE IF NOT EXISTS e inofensivo se a tabela ja existir.
     await db.query(`
       CREATE TABLE IF NOT EXISTS aulas_completadas (
-        id                  SERIAL PRIMARY KEY,
-        user_id             INTEGER REFERENCES users(id) ON DELETE CASCADE,
-        aula_nome           TEXT,
-        duracao_sec         INTEGER DEFAULT 0,
-        pontos              INTEGER DEFAULT 0,
-        zona_predominante   TEXT,
+        id                SERIAL PRIMARY KEY,
+        user_id           INTEGER REFERENCES users(id) ON DELETE CASCADE,
+        aula_nome         TEXT,
+        duracao_sec       INTEGER DEFAULT 0,
+        pontos            INTEGER DEFAULT 0,
+        zona_predominante TEXT,
         z1_pct SMALLINT DEFAULT 0, z2_pct SMALLINT DEFAULT 0,
         z3_pct SMALLINT DEFAULT 0, z4_pct SMALLINT DEFAULT 0,
         z5_pct SMALLINT DEFAULT 0, z6_pct SMALLINT DEFAULT 0,
         z7_pct SMALLINT DEFAULT 0,
-        watts_med           SMALLINT DEFAULT 0,
-        kcal                SMALLINT DEFAULT 0,
-        rpm_medio           SMALLINT DEFAULT 0,
-        completed_at        TIMESTAMPTZ DEFAULT NOW()
+        watts_med         SMALLINT DEFAULT 0,
+        kcal              SMALLINT DEFAULT 0,
+        rpm_medio         SMALLINT DEFAULT 0,
+        completed_at      TIMESTAMPTZ DEFAULT NOW()
+      )
+    `);
+    // shared_aulas: mesma falta, apontada pelo dev. Nao derrubava o servidor,
+    // mas enchia o log de erro a cada limpeza horaria.
+    await db.query(`
+      CREATE TABLE IF NOT EXISTS shared_aulas (
+        id          SERIAL PRIMARY KEY,
+        share_id    TEXT UNIQUE NOT NULL,
+        aula_json   TEXT NOT NULL,
+        created_by  INTEGER REFERENCES users(id) ON DELETE SET NULL,
+        expires_at  TIMESTAMPTZ NOT NULL,
+        created_at  TIMESTAMPTZ DEFAULT NOW()
       )
     `);
     await db.query(`
@@ -304,19 +323,7 @@ async function runMigrations() {
         ADD COLUMN IF NOT EXISTS kcal      SMALLINT DEFAULT 0,
         ADD COLUMN IF NOT EXISTS rpm_medio SMALLINT DEFAULT 0
     `);
-    log('Migração aulas_completadas OK');
-
-    await db.query(`
-      CREATE TABLE IF NOT EXISTS shared_aulas (
-        id         SERIAL PRIMARY KEY,
-        share_id   TEXT UNIQUE NOT NULL,
-        aula_json  TEXT NOT NULL,
-        created_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
-        expires_at TIMESTAMPTZ NOT NULL,
-        created_at TIMESTAMPTZ DEFAULT NOW()
-      )
-    `);
-    log('Migração shared_aulas OK');
+    log('Migração 14/09 (dados físicos + medições) OK');
 
     // ── Reservas de aulas ─────────────────────────────────────────
     await db.query(`
