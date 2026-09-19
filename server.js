@@ -1066,7 +1066,7 @@ wss.on('connection', (ws) => {
         ws._salaCode = codigo; ws._tipo = 'aluno'; ws._nome = nome;
         log(`Aluno entrou: ${nome} na sala ${codigo}`);
         if (sala.professor && sala.professor.readyState === WebSocket.OPEN) {
-          sala.professor.send(JSON.stringify({ tipo: 'aluno_conectou', nome, bike: bike || null, foto: msg.foto || null, horario: new Date().toLocaleTimeString('pt-BR') }));
+          sala.professor.send(JSON.stringify({ tipo: 'aluno_conectou', nome, bike: bike || null, foto: msg.foto || null, ftpBase: (msg.ftpBase != null ? msg.ftpBase : null), horario: new Date().toLocaleTimeString('pt-BR') }));
         }
         ws.send(JSON.stringify({ tipo: 'conectado', codigo, nome }));
         ws.send(JSON.stringify({ tipo: 'entrou_sala', codigo, nome }));

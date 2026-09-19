@@ -2188,7 +2188,7 @@ function connectQR(code){
     return;
   }
   lastCode=code;
-  // pr_last_sala e gravado so apos confirmacao do servidor (tipo:'conectado')
+  try{ localStorage.setItem('pr_last_sala', JSON.stringify({code:code, bike:_bikeSelNum||0, ts:Date.now()})); }catch(e){}
   // Se já está conectado, vai direto para sLive
   if(wsConn && wsConn.readyState===1){ go('sLive'); return; }
   var statusEl=document.getElementById('qrStatus');
@@ -2200,7 +2200,15 @@ function connectQR(code){
       var nomeVal=(nome&&nome.textContent.trim()&&nome.textContent.trim()!=='—')?nome.textContent.trim():(localStorage.getItem('pr_nome')||'Aluno');
       if(_bikeSelNum){
         // Já escolheu a bike (ou reconexão durante a aula) → entra como participante
-        wsConn.send(JSON.stringify({tipo:'entrar_sala',codigo:code,nome:nomeVal,bike:_bikeSelNum,foto:(localStorage.getItem('pr_foto')||null)}));
+        // ── FTP VAI JUNTO ──────────────────────────────────────────
+        // Ate agora o app mandava apenas codigo, nome, bike e foto. O FTP nunca
+        // saia do celular, entao o Ginasio ficava com o padrao de 150 para todo
+        // mundo — e a %FTP e a zona de cada aluno saiam erradas.
+        var _meuFtp = 0;
+        try{ _meuFtp = parseInt(_ftpDoAluno(),10) || 0; }catch(e){}
+        wsConn.send(JSON.stringify({tipo:'entrar_sala',codigo:code,nome:nomeVal,bike:_bikeSelNum,
+          foto:(localStorage.getItem('pr_foto')||null),
+          ftpBase:(_meuFtp>0?_meuFtp:null)}));
       } else {
         // Primeiro contato: observa o mapa da sala ao vivo e mostra a tela de seleção
         wsConn.send(JSON.stringify({tipo:'assinar_sala',codigo:code}));
@@ -2258,7 +2266,6 @@ function connectQR(code){
         if(window._bikeJoinTimer){ clearTimeout(window._bikeJoinTimer); window._bikeJoinTimer=null; }
         if(typeof _reconStop==='function') _reconStop();
         if(statusEl){statusEl.textContent='Conectado!';statusEl.style.color='#5db13d';}
-        try{ localStorage.setItem('pr_last_sala', JSON.stringify({code:lastCode, bike:_bikeSelNum||0, ts:Date.now()})); }catch(e){}
         // Para câmera se estiver ativa
         pararCamera();
         // Navega para sLive com pequeno delay para iOS processar
@@ -5096,7 +5103,6 @@ function _encerrarAulaApp(){
 function quitW(){
   // 1. Parar timer da aula
   clearInterval(lInt); lInt=null;
-  _prEsquecerSala('aula concluida');
   _releaseWakeLock();
   // 2. Parar ping WebSocket e fechar conexão limpa
   clearInterval(wsAlunoPing); wsAlunoPing=null;
@@ -7126,7 +7132,6 @@ updateProfileUI = function() {
     b.innerHTML='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg> VOLTAR PRA ÚLTIMA AULA ('+s.code+')';
     b.onclick=function(){
       try{ lastCode=s.code; if(s.bike) _bikeSelNum=s.bike; }catch(e){}
-      try{ localStorage.removeItem('pr_last_sala'); }catch(e){}
       try{ b.remove(); }catch(e){}
       try{ connectQR(s.code); }catch(e){}
     };
@@ -7141,22 +7146,6 @@ updateProfileUI = function() {
       var emAula = live && live.offsetParent !== null;
       f.style.display = emAula ? 'none' : 'flex';
     },600);
-
-    // Verifica silenciosamente se a sala ainda existe. Se nao, limpa e some.
-    try{
-      var _chkWs=new WebSocket(SERVER_URL);
-      _chkWs.onopen=function(){ _chkWs.send(JSON.stringify({tipo:'assinar_sala',codigo:s.code})); };
-      _chkWs.onmessage=function(ev){
-        try{
-          var d=JSON.parse(ev.data);
-          if(d.tipo==='erro' && /n[aã]o encontrada|inexistente|encerrada/i.test(String(d.msg||''))){
-            _prEsquecerSala('sala verificada: nao existe');
-          }
-        }catch(e){}
-        try{ _chkWs.close(); }catch(e){}
-      };
-      setTimeout(function(){ try{ _chkWs.close(); }catch(e){} }, 5000);
-    }catch(e){}
   }
   if(document.readyState!=='loading') _prVoltarInit();
   else document.addEventListener('DOMContentLoaded', _prVoltarInit);
