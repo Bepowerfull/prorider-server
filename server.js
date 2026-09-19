@@ -281,12 +281,30 @@ async function runMigrations() {
         ADD COLUMN IF NOT EXISTS tmb    SMALLINT
     `);
     await db.query(`
+      CREATE TABLE IF NOT EXISTS aulas_completadas (
+        id                  SERIAL PRIMARY KEY,
+        user_id             INTEGER REFERENCES users(id) ON DELETE CASCADE,
+        aula_nome           TEXT,
+        duracao_sec         INTEGER DEFAULT 0,
+        pontos              INTEGER DEFAULT 0,
+        zona_predominante   TEXT,
+        z1_pct SMALLINT DEFAULT 0, z2_pct SMALLINT DEFAULT 0,
+        z3_pct SMALLINT DEFAULT 0, z4_pct SMALLINT DEFAULT 0,
+        z5_pct SMALLINT DEFAULT 0, z6_pct SMALLINT DEFAULT 0,
+        z7_pct SMALLINT DEFAULT 0,
+        watts_med           SMALLINT DEFAULT 0,
+        kcal                SMALLINT DEFAULT 0,
+        rpm_medio           SMALLINT DEFAULT 0,
+        completed_at        TIMESTAMPTZ DEFAULT NOW()
+      )
+    `);
+    await db.query(`
       ALTER TABLE aulas_completadas
         ADD COLUMN IF NOT EXISTS watts_med SMALLINT DEFAULT 0,
         ADD COLUMN IF NOT EXISTS kcal      SMALLINT DEFAULT 0,
         ADD COLUMN IF NOT EXISTS rpm_medio SMALLINT DEFAULT 0
     `);
-    log('Migração 14/09 (dados físicos + medições) OK');
+    log('Migração aulas_completadas OK');
 
     // ── Reservas de aulas ─────────────────────────────────────────
     await db.query(`
