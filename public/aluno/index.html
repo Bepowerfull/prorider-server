@@ -2188,7 +2188,7 @@ function connectQR(code){
     return;
   }
   lastCode=code;
-  try{ localStorage.setItem('pr_last_sala', JSON.stringify({code:code, bike:_bikeSelNum||0, ts:Date.now()})); }catch(e){}
+  // pr_last_sala e gravado so apos confirmacao do servidor (tipo:'conectado')
   // Se já está conectado, vai direto para sLive
   if(wsConn && wsConn.readyState===1){ go('sLive'); return; }
   var statusEl=document.getElementById('qrStatus');
@@ -2258,6 +2258,7 @@ function connectQR(code){
         if(window._bikeJoinTimer){ clearTimeout(window._bikeJoinTimer); window._bikeJoinTimer=null; }
         if(typeof _reconStop==='function') _reconStop();
         if(statusEl){statusEl.textContent='Conectado!';statusEl.style.color='#5db13d';}
+        try{ localStorage.setItem('pr_last_sala', JSON.stringify({code:lastCode, bike:_bikeSelNum||0, ts:Date.now()})); }catch(e){}
         // Para câmera se estiver ativa
         pararCamera();
         // Navega para sLive com pequeno delay para iOS processar
