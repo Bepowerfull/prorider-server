@@ -306,6 +306,18 @@ async function runMigrations() {
     `);
     log('Migração aulas_completadas OK');
 
+    await db.query(`
+      CREATE TABLE IF NOT EXISTS shared_aulas (
+        id         SERIAL PRIMARY KEY,
+        share_id   TEXT UNIQUE NOT NULL,
+        aula_json  TEXT NOT NULL,
+        created_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+        expires_at TIMESTAMPTZ NOT NULL,
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      )
+    `);
+    log('Migração shared_aulas OK');
+
     // ── Reservas de aulas ─────────────────────────────────────────
     await db.query(`
       CREATE TABLE IF NOT EXISTS aulas_reservas (
