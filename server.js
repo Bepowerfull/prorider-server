@@ -1742,7 +1742,7 @@ function gestorAuth(req, res, next) {
   if (!token) return res.status(401).json({ error: 'Token necessário' });
   try {
     const p = jwt.verify(token, JWT_SECRET);
-    if (p.role !== 'gestor' && p.role !== 'admin') return res.status(403).json({ error: 'Acesso negado' });
+    if (!['gestor','admin','super_admin'].includes(p.role)) return res.status(403).json({ error: 'Acesso negado' });
     req.user = p;
     next();
   } catch(e) { res.status(401).json({ error: 'Token inválido' }); }
