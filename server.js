@@ -2460,24 +2460,28 @@ app.get('/gestor/professores', gestorAuth, async (req, res) => {
 });
 
 // Adicionar professor à licença (por e-mail — a conta já deve existir com role=professor)
+// super_admin pode especificar license_id no body; gestor usa o próprio
 app.post('/gestor/professores', gestorAuth, async (req, res) => {
   if (!db) return res.status(503).json({ error: 'Banco indisponível' });
-  const { email } = req.body;
+  const { email, license_id: licBody } = req.body;
   if (!email) return res.status(400).json({ error: 'email obrigatório' });
+  const licenseId = licBody || req.user.license_id;
+  if (!licenseId) return res.status(400).json({ error: 'license_id obrigatório' });
   try {
     const u = await db.query(
       "SELECT id, name, role FROM users WHERE email=$1",
       [email.toLowerCase()]
     );
     if (!u.rows.length) return res.status(404).json({ error: 'Utilizador não encontrado' });
-    if (u.rows[0].role !== 'professor')
+    // super_admin pode adicionar-se a si próprio mesmo sem role=professor
+    if (u.rows[0].role !== 'professor' && req.user.role !== 'super_admin')
       return res.status(400).json({ error: 'O utilizador não tem papel de professor' });
     const r = await db.query(`
       INSERT INTO professor_licencas (user_id, license_id, liberado_por)
       VALUES ($1, $2, $3)
       ON CONFLICT (user_id, license_id) DO NOTHING
       RETURNING *
-    `, [u.rows[0].id, req.user.license_id, req.user.id]);
+    `, [u.rows[0].id, licenseId, req.user.id]);
     res.json({ ok: true, user: u.rows[0], ja_existia: r.rows.length === 0 });
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
