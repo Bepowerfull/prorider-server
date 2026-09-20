@@ -325,6 +325,23 @@ async function runMigrations() {
     `);
     log('Migração 14/09 (dados físicos + medições) OK');
 
+    // ── Acesso de professor a licenças (multi-unidade) ────────────
+    await db.query(`
+      CREATE TABLE IF NOT EXISTS professor_licencas (
+        id           SERIAL PRIMARY KEY,
+        user_id      INTEGER REFERENCES users(id) ON DELETE CASCADE,
+        license_id   TEXT NOT NULL,
+        liberado_por INTEGER REFERENCES users(id) ON DELETE SET NULL,
+        created_at   TIMESTAMPTZ DEFAULT NOW(),
+        UNIQUE(user_id, license_id)
+      )
+    `);
+    await db.query(`
+      ALTER TABLE professor_licencas
+        ADD COLUMN IF NOT EXISTS liberado_por INTEGER REFERENCES users(id) ON DELETE SET NULL
+    `);
+    log('Migração professor_licencas OK');
+
     // ── Reservas de aulas ─────────────────────────────────────────
     await db.query(`
       CREATE TABLE IF NOT EXISTS aulas_reservas (
@@ -1744,6 +1761,18 @@ function professorAuth(req, res, next) {
   } catch(e) { res.status(401).json({ error: 'Token inválido' }); }
 }
 
+// Verifica se professor tem acesso à licença indicada.
+// Gestor/admin/super_admin passam sempre (usam license_id do próprio token).
+async function temAcessoLicenca(user, licenseId) {
+  if (['gestor','admin','super_admin'].includes(user.role)) return true;
+  if (!db) return false;
+  const r = await db.query(
+    'SELECT 1 FROM professor_licencas WHERE user_id=$1 AND license_id=$2',
+    [user.id, licenseId]
+  );
+  return r.rows.length > 0;
+}
+
 // Alunos da licença do gestor
 app.get('/gestor/alunos', gestorAuth, async (req, res) => {
   if (!db) return res.status(503).json({ error: 'Banco indisponível' });
@@ -2354,16 +2383,18 @@ app.get('/gestor/agenda/:id/reservas', professorAuth, async (req, res) => {
   if (!db) return res.status(503).json({ error: 'Banco indisponível' });
   const data = req.query.data || new Date().toISOString().split('T')[0];
   try {
+    const aula = await db.query('SELECT vagas_max, license_id FROM aulas_agenda WHERE id=$1', [req.params.id]);
+    if (!aula.rows.length) return res.status(404).json({ error: 'Aula não encontrada' });
+    if (!await temAcessoLicenca(req.user, aula.rows[0].license_id))
+      return res.status(403).json({ error: 'Sem acesso a esta unidade' });
     const r = await db.query(`
-      SELECT r.id, r.status, r.created_at, u.id as user_id, u.name, u.email, u.ftp
+      SELECT r.id, r.status, r.bike_numero, r.created_at, u.id as user_id, u.name, u.email, u.ftp
       FROM aulas_reservas r
       JOIN users u ON u.id=r.user_id
       WHERE r.agenda_id=$1 AND r.data_aula=$2
       ORDER BY r.created_at
     `, [req.params.id, data]);
-    // contar vagas
-    const aula = await db.query('SELECT vagas_max FROM aulas_agenda WHERE id=$1', [req.params.id]);
-    const vagas_max = aula.rows[0]?.vagas_max || 20;
+    const vagas_max = aula.rows[0].vagas_max || 20;
     const confirmados = r.rows.filter(x => x.status !== 'cancelado').length;
     res.json({ reservas: r.rows, vagas_max, confirmados, vagas_livres: vagas_max - confirmados });
   } catch(e) { res.status(500).json({ error: e.message }); }
@@ -2376,6 +2407,13 @@ app.put('/gestor/reservas/:id/status', professorAuth, async (req, res) => {
   if (!['presente','ausente','cancelado','reservado'].includes(status))
     return res.status(400).json({ error: 'Status inválido' });
   try {
+    const licR = await db.query(
+      'SELECT a.license_id FROM aulas_reservas r JOIN aulas_agenda a ON a.id=r.agenda_id WHERE r.id=$1',
+      [req.params.id]
+    );
+    if (!licR.rows.length) return res.status(404).json({ error: 'Reserva não encontrada' });
+    if (!await temAcessoLicenca(req.user, licR.rows[0].license_id))
+      return res.status(403).json({ error: 'Sem acesso a esta unidade' });
     const r = await db.query(
       'UPDATE aulas_reservas SET status=$1 WHERE id=$2 RETURNING *',
       [status, req.params.id]
@@ -2397,6 +2435,77 @@ app.post('/gestor/agenda/:id/walkin', gestorAuth, async (req, res) => {
       RETURNING *
     `, [req.params.id, user_id, dataAula]);
     res.json(r.rows[0]);
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// ══════════════════════════════════════════════════════════════
+// GESTÃO DE PROFESSORES POR LICENÇA
+// ══════════════════════════════════════════════════════════════
+
+// Listar professores com acesso à licença do gestor
+app.get('/gestor/professores', gestorAuth, async (req, res) => {
+  if (!db) return res.status(503).json({ error: 'Banco indisponível' });
+  try {
+    const r = await db.query(`
+      SELECT pl.id, pl.created_at, u.id as user_id, u.name, u.email,
+             lb.name as liberado_por_nome
+      FROM professor_licencas pl
+      JOIN users u ON u.id = pl.user_id
+      LEFT JOIN users lb ON lb.id = pl.liberado_por
+      WHERE pl.license_id = $1
+      ORDER BY pl.created_at
+    `, [req.user.license_id]);
+    res.json(r.rows);
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// Adicionar professor à licença (por e-mail — a conta já deve existir com role=professor)
+app.post('/gestor/professores', gestorAuth, async (req, res) => {
+  if (!db) return res.status(503).json({ error: 'Banco indisponível' });
+  const { email } = req.body;
+  if (!email) return res.status(400).json({ error: 'email obrigatório' });
+  try {
+    const u = await db.query(
+      "SELECT id, name, role FROM users WHERE email=$1",
+      [email.toLowerCase()]
+    );
+    if (!u.rows.length) return res.status(404).json({ error: 'Utilizador não encontrado' });
+    if (u.rows[0].role !== 'professor')
+      return res.status(400).json({ error: 'O utilizador não tem papel de professor' });
+    const r = await db.query(`
+      INSERT INTO professor_licencas (user_id, license_id, liberado_por)
+      VALUES ($1, $2, $3)
+      ON CONFLICT (user_id, license_id) DO NOTHING
+      RETURNING *
+    `, [u.rows[0].id, req.user.license_id, req.user.id]);
+    res.json({ ok: true, user: u.rows[0], ja_existia: r.rows.length === 0 });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// Remover professor da licença (histórico de aulas preservado)
+app.delete('/gestor/professores/:userId', gestorAuth, async (req, res) => {
+  if (!db) return res.status(503).json({ error: 'Banco indisponível' });
+  try {
+    await db.query(
+      'DELETE FROM professor_licencas WHERE user_id=$1 AND license_id=$2',
+      [req.params.userId, req.user.license_id]
+    );
+    res.json({ ok: true });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// ── Professor: listar as licenças onde tem acesso ──────────────
+app.get('/professor/licencas', professorAuth, async (req, res) => {
+  if (!db) return res.status(503).json({ error: 'Banco indisponível' });
+  try {
+    const r = await db.query(`
+      SELECT l.codigo, l.nome, l.plano, pl.created_at as acesso_desde
+      FROM professor_licencas pl
+      JOIN licencas l ON l.codigo = pl.license_id
+      WHERE pl.user_id = $1
+      ORDER BY pl.created_at
+    `, [req.user.id]);
+    res.json(r.rows);
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
