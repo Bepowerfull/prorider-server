@@ -337,6 +337,10 @@ async function runMigrations() {
         UNIQUE(agenda_id, user_id, data_aula)
       )
     `);
+    await db.query(`
+      ALTER TABLE aulas_reservas
+        ADD COLUMN IF NOT EXISTS bike_numero SMALLINT
+    `);
     log('Migração aulas_reservas OK');
 
     // ── Sessões ao vivo (ProRider Jim / QR login) ─────────────────
@@ -1172,6 +1176,25 @@ wss.on('connection', (ws) => {
         sala.estado.nomeAula = msg.nomeAula || '';
         log(`Aula iniciada na sala ${salaCode}`);
         broadcastAlunos(salaCode, { tipo: 'aula_iniciada', grafico: sala.estado.grafico, blocoIdx: sala.estado.blocoIdx, nomeAula: sala.estado.nomeAula });
+
+        // Temporizador de 10 min: reservas ainda em 'reservado' viram 'ausente'
+        if (db) {
+          setTimeout(async () => {
+            try {
+              const sv = await db.query(
+                "SELECT agenda_id FROM sessoes_ao_vivo WHERE token=$1 AND status='em_andamento'",
+                [salaCode]
+              );
+              if (!sv.rows.length || !sv.rows[0].agenda_id) return;
+              const agendaId = sv.rows[0].agenda_id;
+              const r = await db.query(
+                "UPDATE aulas_reservas SET status='ausente' WHERE agenda_id=$1 AND data_aula=CURRENT_DATE AND status='reservado'",
+                [agendaId]
+              );
+              if (r.rowCount > 0) log(`[timer] ${r.rowCount} reserva(s) marcada(s) ausente — sala ${salaCode}`);
+            } catch(e) { log(`[timer] erro ao marcar ausentes: ${e.message}`); }
+          }, 10 * 60 * 1000);
+        }
         break;
       }
 
@@ -1703,6 +1726,19 @@ function gestorAuth(req, res, next) {
   try {
     const p = jwt.verify(token, JWT_SECRET);
     if (p.role !== 'gestor' && p.role !== 'admin') return res.status(403).json({ error: 'Acesso negado' });
+    req.user = p;
+    next();
+  } catch(e) { res.status(401).json({ error: 'Token inválido' }); }
+}
+
+// Acesso para professor + gestor + admin + super_admin (usado nas rotas da Sala do Professor)
+function professorAuth(req, res, next) {
+  const token = (req.headers.authorization || '').replace('Bearer ', '');
+  if (!token) return res.status(401).json({ error: 'Token necessário' });
+  try {
+    const p = jwt.verify(token, JWT_SECRET);
+    if (!['professor','gestor','admin','super_admin'].includes(p.role))
+      return res.status(403).json({ error: 'Acesso negado' });
     req.user = p;
     next();
   } catch(e) { res.status(401).json({ error: 'Token inválido' }); }
@@ -2314,7 +2350,7 @@ app.delete('/gestor/agenda/:id', gestorAuth, async (req, res) => {
 });
 
 // Lista de reservados numa aula (data específica) — professor e gestor
-app.get('/gestor/agenda/:id/reservas', gestorAuth, async (req, res) => {
+app.get('/gestor/agenda/:id/reservas', professorAuth, async (req, res) => {
   if (!db) return res.status(503).json({ error: 'Banco indisponível' });
   const data = req.query.data || new Date().toISOString().split('T')[0];
   try {
@@ -2334,7 +2370,7 @@ app.get('/gestor/agenda/:id/reservas', gestorAuth, async (req, res) => {
 });
 
 // Check-in / alterar status da reserva (professor/gestor)
-app.put('/gestor/reservas/:id/status', gestorAuth, async (req, res) => {
+app.put('/gestor/reservas/:id/status', professorAuth, async (req, res) => {
   if (!db) return res.status(503).json({ error: 'Banco indisponível' });
   const { status } = req.body; // presente | ausente | cancelado | reservado
   if (!['presente','ausente','cancelado','reservado'].includes(status))
