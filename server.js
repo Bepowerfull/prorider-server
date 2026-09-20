@@ -2473,9 +2473,6 @@ app.post('/gestor/professores', gestorAuth, async (req, res) => {
       [email.toLowerCase()]
     );
     if (!u.rows.length) return res.status(404).json({ error: 'Utilizador não encontrado' });
-    // super_admin pode adicionar-se a si próprio mesmo sem role=professor
-    if (u.rows[0].role !== 'professor' && req.user.role !== 'super_admin')
-      return res.status(400).json({ error: 'O utilizador não tem papel de professor' });
     const r = await db.query(`
       INSERT INTO professor_licencas (user_id, license_id, liberado_por)
       VALUES ($1, $2, $3)
@@ -2498,8 +2495,8 @@ app.delete('/gestor/professores/:userId', gestorAuth, async (req, res) => {
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
-// ── Professor: listar as licenças onde tem acesso ──────────────
-app.get('/professor/licencas', professorAuth, async (req, res) => {
+// ── Professor: listar as licenças onde tem acesso (qualquer utilizador autenticado) ──
+app.get('/professor/licencas', authMiddleware, async (req, res) => {
   if (!db) return res.status(503).json({ error: 'Banco indisponível' });
   try {
     const r = await db.query(`
