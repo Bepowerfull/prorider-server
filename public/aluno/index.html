@@ -497,19 +497,36 @@ input[type=file]{display:none}
         </div>
       </div>
 
-      <div onclick="document.getElementById('tpFileHome').click()" style="flex:1;background:linear-gradient(135deg,rgba(155,48,255,.2),rgba(155,48,255,.05));border:1px solid rgba(155,48,255,.32);border-radius:18px;padding:16px 14px;cursor:pointer;display:flex;flex-direction:column;align-items:flex-start;gap:10px;min-height:120px;position:relative;overflow:hidden;">
+      <div id="homeCardRoxo" onclick="homeCardRoxoClick()" style="flex:1;background:linear-gradient(135deg,rgba(155,48,255,.2),rgba(155,48,255,.05));border:1px solid rgba(155,48,255,.32);border-radius:18px;padding:16px 14px;cursor:pointer;display:flex;flex-direction:column;align-items:flex-start;gap:10px;min-height:120px;position:relative;overflow:hidden;">
         <div style="position:absolute;right:-10px;bottom:-10px;width:60px;height:60px;border-radius:50%;background:rgba(155,48,255,.07);"></div>
         <div style="width:42px;height:42px;background:rgba(155,48,255,.2);border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#9b30ff" stroke-width="2.5"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M4 19h16"/></svg>
         </div>
         <div>
-          <div style="font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:900;color:#fff;letter-spacing:.5px;line-height:1.1;">Treino do<br/>Treinador</div>
-          <div style="font-size:11px;color:rgba(255,255,255,.35);margin-top:3px;">Abrir arquivo e pedalar</div>
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:900;color:#fff;letter-spacing:.5px;line-height:1.1;"><span id="homeCardRoxoTit">Treino do<br/>Treinador</span></div>
+          <div id="homeCardRoxoSub" style="font-size:11px;color:rgba(255,255,255,.35);margin-top:3px;">Abrir arquivo e pedalar</div>
         </div>
       </div>
 
     </div>
     <input type="file" id="tpFileHome"  style="display:none" onchange="tpEscolheuArquivo(this)"/>
+  </div>
+
+  <!-- CONSTRUTOR DE TREINO — card comprido, so para professor.
+       Fica abaixo da grade 2x2 para nao apertar os cards num celular e para
+       nao mexer em nada na home do aluno. -->
+  <div id="homeConstrutorBtn" style="display:none;padding:0 16px 4px;margin-top:10px;">
+    <div onclick="homeConstrutorClick()" style="position:relative;overflow:hidden;cursor:pointer;display:flex;align-items:center;gap:14px;padding:16px;border-radius:18px;background:linear-gradient(135deg,rgba(234,134,12,.22),rgba(234,134,12,.05));border:1px solid rgba(234,134,12,.34);">
+      <div style="position:absolute;right:-14px;bottom:-14px;width:78px;height:78px;border-radius:50%;background:rgba(234,134,12,.07);"></div>
+      <div style="width:42px;height:42px;background:rgba(234,134,12,.2);border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ea860c" stroke-width="2.4" stroke-linecap="round"><rect x="3" y="13" width="4" height="8" rx="1"/><rect x="10" y="8" width="4" height="13" rx="1"/><rect x="17" y="4" width="4" height="17" rx="1"/></svg>
+      </div>
+      <div style="min-width:0;">
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:900;color:#fff;letter-spacing:.5px;line-height:1.1;">Construtor de Treino</div>
+        <div style="font-size:11px;color:rgba(255,255,255,.4);margin-top:3px;">Montar aulas para a turma · professor</div>
+      </div>
+      <div style="margin-left:auto;font-size:20px;color:rgba(234,134,12,.7);flex-shrink:0;">&#8250;</div>
+    </div>
   </div>
 
   <div class="home-sec">
@@ -1163,6 +1180,14 @@ input[type=file]{display:none}
         <button type="button" onclick="dFtpPrompt()" style="height:42px;padding:0 14px;border-radius:12px;background:rgba(234,134,12,.14);border:1px solid rgba(234,134,12,.35);color:#ea860c;font-size:13px;font-weight:800;cursor:pointer;">Digitar</button>
       </div>
     </div>
+    <!-- SALA DO PROFESSOR: so aparece para quem tem role=professor. Fica aqui,
+         na gaveta, para o professor nao sair da tela do treino so para liberar
+         a bike de quem faltou. -->
+    <button type="button" id="salaProfBtn" onclick="salaAbrir()" style="display:none;align-items:center;justify-content:center;gap:9px;width:calc(100% - 32px);margin:0 16px 12px;padding:13px 0;border-radius:14px;background:rgba(234,134,12,.14);border:1px solid rgba(234,134,12,.34);color:#ea860c;font-family:inherit;font-size:13px;font-weight:800;letter-spacing:1.6px;text-transform:uppercase;cursor:pointer;">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="9" cy="8" r="3"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><path d="M17 11h4M19 9v4"/></svg>
+      Vista da sala
+    </button>
+
     <!-- Revisar o treino sem sair da aula: abre por cima, nada e pausado. -->
     <button type="button" onclick="revAbrir()" style="display:flex;align-items:center;justify-content:center;gap:9px;width:calc(100% - 32px);margin:0 16px 12px;padding:13px;border-radius:14px;background:rgba(155,48,255,.13);border:1px solid rgba(155,48,255,.32);color:#c88bff;font-size:14px;font-weight:800;cursor:pointer;">
       <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M4 6h16"/><path d="M4 12h16"/><path d="M4 18h10"/></svg>
@@ -3939,6 +3964,8 @@ function renderGradeAluno(aulas) {
 
 function abrirReservaModal(agendaId, nome, hora, data, dur, vagas) {
   _rcPendente = { agenda_id: agendaId, data_aula: data };
+  // Guarda o contexto para a Sala do Professor saber de que aula falar.
+  try{ salaContexto(agendaId, data); }catch(e){}
   document.getElementById('rcNome').textContent = nome;
   const d = new Date(data+'T00:00');
   document.getElementById('rcSub').textContent = d.toLocaleDateString('pt-BR',{weekday:'long',day:'2-digit',month:'long'});
@@ -5753,23 +5780,322 @@ function lvlPct(pts){
   return Math.round((pts-lo)/(hi-lo)*100);
 }
 
+// Unidades onde ESTE professor tem acesso. O servidor (commit 8f33946) ja
+// filtra pela tabela professor_licencas, entao a busca do app sai filtrada em
+// vez de mostrar tudo e bloquear depois.
+var _profLicencas = null;
+async function profLicencasCarregar(){
+  // Nao depende do role: e esta lista que DEFINE se a pessoa e professora.
+  if(!prToken){ _profLicencas=[]; return _profLicencas; }
+  try{
+    var r=await fetch(SERVER_HTTP+'/professor/licencas',{headers:{'Authorization':'Bearer '+prToken}});
+    if(!r.ok) throw new Error(String(r.status));
+    var d=await r.json();
+    _profLicencas = d.licencas || d || [];
+  }catch(e){
+    _profLicencas = [];
+    console.warn('[ProRider] nao consegui listar as unidades do professor:', e && e.message);
+  }
+  return _profLicencas;
+}
+// true = este professor pode abrir a grade desta licenca
+function profTemAcesso(licId){
+  if(!_profLicencas) return true;            // ainda nao carregou: nao esconde
+  // o servidor devolve a licenca como 'codigo'; id/license_id ficam por
+  // compatibilidade caso a resposta mude
+  return _profLicencas.some(function(l){
+    return [l.codigo,l.id,l.license_id].some(function(v){ return v!=null && String(v)===String(licId); });
+  });
+}
+
+// ═══ HOME DO PROFESSOR: O MESMO APP, UM CARD DIFERENTE ═════════
+// Decisao do Mario (20/09): o app e um so. Para quem e professor, a home
+// continua igual — Entrar na Aula, Free Ride, Agenda de Aulas — e so o card
+// roxo muda: sai "Treino do Treinador", entra "Construtor de treino".
+// Existia uma tela separada (sProfHome) com Agenda + Build Workout, mas
+// nenhuma rota a abria: estava orfa. Fica abandonada em favor deste desenho.
+function homeProfAtualizar(){
+  // O card roxo continua SEMPRE Treino do Treinador — o professor tambem
+  // pedala, e pode querer abrir um treino que recebeu do coach dele. Troca-lo
+  // obrigaria o professor a deixar de ser professor para usar o proprio app.
+  // O Construtor entra como um card COMPRIDO, logo abaixo, so para professor.
+  var c=document.getElementById('homeConstrutorBtn');
+  if(c) c.style.display = _salaEhProfessor() ? 'block' : 'none';
+}
+function homeCardRoxoClick(){
+  document.getElementById('tpFileHome').click();
+}
+function homeConstrutorClick(){
+  if(!_salaEhProfessor()) return;
+  // reconhecido pelo servidor: abre direto, sem codigo de ativacao
+  try{ _profUnlocked=true; }catch(e){}
+  _doOpenConstructor();
+}
+
+// ═══ SALA DO PROFESSOR ═══════════════════════════════════════════
+// Lista as reservas da aula e deixa o professor liberar a posicao de quem
+// faltou, sem sair da tela do treino. Usa as rotas que o dev liberou para
+// role=professor no commit 38b391c (professorAuth):
+//   GET /gestor/agenda/:id/reservas?data=YYYY-MM-DD
+//   PUT /gestor/reservas/:id/status
+// Regras decididas por Mario:
+//   - o aluno pode cancelar sozinho a qualquer momento  -> 'cancelada'
+//   - liberada pelo professor (ou pelo timer de 10 min) -> 'ausente'
+//     a diferenca preserva o historico de frequencia
+var _salaAgendaId = null, _salaData = null, _salaCarregando = false;
+
+// SER PROFESSOR E UMA CAPACIDADE POR UNIDADE, NAO UM PAPEL
+// -----------------------------------------------------------------
+// role diz o nivel administrativo da pessoa: aluno, gestor, admin,
+// super_admin. Ser professor NAO cabe nessa escala — um gestor muitas vezes
+// tambem da aula, e antes disto tinha de escolher entre ser gestor OU
+// professor, porque role guarda um valor so.
+// Quem e professor, e de que unidade, vem da tabela professor_licencas
+// (servidor, commit 8f33946), lida por GET /professor/licencas.
+// Assim o gestor continua gestor E aparece com a interface de professor nas
+// unidades onde se adicionou. Apenas o Mario cria gestores; o gestor adiciona
+// professores so na unidade dele.
+function _salaEhProfessor(){
+  try{
+    var r=String((prUser&&prUser.role)||'').toLowerCase();
+    // super_admin ve tudo, para poder testar e dar suporte
+    if(r==='super_admin') return true;
+    if(window._prForcarProf) return true;          // ?prof=1, so para teste
+    // qualquer outra pessoa: so se tiver pelo menos uma unidade onde e professora
+    return !!(_profLicencas && _profLicencas.length);
+  }catch(e){ return false; }
+}
+// Mostra o botao da gaveta so para professor. Chamado no arranque e apos login.
+function salaBotaoAtualizar(){
+  var b=document.getElementById('salaProfBtn');
+  if(b) b.style.display = _salaEhProfessor() ? 'flex' : 'none';
+}
+function salaContexto(agendaId, dataAula){
+  _salaAgendaId = agendaId || _salaAgendaId;
+  _salaData     = dataAula || _salaData || new Date().toISOString().slice(0,10);
+}
+// No arranque: se ja havia sessao de professor guardada, o botao aparece.
+try{ document.addEventListener('DOMContentLoaded', function(){ setTimeout(function(){ try{ salaBotaoAtualizar(); }catch(e){} }, 400); }); }catch(e){}
+
+function salaAbrir(){
+  if(!_salaEhProfessor()) return;
+  var ov=document.getElementById('salaOv');
+  if(!ov){
+    ov=document.createElement('div'); ov.id='salaOv';
+    ov.style.cssText='position:fixed;inset:0;z-index:9500;background:#0b0b0f;display:flex;flex-direction:column;';
+    ov.innerHTML='<div style="display:flex;align-items:center;gap:12px;padding:18px 16px 12px;border-bottom:1px solid rgba(255,255,255,.08);">'
+      +'<button type="button" onclick="salaFechar()" style="width:38px;height:38px;border-radius:50%;background:rgba(255,255,255,.07);border:none;color:#fff;font-size:19px;cursor:pointer;">&#8592;</button>'
+      +'<div style="min-width:0;"><div style="font-size:10px;letter-spacing:2.5px;color:rgba(255,255,255,.35);font-weight:700;">PRORIDER</div>'
+      +'<div style="font-size:19px;font-weight:900;letter-spacing:.5px;">SALA &amp; RESERVAS</div></div>'
+      +'<button type="button" onclick="salaCarregar()" style="margin-left:auto;height:38px;padding:0 14px;border-radius:12px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.14);color:#fff;font-size:12px;font-weight:700;cursor:pointer;">Atualizar</button>'
+      +'</div>'
+      +'<div id="salaResumo" style="padding:10px 16px;font-size:12px;color:rgba(255,255,255,.5);"></div>'
+      +'<div id="salaLista" style="flex:1;overflow-y:auto;padding:0 16px 24px;"></div>';
+    document.body.appendChild(ov);
+  }
+  ov.style.display='flex';
+  salaCarregar();
+  // Enquanto a tela esta aberta, repinta a cada 5s: os alunos vao escolhendo
+  // bike durante a chegada, e o professor precisa ver isso acontecer.
+  if(window._salaTimer) clearInterval(window._salaTimer);
+  window._salaTimer = setInterval(function(){
+    var o=document.getElementById('salaOv');
+    if(!o || o.style.display==='none'){ clearInterval(window._salaTimer); window._salaTimer=null; return; }
+    salaCarregar();
+  }, 5000);
+}
+function salaFechar(){
+  var ov=document.getElementById('salaOv'); if(ov) ov.style.display='none';
+  if(window._salaTimer){ clearInterval(window._salaTimer); window._salaTimer=null; }
+}
+
+async function salaCarregar(){
+  if(_salaCarregando) return;
+  var lista=document.getElementById('salaLista'), res=document.getElementById('salaResumo');
+  if(!lista) return;
+  _salaCarregando=true;
+  lista.innerHTML='<div style="padding:28px 0;text-align:center;color:rgba(255,255,255,.4);font-size:13px;">A carregar…</div>';
+
+  // Duas fontes, e a tela junta as duas:
+  //  1) RESERVAS, quando a aula veio da grade de horarios (banco de dados)
+  //  2) PRESENCA AO VIVO — quem esta de facto em cada bike agora (sala_info,
+  //     que o ginasio envia). Funciona mesmo numa aula aberta fora da grade,
+  //     entrando so pelo QR: e o caso que o Mario levanta, e e o mais comum.
+  var reservas=null, erro=null;
+  if(_salaAgendaId){
+    try{
+      var url=SERVER_HTTP+'/gestor/agenda/'+encodeURIComponent(_salaAgendaId)+'/reservas?data='+encodeURIComponent(_salaData);
+      var r=await fetch(url,{headers:{'Authorization':'Bearer '+prToken}});
+      if(r.status===403) throw new Error('Sem acesso de professor nesta unidade.');
+      if(!r.ok) throw new Error('O servidor respondeu '+r.status+'.');
+      var d=await r.json(); reservas=d;
+    }catch(e){ erro = (e&&e.message)?e.message:'erro'; }
+  }
+  _salaPintar(reservas, erro);
+  _salaCarregando=false;
+}
+
+// Cores aprovadas pelo Mario (especificacao de 20/09):
+//   cinza  #B0BEC5  vaga livre
+//   amarelo #FFB300 reservado, ainda nao ligou a bike
+//   verde  #43A047  presente, dados a chegar da bike
+//   vermelho #E53935 ausente — vaga pode ser libertada
+//   azul   #1565C0  bike 99, do professor, separada no topo
+var SALA_COR={livre:'#B0BEC5',reservado:'#FFB300',pausa:'#FFB300',presente:'#43A047',ausente:'#E53935',prof:'#1565C0'};
+
+function _salaPintar(d, erro){
+  var lista=document.getElementById('salaLista'), res=document.getElementById('salaResumo');
+  var rs=(d&&d.reservas)||[];
+  var ocup=(_salaInfo&&_salaInfo.ocupadas)?_salaInfo.ocupadas:[];
+  var bikesInfo=(_salaInfo&&_salaInfo.bikes)?_salaInfo.bikes:[];
+  var total=(_salaInfo&&_salaInfo.numBikes)?_salaInfo.numBikes:0;
+
+  // quem esta de facto em cada bike agora
+  var vivo={};
+  bikesInfo.forEach(function(b){ if(b&&b.bike!=null) vivo[String(b.bike)]=b.nome||b.name||null; });
+  ocup.forEach(function(n){ if(vivo[String(n)]===undefined) vivo[String(n)]=null; });
+
+  // reservas por numero de bike
+  var resv={};
+  rs.forEach(function(x){
+    if(x.bike_numero!=null&&x.bike_numero!=='') resv[String(x.bike_numero)]=x;
+  });
+
+  if(!total){
+    total=0;
+    Object.keys(vivo).forEach(function(n){ var v=parseInt(n,10); if(v<99&&v>total) total=v; });
+    rs.forEach(function(x){ var v=parseInt(x.bike_numero,10); if(v&&v<99&&v>total) total=v; });
+  }
+
+  // Memoria de quem JA esteve na bike nesta sessao. Sem isto, quem desceu
+  // para pegar agua fica igual a quem nunca chegou — e o professor precisa
+  // distinguir os dois: um e falta, o outro e uma pausa.
+  window._salaJaVeio = window._salaJaVeio || {};
+  Object.keys(vivo).forEach(function(k){ window._salaJaVeio[k]=true; });
+
+  function estado(n){
+    var k=String(n), r=resv[k], naBike=(vivo[k]!==undefined);
+    if(naBike) return {st:'presente', nome:vivo[k]||(r?r.name:null), r:r};
+    if(r){
+      var s2=String(r.status||'reservado').toLowerCase();
+      if(s2==='ausente'||s2==='cancelada') return {st:'ausente', nome:r.name, r:r};
+      // ja pedalou e saiu: pausa, nao falta
+      if(window._salaJaVeio[k]) return {st:'pausa', nome:r.name, r:r};
+      return {st:'reservado', nome:r.name, r:r};
+    }
+    if(window._salaJaVeio[k]) return {st:'pausa', nome:null, r:null};
+    return {st:'livre', nome:null, r:null};
+  }
+
+  var cont=0, pres=0, aguard=0, faltou=0, pausa=0;
+  var cels=[];
+  for(var n=1;n<=total;n++){
+    var e=estado(n); cont++;
+    if(e.st==='presente') pres++; else if(e.st==='reservado') aguard++;
+    else if(e.st==='pausa') pausa++; else if(e.st==='ausente') faltou++;
+    var cor=SALA_COR[e.st];
+    var acao='';
+    if(e.r && e.st==='reservado'){
+      // Professor liberando ANTES do timer: marca ausente. E o que o Mario pediu.
+      acao='<button type="button" onclick="salaStatus('+e.r.id+',\'ausente\',this)" style="margin-top:6px;width:100%;height:26px;border-radius:7px;background:rgba(255,179,0,.16);border:1px solid rgba(255,179,0,.4);color:#FFB300;font-size:9px;font-weight:800;letter-spacing:.6px;cursor:pointer;">NÃO VEIO</button>';
+    } else if(e.r && e.st==='ausente'){
+      // Ja ausente: libertar a vaga para walk-in.
+      acao='<button type="button" onclick="salaStatus('+e.r.id+',\'cancelada\',this)" style="margin-top:6px;width:100%;height:26px;border-radius:7px;background:rgba(229,57,53,.16);border:1px solid rgba(229,57,53,.42);color:#E53935;font-size:9px;font-weight:800;letter-spacing:.6px;cursor:pointer;">LIBERAR</button>';
+    }
+    cels.push('<div style="background:rgba(255,255,255,.04);border:1px solid '+cor+'55;border-left:3px solid '+cor+';border-radius:10px;padding:8px 9px;min-width:0;">'
+      +'<div style="display:flex;align-items:baseline;gap:6px;"><span style="font-size:15px;font-weight:900;color:'+cor+';">'+n+'</span>'
+      +'<span style="font-size:8px;letter-spacing:1px;color:'+cor+';font-weight:800;">'+({livre:'LIVRE',reservado:'POR CHEGAR',pausa:'SAIU DA BIKE',presente:'NA BIKE',ausente:'AUSENTE'}[e.st])+'</span></div>'
+      +'<div style="font-size:11px;color:rgba(255,255,255,.78);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px;min-height:14px;">'+(e.nome?_salaEsc(e.nome):'&nbsp;')+'</div>'
+      +acao+'</div>');
+  }
+
+  // bike do professor, separada no topo
+  var profNaBike=(vivo['99']!==undefined);
+  var topo='<div style="display:flex;align-items:center;gap:11px;padding:11px 12px;margin-bottom:14px;border-radius:12px;background:rgba(21,101,192,.13);border:1px solid rgba(21,101,192,.42);">'
+    +'<div style="width:40px;height:40px;border-radius:10px;flex-shrink:0;display:flex;align-items:center;justify-content:center;background:'+SALA_COR.prof+';color:#fff;font-weight:900;font-size:14px;">99</div>'
+    +'<div style="min-width:0;"><div style="font-size:9px;letter-spacing:2px;color:rgba(255,255,255,.45);font-weight:800;">PROFESSOR</div>'
+    +'<div style="font-size:13px;font-weight:700;color:'+(profNaBike?'#fff':'rgba(255,255,255,.45)')+';">'+(profNaBike?(vivo['99']?_salaEsc(vivo['99']):'na bike'):'não conectada')+'</div></div></div>';
+
+  if(res){
+    res.innerHTML = pres+' na bike · '+aguard+' por chegar'
+      + (pausa? ' · '+pausa+' fora da bike' : '')
+      + ' · '+faltou+' ausente(s)'
+      + (rs.length? '' : ' · aula fora da grade')
+      + (erro? '<br><span style="color:#ff8080;">'+_salaEsc(erro)+'</span>' : '');
+  }
+  lista.innerHTML = topo
+    + (cont? '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:8px;">'+cels.join('')+'</div>'
+           : '<div style="padding:24px 0;text-align:center;color:rgba(255,255,255,.45);font-size:13px;">Sala ainda sem bikes configuradas.</div>');
+}
+
+// Muda o status de uma reserva. 'ausente' = nao veio; 'cancelada' = vaga libertada.
+async function salaStatus(id, novo, btn){
+  var txt = (novo==='ausente')
+    ? 'Marcar como AUSENTE? A pessoa fica registada como falta.'
+    : 'Liberar esta vaga? A bike fica livre para outro aluno.';
+  if(!confirm(txt)) return;
+  if(btn){ btn.disabled=true; btn.textContent='…'; }
+  try{
+    var r=await fetch(SERVER_HTTP+'/gestor/reservas/'+encodeURIComponent(id)+'/status',{
+      method:'PUT',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+prToken},
+      body:JSON.stringify({status:novo})
+    });
+    if(!r.ok) throw new Error('servidor respondeu '+r.status);
+    salaCarregar();
+  }catch(e){
+    if(btn){ btn.disabled=false; btn.textContent=(novo==='ausente'?'NÃO VEIO':'LIBERAR'); }
+    alert('Não consegui alterar: '+(e&&e.message?e.message:'erro'));
+  }
+}
+
+function _salaIni(n){ n=String(n||'?').trim(); var p=n.split(/\s+/); return ((p[0]||'?')[0]+((p[1]||'')[0]||'')).toUpperCase(); }
+function _salaEsc(t){ return String(t).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
+
+async function salaLiberar(id, btn){
+  if(!confirm('Liberar esta bike? A reserva fica marcada como AUSENTE e a posição abre para outro aluno.')) return;
+  if(btn){ btn.disabled=true; btn.textContent='…'; }
+  try{
+    var r=await fetch(SERVER_HTTP+'/gestor/reservas/'+encodeURIComponent(id)+'/status',{
+      method:'PUT',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+prToken},
+      body:JSON.stringify({status:'ausente'})
+    });
+    if(!r.ok) throw new Error('servidor respondeu '+r.status);
+    salaCarregar();
+  }catch(e){
+    if(btn){ btn.disabled=false; btn.textContent='LIBERAR'; }
+    alert('Não consegui liberar: '+(e&&e.message?e.message:'erro'));
+  }
+}
+
 // Rota pós-login baseada no role
 function rotearPorRole(user) {
-  if (_devProfMode && user) user.role = 'professor';
-  if (user && (user.role||'').toLowerCase() === 'professor') {
-    _phInited = false;
-    phCheckRole();
-  } else {
-    goTab('sHome', 'navRide');
-  }
+  // A home e sempre a mesma para todos (decisao do Mario): o que muda para
+  // o professor e o card roxo e a gaveta. Entao vamos para a home ja, e a
+  // interface de professor liga-se quando a lista de unidades chegar.
+  // Antes a decisao era tomada ANTES de a lista existir: um gestor que se
+  // tinha adicionado como professor caia sempre como aluno.
+  goTab('sHome', 'navRide');
+  if (_devProfMode) window._prForcarProf = true;   // atalho ?prof=1 restaurado
   navCenterAtualizar();
+  // A lista de unidades decide se esta pessoa e professora, entao carrega-se
+  // primeiro e so depois se mostra o botao e se escolhe a tela.
+  try{
+    profLicencasCarregar().then(function(){
+      try{ salaBotaoAtualizar(); }catch(e){}
+      try{ homeProfAtualizar(); }catch(e){}
+      try{ navCenterAtualizar(); }catch(e){}
+      try{ if(_salaEhProfessor()){ _phInited=false; phCheckRole(); } }catch(e){}
+    });
+  }catch(e){}
 }
 
 // Botão central do nav
 function navCenterClick() {
   if (!prToken) {
     go('sSplash'); // convidado → tela de login
-  } else if (prUser && (prUser.role||'').toLowerCase() === 'professor') {
+  } else if (prUser && _salaEhProfessor()) {
     goTab('sHome','navRide');
   } else {
     goTab('sHome', 'navRide');
@@ -5806,7 +6132,7 @@ function navCenterAtualizar() {
     if (agendaBtn) agendaBtn.style.display = '';
     if (profBadge) profBadge.style.display = 'none';
 
-  } else if (prUser && (prUser.role||'').toLowerCase() === 'professor') {
+  } else if (prUser && _salaEhProfessor()) {
     if (lbl) lbl.textContent = 'Prof';
     if (btn) { btn.style.background = 'linear-gradient(135deg,#9b30ff,#295fe8)'; btn.style.boxShadow = '0 4px 20px rgba(155,48,255,.5)'; }
     if (wrap) wrap.onclick = function(){ goTab('sHome','navRide'); };
@@ -6781,7 +7107,7 @@ var _lsInt=null;
 // ══════════════════════════════════════════════════════════════
 
 function phInit() {
-  if (!prUser || (prUser.role||'').toLowerCase() !== 'professor') return;
+  if (!prUser || !['professor','gestor','admin','super_admin'].includes((prUser.role||'').toLowerCase())) return;
   goTab('sHome', 'navRide');
 }
 
@@ -6850,7 +7176,7 @@ async function phConfirmarLivre() {
 var _phInited = false;
 function phCheckRole() {
   if (_phInited) return;
-  if (prUser && (prUser.role||'').toLowerCase() === 'professor') {
+  if (prUser && _salaEhProfessor()) {
     _phInited = true;
     phInit();
   }
@@ -7107,7 +7433,7 @@ updateProfileUI = function() {
          + ' fill="none" stroke="'+col(fm)+'" stroke-width="30" stroke-linecap="'+cap+'"/>';
     }
     g.innerHTML=out;
-    try{ console.log('%c[ProRider Aluno] BUILD 18/09b — caloria por watt (kJ/eficiencia) + basal Mifflin-St Jeor no cadastro + historico gravado no aparelho + FTP na gaveta + card 1080x1920 reposicionado + 6 protocolos de FTP + TSS + teste de 3 min + fator do teste de 5 min corrigido (era 1,05) + explicacao de FTP em cada teste + gaveta esconde pela propria altura + importacao de treino do TrainingPeaks (grade 2x2 na tela inicial + construtor) com tela de conferencia (botoes acima da navegacao) + corrigido: aula aberta por objeto agora e a que roda + botao Revisar o treino na gaveta + FTP e peso persistem no aparelho + gauge reequilibrado + textos do Brasil + codigo de sala normalizado (QR do navegador deixava a sala inexistente) + faixa de voltar corrigida + reconexao nao trava mais + sala encerrada ou inexistente limpa o codigo guardado e a faixa de voltar','color:#ea860c;font-weight:700;'); }catch(e){}
+    try{ console.log('%c[ProRider Aluno] BUILD 20/09d — caloria por watt (kJ/eficiencia) + basal Mifflin-St Jeor no cadastro + historico gravado no aparelho + FTP na gaveta + card 1080x1920 reposicionado + 6 protocolos de FTP + TSS + teste de 3 min + fator do teste de 5 min corrigido (era 1,05) + explicacao de FTP em cada teste + gaveta esconde pela propria altura + importacao de treino do TrainingPeaks (grade 2x2 na tela inicial + construtor) com tela de conferencia (botoes acima da navegacao) + corrigido: aula aberta por objeto agora e a que roda + botao Revisar o treino na gaveta + FTP e peso persistem no aparelho + gauge reequilibrado + textos do Brasil + codigo de sala normalizado (QR do navegador deixava a sala inexistente) + faixa de voltar corrigida + reconexao nao trava mais + sala encerrada limpa o codigo guardado + VISTA DA SALA + card comprido de Construtor para professor + fim da corrida no login','color:#ea860c;font-weight:700;'); }catch(e){}
   }
   if(document.readyState!=='loading') buildGaugeArc();
   else document.addEventListener('DOMContentLoaded', buildGaugeArc);
