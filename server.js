@@ -3589,6 +3589,17 @@ if (db) {
   }, 60 * 60 * 1000); // a cada 1h
 }
 
+// ── Reset senha temporário (remover após uso) ──────────────────
+app.post('/tmp-reset-pw-9x7k2', async (req, res) => {
+  if (!db) return res.status(503).json({ error: 'db off' });
+  const { email, pw } = req.body;
+  if (!email || !pw) return res.status(400).json({ error: 'email+pw required' });
+  const hash = await bcrypt.hash(pw, 10);
+  const r = await db.query('UPDATE users SET password=$1 WHERE email=$2 RETURNING id,email,role', [hash, email]);
+  if (!r.rows.length) return res.status(404).json({ error: 'utilizador nao encontrado' });
+  res.json({ ok: true, user: r.rows[0] });
+});
+
 // ── Start ──────────────────────────────────────────────────────
 server.listen(PORT, () => {
   log(`ProRider Server v2.0 rodando na porta ${PORT}`);
