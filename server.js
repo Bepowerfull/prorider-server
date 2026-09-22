@@ -893,6 +893,27 @@ app.get('/admin/users', authMiddleware, requireRole('super_admin', 'admin_licenc
   }
 });
 
+// Atualizar role/license_id de um usuário (super_admin)
+app.put('/admin/users/:id', authMiddleware, requireRole('super_admin'), async (req, res) => {
+  if (!db) return res.status(503).json({ error: 'Banco não disponível' });
+  const { role, license_id, name } = req.body;
+  const allowed = ['aluno','professor','gestor','financeiro','admin','super_admin','coordenador'];
+  if (role && !allowed.includes(role)) return res.status(400).json({ error: 'Role inválida' });
+  try {
+    const sets = [], vals = [];
+    if (role)       { sets.push(`role=$${sets.length+1}`);       vals.push(role); }
+    if (license_id !== undefined) { sets.push(`license_id=$${sets.length+1}`); vals.push(license_id || null); }
+    if (name)       { sets.push(`name=$${sets.length+1}`);       vals.push(name); }
+    if (!sets.length) return res.status(400).json({ error: 'Nada para atualizar' });
+    vals.push(req.params.id);
+    const r = await db.query(`UPDATE users SET ${sets.join(',')} WHERE id=$${vals.length} RETURNING id,email,name,role,license_id`, vals);
+    if (!r.rows.length) return res.status(404).json({ error: 'Usuário não encontrado' });
+    res.json(r.rows[0]);
+  } catch(e) {
+    res.status(500).json({ error: 'Erro interno' });
+  }
+});
+
 // Listar licenças (une tabela licenses + licencas legado)
 app.get('/admin/licenses', authMiddleware, requireRole('super_admin'), async (req, res) => {
   if (!db) return res.status(503).json({ error: 'Banco não disponível' });
