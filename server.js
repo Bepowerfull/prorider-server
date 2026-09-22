@@ -418,16 +418,18 @@ async function runMigrations() {
     await db.query(`ALTER TABLE sessao_conexoes ADD COLUMN IF NOT EXISTS fonte TEXT DEFAULT 'qr'`);
     await db.query(`ALTER TABLE sessao_conexoes ADD COLUMN IF NOT EXISTS user_id_nullable INTEGER`);
     log('Migração sessoes_ao_vivo OK');
-    // Onboarding token para licenses (sistema super_admin)
-    await db.query(`ALTER TABLE licenses ADD COLUMN IF NOT EXISTS onboarding_token TEXT`);
-    await db.query(`ALTER TABLE licenses ADD COLUMN IF NOT EXISTS max_bikes INTEGER DEFAULT 10`);
-    await db.query(`ALTER TABLE licenses ADD COLUMN IF NOT EXISTS gestor_email TEXT`);
-    await db.query(`ALTER TABLE licenses ADD COLUMN IF NOT EXISTS gestor_nome TEXT`);
-    await db.query(`ALTER TABLE licenses ADD COLUMN IF NOT EXISTS fin_email TEXT`);
-    await db.query(`ALTER TABLE licenses ADD COLUMN IF NOT EXISTS fin_nome TEXT`);
-    await db.query(`ALTER TABLE licenses ADD COLUMN IF NOT EXISTS cidade TEXT`);
-    await db.query(`ALTER TABLE licenses ADD COLUMN IF NOT EXISTS nome_fantasia TEXT`);
-    log('Migração licenses onboarding OK');
+    // Onboarding token para licenses (tabela legacy — ignorar se não existir)
+    try {
+      await db.query(`ALTER TABLE licenses ADD COLUMN IF NOT EXISTS onboarding_token TEXT`);
+      await db.query(`ALTER TABLE licenses ADD COLUMN IF NOT EXISTS max_bikes INTEGER DEFAULT 10`);
+      await db.query(`ALTER TABLE licenses ADD COLUMN IF NOT EXISTS gestor_email TEXT`);
+      await db.query(`ALTER TABLE licenses ADD COLUMN IF NOT EXISTS gestor_nome TEXT`);
+      await db.query(`ALTER TABLE licenses ADD COLUMN IF NOT EXISTS fin_email TEXT`);
+      await db.query(`ALTER TABLE licenses ADD COLUMN IF NOT EXISTS fin_nome TEXT`);
+      await db.query(`ALTER TABLE licenses ADD COLUMN IF NOT EXISTS cidade TEXT`);
+      await db.query(`ALTER TABLE licenses ADD COLUMN IF NOT EXISTS nome_fantasia TEXT`);
+      log('Migração licenses onboarding OK');
+    } catch(e) { log('Migração licenses onboarding ignorada: ' + e.message); }
 
     // ── Licenças: computador único e pagamento ─────────────────────
     await db.query(`
