@@ -6076,7 +6076,10 @@ async function bldEnviarConta(){
   try{
     var r=await fetch(SERVER_HTTP+'/professor/treinos',{method:'POST',
       headers:{'Content-Type':'application/json','Authorization':'Bearer '+prToken},
-      body:JSON.stringify({nome:nome,json:json})});
+      // Envia o treino nos dois nomes de campo: o servidor grava 'dados'
+      // (documento do dev de 22/09) e 'json' ficou do contrato anterior.
+      // Mandar os dois evita o treino ser salvo vazio se algum lado mudar.
+      body:JSON.stringify({nome:nome, dados:json, json:json})});
     if(!r.ok) throw new Error('servidor respondeu '+r.status);
     _bldAviso('\u2713 Salva na sua conta — aparece no Ginásio em Minhas aulas');
   }catch(e){
@@ -6262,7 +6265,14 @@ var SALA_COR={livre:'#B0BEC5',reservado:'#FFB300',pausa:'#FFB300',presente:'#43A
 
 function _salaPintar(d, erro){
   var lista=document.getElementById('salaLista'), res=document.getElementById('salaResumo');
-  var rs=(d&&d.reservas)||[];
+  // A tabela users tem 'name'; algumas rotas devolvem 'nome'. Aceitamos os
+  // dois, e a lista sob reservas | rows | data | array puro.
+  var rs=(d&&(d.reservas||d.rows||d.data))||(Array.isArray(d)?d:[]);
+  rs=rs.map(function(x){
+    if(x && x.nome==null && x.name!=null) x.nome=x.name;
+    if(x && x.bike_numero==null && x.bike!=null) x.bike_numero=x.bike;
+    return x;
+  });
   var ocup=(_salaInfo&&_salaInfo.ocupadas)?_salaInfo.ocupadas:[];
   var bikesInfo=(_salaInfo&&_salaInfo.bikes)?_salaInfo.bikes:[];
   var total=(_salaInfo&&_salaInfo.numBikes)?_salaInfo.numBikes:0;
@@ -7752,7 +7762,7 @@ updateProfileUI = function() {
          + ' fill="none" stroke="'+col(fm)+'" stroke-width="30" stroke-linecap="'+cap+'"/>';
     }
     g.innerHTML=out;
-    try{ console.log('%c[ProRider Aluno] BUILD 20/09f — caloria por watt (kJ/eficiencia) + basal Mifflin-St Jeor no cadastro + historico gravado no aparelho + FTP na gaveta + card 1080x1920 reposicionado + 6 protocolos de FTP + TSS + teste de 3 min + fator do teste de 5 min corrigido (era 1,05) + explicacao de FTP em cada teste + gaveta esconde pela propria altura + importacao de treino do TrainingPeaks (grade 2x2 na tela inicial + construtor) com tela de conferencia (botoes acima da navegacao) + corrigido: aula aberta por objeto agora e a que roda + botao Revisar o treino na gaveta + FTP e peso persistem no aparelho + gauge reequilibrado + textos do Brasil + codigo de sala normalizado (QR do navegador deixava a sala inexistente) + faixa de voltar corrigida + reconexao nao trava mais + sala encerrada limpa o codigo guardado + VISTA DA SALA + card comprido de Construtor para professor + fim da corrida no login','color:#ea860c;font-weight:700;'); }catch(e){}
+    try{ console.log('%c[ProRider Aluno] BUILD 22/09b — caloria por watt (kJ/eficiencia) + basal Mifflin-St Jeor no cadastro + historico gravado no aparelho + FTP na gaveta + card 1080x1920 reposicionado + 6 protocolos de FTP + TSS + teste de 3 min + fator do teste de 5 min corrigido (era 1,05) + explicacao de FTP em cada teste + gaveta esconde pela propria altura + importacao de treino do TrainingPeaks (grade 2x2 na tela inicial + construtor) com tela de conferencia (botoes acima da navegacao) + corrigido: aula aberta por objeto agora e a que roda + botao Revisar o treino na gaveta + FTP e peso persistem no aparelho + gauge reequilibrado + textos do Brasil + codigo de sala normalizado (QR do navegador deixava a sala inexistente) + faixa de voltar corrigida + reconexao nao trava mais + sala encerrada limpa o codigo guardado + VISTA DA SALA + card comprido de Construtor para professor + fim da corrida no login','color:#ea860c;font-weight:700;'); }catch(e){}
   }
   if(document.readyState!=='loading') buildGaugeArc();
   else document.addEventListener('DOMContentLoaded', buildGaugeArc);

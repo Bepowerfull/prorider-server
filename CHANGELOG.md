@@ -33,6 +33,23 @@ Componentes: `servidor` · `app` · `ginasio` · `portal` · `banco`.
 
 ---
 
+## 2026-09-22 · app 22/09b · ginasio 22/09b
+
+**O que mudou**
+- Compatibilidade de campos com o servidor publicado: o app envia o treino em `dados` **e** `json`; o Ginásio lê `dados`, `json` ou `treino`; o token de pareamento é aceite como `token`, `prof_session` ou `prof_session_token`; a lista de treinos como `.treinos`, `.aulas` ou array.
+
+**Por quê**
+- O servidor grava `{ nome, dados }` e o app enviava `{ nome, json }`. O treino seria salvo vazio, sem erro visível.
+
+- Revisão chamada a chamada das 13 rotas: código do pareamento (`codigo`|`code`|`pareamento`), validade (`expira_em_seg`|`expires_in`|`ttl`), status (`confirmado`|`confirmed`|`ok`), reservas (`nome`|`name`, `bike_numero`|`bike`, lista em `reservas`|`rows`|`data`).
+- `POST /display/renovar` envia o token no corpo além do cabeçalho.
+
+**Como confirmar**
+- Salvar um treino no celular e vê-lo em `GET /professor/treinos` com os blocos preenchidos.
+- Se o pareamento falhar, o Ginásio mostra a razão na tela e escreve a resposta no Console — não fica um QR vazio.
+
+---
+
 ## 2026-09-22 · servidor · 4409582
 
 **O que mudou**
@@ -56,49 +73,6 @@ Componentes: `servidor` · `app` · `ginasio` · `portal` · `banco`.
 
 **Como confirmar**
 - `PUT /admin/users/125 { "role": "gestor" }` com token super_admin → devolve o utilizador com role atualizado.
-
----
-
-## 2026-09-22 · servidor · d31da68
-
-**O que mudou**
-- Fix: migração `licenses` legacy isolada em try/catch — já não bloqueia as migrações seguintes.
-
-**Por quê**
-- `ALTER TABLE licenses` falhava porque a tabela não existe neste banco; o erro interrompia o bloco e as novas tabelas nunca eram criadas.
-
-**Como confirmar**
-- Logs do Railway: `Migração licenca_computadores OK`, `Migração treinos_professor + pareamentos_ginasio OK`.
-
----
-
-## 2026-09-22 · servidor · 44683d5
-
-**O que mudou**
-- `JWT_SECRET`: remove fallback inseguro; só aviso no log se não definida.
-- `POST /display/ativar`: aceita `device_id` e `nome_computador`; token passa a expirar em 15 dias.
-- `POST /display/renovar` (novo): aceita token vencido há < 30 dias; migração automática dos tokens permanentes antigos.
-- `displayAuth`: verifica `device_id` em `licenca_computadores`; tokens sem `device_id` aceites provisoriamente.
-- Migrações: `licenca_computadores`, `max_computadores`, `pagamento_ok_ate` em `licencas`.
-- Migrações: campos de endereço e contacto em `licencas` (`email_financeiro`, `logradouro`, `cep`, `lat`, `lng`, …).
-- Migrações: `treinos_professor`, `pareamentos_ginasio`.
-- Rotas CRUD `POST/GET/PUT/DELETE /professor/treinos`.
-- `POST /professor/parear`: confirma pareamento; valida acesso à licença via `professor_licencas`.
-- `POST /ginasio/pareamento`: Ginásio gera código de 6 hex, válido 120 s.
-- `GET /ginasio/pareamento/:codigo`: devolve status e token de sessão ao confirmar.
-- `GET /ginasio/treinos` e `GET /ginasio/treinos/:id`: leitura dos treinos do professor pareado (token `prof_session`, 4 h).
-- `app 20/09f` deployado em `public/aluno/index.html`.
-
-**Por quê**
-- Documento-mestre de 22/09: todas as decisões tomadas desde 19/09.
-
-**Como confirmar**
-- `POST /display/renovar` devolve `{ token }` com prazo de 15 dias.
-- `GET /professor/treinos` com token de aluno autenticado devolve `{ treinos: [] }`.
-- App em aba anónima: frase "Qual é a sua bike".
-
-**Cuidados**
-- `JWT_SECRET` já está definida no Railway (`prorider2026mario`). Não trocar — desfaria todos os tokens activos.
 
 ---
 
@@ -166,21 +140,6 @@ Componentes: `servidor` · `app` · `ginasio` · `portal` · `banco`.
 
 **Como confirmar**
 - Frase "Qual é a sua bike" em aba anônima.
-
----
-
-## 2026-09-22 · app · 7aa3bee
-
-**O que mudou**
-- `phInit`: aceita `professor|gestor|admin|super_admin` (antes só `professor`).
-- `profTemAcesso`: verifica `l.codigo` (campo real da resposta do servidor).
-- `_salaEhProfessor`: retorna `false` quando `_profLicencas` é `null`.
-
-**Por quê**
-- Gestor e super_admin não conseguiam aceder à interface de professor.
-
-**Como confirmar**
-- Login com `marioelite@hotmail.com` → interface de professor visível.
 
 ---
 
