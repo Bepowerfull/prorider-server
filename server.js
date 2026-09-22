@@ -14,7 +14,10 @@ const crypto     = require('crypto');
 
 // ══ Configuração ══════════════════════════════════════════════
 const PORT       = process.env.PORT || 8080;
-const JWT_SECRET = process.env.JWT_SECRET || 'prorider_dev_secret_change_in_production';
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) {
+  console.error('!!! JWT_SECRET NAO DEFINIDO — defina nas variaveis do Railway !!!');
+}
 const DB_URL     = process.env.DATABASE_URL;
 
 // ══ Express ═══════════════════════════════════════════════════
@@ -425,6 +428,69 @@ async function runMigrations() {
     await db.query(`ALTER TABLE licenses ADD COLUMN IF NOT EXISTS cidade TEXT`);
     await db.query(`ALTER TABLE licenses ADD COLUMN IF NOT EXISTS nome_fantasia TEXT`);
     log('Migração licenses onboarding OK');
+
+    // ── Licenças: computador único e pagamento ─────────────────────
+    await db.query(`
+      ALTER TABLE licencas
+        ADD COLUMN IF NOT EXISTS max_computadores SMALLINT DEFAULT 1,
+        ADD COLUMN IF NOT EXISTS pagamento_ok_ate DATE
+    `);
+    await db.query(`
+      CREATE TABLE IF NOT EXISTS licenca_computadores (
+        id               SERIAL PRIMARY KEY,
+        license_codigo   TEXT NOT NULL,
+        device_id        TEXT NOT NULL,
+        nome_computador  TEXT,
+        ativado_em       TIMESTAMPTZ DEFAULT NOW(),
+        visto_em         TIMESTAMPTZ DEFAULT NOW(),
+        UNIQUE(license_codigo, device_id)
+      )
+    `);
+    log('Migração licenca_computadores OK');
+
+    // ── Licenças: campos de endereço e contacto ────────────────────
+    await db.query(`
+      ALTER TABLE licencas
+        ADD COLUMN IF NOT EXISTS email_financeiro TEXT,
+        ADD COLUMN IF NOT EXISTS email_gestor     TEXT,
+        ADD COLUMN IF NOT EXISTS logradouro       TEXT,
+        ADD COLUMN IF NOT EXISTS numero           TEXT,
+        ADD COLUMN IF NOT EXISTS bairro           TEXT,
+        ADD COLUMN IF NOT EXISTS cep              TEXT,
+        ADD COLUMN IF NOT EXISTS cidade_lic       TEXT,
+        ADD COLUMN IF NOT EXISTS estado           TEXT,
+        ADD COLUMN IF NOT EXISTS pais             TEXT DEFAULT 'Brasil',
+        ADD COLUMN IF NOT EXISTS lat              NUMERIC(9,6),
+        ADD COLUMN IF NOT EXISTS lng              NUMERIC(9,6)
+    `);
+    log('Migração licencas endereço OK');
+
+    // ── Treinos do professor ───────────────────────────────────────
+    await db.query(`
+      CREATE TABLE IF NOT EXISTS treinos_professor (
+        id           SERIAL PRIMARY KEY,
+        user_id      INTEGER REFERENCES users(id) ON DELETE CASCADE,
+        nome         TEXT NOT NULL,
+        json         JSONB NOT NULL,
+        duracao_sec  INTEGER,
+        created_at   TIMESTAMPTZ DEFAULT NOW(),
+        updated_at   TIMESTAMPTZ DEFAULT NOW()
+      )
+    `);
+    // ── Pareamentos Ginásio ────────────────────────────────────────
+    await db.query(`
+      CREATE TABLE IF NOT EXISTS pareamentos_ginasio (
+        codigo      TEXT PRIMARY KEY,
+        license_id  TEXT,
+        user_id     INTEGER,
+        token       TEXT,
+        status      TEXT DEFAULT 'pendente',
+        motivo      TEXT,
+        expira_em   TIMESTAMPTZ NOT NULL,
+        created_at  TIMESTAMPTZ DEFAULT NOW()
+      )
+    `);
+    log('Migração treinos_professor + pareamentos_ginasio OK');
 
   } catch(e) {
     log('Migração ERRO: ' + e.message);
@@ -1592,10 +1658,10 @@ app.get('/admin/financeiro/dashboard', adminAuth, async (req, res) => {
 // DISPLAY TOKEN — autenticação do mini PC (sem senha do professor)
 // ══════════════════════════════════════════════════════════════
 
-// Ativação única: professor digita o código da licença → recebe display token permanente
+// Ativação: Ginásio envia código da licença + device_id → token 15d
 app.post('/display/ativar', async (req, res) => {
   if (!db) return res.status(503).json({ error: 'Banco indisponível' });
-  const { codigo } = req.body;
+  const { codigo, device_id, nome_computador } = req.body;
   if (!codigo) return res.status(400).json({ error: 'Código da licença obrigatório' });
   try {
     const r = await db.query(
@@ -1604,24 +1670,97 @@ app.post('/display/ativar', async (req, res) => {
     );
     if (!r.rows.length) return res.status(404).json({ error: 'Licença não encontrada ou inativa' });
     const lic = r.rows[0];
-    // Token sem expiração — role 'display', só leitura de grade/sessões
+    const devId = device_id || null;
+    if (devId) {
+      // Registar/atualizar computador; se passar o limite, remove os mais antigos
+      await db.query(`
+        INSERT INTO licenca_computadores (license_codigo, device_id, nome_computador, visto_em)
+        VALUES ($1,$2,$3,NOW())
+        ON CONFLICT (license_codigo, device_id) DO UPDATE SET nome_computador=$3, visto_em=NOW()
+      `, [lic.codigo, devId, nome_computador || null]);
+      const maxComp = lic.max_computadores || 1;
+      await db.query(`
+        DELETE FROM licenca_computadores
+        WHERE license_codigo=$1 AND device_id NOT IN (
+          SELECT device_id FROM licenca_computadores WHERE license_codigo=$1 ORDER BY visto_em DESC LIMIT $2
+        )
+      `, [lic.codigo, maxComp]);
+    }
     const token = jwt.sign(
-      { role: 'display', license_id: lic.codigo, nome_academia: lic.nome },
-      JWT_SECRET
-      // sem expiresIn → token permanente
+      { role: 'display', license_id: lic.codigo, nome_academia: lic.nome, device_id: devId },
+      JWT_SECRET,
+      { expiresIn: '15d' }
     );
     res.json({ token, nome_academia: lic.nome, codigo: lic.codigo });
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
-// Middleware display: aceita role='display' OU role='gestor'/'admin' (para compatibilidade)
-function displayAuth(req, res, next) {
+// Renovar token: Ginásio envia token atual (mesmo vencido há pouco) → token novo 15d
+app.post('/display/renovar', async (req, res) => {
+  if (!db) return res.status(503).json({ error: 'Banco indisponível' });
+  const raw = (req.headers.authorization || '').replace('Bearer ', '');
+  if (!raw) return res.status(401).json({ error: 'Token necessário' });
+  const { device_id } = req.body;
+  try {
+    let p;
+    try { p = jwt.verify(raw, JWT_SECRET); }
+    catch(e) {
+      // Aceita token vencido há menos de 30 dias
+      p = jwt.verify(raw, JWT_SECRET, { ignoreExpiration: true });
+      if (p.exp && (Date.now()/1000 - p.exp) > 30*24*3600)
+        return res.status(401).json({ error: 'Token demasiado antigo para renovar' });
+    }
+    if (p.role !== 'display') return res.status(403).json({ error: 'Acesso negado' });
+    const lic = await db.query("SELECT * FROM licencas WHERE codigo=$1 AND status='ativa'", [p.license_id]);
+    if (!lic.rows.length) return res.status(403).json({ motivo: 'Licença inativa ou não encontrada' });
+    const l = lic.rows[0];
+    // Verificar pagamento (5 dias de tolerância)
+    if (l.pagamento_ok_ate) {
+      const tolerance = new Date(l.pagamento_ok_ate);
+      tolerance.setDate(tolerance.getDate() + 5);
+      if (new Date() > tolerance) return res.status(403).json({ motivo: 'LICENÇA SUSPENSA — pagamento vencido' });
+    }
+    const devId = device_id || p.device_id || null;
+    if (devId) {
+      // Verificar se device_id ainda está na lista (tokens antigos sem device_id: aceitar por 30 dias)
+      if (p.device_id) {
+        const dc = await db.query(
+          'SELECT 1 FROM licenca_computadores WHERE license_codigo=$1 AND device_id=$2',
+          [l.codigo, devId]
+        );
+        if (!dc.rows.length) return res.status(401).json({ motivo: 'outro_computador' });
+      }
+      await db.query(`
+        INSERT INTO licenca_computadores (license_codigo, device_id, visto_em)
+        VALUES ($1,$2,NOW())
+        ON CONFLICT (license_codigo, device_id) DO UPDATE SET visto_em=NOW()
+      `, [l.codigo, devId]);
+    }
+    const token = jwt.sign(
+      { role: 'display', license_id: l.codigo, nome_academia: l.nome, device_id: devId },
+      JWT_SECRET,
+      { expiresIn: '15d' }
+    );
+    res.json({ token });
+  } catch(e) { res.status(401).json({ error: 'Token inválido: ' + e.message }); }
+});
+
+// Middleware display
+async function displayAuth(req, res, next) {
   const token = (req.headers.authorization || '').replace('Bearer ', '');
   if (!token) return res.status(401).json({ error: 'Token necessário' });
   try {
     const p = jwt.verify(token, JWT_SECRET);
     if (p.role !== 'display' && p.role !== 'gestor' && p.role !== 'admin')
       return res.status(403).json({ error: 'Acesso negado' });
+    // Verificar device_id (tokens antigos sem device_id: aceitar provisoriamente)
+    if (p.role === 'display' && p.device_id && db) {
+      const dc = await db.query(
+        'SELECT 1 FROM licenca_computadores WHERE license_codigo=$1 AND device_id=$2',
+        [p.license_id, p.device_id]
+      );
+      if (!dc.rows.length) return res.status(401).json({ motivo: 'outro_computador' });
+    }
     req.user = p;
     next();
   } catch(e) { res.status(401).json({ error: 'Token inválido' }); }
@@ -3588,6 +3727,155 @@ if (db) {
     } catch(e) {}
   }, 60 * 60 * 1000); // a cada 1h
 }
+
+// ══════════════════════════════════════════════════════════════
+// TREINOS DO PROFESSOR (conta pessoal, authMiddleware)
+// ══════════════════════════════════════════════════════════════
+app.post('/professor/treinos', authMiddleware, async (req, res) => {
+  if (!db) return res.status(503).json({ error: 'Banco indisponível' });
+  const { nome, json } = req.body;
+  if (!nome || !json) return res.status(400).json({ error: 'nome e json obrigatórios' });
+  try {
+    const dur = Array.isArray(json.blocos) ? json.blocos.reduce((a,b) => a + ((b.duracao_seg || b.duracao_min*60) || 0), 0) : null;
+    const r = await db.query(
+      'INSERT INTO treinos_professor (user_id, nome, json, duracao_sec) VALUES ($1,$2,$3,$4) RETURNING id',
+      [req.user.id, nome, json, dur]
+    );
+    res.json({ id: r.rows[0].id });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+app.get('/professor/treinos', authMiddleware, async (req, res) => {
+  if (!db) return res.status(503).json({ error: 'Banco indisponível' });
+  try {
+    const r = await db.query(
+      'SELECT id, nome, duracao_sec, updated_at FROM treinos_professor WHERE user_id=$1 ORDER BY updated_at DESC',
+      [req.user.id]
+    );
+    res.json({ treinos: r.rows });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+app.put('/professor/treinos/:id', authMiddleware, async (req, res) => {
+  if (!db) return res.status(503).json({ error: 'Banco indisponível' });
+  const { nome, json } = req.body;
+  try {
+    const dur = Array.isArray(json && json.blocos) ? json.blocos.reduce((a,b) => a + ((b.duracao_seg || b.duracao_min*60) || 0), 0) : null;
+    const r = await db.query(
+      'UPDATE treinos_professor SET nome=COALESCE($1,nome), json=COALESCE($2,json), duracao_sec=COALESCE($3,duracao_sec), updated_at=NOW() WHERE id=$4 AND user_id=$5 RETURNING id',
+      [nome||null, json||null, dur, req.params.id, req.user.id]
+    );
+    if (!r.rows.length) return res.status(404).json({ error: 'Treino não encontrado' });
+    res.json({ ok: true });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+app.delete('/professor/treinos/:id', authMiddleware, async (req, res) => {
+  if (!db) return res.status(503).json({ error: 'Banco indisponível' });
+  try {
+    await db.query('DELETE FROM treinos_professor WHERE id=$1 AND user_id=$2', [req.params.id, req.user.id]);
+    res.json({ ok: true });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// Professor confirma pareamento (precisa ter acesso à licença)
+app.post('/professor/parear', authMiddleware, async (req, res) => {
+  if (!db) return res.status(503).json({ error: 'Banco indisponível' });
+  const { codigo } = req.body;
+  if (!codigo) return res.status(400).json({ error: 'codigo obrigatório' });
+  try {
+    const pr = await db.query("SELECT * FROM pareamentos_ginasio WHERE codigo=$1", [codigo]);
+    if (!pr.rows.length || new Date() > new Date(pr.rows[0].expira_em))
+      return res.status(410).json({ error: 'Código expirado ou não encontrado' });
+    const p = pr.rows[0];
+    if (p.status === 'usado') return res.status(410).json({ error: 'Código já usado' });
+    // Verificar acesso à licença
+    if (!await temAcessoLicenca(req.user, p.license_id))
+      return res.status(403).json({ error: 'Sem acesso a esta unidade' });
+    // Token de sessão do professor para o Ginásio (4h, só lê treinos deste professor)
+    const token = jwt.sign(
+      { role: 'prof_session', user_id: req.user.id, license_id: p.license_id },
+      JWT_SECRET,
+      { expiresIn: '4h' }
+    );
+    await db.query(
+      "UPDATE pareamentos_ginasio SET status='confirmado', user_id=$1, token=$2 WHERE codigo=$3",
+      [req.user.id, token, codigo]
+    );
+    res.json({ ok: true });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// ══════════════════════════════════════════════════════════════
+// ROTAS DO GINÁSIO — pareamento e treinos
+// ══════════════════════════════════════════════════════════════
+const crypto = require('crypto');
+
+app.post('/ginasio/pareamento', displayAuth, async (req, res) => {
+  if (!db) return res.status(503).json({ error: 'Banco indisponível' });
+  try {
+    const codigo = crypto.randomBytes(3).toString('hex').toUpperCase();
+    const expira = new Date(Date.now() + 120 * 1000);
+    await db.query(
+      "INSERT INTO pareamentos_ginasio (codigo, license_id, status, expira_em) VALUES ($1,$2,'pendente',$3)",
+      [codigo, req.user.license_id, expira]
+    );
+    res.json({ codigo, expira_em_seg: 120 });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+app.get('/ginasio/pareamento/:codigo', displayAuth, async (req, res) => {
+  if (!db) return res.status(503).json({ error: 'Banco indisponível' });
+  try {
+    const pr = await db.query("SELECT * FROM pareamentos_ginasio WHERE codigo=$1", [req.params.codigo]);
+    if (!pr.rows.length) return res.status(404).json({ error: 'Código não encontrado' });
+    const p = pr.rows[0];
+    if (p.license_id !== req.user.license_id) return res.status(403).json({ error: 'Acesso negado' });
+    let professor = null;
+    if (p.user_id) {
+      const u = await db.query('SELECT id, name FROM users WHERE id=$1', [p.user_id]);
+      if (u.rows.length) professor = { id: u.rows[0].id, nome: u.rows[0].name };
+    }
+    if (p.status === 'confirmado' && p.token) {
+      await db.query("UPDATE pareamentos_ginasio SET status='usado' WHERE codigo=$1", [req.params.codigo]);
+    }
+    res.json({ status: p.status, motivo: p.motivo || null, professor, token: p.status === 'confirmado' ? p.token : null });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+function profSessionAuth(req, res, next) {
+  const token = (req.headers.authorization || '').replace('Bearer ', '');
+  if (!token) return res.status(401).json({ error: 'Token necessário' });
+  try {
+    const p = jwt.verify(token, JWT_SECRET);
+    if (p.role !== 'prof_session') return res.status(403).json({ error: 'Acesso negado' });
+    req.user = p;
+    next();
+  } catch(e) { res.status(401).json({ error: 'Token inválido' }); }
+}
+
+app.get('/ginasio/treinos', profSessionAuth, async (req, res) => {
+  if (!db) return res.status(503).json({ error: 'Banco indisponível' });
+  try {
+    const r = await db.query(
+      'SELECT id, nome, duracao_sec FROM treinos_professor WHERE user_id=$1 ORDER BY updated_at DESC',
+      [req.user.user_id]
+    );
+    res.json({ treinos: r.rows });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+app.get('/ginasio/treinos/:id', profSessionAuth, async (req, res) => {
+  if (!db) return res.status(503).json({ error: 'Banco indisponível' });
+  try {
+    const r = await db.query(
+      'SELECT id, nome, json FROM treinos_professor WHERE id=$1 AND user_id=$2',
+      [req.params.id, req.user.user_id]
+    );
+    if (!r.rows.length) return res.status(404).json({ error: 'Treino não encontrado' });
+    res.json(r.rows[0]);
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
 
 // ── Start ──────────────────────────────────────────────────────
 server.listen(PORT, () => {

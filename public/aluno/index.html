@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
@@ -796,7 +796,7 @@ input[type=file]{display:none}
           <!-- Minutes -->
           <div style="display:flex;flex-direction:column;align-items:center;gap:5px;">
             <button onclick="bldAdjMin(1)" style="width:38px;height:30px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);border-radius:9px;color:rgba(255,255,255,.7);font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;">▲</button>
-            <div id="bldMinDisp" style="font-family:'Bebas Neue',sans-serif;font-size:44px;letter-spacing:1px;color:#fff;line-height:1;width:52px;text-align:center;">05</div>
+            <div id="bldMinDisp" onclick="bldDigitar('min')" title="Toque para digitar" role="button" style="font-family:'Bebas Neue',sans-serif;font-size:44px;letter-spacing:1px;color:#fff;line-height:1;width:52px;text-align:center;cursor:pointer;text-decoration:underline dotted rgba(255,255,255,.35);text-underline-offset:4px;">05</div>
             <button onclick="bldAdjMin(-1)" style="width:38px;height:30px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);border-radius:9px;color:rgba(255,255,255,.7);font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;">▼</button>
             <div style="font-size:9px;color:rgba(255,255,255,.18);letter-spacing:2px;text-transform:uppercase;margin-top:2px;">min</div>
           </div>
@@ -805,7 +805,7 @@ input[type=file]{display:none}
           <!-- Seconds -->
           <div style="display:flex;flex-direction:column;align-items:center;gap:5px;">
             <button onclick="bldAdjSec(1)" style="width:38px;height:30px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);border-radius:9px;color:rgba(255,255,255,.7);font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;">▲</button>
-            <div id="bldSecDisp" style="font-family:'Bebas Neue',sans-serif;font-size:44px;letter-spacing:1px;color:#fff;line-height:1;width:52px;text-align:center;">00</div>
+            <div id="bldSecDisp" onclick="bldDigitar('sec')" title="Toque para digitar" role="button" style="font-family:'Bebas Neue',sans-serif;font-size:44px;letter-spacing:1px;color:#fff;line-height:1;width:52px;text-align:center;cursor:pointer;text-decoration:underline dotted rgba(255,255,255,.35);text-underline-offset:4px;">00</div>
             <button onclick="bldAdjSec(-1)" style="width:38px;height:30px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);border-radius:9px;color:rgba(255,255,255,.7);font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;">▼</button>
             <div style="font-size:9px;color:rgba(255,255,255,.18);letter-spacing:2px;text-transform:uppercase;margin-top:2px;">sec</div>
           </div>
@@ -837,14 +837,14 @@ input[type=file]{display:none}
         <!-- Lo -->
         <div style="display:flex;flex-direction:column;align-items:center;gap:5px;">
           <button onclick="bldAdjRpm('lo',5)" style="width:36px;height:28px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);border-radius:8px;color:rgba(255,255,255,.7);font-size:14px;cursor:pointer;">▲</button>
-          <div id="bldRpmLoDisp" style="font-family:'Bebas Neue',sans-serif;font-size:34px;color:#fff;line-height:1;width:56px;text-align:center;">80</div>
+          <div id="bldRpmLoDisp" onclick="bldDigitar('rpmlo')" title="Toque para digitar" role="button" style="font-family:'Bebas Neue',sans-serif;font-size:34px;color:#fff;line-height:1;width:56px;text-align:center;cursor:pointer;text-decoration:underline dotted rgba(255,255,255,.35);text-underline-offset:4px;">80</div>
           <button onclick="bldAdjRpm('lo',-5)" style="width:36px;height:28px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);border-radius:8px;color:rgba(255,255,255,.7);font-size:14px;cursor:pointer;">▼</button>
         </div>
         <div style="font-size:24px;color:rgba(255,255,255,.2);font-weight:300;padding-bottom:8px;">–</div>
         <!-- Hi -->
         <div style="display:flex;flex-direction:column;align-items:center;gap:5px;">
           <button onclick="bldAdjRpm('hi',5)" style="width:36px;height:28px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);border-radius:8px;color:rgba(255,255,255,.7);font-size:14px;cursor:pointer;">▲</button>
-          <div id="bldRpmHiDisp" style="font-family:'Bebas Neue',sans-serif;font-size:34px;color:#fff;line-height:1;width:56px;text-align:center;">90</div>
+          <div id="bldRpmHiDisp" onclick="bldDigitar('rpmhi')" title="Toque para digitar" role="button" style="font-family:'Bebas Neue',sans-serif;font-size:34px;color:#fff;line-height:1;width:56px;text-align:center;cursor:pointer;text-decoration:underline dotted rgba(255,255,255,.35);text-underline-offset:4px;">90</div>
           <button onclick="bldAdjRpm('hi',-5)" style="width:36px;height:28px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);border-radius:8px;color:rgba(255,255,255,.7);font-size:14px;cursor:pointer;">▼</button>
         </div>
         <div style="font-size:12px;color:rgba(255,255,255,.22);letter-spacing:1px;text-transform:uppercase;padding-bottom:8px;">rpm</div>
@@ -877,11 +877,38 @@ input[type=file]{display:none}
     <div id="bldBlockList"></div>
   </div>
 
+  <!-- ── MIDIA DA AULA (so para o Ginasio) ──
+       O arquivo guarda so os NOMES. O video e a musica tem de estar no
+       pendrive da academia, pasta ProRider, com o mesmo nome. -->
+  <div id="bldMidia" style="margin:6px 14px 10px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:20px;padding:16px;">
+    <div style="font-size:10px;font-weight:700;letter-spacing:3px;color:rgba(255,255,255,.28);text-transform:uppercase;margin-bottom:4px;">Vídeo e música · para o Ginásio</div>
+    <div style="font-size:11px;color:rgba(255,255,255,.38);line-height:1.5;margin-bottom:12px;">Escolha os arquivos que estão no seu celular. Só o <b>nome</b> é guardado — no Ginásio eles precisam estar no pendrive, pasta ProRider, com o mesmo nome.</div>
+    <input type="file" id="bldVidFile" accept="video/*" style="display:none" onchange="bldMidiaEscolhida('video',this)"/>
+    <input type="file" id="bldMusFile" accept="audio/*,.mp3" style="display:none" onchange="bldMidiaEscolhida('musica',this)"/>
+    <div style="display:flex;gap:8px;margin-bottom:8px;">
+      <button type="button" onclick="document.getElementById('bldVidFile').click()" style="flex:1;padding:11px 8px;border-radius:12px;background:rgba(47,107,255,.12);border:1px solid rgba(47,107,255,.32);color:#85a9ff;font-size:12px;font-weight:800;font-family:inherit;">&#127916; Vídeo</button>
+      <button type="button" onclick="document.getElementById('bldMusFile').click()" style="flex:1;padding:11px 8px;border-radius:12px;background:rgba(93,177,61,.12);border:1px solid rgba(93,177,61,.32);color:#7ed95c;font-size:12px;font-weight:800;font-family:inherit;">&#127925; Música</button>
+    </div>
+    <div id="bldMidiaInfo" style="font-size:11.5px;color:rgba(255,255,255,.55);line-height:1.6;"></div>
+    <div id="bldVidPrev" style="display:none;margin-top:10px;">
+      <video id="bldVidEl" playsinline controls muted style="width:100%;border-radius:12px;background:#000;max-height:34vh;"></video>
+      <button type="button" onclick="bldMarcarChegada()" style="width:100%;margin-top:8px;padding:12px;border-radius:12px;background:#ea860c;border:none;color:#fff;font-weight:900;letter-spacing:1px;font-family:inherit;">&#127937; MARCAR CHEGADA AQUI</button>
+      <div style="font-size:10.5px;color:rgba(255,255,255,.35);margin-top:5px;line-height:1.5;">Avance o vídeo até a cena em que a aula deve terminar o bloco principal e toque no botão.</div>
+    </div>
+  </div>
+
   <!-- ── Save section ── -->
   <div style="margin:6px 14px 14px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:20px;padding:16px;">
     <div style="font-size:10px;font-weight:700;letter-spacing:3px;color:rgba(255,255,255,.28);text-transform:uppercase;margin-bottom:10px;">Save Workout</div>
     <input id="bldName" placeholder="Workout name..." style="width:100%;box-sizing:border-box;padding:13px 14px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:12px;color:#fff;font-size:16px;font-weight:600;outline:none;margin-bottom:10px;"/>
     <button onclick="bldSave()" style="width:100%;padding:14px;border-radius:14px;background:linear-gradient(135deg,rgba(234,134,12,.35),rgba(214,45,45,.25));border:1px solid rgba(234,134,12,.4);color:#fff;font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:900;letter-spacing:1px;cursor:pointer;">💾 SAVE WORKOUT</button>
+    <!-- So para professor: guardar na conta (aparece no Ginasio em MINHAS AULAS)
+         e baixar o arquivo no formato do Ginasio. -->
+    <div id="bldProfAcoes" style="display:none;margin-top:10px;">
+      <button type="button" onclick="bldEnviarConta()" style="width:100%;padding:13px;border-radius:14px;background:rgba(234,134,12,.16);border:1px solid rgba(234,134,12,.4);color:#ea860c;font-size:13px;font-weight:900;letter-spacing:1px;font-family:inherit;">&#9729;&#65039; SALVAR NA MINHA CONTA</button>
+      <button type="button" onclick="bldBaixarJson()" style="width:100%;margin-top:8px;padding:12px;border-radius:14px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.14);color:rgba(255,255,255,.75);font-size:12px;font-weight:800;letter-spacing:1px;font-family:inherit;">&#11015;&#65039; BAIXAR ARQUIVO .JSON</button>
+      <div style="font-size:10.5px;color:rgba(255,255,255,.32);margin-top:6px;line-height:1.5;text-align:center;">Salva na conta: aparece no Ginásio em <b>Carregar aula → Minhas aulas</b>.</div>
+    </div>
   </div>
 </div>
 
@@ -2466,9 +2493,16 @@ function revAbrir(){
           +(atual?' <span style="font-size:10px;letter-spacing:1.6px;color:#ea860c;">AGORA</span>':'')+'</div>'
         +'<div style="font-size:12px;color:rgba(255,255,255,.42);margin-top:3px;">'
           +b.dur+' min · '+(b.ftp?(b.ftp+'% FTP'):'sem alvo')
-          +' · '+(b.rpm?(b.rpm[0]+'-'+b.rpm[1]+' rpm'):'cadência livre')
+          +' · '+(function(r){
+              // o construtor guarda '80-90' (texto); a importacao guarda [80,90]
+              if(!r) return 'cadência livre';
+              if(typeof r==='string') return r+' rpm';
+              return r[0]+'-'+r[1]+' rpm';
+            })(b.rpm)
           +(b.pos?(' · '+b.pos):'')+'</div>'
-        +(b.nota?('<div style="font-size:12.5px;color:#5db13d;margin-top:5px;line-height:1.4;">» '+b.nota+'</div>'):'')
+        +(b.nota?('<div style="font-size:'+(atual?'14':'12.5')+'px;color:#5db13d;margin-top:5px;line-height:1.4;'
+            +(atual?'font-weight:700;background:rgba(93,177,61,.12);border-radius:8px;padding:7px 9px;':'')+'">» '
+            +String(b.nota).replace(/[&<>]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;'}[c];})+'</div>'):'')
       +'</div></div>';
   });
   var l=document.getElementById('revLista');
@@ -4105,6 +4139,7 @@ function _checkProfCode(){
 
 function _doOpenConstructor(){
   go('sConstructor');
+  try{ bldMidiaPintar(); bldProfAtualizar(); }catch(e){}
   bldSetSection('main');
   bldSetZone('z2'); bldSetPos('Seated');
   bldRefreshDisp();
@@ -4127,6 +4162,56 @@ function bldAdjSec(d){
   // steps of 5s, wrap 0-55
   bldS=(bldS+d*5+60)%60;
   document.getElementById('bldSecDisp').textContent=(bldS<10?'0':'')+bldS;
+}
+
+// ── DIGITAR O VALOR EXATO ────────────────────────────────────────
+// Pedido do Mario (20/09): os botoes pulam de 5 em 5 e nao da para chegar a
+// 47 s ou 83 rpm. Tocar no numero abre um campo para digitar qualquer valor.
+// Os botoes + e - continuam para ajuste rapido.
+function bldDigitar(campo){
+  var cfg={
+    min:  {t:'Minutos',        v:bldM,     lo:0,  hi:99},
+    sec:  {t:'Segundos',       v:bldS,     lo:0,  hi:59},
+    rpmlo:{t:'Rotação mínima', v:bldRpmLo, lo:30, hi:180},
+    rpmhi:{t:'Rotação máxima', v:bldRpmHi, lo:30, hi:180}
+  }[campo];
+  if(!cfg) return;
+  prNumero(cfg.t, cfg.v, cfg.lo, cfg.hi, function(n){
+    if(campo==='min'){ bldM=n; }
+    else if(campo==='sec'){ bldS=n; }
+    else if(campo==='rpmlo'){ bldRpmLo=n; if(bldRpmHi<n) bldRpmHi=n; }
+    else if(campo==='rpmhi'){ bldRpmHi=n; if(bldRpmLo>n) bldRpmLo=n; }
+    bldRefreshDisp();
+  });
+}
+// Campo numerico em sobreposicao. prompt() nativo no celular abre teclado
+// de texto e fica feio; aqui o teclado ja vem numerico.
+function prNumero(titulo, valor, lo, hi, ok){
+  var ov=document.createElement('div');
+  ov.style.cssText='position:fixed;inset:0;z-index:99990;background:rgba(0,0,0,.72);display:flex;align-items:center;justify-content:center;padding:24px;';
+  ov.innerHTML='<div style="width:100%;max-width:320px;background:#15141b;border:1px solid rgba(255,255,255,.1);border-radius:18px;padding:20px;">'
+    +'<div style="font-size:11px;letter-spacing:2px;color:rgba(255,255,255,.45);font-weight:800;text-transform:uppercase;">'+titulo+'</div>'
+    +'<input id="prNumIn" type="number" inputmode="numeric" pattern="[0-9]*" min="'+lo+'" max="'+hi+'" value="'+valor+'" '
+    +'style="width:100%;margin:12px 0 4px;padding:14px;font-size:30px;font-weight:900;text-align:center;border-radius:12px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.14);color:#fff;font-family:inherit;box-sizing:border-box;">'
+    +'<div style="font-size:11px;color:rgba(255,255,255,.35);text-align:center;margin-bottom:14px;">de '+lo+' a '+hi+'</div>'
+    +'<div style="display:flex;gap:10px;">'
+    +'<button type="button" id="prNumNao" style="flex:1;height:46px;border-radius:12px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);color:#fff;font-weight:700;font-family:inherit;">Cancelar</button>'
+    +'<button type="button" id="prNumSim" style="flex:1;height:46px;border-radius:12px;background:#ea860c;border:none;color:#fff;font-weight:800;font-family:inherit;">OK</button>'
+    +'</div></div>';
+  document.body.appendChild(ov);
+  var inp=document.getElementById('prNumIn');
+  setTimeout(function(){ try{ inp.focus(); inp.select(); }catch(e){} },60);
+  function fechar(){ if(ov.parentNode) ov.parentNode.removeChild(ov); }
+  function confirmar(){
+    var n=parseInt(inp.value,10);
+    if(isNaN(n)){ inp.style.borderColor='#e53935'; return; }
+    n=Math.max(lo,Math.min(hi,n));
+    fechar(); ok(n);
+  }
+  document.getElementById('prNumSim').onclick=confirmar;
+  document.getElementById('prNumNao').onclick=fechar;
+  ov.onclick=function(e){ if(e.target===ov) fechar(); };
+  inp.onkeydown=function(e){ if(e.key==='Enter') confirmar(); };
 }
 
 function bldAdjRpm(side,d){
@@ -4194,7 +4279,7 @@ function bldAddBlock(){
   var totalSec=bldM*60+bldS;
   if(totalSec<5){ alert('Dura\u00e7\u00e3o m\u00ednima: 5 segundos'); return; }
   var dur=Math.round(totalSec/60*100)/100;
-  var block={z:bldZone, ftp:bldFtpMap[bldZone]||'\u2013', rpm:bldRpmLo+'-'+bldRpmHi, dur:dur, pos:bldPos};
+  var block={z:bldZone, ftp:bldFtpMap[bldZone]||'\u2013', rpm:bldRpmLo+'-'+bldRpmHi, dur:dur, pos:bldPos, nota:''};
   if(bldSection==='warmup')        bldWarmup.push(block);
   else if(bldSection==='cooldown') bldCooldown.push(block);
   else                             bldMain.push(block);
@@ -4206,6 +4291,77 @@ function bldAddBlock(){
     btn.textContent='\u2713 Adicionado!';
     setTimeout(function(){ btn.style.background='linear-gradient(135deg,rgba(93,177,61,.45),rgba(41,95,232,.25))'; btn.textContent='+ ADD BLOCK'; },700);
   }
+}
+
+// ── EDITAR UM BLOCO JA ADICIONADO ────────────────────────────────
+// Pedido do Mario (20/09): tocar no bloco abre a edicao — zona, tempo,
+// rotacao, posicao e o RECADO DO TREINADOR ("foca na respiracao"), que depois
+// aparece na conferencia do treino e no Revisar o treino da gaveta.
+function bldEditar(sec,i){
+  var arr = sec==='warmup'?bldWarmup : sec==='cooldown'?bldCooldown : bldMain;
+  var b=arr[i]; if(!b) return;
+  var tot=Math.round((b.dur||0)*60), m=Math.floor(tot/60), sg=tot%60;
+  var rp2=String(b.rpm||'').split('-'), lo=parseInt(rp2[0],10)||80, hi=parseInt(rp2[1],10)||lo;
+  var zonas=['z1','z2','z3','z4','z5','z6','z7'];
+  var ov=document.createElement('div'); ov.id='bldEdOv';
+  ov.style.cssText='position:fixed;inset:0;z-index:99980;background:rgba(0,0,0,.72);display:flex;align-items:flex-end;justify-content:center;';
+  function campo(lbl,id,val,ex){ return '<label style="display:block;flex:1;"><div style="font-size:10px;letter-spacing:1.6px;color:rgba(255,255,255,.4);font-weight:800;margin-bottom:5px;">'+lbl+'</div>'
+    +'<input id="'+id+'" type="number" inputmode="numeric" value="'+val+'" '+(ex||'')+' style="width:100%;box-sizing:border-box;padding:12px;font-size:18px;font-weight:800;text-align:center;border-radius:11px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.13);color:#fff;font-family:inherit;"></label>'; }
+  ov.innerHTML='<div style="width:100%;max-width:520px;max-height:92vh;overflow-y:auto;background:#15141b;border-radius:20px 20px 0 0;border:1px solid rgba(255,255,255,.1);padding:18px 18px calc(18px + env(safe-area-inset-bottom,0px));">'
+    +'<div style="display:flex;align-items:center;margin-bottom:14px;"><div style="font-size:17px;font-weight:900;">Editar bloco '+(i+1)+'</div>'
+    +'<button type="button" onclick="bldEdFechar()" style="margin-left:auto;width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,.07);border:none;color:#fff;font-size:18px;">\u00d7</button></div>'
+    +'<div style="font-size:10px;letter-spacing:1.6px;color:rgba(255,255,255,.4);font-weight:800;margin-bottom:6px;">ZONA</div>'
+    +'<div id="bldEdZonas" style="display:flex;gap:6px;margin-bottom:14px;">'
+      +zonas.map(function(z){ return '<button type="button" data-z="'+z+'" onclick="bldEdZona(\''+z+'\')" style="flex:1;height:38px;border-radius:9px;border:2px solid '+(z===b.z?'#fff':'transparent')+';background:'+zC[z]+';color:#111;font-weight:900;font-size:12px;opacity:'+(z===b.z?'1':'.4')+';">'+z.toUpperCase()+'</button>'; }).join('')
+    +'</div>'
+    +'<div style="display:flex;gap:10px;margin-bottom:12px;">'+campo('MINUTOS','bldEdMin',m,'min="0" max="99"')+campo('SEGUNDOS','bldEdSec',sg,'min="0" max="59"')+'</div>'
+    +'<div style="display:flex;gap:10px;margin-bottom:12px;">'+campo('RPM MÍN','bldEdLo',lo,'min="30" max="180"')+campo('RPM MÁX','bldEdHi',hi,'min="30" max="180"')+'</div>'
+    +'<div style="font-size:10px;letter-spacing:1.6px;color:rgba(255,255,255,.4);font-weight:800;margin-bottom:6px;">POSIÇÃO</div>'
+    +'<div style="display:flex;gap:8px;margin-bottom:14px;">'
+      +['Seated','Standing'].map(function(p){ var sel=(String(b.pos||'').toLowerCase()===p.toLowerCase()); return '<button type="button" data-p="'+p+'" onclick="bldEdPos(\''+p+'\')" style="flex:1;height:40px;border-radius:10px;border:1px solid '+(sel?'#ea860c':'rgba(255,255,255,.13)')+';background:'+(sel?'rgba(234,134,12,.18)':'rgba(255,255,255,.05)')+';color:#fff;font-weight:800;">'+(p==='Seated'?'Sentado':'Em pé')+'</button>'; }).join('')
+    +'</div>'
+    +'<div style="font-size:10px;letter-spacing:1.6px;color:rgba(255,255,255,.4);font-weight:800;margin-bottom:6px;">RECADO DO TREINADOR <span style="color:rgba(255,255,255,.25);">· opcional</span></div>'
+    +'<textarea id="bldEdRec" maxlength="140" rows="2" placeholder="Ex.: foca na respiração, ombros soltos" style="width:100%;box-sizing:border-box;padding:12px;font-size:14px;border-radius:11px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.13);color:#fff;font-family:inherit;resize:none;">'+_salaEsc(b.nota||'')+'</textarea>'
+    +'<div style="font-size:10px;color:rgba(255,255,255,.3);text-align:right;margin:3px 0 14px;">até 140 caracteres</div>'
+    +'<button type="button" onclick="bldEdSalvar(\''+sec+'\','+i+')" style="width:100%;height:50px;border-radius:13px;background:#ea860c;border:none;color:#fff;font-size:15px;font-weight:900;letter-spacing:1px;">SALVAR BLOCO</button>'
+    +'</div>';
+  document.body.appendChild(ov);
+  ov.onclick=function(e){ if(e.target===ov) bldEdFechar(); };
+  window._bldEd={z:b.z,pos:b.pos};
+}
+function bldEdFechar(){ var o=document.getElementById('bldEdOv'); if(o) o.parentNode.removeChild(o); }
+function bldEdZona(z){
+  window._bldEd.z=z;
+  document.querySelectorAll('#bldEdZonas button').forEach(function(x){
+    var on=(x.getAttribute('data-z')===z); x.style.opacity=on?'1':'.4'; x.style.borderColor=on?'#fff':'transparent';
+  });
+}
+function bldEdPos(p){
+  window._bldEd.pos=p;
+  document.querySelectorAll('#bldEdOv button[data-p]').forEach(function(x){
+    var on=(x.getAttribute('data-p')===p);
+    x.style.borderColor=on?'#ea860c':'rgba(255,255,255,.13)'; x.style.background=on?'rgba(234,134,12,.18)':'rgba(255,255,255,.05)';
+  });
+}
+function bldEdSalvar(sec,i){
+  var arr = sec==='warmup'?bldWarmup : sec==='cooldown'?bldCooldown : bldMain;
+  var b=arr[i]; if(!b) return;
+  function n(id,lo,hi,def){ var v=parseInt((document.getElementById(id)||{}).value,10); if(isNaN(v)) v=def; return Math.max(lo,Math.min(hi,v)); }
+  var m=n('bldEdMin',0,99,0), sg=n('bldEdSec',0,59,0);
+  var tot=m*60+sg;
+  if(tot<5){ alert('Duração mínima: 5 segundos'); return; }
+  var lo=n('bldEdLo',30,180,80), hi=n('bldEdHi',30,180,90);
+  if(hi<lo){ var t=lo; lo=hi; hi=t; }
+  var z=window._bldEd.z||b.z;
+  b.z=z; b.ftp=bldFtpMap[z]||b.ftp;
+  b.dur=Math.round(tot/60*100)/100;
+  b.rpm=lo+'-'+hi;
+  b.pos=window._bldEd.pos||b.pos;
+  // 'nota' e o mesmo campo que a importacao do TrainingPeaks ja preenche,
+  // entao o recado aparece no Revisar o treino sem codigo novo.
+  b.nota=((document.getElementById('bldEdRec')||{}).value||'').trim().slice(0,140);
+  bldEdFechar();
+  bldRenderAll();
 }
 
 function bldRemBlock(sec,i){
@@ -4252,11 +4408,18 @@ function bldRenderAll(){
     arr.forEach(function(b,i){
       var row=document.createElement('div');
       row.style.cssText='display:flex;align-items:center;gap:10px;padding:10px 12px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);border-left:3px solid '+accentColor+';border-radius:0 12px 12px 0;margin-bottom:5px;';
+      row.style.cursor='pointer';
+      row.onclick=function(ev){
+        // o botao de apagar tem a propria acao
+        if(ev.target && ev.target.closest && ev.target.closest('button')) return;
+        bldEditar(secId,i);
+      };
       row.innerHTML=
         '<div style="width:10px;height:10px;border-radius:50%;background:'+zC[b.z]+';flex-shrink:0;box-shadow:0 0 6px '+zC[b.z]+'80;"></div>'
         +'<div style="flex:1;min-width:0;">'
           +'<div style="font-size:13px;font-weight:700;color:#fff;">'+(i+1)+'. '+(b.z.toUpperCase())+'&nbsp;\u00b7&nbsp;'+fmDurBlock(b.dur)+'</div>'
           +'<div style="font-size:11px;color:rgba(255,255,255,.32);margin-top:1px;">'+b.pos+'&nbsp;\u00b7&nbsp;'+b.rpm+' rpm&nbsp;\u00b7&nbsp;'+b.ftp+'% FTP</div>'
+          +(b.nota ? '<div style="font-size:11px;color:#ea860c;margin-top:3px;font-style:italic;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">\u201c'+_salaEsc(b.nota)+'\u201d</div>' : '')
         +'</div>'
         +'<button onclick="bldRemBlock(\''+secId+'\','+i+')" style="background:rgba(214,45,45,.18);border:1px solid rgba(214,45,45,.3);border-radius:8px;color:#d62d2d;width:28px;height:28px;font-size:15px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;">\u00d7</button>';
       list.appendChild(row);
@@ -5808,6 +5971,160 @@ function profTemAcesso(licId){
   });
 }
 
+// ═══ CONSTRUTOR → FORMATO DO GINASIO (20/09) ═════════════════════
+// Ate aqui o construtor do celular salvava so dentro do aparelho, num formato
+// proprio ({z, ftp:'56-75', rpm:'80-90', dur:min, pos}). O Ginasio nao tinha
+// como abrir. Agora ha uma conversao para o MESMO formato do desktop (versao
+// 1.1: segments + workout + video + musica), e o professor pode salvar na
+// conta — a aula aparece no Ginasio em Carregar aula → Minhas aulas.
+var bldMidia={video:null,musica:null};
+
+function bldMidiaEscolhida(tipo,inp){
+  var f=inp&&inp.files&&inp.files[0]; if(!f) return;
+  // So o NOME e guardado. O arquivo nao sai do celular.
+  if(tipo==='video'){
+    bldMidia.video={fonte:'local',arquivo:f.name,syncOffset:(bldMidia.video&&bldMidia.video.syncOffset)||0};
+    try{
+      var v=document.getElementById('bldVidEl');
+      if(v._url) URL.revokeObjectURL(v._url);
+      v._url=URL.createObjectURL(f); v.src=v._url;
+      document.getElementById('bldVidPrev').style.display='block';
+    }catch(e){}
+  } else {
+    bldMidia.musica={fonte:'mp3',arquivo:f.name,syncOffset:0};
+  }
+  inp.value='';
+  bldMidiaPintar();
+}
+function bldMarcarChegada(){
+  var v=document.getElementById('bldVidEl'); if(!v||!bldMidia.video) return;
+  bldMidia.video.syncOffset=Math.round(v.currentTime||0);
+  bldMidiaPintar();
+}
+function _bldMS(s){ s=Math.max(0,Math.round(s||0)); var h=Math.floor(s/3600), m=Math.floor((s%3600)/60), x=s%60;
+  return (h?h+':':'')+(h&&m<10?'0':'')+m+':'+(x<10?'0':'')+x; }
+function bldMidiaPintar(){
+  var el=document.getElementById('bldMidiaInfo'); if(!el) return;
+  var h='';
+  if(bldMidia.video) h+='&#127916; <b>'+_salaEsc(bldMidia.video.arquivo)+'</b><br><span style="color:#ea860c;">chegada em '+_bldMS(bldMidia.video.syncOffset)+'</span>'
+      +' · <a href="#" onclick="bldChegadaDigitar();return false;" style="color:rgba(255,255,255,.55);">digitar</a>'
+      +' · <a href="#" onclick="bldMidiaLimpar(\'video\');return false;" style="color:rgba(255,255,255,.4);">tirar</a><br>';
+  if(bldMidia.musica) h+='&#127925; <b>'+_salaEsc(bldMidia.musica.arquivo)+'</b>'
+      +' · <a href="#" onclick="bldMidiaLimpar(\'musica\');return false;" style="color:rgba(255,255,255,.4);">tirar</a>';
+  el.innerHTML=h||'<span style="color:rgba(255,255,255,.3);">Nenhum vídeo ou música escolhido. É opcional.</span>';
+}
+function bldChegadaDigitar(){
+  if(!bldMidia.video) return;
+  var atual=bldMidia.video.syncOffset||0;
+  prNumero('Chegada — minutos', Math.floor(atual/60), 0, 300, function(m){
+    prNumero('Chegada — segundos', atual%60, 0, 59, function(sx){
+      bldMidia.video.syncOffset=m*60+sx; bldMidiaPintar();
+    });
+  });
+}
+function bldMidiaLimpar(t){
+  bldMidia[t]=null;
+  if(t==='video'){ var p=document.getElementById('bldVidPrev'); if(p) p.style.display='none'; }
+  bldMidiaPintar();
+}
+
+// Converte o treino do construtor para o formato que o Ginasio le.
+function bldParaGinasio(nome){
+  var SEG={warmup:'ativacao',main:'main_1',cooldown:'cooldown'};
+  var ZDEF={z1:[0,55],z2:[56,75],z3:[76,90],z4:[91,105],z5:[106,120],z6:[121,150],z7:[151,200]};
+  function faixa(txt,def){
+    var m=String(txt||'').match(/(\d+)\s*-\s*(\d+)/);
+    return m?[parseInt(m[1],10),parseInt(m[2],10)]:def;
+  }
+  function conv(b,sec){
+    var sg=Math.max(5,Math.round((Number(b.dur)||0)*60));
+    var f=faixa(b.ftp,ZDEF[b.z]||[60,89]), r=faixa(b.rpm,[80,90]);
+    return { durationSec:sg, duration:sg/60, rpmMin:r[0], rpmMax:r[1],
+      intensity:b.z, ftpMin:f[0], ftpMax:f[1],
+      position:(String(b.pos||'').toLowerCase().indexOf('stand')>=0?'Em Pé':'Sentado'),
+      notes:b.nota||'', segmentId:SEG[sec] };
+  }
+  var wk=[], usados={};
+  bldWarmup.forEach(function(b){ wk.push(conv(b,'warmup')); usados.warmup=1; });
+  bldMain.forEach(function(b){ wk.push(conv(b,'main')); usados.main=1; });
+  bldCooldown.forEach(function(b){ wk.push(conv(b,'cooldown')); usados.cooldown=1; });
+  var segs=[];
+  if(usados.warmup) segs.push({id:'ativacao',name:'AQUECIMENTO / ATIVAÇÃO',type:'warmup'});
+  if(usados.main) segs.push({id:'main_1',name:'BLOCO PRINCIPAL',type:'main'});
+  if(usados.cooldown) segs.push({id:'cooldown',name:'VOLTA À CALMA',type:'cooldown'});
+  var tot=wk.reduce(function(a,b){return a+b.durationSec;},0);
+  var out={ versao:'1.1', nome:nome, savedAt:new Date().toISOString(), origem:'app-construtor',
+    duracaoTotal:Math.round(tot/60*100)/100, duracaoTotalSec:tot,
+    segments:segs, mainCounter:1, workout:wk, blocks:wk };
+  if(bldMidia.video) out.video={fonte:'local',arquivo:bldMidia.video.arquivo,syncOffset:bldMidia.video.syncOffset||0};
+  if(bldMidia.musica) out.musica={fonte:'mp3',arquivo:bldMidia.musica.arquivo,syncOffset:0};
+  return out;
+}
+function _bldNomeAtual(){
+  var n=((document.getElementById('bldName')||{}).value||'').trim();
+  return n || ('Aula '+new Date().toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'}));
+}
+function _bldPronto(){
+  var n=bldWarmup.length+bldMain.length+bldCooldown.length;
+  if(n<2){ alert('Adicione pelo menos 2 blocos.'); return false; }
+  return true;
+}
+async function bldEnviarConta(){
+  if(!_bldPronto()) return;
+  if(!prToken){ alert('Faça login para salvar na sua conta.'); return; }
+  var nome=_bldNomeAtual(), json=bldParaGinasio(nome);
+  try{
+    var r=await fetch(SERVER_HTTP+'/professor/treinos',{method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+prToken},
+      body:JSON.stringify({nome:nome,json:json})});
+    if(!r.ok) throw new Error('servidor respondeu '+r.status);
+    _bldAviso('\u2713 Salva na sua conta — aparece no Ginásio em Minhas aulas');
+  }catch(e){
+    alert('Não consegui salvar na conta ('+(e&&e.message?e.message:'erro')+').\nPode baixar o arquivo e levar no pendrive.');
+  }
+}
+function bldBaixarJson(){
+  if(!_bldPronto()) return;
+  var nome=_bldNomeAtual(), json=bldParaGinasio(nome);
+  var blob=new Blob([JSON.stringify(json,null,2)],{type:'application/json'});
+  var a=document.createElement('a'); a.href=URL.createObjectURL(blob);
+  a.download=nome.replace(/[\\/:*?"<>|]+/g,'_')+'.json';
+  document.body.appendChild(a); a.click();
+  setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); },1500);
+}
+function _bldAviso(txt){
+  var t=document.createElement('div');
+  t.style.cssText='position:fixed;bottom:84px;left:50%;transform:translateX(-50%);background:rgba(234,134,12,.95);color:#fff;padding:11px 20px;border-radius:30px;font-size:13px;font-weight:700;z-index:99999;max-width:88vw;text-align:center;';
+  t.textContent=txt; document.body.appendChild(t);
+  setTimeout(function(){ t.style.transition='opacity .4s'; t.style.opacity='0'; setTimeout(function(){ t.remove(); },450); },2600);
+}
+function bldProfAtualizar(){
+  var el=document.getElementById('bldProfAcoes');
+  if(el) el.style.display=_salaEhProfessor()?'block':'none';
+}
+
+// ═══ PAREAR COM O GINASIO (QR de MINHAS AULAS) ═══════════════════
+// O Ginasio mostra um QR com ?parear=CODIGO. Escaneado pelo celular ja
+// logado, o app confirma ao servidor quem e o professor. O servidor confere
+// que ele e professor DAQUELA unidade antes de liberar as aulas ao Ginasio.
+var _parearPendente=null;
+try{ _parearPendente=new URLSearchParams(location.search).get('parear'); }catch(e){}
+async function parearConfirmar(){
+  if(!_parearPendente || !prToken) return;
+  var cod=_parearPendente; _parearPendente=null;
+  try{ history.replaceState(null,'',location.pathname); }catch(e){}
+  try{
+    var r=await fetch(SERVER_HTTP+'/professor/parear',{method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+prToken},
+      body:JSON.stringify({codigo:cod})});
+    var d={}; try{ d=await r.json(); }catch(e){}
+    if(r.ok) _bldAviso('\u2713 Ginásio conectado — as suas aulas estão a aparecer lá');
+    else if(r.status===403) alert(d.erro||'Você não é professor desta unidade. Peça ao gestor para o adicionar.');
+    else if(r.status===410) alert('Este código expirou. No Ginásio, escolha Minhas aulas de novo.');
+    else alert('Não consegui conectar ao Ginásio ('+r.status+').');
+  }catch(e){ alert('Sem ligação ao servidor para conectar o Ginásio.'); }
+}
+
 // ═══ HOME DO PROFESSOR: O MESMO APP, UM CARD DIFERENTE ═════════
 // Decisao do Mario (20/09): o app e um so. Para quem e professor, a home
 // continua igual — Entrar na Aula, Free Ride, Agenda de Aulas — e so o card
@@ -6085,7 +6402,9 @@ function rotearPorRole(user) {
     profLicencasCarregar().then(function(){
       try{ salaBotaoAtualizar(); }catch(e){}
       try{ homeProfAtualizar(); }catch(e){}
+      try{ bldProfAtualizar(); }catch(e){}
       try{ navCenterAtualizar(); }catch(e){}
+      try{ parearConfirmar(); }catch(e){}
       try{ if(_salaEhProfessor()){ _phInited=false; phCheckRole(); } }catch(e){}
     });
   }catch(e){}
@@ -7107,7 +7426,7 @@ var _lsInt=null;
 // ══════════════════════════════════════════════════════════════
 
 function phInit() {
-  if (!prUser || !['professor','gestor','admin','super_admin'].includes((prUser.role||'').toLowerCase())) return;
+  if (!prUser || (prUser.role||'').toLowerCase() !== 'professor') return;
   goTab('sHome', 'navRide');
 }
 
@@ -7433,7 +7752,7 @@ updateProfileUI = function() {
          + ' fill="none" stroke="'+col(fm)+'" stroke-width="30" stroke-linecap="'+cap+'"/>';
     }
     g.innerHTML=out;
-    try{ console.log('%c[ProRider Aluno] BUILD 20/09d — caloria por watt (kJ/eficiencia) + basal Mifflin-St Jeor no cadastro + historico gravado no aparelho + FTP na gaveta + card 1080x1920 reposicionado + 6 protocolos de FTP + TSS + teste de 3 min + fator do teste de 5 min corrigido (era 1,05) + explicacao de FTP em cada teste + gaveta esconde pela propria altura + importacao de treino do TrainingPeaks (grade 2x2 na tela inicial + construtor) com tela de conferencia (botoes acima da navegacao) + corrigido: aula aberta por objeto agora e a que roda + botao Revisar o treino na gaveta + FTP e peso persistem no aparelho + gauge reequilibrado + textos do Brasil + codigo de sala normalizado (QR do navegador deixava a sala inexistente) + faixa de voltar corrigida + reconexao nao trava mais + sala encerrada limpa o codigo guardado + VISTA DA SALA + card comprido de Construtor para professor + fim da corrida no login','color:#ea860c;font-weight:700;'); }catch(e){}
+    try{ console.log('%c[ProRider Aluno] BUILD 20/09f — caloria por watt (kJ/eficiencia) + basal Mifflin-St Jeor no cadastro + historico gravado no aparelho + FTP na gaveta + card 1080x1920 reposicionado + 6 protocolos de FTP + TSS + teste de 3 min + fator do teste de 5 min corrigido (era 1,05) + explicacao de FTP em cada teste + gaveta esconde pela propria altura + importacao de treino do TrainingPeaks (grade 2x2 na tela inicial + construtor) com tela de conferencia (botoes acima da navegacao) + corrigido: aula aberta por objeto agora e a que roda + botao Revisar o treino na gaveta + FTP e peso persistem no aparelho + gauge reequilibrado + textos do Brasil + codigo de sala normalizado (QR do navegador deixava a sala inexistente) + faixa de voltar corrigida + reconexao nao trava mais + sala encerrada limpa o codigo guardado + VISTA DA SALA + card comprido de Construtor para professor + fim da corrida no login','color:#ea860c;font-weight:700;'); }catch(e){}
   }
   if(document.readyState!=='loading') buildGaugeArc();
   else document.addEventListener('DOMContentLoaded', buildGaugeArc);
