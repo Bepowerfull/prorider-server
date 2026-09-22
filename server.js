@@ -3811,7 +3811,6 @@ app.post('/professor/parear', authMiddleware, async (req, res) => {
 // ══════════════════════════════════════════════════════════════
 // ROTAS DO GINÁSIO — pareamento e treinos
 // ══════════════════════════════════════════════════════════════
-const crypto = require('crypto');
 
 app.post('/ginasio/pareamento', displayAuth, async (req, res) => {
   if (!db) return res.status(503).json({ error: 'Banco indisponível' });
