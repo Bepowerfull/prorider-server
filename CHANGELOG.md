@@ -33,6 +33,32 @@ Componentes: `servidor` · `app` · `ginasio` · `portal` · `banco`.
 
 ---
 
+## 2026-09-22 · servidor · 4409582
+
+**O que mudou**
+- `PUT /admin/licencas/:id` passa a aceitar campos de endereço: `logradouro`, `numero`, `bairro`, `cep`, `cidade_lic`, `estado`, `pais`.
+
+**Por quê**
+- O endpoint existia mas ignorava os campos de endereço adicionados na migração anterior.
+
+**Como confirmar**
+- `PUT /admin/licencas/5` com `{"logradouro":"Rua Guerra Junqueiro"}` → resposta inclui o campo preenchido.
+
+---
+
+## 2026-09-22 · servidor · a750387
+
+**O que mudou**
+- Nova rota `PUT /admin/users/:id` (requer `super_admin`): atualiza `role`, `license_id` e/ou `name` de qualquer utilizador.
+
+**Por quê**
+- O `POST /user/register` ignora o campo `role` por segurança; não havia forma de definir roles via API.
+
+**Como confirmar**
+- `PUT /admin/users/125 { "role": "gestor" }` com token super_admin → devolve o utilizador com role atualizado.
+
+---
+
 ## 2026-09-22 · servidor · d31da68
 
 **O que mudou**
