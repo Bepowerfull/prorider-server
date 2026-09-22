@@ -1456,14 +1456,20 @@ app.post('/admin/licencas', adminAuth, async (req, res) => {
 
 app.put('/admin/licencas/:id', adminAuth, async (req, res) => {
   if (!db) return res.status(503).json({ error: 'Banco indisponível' });
-  const { nome, contato_nome, contato_email, contato_tel, plano, max_alunos, max_profs, valor_mensal, vencimento, status, obs, max_bikes } = req.body;
+  const { nome, contato_nome, contato_email, contato_tel, plano, max_alunos, max_profs,
+          valor_mensal, vencimento, status, obs, max_bikes,
+          logradouro, numero, bairro, cep, cidade_lic, estado, pais } = req.body;
   try {
     const r = await db.query(
       `UPDATE licencas SET nome=$1, contato_nome=$2, contato_email=$3, contato_tel=$4,
        plano=$5, max_alunos=$6, max_profs=$7, valor_mensal=$8, vencimento=$9,
-       status=$10, obs=$11, max_bikes=$12, updated_at=NOW() WHERE id=$13 RETURNING *`,
+       status=$10, obs=$11, max_bikes=$12,
+       logradouro=$13, numero=$14, bairro=$15, cep=$16, cidade_lic=$17, estado=$18, pais=$19,
+       updated_at=NOW() WHERE id=$20 RETURNING *`,
       [nome, contato_nome, contato_email, contato_tel, plano, max_alunos, max_profs,
-       valor_mensal, vencimento, status, obs, parseInt(max_bikes)||0, req.params.id]
+       valor_mensal, vencimento, status, obs, parseInt(max_bikes)||0,
+       logradouro||null, numero||null, bairro||null, cep||null, cidade_lic||null, estado||null, pais||'Brasil',
+       req.params.id]
     );
     res.json(r.rows[0]);
   } catch(e) { res.status(500).json({ error: e.message }); }
