@@ -33,6 +33,42 @@ Componentes: `servidor` · `app` · `ginasio` · `portal` · `banco`.
 
 ---
 
+## 2026-09-23 · ginasio 23/09b
+
+**O que mudou**
+- **Perfil da aula no lobby:** as barras passam a ser posicionadas pela mesma conta da linha branca e da agulha (`_prSec`, em segundos). Antes eram itens flex com `gap:4px` e `min-width:2px`; com 69 blocos os vãos somavam ~270 px e a linha ia ficando para trás das barras.
+- **Cartão AULA SELECIONADA** (coluna 3 do lobby) não transborda mais: `_fitPreAulaCol3()` encolhe o QR do browser até o cartão caber (piso de 110 px). Antes Música e Status da sala saíam por cima do perfil.
+- QR Codes sem `title` — a biblioteca punha o endereço como dica flutuante, que aparecia quando o rato parava em cima.
+- **Meta FTP** nos painéis da aula (`atualizaLiveBar`): bloco sem piso mostrava `--–55%`; agora `< 55%`, como o círculo. Sem teto, `> X%`.
+- **MINHAS AULAS:** 401 em `POST /ginasio/pareamento` mostra *GINÁSIO NÃO AUTENTICADO* e o A abre a reativação (`_gymLicencaPerdida`). Antes aparecia *SEM LIGAÇÃO* e só dava para voltar.
+
+**Por quê**
+- Fotos da máquina de 23/09, rodando a **23/09a**.
+- **Faixa preta em cima do vídeo** — voltou **na 23/09a**, que já tinha tirado o `position:relative` da tag `<video>`. Em teste (aula real com vídeo, troca gráfico 1↔2, overlay Y) **não reproduz**: o elemento fica em `top:0` com a altura toda. Então ou algo da máquina real o empurra, ou a faixa está **dentro do próprio arquivo de vídeo**. A 23/09b (1) trava a posição no CSS com `!important` (`#liveClass > #backgroundVideo`), cobrindo o primeiro caso, e (2) mede no Console, meio segundo depois de o vídeo começar: onde está o elemento (`video no topo: ok` ou `VIDEO FORA DO LUGAR — topo …px` com a causa) e se o quadro do arquivo tem linhas pretas no alto (`O PROPRIO ARQUIVO tem faixa preta em cima: ~N px`). **Ainda não confirmado como resolvido.**
+
+**Como confirmar**
+- Console: `[ProRider] BUILD 23/09b`.
+- Lobby com uma aula de muitos blocos: a linha branca passa exatamente pelo topo de cada barra, do início ao fim.
+- Lobby em 1920×1080 e 1536×864: Status da sala dentro do cartão.
+- Bloco Recovery na tela do QR (Y): Meta FTP `< 55%`.
+- Aula com vídeo, sem faixa preta na TV. No Console, as duas linhas `[ProRider] video …` — se houver faixa, mandar essas linhas: elas dizem se a causa é a posição ou o arquivo.
+
+**Cuidados**
+- O 401 continua a acontecer até o `JWT_SECRET` ficar fixo no Railway; depois disso, reativar o Ginásio uma vez.
+
+---
+
+## 2026-09-22 · servidor · a750387, 4409582, 1263390
+
+**O que mudou**
+- `PUT /admin/users/:id` (super_admin): altera `role`, `license_id` e `name` de qualquer conta.
+- `PUT /admin/licencas/:id` aceita campos de endereço (`logradouro`, `numero`, `bairro`, `cep`, `cidade_lic`, `estado`, `pais`).
+- Sala WebSocket tem `trancadas: Set` — bikes bloqueadas pelo professor persistem enquanto a sala existe.
+- Novos casos WebSocket: `prof_remover_aluno`, `prof_trocar_bikes`, `prof_trancar_bike`.
+- `GET /agenda/aula-ativa/:license_id` (sem auth) — sala aberta para uma licença; usado pelo ENTRAR NA AULA DE AGORA.
+
+---
+
 ## 2026-09-23 · app 23/09b · ginasio 23/09a
 
 **O que mudou**
@@ -50,20 +86,6 @@ Componentes: `servidor` · `app` · `ginasio` · `portal` · `banco`.
 - Tela de Potência com o FTP de cada aluno, não 150.
 - Tocar numa bike na Vista da Sala abre as três opções.
 - Trancar uma bike e vê-la com cadeado no celular de outro aluno.
-
----
-
-## 2026-09-22 · servidor · a750387, 4409582, 1263390
-
-**O que mudou**
-- `PUT /admin/users/:id` (super_admin): altera `role`, `license_id` e `name` de qualquer conta.
-- `PUT /admin/licencas/:id` aceita agora campos de endereço (`logradouro`, `numero`, `bairro`, `cep`, `cidade_lic`, `estado`, `pais`).
-- Sala WebSocket passa a ter `trancadas: Set` — bikes bloqueadas pelo professor persistem enquanto a sala existe.
-- Novos casos WebSocket: `prof_remover_aluno`, `prof_trocar_bikes`, `prof_trancar_bike`.
-- `GET /agenda/aula-ativa/:license_id` (sem auth) — retorna a sala aberta para uma licença; usado pelo ENTRAR NA AULA DE AGORA.
-
-**Como confirmar**
-- Tocar numa bike na Vista da Sala abre *Deslogar*, *Trocar de lugar* e *Trancar* (confirma commits do servidor antes do deploy do app 23/09b).
 
 ---
 
