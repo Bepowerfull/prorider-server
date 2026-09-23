@@ -1173,7 +1173,7 @@ wss.on('connection', (ws) => {
       case 'criar_sala': {
         const codigo = msg.codigo;
         if (!codigo) return;
-        salas[codigo] = { professor: ws, alunos: new Map(), observadores: new Set(), lastSalaInfo: null, estado: { iniciada: false, grafico: [], blocoIdx: 0, nomeAula: '' } };
+        salas[codigo] = { professor: ws, alunos: new Map(), observadores: new Set(), lastSalaInfo: null, trancadas: new Set(), estado: { iniciada: false, grafico: [], blocoIdx: 0, nomeAula: '' } };
         ws._salaCode = codigo; ws._tipo = 'professor';
         log(`Sala criada: ${codigo}`);
         ws.send(JSON.stringify({ tipo: 'sala_criada', codigo }));
@@ -1208,9 +1208,14 @@ wss.on('connection', (ws) => {
           } catch(dbErr) { /* não bloqueia se o banco falhar */ }
         }
 
+        // Recusar bike trancada
+        if (bike && sala.trancadas && sala.trancadas.has(Number(bike))) {
+          ws.send(JSON.stringify({ tipo: 'erro', msg: `Bike ${bike} está em manutenção. Escolha outra posição.` }));
+          return;
+        }
         sala.alunos.set(nome, ws);
         sala.observadores.delete(ws); // se estava só observando o mapa, agora é participante
-        ws._salaCode = codigo; ws._tipo = 'aluno'; ws._nome = nome;
+        ws._salaCode = codigo; ws._tipo = 'aluno'; ws._nome = nome; ws._bike = bike || null; ws._bikeNum = bike ? Number(bike) : null;
         log(`Aluno entrou: ${nome} na sala ${codigo}`);
         if (sala.professor && sala.professor.readyState === WebSocket.OPEN) {
           sala.professor.send(JSON.stringify({ tipo: 'aluno_conectou', nome, bike: bike || null, foto: msg.foto || null, ftpBase: (msg.ftpBase != null ? msg.ftpBase : null), horario: new Date().toLocaleTimeString('pt-BR') }));
@@ -1239,7 +1244,7 @@ wss.on('connection', (ws) => {
         const salaCode = ws._salaCode; // socket do professor
         if (!salaCode || !salas[salaCode]) return;
         const sala = salas[salaCode];
-        const info = { tipo: 'sala_info', numBikes: msg.numBikes || 0, bikes: msg.bikes || [], ocupadas: msg.ocupadas || [] };
+        const info = { tipo: 'sala_info', numBikes: msg.numBikes || 0, bikes: msg.bikes || [], ocupadas: msg.ocupadas || [], trancadas: [...(sala.trancadas || [])] };
         sala.lastSalaInfo = info; // cache: novo observador recebe o mapa na hora
         const data = JSON.stringify(info);
         for (const [, aws] of sala.alunos) { if (aws.readyState === WebSocket.OPEN) aws.send(data); }
@@ -1263,6 +1268,67 @@ wss.on('connection', (ws) => {
         }
         break;
       }
+
+      // ── Controle da sala pelo professor ──────────────────────────────
+
+      case 'prof_remover_aluno': {
+        const salaCode = ws._salaCode;
+        if (!salaCode || !salas[salaCode] || ws._tipo !== 'professor') return;
+        const sala = salas[salaCode];
+        const bikeAlvo = msg.bike;
+        const motivo = msg.motivo || 'O professor liberou esta bike.';
+        // encontrar o aluno pela bike
+        let alunoWs = null, alunoNome = null;
+        for (const [nome, aws] of sala.alunos) {
+          if (aws._bike == bikeAlvo || aws._bikeNum == bikeAlvo) { alunoWs = aws; alunoNome = nome; break; }
+        }
+        if (alunoWs && alunoWs.readyState === WebSocket.OPEN) {
+          alunoWs.send(JSON.stringify({ tipo: 'removido_da_bike', motivo, pode_reentrar: true }));
+          alunoWs._bike = null; alunoWs._bikeNum = null;
+        }
+        // notificar o ginásio
+        ws.send(JSON.stringify({ tipo: 'aluno_removido', bike: bikeAlvo, nome: alunoNome }));
+        log(`[sala ${salaCode}] prof removeu aluno da bike ${bikeAlvo}`);
+        break;
+      }
+
+      case 'prof_trocar_bikes': {
+        const salaCode = ws._salaCode;
+        if (!salaCode || !salas[salaCode] || ws._tipo !== 'professor') return;
+        const sala = salas[salaCode];
+        const { de, para } = msg;
+        let wsA = null, nomeA = null, wsB = null, nomeB = null;
+        for (const [nome, aws] of sala.alunos) {
+          if (aws._bike == de   || aws._bikeNum == de)   { wsA = aws; nomeA = nome; }
+          if (aws._bike == para || aws._bikeNum == para) { wsB = aws; nomeB = nome; }
+        }
+        if (wsA) { wsA._bike = para; wsA._bikeNum = para; wsA.send(JSON.stringify({ tipo: 'bike_trocada', bike: para, motivo: 'O professor trocou o seu lugar.' })); }
+        if (wsB) { wsB._bike = de;   wsB._bikeNum = de;   wsB.send(JSON.stringify({ tipo: 'bike_trocada', bike: de,   motivo: 'O professor trocou o seu lugar.' })); }
+        ws.send(JSON.stringify({ tipo: 'bikes_trocadas', de, para, nomeA, nomeB }));
+        log(`[sala ${salaCode}] prof trocou bikes ${de} ↔ ${para}`);
+        break;
+      }
+
+      case 'prof_trancar_bike': {
+        const salaCode = ws._salaCode;
+        if (!salaCode || !salas[salaCode] || ws._tipo !== 'professor') return;
+        const sala = salas[salaCode];
+        const { bike, trancar, motivo: motivoTrancar } = msg;
+        if (trancar) sala.trancadas.add(bike); else sala.trancadas.delete(bike);
+        // reenviar sala_info com lista atualizada
+        const infoAtualizada = sala.lastSalaInfo
+          ? { ...sala.lastSalaInfo, trancadas: [...sala.trancadas] }
+          : { tipo: 'sala_info', numBikes: 0, bikes: [], ocupadas: [], trancadas: [...sala.trancadas] };
+        sala.lastSalaInfo = infoAtualizada;
+        const dataInfo = JSON.stringify(infoAtualizada);
+        for (const [, aws] of sala.alunos) { if (aws.readyState === WebSocket.OPEN) aws.send(dataInfo); }
+        for (const ows of sala.observadores) { if (ows.readyState === WebSocket.OPEN) ows.send(dataInfo); }
+        ws.send(JSON.stringify({ tipo: 'bike_trancada', bike, trancada: trancar }));
+        log(`[sala ${salaCode}] prof ${trancar ? 'trancou' : 'destrancou'} bike ${bike}`);
+        break;
+      }
+
+      // ─────────────────────────────────────────────────────────────────
 
       // Dados ao vivo de todas as bikes (~4 Hz) — cada aluno filtra a sua pelo número.
       case 'bikes_live': {
@@ -2681,6 +2747,30 @@ app.get('/professor/licencas', authMiddleware, async (req, res) => {
 // ══════════════════════════════════════════════════════════════
 // AGENDA — PÚBLICO (busca por cidade, sem autenticação)
 // ══════════════════════════════════════════════════════════════
+
+// Aula ativa agora numa licença — sem autenticação (mesma info do QR na parede)
+app.get('/agenda/aula-ativa/:license_id', async (req, res) => {
+  const licenseId = req.params.license_id;
+  // Procurar nas salas em memória se há uma sala ativa para essa licença
+  for (const [codigo, sala] of Object.entries(salas)) {
+    if (sala.professor && sala.professor.readyState === WebSocket.OPEN) {
+      // Tentar associar ao license_id via banco
+      if (db) {
+        try {
+          const r = await db.query(
+            "SELECT sv.token, sv.nome_aula, u.name as professor FROM sessoes_ao_vivo sv LEFT JOIN users u ON u.id=sv.professor_id WHERE sv.token=$1 AND sv.status IN ('ativa','em_andamento') AND sv.license_id=$2 LIMIT 1",
+            [codigo, licenseId]
+          );
+          if (r.rows.length) {
+            const row = r.rows[0];
+            return res.json({ ativa: true, codigo: row.token, nome_aula: row.nome_aula || sala.estado.nomeAula || '', professor: row.professor || '', desde: sala._criadaEm || null });
+          }
+        } catch(e) { /* segue */ }
+      }
+    }
+  }
+  res.json({ ativa: false });
+});
 
 // Buscar academias por cidade
 app.get('/agenda/cidades', async (req, res) => {
