@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
@@ -2172,8 +2172,38 @@ function _renderBikeGrid(){
   if(!n){ var cn=_numBikesCacheLer(); n = cn || 14; }
   if(n) _numBikesCacheSalvar(n);
   var ocup=(_salaInfo && _salaInfo.ocupadas) ? _salaInfo.ocupadas : [];
+
+  // ── BIKE DO PROFESSOR (99) ───────────────────────────────────────
+  // Fica acima da grade, em laranja, VISIVEL PARA TODOS. Decisao do Mario:
+  // esconder criaria um problema pior — se o professor cede a bike dele, mais
+  // ninguem conseguiria usa-la. Contamos com o bom senso de ninguem a ocupar;
+  // e, se ocupar, o professor tem como resolver pela Vista da Sala.
+  var topo=document.getElementById('bikeSelProf');
+  if(!topo){
+    topo=document.createElement('div'); topo.id='bikeSelProf';
+    topo.style.cssText='margin:0 0 14px;';
+    grid.parentNode.insertBefore(topo,grid);
+  }
+  var p99 = ocup.indexOf(99)>=0 && _bikeSelNum!==99;
+  var sel99 = (_bikeSelNum===99);
+  topo.innerHTML='<button '+(p99?'disabled':'onclick="selectBike(99)"')
+    +' style="width:100%;display:flex;align-items:center;gap:12px;padding:13px 16px;border-radius:14px;'
+    +'background:'+(sel99?'rgba(234,134,12,.22)':(p99?'rgba(234,134,12,.06)':'rgba(234,134,12,.11)'))+';'
+    +'border:2px solid '+(sel99?'#ea860c':'rgba(234,134,12,'+(p99?'.2':'.38')+')')+';'
+    +'color:#fff;font-family:inherit;cursor:'+(p99?'default':'pointer')+';'+(p99?'opacity:.5;':'')+'">'
+    +'<span style="font-family:\'Bebas Neue\',sans-serif;font-size:26px;color:#ea860c;line-height:1;">99</span>'
+    +'<span style="text-align:left;line-height:1.25;">'
+      +'<span style="display:block;font-size:13px;font-weight:800;letter-spacing:.5px;">Bike do professor</span>'
+      +'<span style="display:block;font-size:11px;color:rgba(255,255,255,.4);">'
+      +(p99?'ocupada agora':'livre — use se o professor não estiver nela')+'</span>'
+    +'</span>'
+    +'<span style="margin-left:auto;font-size:11px;letter-spacing:1.4px;font-weight:800;color:'+(sel99?'#ea860c':'rgba(255,255,255,.28)')+';">'
+    +(sel99?'SUA':'')+'</span>'
+    +'</button>';
+
   var html='';
   for(var i=1;i<=n;i++){
+    if(i===99) continue;                 // a 99 ja esta no topo
     var taken=ocup.indexOf(i)>=0 && i!==_bikeSelNum;
     var bg=taken?'rgba(214,45,45,.12)':'rgba(255,255,255,.06)';
     var bc=taken?'rgba(214,45,45,.4)':(i===_bikeSelNum?'#ea860c':'rgba(255,255,255,.1)');
@@ -2190,7 +2220,9 @@ function selectBike(num){
   var nomeVal=(nome&&nome.textContent.trim()&&nome.textContent.trim()!=='—')?nome.textContent.trim():(localStorage.getItem('pr_nome')||'Aluno');
   // Já estava observando (socket aberto) → vira participante de verdade na bike escolhida
   if(wsConn && wsConn.readyState===1){
-    wsConn.send(JSON.stringify({tipo:'entrar_sala',codigo:lastCode,nome:nomeVal,bike:num,foto:(localStorage.getItem('pr_foto')||null)}));
+    wsConn.send(JSON.stringify({tipo:'entrar_sala',codigo:lastCode,nome:nomeVal,bike:num,
+      foto:(localStorage.getItem('pr_foto')||null),
+      ftpBase:(function(){ try{ var f=parseInt(_ftpDoAluno(),10)||0; return f>0?f:null; }catch(e){ return null; } })()}));
   } else {
     connectQR(lastCode); // reabre; onopen manda entrar_sala porque _bikeSelNum já está setado
   }
@@ -7762,7 +7794,7 @@ updateProfileUI = function() {
          + ' fill="none" stroke="'+col(fm)+'" stroke-width="30" stroke-linecap="'+cap+'"/>';
     }
     g.innerHTML=out;
-    try{ console.log('%c[ProRider Aluno] BUILD 22/09b — caloria por watt (kJ/eficiencia) + basal Mifflin-St Jeor no cadastro + historico gravado no aparelho + FTP na gaveta + card 1080x1920 reposicionado + 6 protocolos de FTP + TSS + teste de 3 min + fator do teste de 5 min corrigido (era 1,05) + explicacao de FTP em cada teste + gaveta esconde pela propria altura + importacao de treino do TrainingPeaks (grade 2x2 na tela inicial + construtor) com tela de conferencia (botoes acima da navegacao) + corrigido: aula aberta por objeto agora e a que roda + botao Revisar o treino na gaveta + FTP e peso persistem no aparelho + gauge reequilibrado + textos do Brasil + codigo de sala normalizado (QR do navegador deixava a sala inexistente) + faixa de voltar corrigida + reconexao nao trava mais + sala encerrada limpa o codigo guardado + VISTA DA SALA + card comprido de Construtor para professor + fim da corrida no login','color:#ea860c;font-weight:700;'); }catch(e){}
+    try{ console.log('%c[ProRider Aluno] BUILD 23/09a — caloria por watt (kJ/eficiencia) + basal Mifflin-St Jeor no cadastro + historico gravado no aparelho + FTP na gaveta + card 1080x1920 reposicionado + 6 protocolos de FTP + TSS + teste de 3 min + fator do teste de 5 min corrigido (era 1,05) + explicacao de FTP em cada teste + gaveta esconde pela propria altura + importacao de treino do TrainingPeaks (grade 2x2 na tela inicial + construtor) com tela de conferencia (botoes acima da navegacao) + corrigido: aula aberta por objeto agora e a que roda + botao Revisar o treino na gaveta + FTP e peso persistem no aparelho + gauge reequilibrado + textos do Brasil + codigo de sala normalizado (QR do navegador deixava a sala inexistente) + faixa de voltar corrigida + reconexao nao trava mais + sala encerrada limpa o codigo guardado + VISTA DA SALA + card comprido de Construtor para professor + fim da corrida no login','color:#ea860c;font-weight:700;'); }catch(e){}
   }
   if(document.readyState!=='loading') buildGaugeArc();
   else document.addEventListener('DOMContentLoaded', buildGaugeArc);
