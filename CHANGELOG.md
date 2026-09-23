@@ -33,6 +33,40 @@ Componentes: `servidor` · `app` · `ginasio` · `portal` · `banco`.
 
 ---
 
+## 2026-09-23 · app 23/09b · ginasio 23/09a
+
+**O que mudou**
+- **Bike 99** na grade de escolha, em laranja, acima das outras — visível para todos (esconder impediria alguém de usá-la quando o professor cede o lugar).
+- **Poderes do professor** na Vista da Sala: tocar numa bike abre *Deslogar*, *Trocar de lugar* e *Trancar*. Usa `prof_remover_aluno`, `prof_trocar_bikes` e `prof_trancar_bike` (servidor `1263390`).
+- O aluno passa a tratar `removido_da_bike` e `bike_trocada` — sem elas a tela do professor mudava e o aluno continuava a achar que estava na bike antiga.
+- Bikes trancadas aparecem com cadeado na grade e não podem ser escolhidas.
+- **ENTRAR NA AULA DE AGORA** na grade da academia, via `GET /agenda/aula-ativa/:license_id` — para aulas abertas fora da grade.
+- Ginásio: agulha de progresso no perfil da tela de QR, usando `calcDoneSec()`, o mesmo cálculo do mini gráfico do topo.
+
+**Correção**
+- O `ftpBase` era enviado em apenas **um** dos dois pontos que mandam `entrar_sala` — e não no principal, o de escolher a bike. Por isso o FTP continuava 150.
+
+**Como confirmar**
+- Tela de Potência com o FTP de cada aluno, não 150.
+- Tocar numa bike na Vista da Sala abre as três opções.
+- Trancar uma bike e vê-la com cadeado no celular de outro aluno.
+
+---
+
+## 2026-09-22 · servidor · a750387, 4409582, 1263390
+
+**O que mudou**
+- `PUT /admin/users/:id` (super_admin): altera `role`, `license_id` e `name` de qualquer conta.
+- `PUT /admin/licencas/:id` aceita agora campos de endereço (`logradouro`, `numero`, `bairro`, `cep`, `cidade_lic`, `estado`, `pais`).
+- Sala WebSocket passa a ter `trancadas: Set` — bikes bloqueadas pelo professor persistem enquanto a sala existe.
+- Novos casos WebSocket: `prof_remover_aluno`, `prof_trocar_bikes`, `prof_trancar_bike`.
+- `GET /agenda/aula-ativa/:license_id` (sem auth) — retorna a sala aberta para uma licença; usado pelo ENTRAR NA AULA DE AGORA.
+
+**Como confirmar**
+- Tocar numa bike na Vista da Sala abre *Deslogar*, *Trocar de lugar* e *Trancar* (confirma commits do servidor antes do deploy do app 23/09b).
+
+---
+
 ## 2026-09-22 · app 22/09b · ginasio 22/09b
 
 **O que mudou**
@@ -47,32 +81,6 @@ Componentes: `servidor` · `app` · `ginasio` · `portal` · `banco`.
 **Como confirmar**
 - Salvar um treino no celular e vê-lo em `GET /professor/treinos` com os blocos preenchidos.
 - Se o pareamento falhar, o Ginásio mostra a razão na tela e escreve a resposta no Console — não fica um QR vazio.
-
----
-
-## 2026-09-22 · servidor · 4409582
-
-**O que mudou**
-- `PUT /admin/licencas/:id` passa a aceitar campos de endereço: `logradouro`, `numero`, `bairro`, `cep`, `cidade_lic`, `estado`, `pais`.
-
-**Por quê**
-- O endpoint existia mas ignorava os campos de endereço adicionados na migração anterior.
-
-**Como confirmar**
-- `PUT /admin/licencas/5` com `{"logradouro":"Rua Guerra Junqueiro"}` → resposta inclui o campo preenchido.
-
----
-
-## 2026-09-22 · servidor · a750387
-
-**O que mudou**
-- Nova rota `PUT /admin/users/:id` (requer `super_admin`): atualiza `role`, `license_id` e/ou `name` de qualquer utilizador.
-
-**Por quê**
-- O `POST /user/register` ignora o campo `role` por segurança; não havia forma de definir roles via API.
-
-**Como confirmar**
-- `PUT /admin/users/125 { "role": "gestor" }` com token super_admin → devolve o utilizador com role atualizado.
 
 ---
 

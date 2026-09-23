@@ -2184,6 +2184,7 @@ function _renderBikeGrid(){
     topo.style.cssText='margin:0 0 14px;';
     grid.parentNode.insertBefore(topo,grid);
   }
+  var tranc=(_salaInfo && _salaInfo.trancadas) ? _salaInfo.trancadas : [];
   var p99 = ocup.indexOf(99)>=0 && _bikeSelNum!==99;
   var sel99 = (_bikeSelNum===99);
   topo.innerHTML='<button '+(p99?'disabled':'onclick="selectBike(99)"')
@@ -2204,6 +2205,17 @@ function _renderBikeGrid(){
   var html='';
   for(var i=1;i<=n;i++){
     if(i===99) continue;                 // a 99 ja esta no topo
+    // Bike trancada pelo professor (em manutencao): nao da para escolher.
+    // Antes, o aluno escolhia uma bike que nao transmite e ficava a aula
+    // inteira sem dados, sem perceber porque.
+    if(tranc.indexOf(i)>=0){
+      html+='<button disabled style="padding:18px 0;border-radius:14px;background:rgba(255,255,255,.02);'
+        +'border:2px dashed rgba(255,255,255,.14);color:rgba(255,255,255,.3);font-family:inherit;'
+        +'display:flex;flex-direction:column;align-items:center;gap:3px;">'
+        +'<span style="font-size:17px;">&#128274;</span>'
+        +'<span style="font-size:11px;letter-spacing:.5px;">'+i+'</span></button>';
+      continue;
+    }
     var taken=ocup.indexOf(i)>=0 && i!==_bikeSelNum;
     var bg=taken?'rgba(214,45,45,.12)':'rgba(255,255,255,.06)';
     var bc=taken?'rgba(214,45,45,.4)':(i===_bikeSelNum?'#ea860c':'rgba(255,255,255,.1)');
@@ -2429,6 +2441,24 @@ function connectQR(code){
           var ttEl=document.getElementById('ltTot');
           if(ttEl) ttEl.textContent=fmMS(Math.max(0,Math.ceil(data.totRest)));
         }
+      }
+      // ── O PROFESSOR MEXEU NA MINHA BIKE (23/09) ───────────────────
+      // Sem estas duas mensagens, a tela do professor mudaria e o aluno
+      // continuaria a achar que esta na bike antiga.
+      if(data.tipo==='removido_da_bike'){
+        try{ _bikeSelNum=0; }catch(e){}
+        alert(data.motivo || 'O professor liberou esta bike.');
+        try{
+          if(data.pode_reentrar!==false){ go('sBikeSel'); _renderBikeGrid(); }
+          else { _prEsquecerSala('removido pelo professor'); }
+        }catch(e){}
+        return;
+      }
+      if(data.tipo==='bike_trocada'){
+        try{ _bikeSelNum=data.bike; }catch(e){}
+        try{ _bldAviso((data.motivo||'O professor trocou o seu lugar.')+' Agora é a bike '+data.bike+'.'); }catch(e){}
+        try{ _renderBikeGrid(); }catch(e){}
+        return;
       }
       if(data.tipo==='erro'){
         var _msgErr=data.msg||'Não foi possível entrar na aula. Tente novamente.';
@@ -3964,8 +3994,51 @@ async function abrirGradeAcademia(licId) {
     document.getElementById('agNomeAcad').textContent = d.academia?.nome_fantasia || d.academia?.nome || licId;
     document.getElementById('agCidadeAcad').textContent = d.academia?.cidade || '';
     renderGradeAluno(d.aulas || []);
+    aulaAtivaVerificar(licId);
   } catch(e) {
     document.getElementById('agGrade').innerHTML = '<div style="text-align:center;padding:24px;color:rgba(255,255,255,.3);">Erro ao carregar grade.</div>';
+  }
+}
+
+// ── AULA ACONTECENDO AGORA ───────────────────────────────────────────
+// Caso do Mario: a academia abre uma aula que nao esta na grade. Sem isto o
+// aluno so a encontrava escaneando o QR projetado. Agora, enquanto houver
+// sala aberta naquela unidade, aparece um botao em cima da grade.
+async function aulaAtivaVerificar(licId){
+  var alvo=document.getElementById('agGradeWrap'); if(!alvo) return;
+  var box=document.getElementById('agAulaAtiva');
+  if(!box){
+    box=document.createElement('div'); box.id='agAulaAtiva';
+    box.style.cssText='display:none;margin:0 0 14px;';
+    var g=document.getElementById('agGrade');
+    if(g && g.parentNode) g.parentNode.insertBefore(box,g); else alvo.appendChild(box);
+  }
+  box.style.display='none';
+  try{
+    var r=await fetch(SERVER_HTTP+'/agenda/aula-ativa/'+encodeURIComponent(licId));
+    if(!r.ok) return;
+    var d=await r.json();
+    if(!d || !d.ativa || !d.codigo) return;
+    box.innerHTML='<div onclick="aulaAtivaEntrar(\''+String(d.codigo).replace(/[^A-Za-z0-9-]/g,'')+'\')" '
+      +'style="cursor:pointer;display:flex;align-items:center;gap:12px;padding:15px 16px;border-radius:16px;'
+      +'background:linear-gradient(135deg,rgba(234,134,12,.26),rgba(214,45,45,.16));border:1px solid rgba(234,134,12,.45);">'
+      +'<span style="width:10px;height:10px;border-radius:50%;background:#3ddc84;box-shadow:0 0 10px #3ddc84;flex:none;"></span>'
+      +'<span style="min-width:0;text-align:left;">'
+        +'<span style="display:block;font-size:14px;font-weight:900;letter-spacing:.4px;">ENTRAR NA AULA DE AGORA</span>'
+        +'<span style="display:block;font-size:11.5px;color:rgba(255,255,255,.62);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'
+          +_salaEsc(d.nome_aula||'Aula ao vivo')+(d.professor?(' · '+_salaEsc(d.professor)):'')+'</span>'
+      +'</span>'
+      +'<span style="margin-left:auto;font-size:20px;color:rgba(234,134,12,.8);flex:none;">&#8250;</span>'
+      +'</div>';
+    box.style.display='block';
+  }catch(e){}
+}
+function aulaAtivaEntrar(codigo){
+  // connectQR e o mesmo caminho de quem digita o codigo a mao: valida,
+  // liga e abre a escolha de bike.
+  try{ connectQR(codigo); }
+  catch(e){
+    try{ var i=document.getElementById('qrCodeInput'); if(i) i.value=codigo; go('sQR'); }catch(_){}
   }
 }
 
@@ -6361,7 +6434,9 @@ function _salaPintar(d, erro){
       // Ja ausente: libertar a vaga para walk-in.
       acao='<button type="button" onclick="salaStatus('+e.r.id+',\'cancelada\',this)" style="margin-top:6px;width:100%;height:26px;border-radius:7px;background:rgba(229,57,53,.16);border:1px solid rgba(229,57,53,.42);color:#E53935;font-size:9px;font-weight:800;letter-spacing:.6px;cursor:pointer;">LIBERAR</button>';
     }
-    cels.push('<div style="background:rgba(255,255,255,.04);border:1px solid '+cor+'55;border-left:3px solid '+cor+';border-radius:10px;padding:8px 9px;min-width:0;">'
+    var _tranc = (_salaInfo&&_salaInfo.trancadas&&_salaInfo.trancadas.indexOf(n)>=0);
+    if(_tranc){ cor='rgba(255,255,255,.3)'; }
+    cels.push('<div onclick="salaBikeOpcoes('+n+')" style="cursor:pointer;background:rgba(255,255,255,.04);border:1px solid '+cor+'55;border-left:3px solid '+cor+';border-radius:10px;padding:8px 9px;min-width:0;">'
       +'<div style="display:flex;align-items:baseline;gap:6px;"><span style="font-size:15px;font-weight:900;color:'+cor+';">'+n+'</span>'
       +'<span style="font-size:8px;letter-spacing:1px;color:'+cor+';font-weight:800;">'+({livre:'LIVRE',reservado:'POR CHEGAR',pausa:'SAIU DA BIKE',presente:'NA BIKE',ausente:'AUSENTE'}[e.st])+'</span></div>'
       +'<div style="font-size:11px;color:rgba(255,255,255,.78);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px;min-height:14px;">'+(e.nome?_salaEsc(e.nome):'&nbsp;')+'</div>'
@@ -6385,6 +6460,79 @@ function _salaPintar(d, erro){
   lista.innerHTML = topo
     + (cont? '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:8px;">'+cels.join('')+'</div>'
            : '<div style="padding:24px 0;text-align:center;color:rgba(255,255,255,.45);font-size:13px;">Sala ainda sem bikes configuradas.</div>');
+}
+
+// ═══ PODERES DO PROFESSOR NA SALA (23/09) ════════════════════════
+// Tocar numa bike abre: deslogar, trocar de lugar, trancar.
+// O servidor (commit 1263390) confere em CADA mensagem que quem pede e
+// professor daquela licenca — esconder o botao aqui nao e seguranca.
+function _salaEnvia(msg){
+  try{
+    if(!wsConn || wsConn.readyState!==1){ alert('Sem ligação à sala.'); return false; }
+    msg.codigo = lastCode;
+    wsConn.send(JSON.stringify(msg));
+    return true;
+  }catch(e){ alert('Não consegui enviar: '+(e&&e.message?e.message:'erro')); return false; }
+}
+function salaBikeOpcoes(n){
+  if(!_salaEhProfessor()) return;
+  var vivo=(_salaInfo&&_salaInfo.ocupadas&&_salaInfo.ocupadas.indexOf(n)>=0);
+  var tranc=(_salaInfo&&_salaInfo.trancadas&&_salaInfo.trancadas.indexOf(n)>=0);
+  var ov=document.createElement('div'); ov.id='salaOpOv';
+  ov.style.cssText='position:fixed;inset:0;z-index:99700;background:rgba(0,0,0,.72);display:flex;align-items:flex-end;justify-content:center;';
+  function bt(txt,sub,cor,fn){
+    return '<button type="button" onclick="'+fn+'" style="width:100%;margin-bottom:9px;padding:14px 16px;border-radius:14px;text-align:left;'
+      +'background:rgba('+cor+',.13);border:1px solid rgba('+cor+',.4);color:#fff;font-family:inherit;">'
+      +'<div style="font-size:14px;font-weight:800;letter-spacing:.4px;">'+txt+'</div>'
+      +'<div style="font-size:11px;color:rgba(255,255,255,.5);margin-top:2px;">'+sub+'</div></button>';
+  }
+  ov.innerHTML='<div style="width:100%;max-width:520px;background:#15141b;border-radius:20px 20px 0 0;border:1px solid rgba(255,255,255,.1);padding:18px 18px calc(18px + env(safe-area-inset-bottom,0px));">'
+    +'<div style="display:flex;align-items:center;margin-bottom:14px;">'
+      +'<div style="font-size:17px;font-weight:900;">Bike '+n+(n===99?' · professor':'')+'</div>'
+      +'<button type="button" onclick="salaOpFechar()" style="margin-left:auto;width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,.07);border:none;color:#fff;font-size:18px;">&times;</button>'
+    +'</div>'
+    +(vivo? bt('Deslogar quem está aqui','A pessoa volta à escolha de bike','229,57,53','salaDeslogar('+n+')') : '')
+    +(vivo? bt('Trocar de lugar','Escolher outra bike para trocar','47,107,255','salaTrocarEscolher('+n+')') : '')
+    +(tranc? bt('Destrancar','Volta a ficar disponível','61,220,132','salaTrancar('+n+',false)')
+           : bt('Trancar a bike','Em manutenção — ninguém pode escolher','255,179,0','salaTrancar('+n+',true)'))
+    +'</div>';
+  document.body.appendChild(ov);
+  ov.onclick=function(e){ if(e.target===ov) salaOpFechar(); };
+}
+function salaOpFechar(){ var o=document.getElementById('salaOpOv'); if(o) o.parentNode.removeChild(o); }
+function salaDeslogar(n){
+  if(!confirm('Deslogar quem está na bike '+n+'?\n\nSe a pessoa já estiver pedalando, ela perde o treino em curso. Ela volta à tela de escolher bike e pode entrar noutra posição.')) return;
+  if(_salaEnvia({tipo:'prof_remover_aluno', bike:n, motivo:'O professor liberou esta bike.'})) salaOpFechar();
+}
+function salaTrancar(n, tr){
+  if(_salaEnvia({tipo:'prof_trancar_bike', bike:n, trancar:!!tr, motivo:tr?'em manutenção':''})) salaOpFechar();
+}
+// Trocar: escolhe a bike de destino numa grade
+function salaTrocarEscolher(de){
+  salaOpFechar();
+  var total=(_salaInfo&&_salaInfo.numBikes)?_salaInfo.numBikes:20;
+  var ocup=(_salaInfo&&_salaInfo.ocupadas)||[];
+  var cels='';
+  for(var i=1;i<=total;i++){
+    if(i===de) continue;
+    var o=ocup.indexOf(i)>=0;
+    cels+='<button type="button" onclick="salaTrocarConfirmar('+de+','+i+')" style="padding:13px 0;border-radius:11px;'
+      +'background:'+(o?'rgba(67,160,71,.15)':'rgba(255,255,255,.05)')+';border:1px solid '+(o?'rgba(67,160,71,.45)':'rgba(255,255,255,.12)')+';'
+      +'color:#fff;font-family:inherit;font-size:15px;font-weight:800;">'+i+'</button>';
+  }
+  if(ocup.indexOf(99)>=0 || de!==99) cels+='<button type="button" onclick="salaTrocarConfirmar('+de+',99)" style="padding:13px 0;border-radius:11px;background:rgba(234,134,12,.15);border:1px solid rgba(234,134,12,.45);color:#ea860c;font-family:inherit;font-size:15px;font-weight:800;">99</button>';
+  var ov=document.createElement('div'); ov.id='salaOpOv';
+  ov.style.cssText='position:fixed;inset:0;z-index:99700;background:rgba(0,0,0,.75);display:flex;align-items:flex-end;justify-content:center;';
+  ov.innerHTML='<div style="width:100%;max-width:520px;max-height:82vh;overflow-y:auto;background:#15141b;border-radius:20px 20px 0 0;border:1px solid rgba(255,255,255,.1);padding:18px 18px calc(18px + env(safe-area-inset-bottom,0px));">'
+    +'<div style="display:flex;align-items:center;margin-bottom:6px;"><div style="font-size:17px;font-weight:900;">Trocar a bike '+de+' com…</div>'
+    +'<button type="button" onclick="salaOpFechar()" style="margin-left:auto;width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,.07);border:none;color:#fff;font-size:18px;">&times;</button></div>'
+    +'<div style="font-size:11.5px;color:rgba(255,255,255,.45);margin-bottom:12px;">Verde = ocupada. Se estiver vazia, a pessoa só muda de lugar.</div>'
+    +'<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(62px,1fr));gap:8px;">'+cels+'</div></div>';
+  document.body.appendChild(ov);
+  ov.onclick=function(e){ if(e.target===ov) salaOpFechar(); };
+}
+function salaTrocarConfirmar(de,para){
+  if(_salaEnvia({tipo:'prof_trocar_bikes', de:de, para:para})) salaOpFechar();
 }
 
 // Muda o status de uma reserva. 'ausente' = nao veio; 'cancelada' = vaga libertada.
@@ -7353,6 +7501,24 @@ function _tentarConexaoWS(wsUrl, token, dadosSessao){
         setTimeout(function(){ go('sLive'); var sl=document.getElementById('sLive'); if(sl) sl.scrollTop=0; }, 300);
         resolve(ws);
       }
+      // ── O PROFESSOR MEXEU NA MINHA BIKE (23/09) ───────────────────
+      // Sem estas duas mensagens, a tela do professor mudaria e o aluno
+      // continuaria a achar que esta na bike antiga.
+      if(data.tipo==='removido_da_bike'){
+        try{ _bikeSelNum=0; }catch(e){}
+        alert(data.motivo || 'O professor liberou esta bike.');
+        try{
+          if(data.pode_reentrar!==false){ go('sBikeSel'); _renderBikeGrid(); }
+          else { _prEsquecerSala('removido pelo professor'); }
+        }catch(e){}
+        return;
+      }
+      if(data.tipo==='bike_trocada'){
+        try{ _bikeSelNum=data.bike; }catch(e){}
+        try{ _bldAviso((data.motivo||'O professor trocou o seu lugar.')+' Agora é a bike '+data.bike+'.'); }catch(e){}
+        try{ _renderBikeGrid(); }catch(e){}
+        return;
+      }
       if(data.tipo==='erro'){ ws.close(); reject(new Error(data.msg)); }
     };
     ws.onerror = function(){ clearTimeout(timeout); reject(new Error('ws error')); };
@@ -7794,7 +7960,7 @@ updateProfileUI = function() {
          + ' fill="none" stroke="'+col(fm)+'" stroke-width="30" stroke-linecap="'+cap+'"/>';
     }
     g.innerHTML=out;
-    try{ console.log('%c[ProRider Aluno] BUILD 23/09a — caloria por watt (kJ/eficiencia) + basal Mifflin-St Jeor no cadastro + historico gravado no aparelho + FTP na gaveta + card 1080x1920 reposicionado + 6 protocolos de FTP + TSS + teste de 3 min + fator do teste de 5 min corrigido (era 1,05) + explicacao de FTP em cada teste + gaveta esconde pela propria altura + importacao de treino do TrainingPeaks (grade 2x2 na tela inicial + construtor) com tela de conferencia (botoes acima da navegacao) + corrigido: aula aberta por objeto agora e a que roda + botao Revisar o treino na gaveta + FTP e peso persistem no aparelho + gauge reequilibrado + textos do Brasil + codigo de sala normalizado (QR do navegador deixava a sala inexistente) + faixa de voltar corrigida + reconexao nao trava mais + sala encerrada limpa o codigo guardado + VISTA DA SALA + card comprido de Construtor para professor + fim da corrida no login','color:#ea860c;font-weight:700;'); }catch(e){}
+    try{ console.log('%c[ProRider Aluno] BUILD 23/09b — caloria por watt (kJ/eficiencia) + basal Mifflin-St Jeor no cadastro + historico gravado no aparelho + FTP na gaveta + card 1080x1920 reposicionado + 6 protocolos de FTP + TSS + teste de 3 min + fator do teste de 5 min corrigido (era 1,05) + explicacao de FTP em cada teste + gaveta esconde pela propria altura + importacao de treino do TrainingPeaks (grade 2x2 na tela inicial + construtor) com tela de conferencia (botoes acima da navegacao) + corrigido: aula aberta por objeto agora e a que roda + botao Revisar o treino na gaveta + FTP e peso persistem no aparelho + gauge reequilibrado + textos do Brasil + codigo de sala normalizado (QR do navegador deixava a sala inexistente) + faixa de voltar corrigida + reconexao nao trava mais + sala encerrada limpa o codigo guardado + VISTA DA SALA + card comprido de Construtor para professor + fim da corrida no login','color:#ea860c;font-weight:700;'); }catch(e){}
   }
   if(document.readyState!=='loading') buildGaugeArc();
   else document.addEventListener('DOMContentLoaded', buildGaugeArc);
