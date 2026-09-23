@@ -33,6 +33,36 @@ Componentes: `servidor` · `app` · `ginasio` · `portal` · `banco`.
 
 ---
 
+## 2026-09-22 · servidor · a750387, 4409582, 1263390, 9d4528d
+
+**O que mudou**
+- `PUT /admin/users/:id` (super_admin): altera `role`, `license_id` e `name`.
+- `PUT /admin/licencas/:id` aceita campos de endereço.
+- Sala WebSocket com `trancadas: Set`; novos casos `prof_remover_aluno`, `prof_trocar_bikes`, `prof_trancar_bike`.
+- `GET /agenda/aula-ativa/:license_id` (sem auth).
+- `JWT_SECRET` obrigatório — `throw` no arranque se não definido; valor fixo definido no Railway em 23/09.
+
+---
+
+## 2026-09-23 · ginasio 23/09d
+
+**O que mudou**
+- **`bled112.js` unificado.** Até aqui havia duas versões: a do executável (`C:\ProRider\Executavel\app\bled112.js`, com o caminho Electron) e a das pastas (sem ele). O bloco do executável entrou em `BLED112.connect()`, logo depois de `if (BLED112.connected) return;`: se o `userAgent` for Electron, `requestPort({ filters: [{ usbVendorId: 0x2458 }] })`, `open` e `_provaDeVida()`; senão (`else`), o caminho de sempre do Chrome/Edge (portas autorizadas → diálogo), sem nenhuma mudança. É exatamente o diff enviado pelo desenvolvedor.
+
+**Por quê**
+- Para o executável poder receber a versão nova sem perder a abertura da porta no Electron, e para acabar com as duas versões divergentes.
+
+**Como confirmar**
+- Executável: as bikes aparecem como hoje. No Console, sem dongle ligado, a mesma sequência de hoje: `Electron requestPort falhou…` e `DONGLE_NAO_RESPONDE`.
+- `PRORIDER.bat` (Chrome): `portas autorizadas: N | candidatas: M`, como antes.
+- Testado com a porta serial simulada nos dois caminhos: cada um segue o seu ramo e dá o mesmo erro de antes.
+
+**Cuidados**
+- Nada na leitura das bikes foi alterado.
+- Observação para depois (não mexido): no executável, a primeira tentativa automática falha com `Must be handling a user gesture` e a ligação só acontece numa tentativa seguinte. Funciona, mas vale investigar com o dev como o processo principal do Electron trata o `select-serial-port`.
+
+---
+
 ## 2026-09-23 · app 23/09d
 
 **O que mudou**
@@ -94,17 +124,6 @@ Componentes: `servidor` · `app` · `ginasio` · `portal` · `banco`.
 
 **Cuidados**
 - O 401 continua a acontecer até o `JWT_SECRET` ficar fixo no Railway; depois disso, reativar o Ginásio uma vez.
-
----
-
-## 2026-09-22 · servidor · a750387, 4409582, 1263390, 9d4528d
-
-**O que mudou**
-- `PUT /admin/users/:id` (super_admin): altera `role`, `license_id` e `name`.
-- `PUT /admin/licencas/:id` aceita campos de endereço.
-- Sala WebSocket com `trancadas: Set`; novos casos `prof_remover_aluno`, `prof_trocar_bikes`, `prof_trancar_bike`.
-- `GET /agenda/aula-ativa/:license_id` (sem auth).
-- `JWT_SECRET` obrigatório — `throw` no arranque se não definido; valor fixo definido no Railway em 23/09.
 
 ---
 
