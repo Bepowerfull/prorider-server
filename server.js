@@ -16,7 +16,7 @@ const crypto     = require('crypto');
 const PORT       = process.env.PORT || 8080;
 const JWT_SECRET = process.env.JWT_SECRET;
 if (!JWT_SECRET) {
-  console.error('!!! JWT_SECRET NAO DEFINIDO — defina nas variaveis do Railway !!!');
+  throw new Error('JWT_SECRET nao definido — adicione nas variaveis do Railway antes de fazer deploy');
 }
 const DB_URL     = process.env.DATABASE_URL;
 
