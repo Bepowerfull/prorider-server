@@ -1076,18 +1076,25 @@ input[type=file]{display:none}
                dentro do espaco vazio) e os dois valores tem o mesmo corpo de
                letra e o mesmo rotulo embaixo. -->
 
-          <!-- ESQUERDA: valor + unidade, ancorados pela direita em x=170 -->
-          <text x="170" y="180" text-anchor="end" font-family="Barlow Condensed" font-weight="900" fill="#fff">
+          <!-- 23/09c: colunas SIMETRICAS em torno do centro do gauge (x=180).
+               Antes o valor era ancorado pela direita em x=170, o separador
+               ficava em x=196 e o relogio centrado em x=272: o conjunto
+               pendia para a direita. Agora cada coluna e centrada no meio da
+               sua metade (120 e 240), o separador fica no eixo (180) e o
+               valor cresce para os dois lados, sem invadir o relogio. -->
+
+          <!-- ESQUERDA: valor + unidade, centrados em x=120 -->
+          <text x="120" y="180" text-anchor="middle" font-family="Barlow Condensed" font-weight="900" fill="#fff">
             <tspan font-size="54" id="gValue">0</tspan><tspan font-size="30" fill="rgba(255,255,255,.85)" id="gValueUnit">%</tspan>
           </text>
-          <text x="170" y="201" text-anchor="end" font-family="Barlow Condensed" font-size="12" font-weight="700" letter-spacing="3.5" fill="rgba(255,255,255,.38)" id="gModeLabel">FTP</text>
+          <text x="120" y="201" text-anchor="middle" font-family="Barlow Condensed" font-size="12" font-weight="700" letter-spacing="3.5" fill="rgba(255,255,255,.38)" id="gModeLabel">FTP</text>
 
-          <!-- DIREITA: relogio do bloco, mesmo corpo e mesmo rotulo -->
-          <text x="272" y="180" text-anchor="middle" font-family="Barlow Condensed" font-size="54" font-weight="900" fill="#fff" id="gBlocoTempo">0:00</text>
-          <text x="272" y="201" text-anchor="middle" font-family="Barlow Condensed" font-size="12" font-weight="700" letter-spacing="3.5" fill="rgba(255,255,255,.38)" id="gBlocoLbl">BLOCO</text>
+          <!-- DIREITA: relogio do bloco, mesmo corpo e mesmo rotulo, centrado em x=240 -->
+          <text x="240" y="180" text-anchor="middle" font-family="Barlow Condensed" font-size="54" font-weight="900" fill="#fff" id="gBlocoTempo">0:00</text>
+          <text x="240" y="201" text-anchor="middle" font-family="Barlow Condensed" font-size="12" font-weight="700" letter-spacing="3.5" fill="rgba(255,255,255,.38)" id="gBlocoLbl">BLOCO</text>
 
-          <!-- separador entre as duas colunas -->
-          <line x1="196" y1="150" x2="196" y2="196" stroke="rgba(255,255,255,.10)" stroke-width="1"/>
+          <!-- separador no eixo do gauge -->
+          <line x1="180" y1="146" x2="180" y2="198" stroke="rgba(255,255,255,.12)" stroke-width="1"/>
 
           <!-- label 150+ no final do arco (segue o padrão de 140 rpm / 6.0) -->
           <text x="356" y="213" text-anchor="end" font-family="Barlow Condensed" font-size="11" fill="rgba(255,255,255,.28)" id="gMaxLbl">150+</text>
@@ -2153,6 +2160,7 @@ var lastCode='';
 // Fluxo: scan QR → assinar_sala (observa o mapa ao vivo) → escolhe a bike → entrar_sala
 // Fonte de dados na aula: relay do ginásio (iOS sem BLE) ou BLE do próprio celular (Android)
 // ════════════════════════════════════════════════════════════
+var _entrarCodigo = '', _entrarNome = '';            // 23/09c: codigo usado no ultimo entrar_sala (QR ou reserva)
 var _bikeSelNum = null;             // bike escolhida pelo aluno (null = ainda só observando)
 var _salaInfo   = null;             // {numBikes,bikes:[],ocupadas:[]} vindo do ginásio
 var liveRelay   = null;             // {w,r,ftp,z,ts} — dado da MINHA bike vindo do ginásio
@@ -2232,6 +2240,7 @@ function selectBike(num){
   var nomeVal=(nome&&nome.textContent.trim()&&nome.textContent.trim()!=='—')?nome.textContent.trim():(localStorage.getItem('pr_nome')||'Aluno');
   // Já estava observando (socket aberto) → vira participante de verdade na bike escolhida
   if(wsConn && wsConn.readyState===1){
+    _entrarNome=nomeVal; _entrarCodigo=lastCode;
     wsConn.send(JSON.stringify({tipo:'entrar_sala',codigo:lastCode,nome:nomeVal,bike:num,
       foto:(localStorage.getItem('pr_foto')||null),
       ftpBase:(function(){ try{ var f=parseInt(_ftpDoAluno(),10)||0; return f>0?f:null; }catch(e){ return null; } })()}));
@@ -2302,6 +2311,7 @@ function connectQR(code){
         // mundo — e a %FTP e a zona de cada aluno saiam erradas.
         var _meuFtp = 0;
         try{ _meuFtp = parseInt(_ftpDoAluno(),10) || 0; }catch(e){}
+        _entrarNome=nomeVal; _entrarCodigo=code;
         wsConn.send(JSON.stringify({tipo:'entrar_sala',codigo:code,nome:nomeVal,bike:_bikeSelNum,
           foto:(localStorage.getItem('pr_foto')||null),
           ftpBase:(_meuFtp>0?_meuFtp:null)}));
@@ -2357,7 +2367,10 @@ function connectQR(code){
         _encerrarAulaApp();
         return;
       }
-      if(data.tipo==='conectado'){
+      if(data.tipo==='conectado' && window._ftpReenvio && Date.now()-window._ftpReenvio<5000){
+        // resposta ao reenvio do FTP (23/09c): ja estamos na aula, nao navega
+        window._ftpReenvio=0;
+      } else if(data.tipo==='conectado'){
         window._reconTries=0;
         if(window._bikeJoinTimer){ clearTimeout(window._bikeJoinTimer); window._bikeJoinTimer=null; }
         if(typeof _reconStop==='function') _reconStop();
@@ -2533,17 +2546,30 @@ function openFreeRide(){
 // Serve para qualquer aula, nao so as importadas: o aluno que entrou na aula
 // do professor tambem pode querer ver o que vem pela frente.
 function revAbrir(){
-  if(!cAula||!cAula.blocos) return;
+  // 23/09c: na aula do Ginasio o treino nao esta em cAula (que e o treino
+  // proprio do app), e sim no grafico que o Ginasio manda (aulaGrafico). Sem
+  // isto o botao nao abria nada numa aula de academia.
+  var _aula=cAula, _idx=cBloco;
+  if(!(_aula&&_aula.blocos&&_aula.blocos.length) && typeof aulaGrafico!=='undefined' && aulaGrafico && aulaGrafico.length){
+    _aula={ nome:aulaGraficoNome||'Treino', blocos:aulaGrafico.map(function(b){
+      var fmin=b.ftpMin, fmax=b.ftpMax, ftp='';
+      if(fmin&&fmax) ftp=fmin+'-'+fmax; else if(fmax) ftp='< '+fmax; else if(fmin) ftp='> '+fmin;
+      return { z:b.z, dur:Number(b.dur!=null?b.dur:b.duration)||0, ftp:ftp,
+               rpm:(b.rpmMin&&b.rpmMax)?[b.rpmMin,b.rpmMax]:null, pos:b.pos||'', nome:b.nome||'', seg:b.seg||'' };
+    })};
+    _idx=aulaBlocoIdx||0;
+  }
+  if(!_aula||!_aula.blocos||!_aula.blocos.length){ console.log('[ProRider] Revisar o treino: ainda nao ha treino nesta aula.'); return; }
   var C={z1:'#c2c2c2',z2:'#295fe8',z3:'#5db13d',z4:'#d7c414',z5:'#ea860c',z6:'#d62d2d',z7:'#9b30ff'};
-  var n=document.getElementById('revNome'); if(n) n.textContent=cAula.nome||'Treino';
+  var n=document.getElementById('revNome'); if(n) n.textContent=_aula.nome||'Treino';
   var sub=document.getElementById('revSub');
   if(sub){
-    var tot=0; cAula.blocos.forEach(function(b){ tot+=(Number(b.dur)||0); });
-    sub.textContent=Math.round(tot)+' min · '+cAula.blocos.length+' blocos · TSS '+prTSS(cAula.blocos).tss;
+    var tot=0; _aula.blocos.forEach(function(b){ tot+=(Number(b.dur)||0); });
+    sub.textContent=Math.round(tot)+' min · '+_aula.blocos.length+' blocos · TSS '+prTSS(_aula.blocos).tss;
   }
   var h='';
-  cAula.blocos.forEach(function(b,i){
-    var atual=(i===cBloco), passou=(i<cBloco);
+  _aula.blocos.forEach(function(b,i){
+    var atual=(i===_idx), passou=(i<_idx);
     h+='<div style="display:flex;align-items:flex-start;gap:11px;border-radius:12px;padding:11px 13px;margin-bottom:6px;'
       +(atual?'background:rgba(234,134,12,.13);border:1px solid rgba(234,134,12,.4);'
              :'background:rgba(255,255,255,.035);border:1px solid transparent;')
@@ -2554,7 +2580,7 @@ function revAbrir(){
           +(b.seg||b.z||'Bloco')+(b.nome?(' · '+b.nome):'')
           +(atual?' <span style="font-size:10px;letter-spacing:1.6px;color:#ea860c;">AGORA</span>':'')+'</div>'
         +'<div style="font-size:12px;color:rgba(255,255,255,.42);margin-top:3px;">'
-          +b.dur+' min · '+(b.ftp?(b.ftp+'% FTP'):'sem alvo')
+          +((Number(b.dur)%1)?fmMS(Math.round(Number(b.dur)*60)):(b.dur+' min'))+' · '+(b.ftp?(b.ftp+'% FTP'):'sem alvo')
           +' · '+(function(r){
               // o construtor guarda '80-90' (texto); a importacao guarda [80,90]
               if(!r) return 'cadência livre';
@@ -2570,7 +2596,7 @@ function revAbrir(){
   var l=document.getElementById('revLista');
   if(l){ l.innerHTML=h;
     // rola ate o bloco atual, para o aluno nao ter de procurar onde esta
-    try{ var alvo=l.children[cBloco]; if(alvo) l.scrollTop=Math.max(0,alvo.offsetTop-120); }catch(e){}
+    try{ var alvo=l.children[_idx]; if(alvo) l.scrollTop=Math.max(0,alvo.offsetTop-120); }catch(e){}
   }
   var ov=document.getElementById('revOverlay'); if(ov) ov.style.display='block';
 }
@@ -5612,17 +5638,43 @@ function dFtpRender(){
   var el=document.getElementById('dFtpVal');
   if(el) el.textContent=dFtpAtual();
 }
+// 23/09c: o FTP trocado na gaveta ficava so no celular. O Ginasio continuava
+// com o ftpBase que recebeu ao entrar, e a %FTP/zona na TV e no app nao
+// mudavam. Agora o app reenvia entrar_sala na MESMA bike com o ftpBase novo —
+// o mesmo caminho da reconexao, que o servidor ja aceita e repassa ao Ginasio,
+// e que o Ginasio ja trata como troca ao vivo (recalcula com os watts atuais).
+// Com espera de 400 ms para uma sequencia de toques em +/- ir como um envio so.
+var _ftpAvisoT=null;
+function _ftpAvisarSala(){
+  if(_ftpAvisoT) clearTimeout(_ftpAvisoT);
+  _ftpAvisoT=setTimeout(function(){
+    _ftpAvisoT=null;
+    try{
+      if(!(typeof wsConn!=='undefined' && wsConn && wsConn.readyState===1)) { console.log('[ProRider] FTP trocado fora da sala — vale a partir da proxima entrada.'); return; }
+      if(!(typeof _bikeSelNum!=='undefined' && _bikeSelNum)) return;
+      var f=parseInt(_ftpDoAluno(),10)||0; if(f<=0) return;
+      // mesmo nome do ultimo entrar_sala: o servidor indexa o aluno pelo nome,
+      // e um nome diferente viraria um segundo aluno na sala
+      var nomeVal=_entrarNome; if(!nomeVal) return;
+      var _cod=_entrarCodigo||lastCode; if(!_cod) return;
+      window._ftpReenvio=Date.now();
+      wsConn.send(JSON.stringify({tipo:'entrar_sala',codigo:_cod,nome:nomeVal,bike:_bikeSelNum,
+        foto:(localStorage.getItem('pr_foto')||null), ftpBase:f}));
+      console.log('[ProRider] FTP '+f+'W enviado a sala (bike '+_bikeSelNum+').');
+    }catch(e){ console.warn('[ProRider] nao consegui enviar o FTP a sala:', e&&e.message); }
+  },400);
+}
 function dFtpStep(d){
   var novo=dFtpAtual()+d;
   if(novo<50) novo=50; if(novo>600) novo=600;
-  aplicarFtpResultado(novo); dFtpRender();
+  aplicarFtpResultado(novo); dFtpRender(); _ftpAvisarSala();
 }
 function dFtpPrompt(){
   var v=prompt('Novo FTP em watts:',dFtpAtual());
   if(v===null) return;
   v=parseInt(v)||0;
   if(v<50||v>600){ alert('Informe um FTP entre 50 e 600 W.'); return; }
-  aplicarFtpResultado(v); dFtpRender();
+  aplicarFtpResultado(v); dFtpRender(); _ftpAvisarSala();
 }
 function aplicarFtpResultado(novoFtp){
   novoFtp = parseInt(novoFtp)||0;
@@ -7467,7 +7519,12 @@ function _tentarConexaoWS(wsUrl, token, dadosSessao){
       var nome = document.getElementById('profNome');
       var nomeVal = (nome&&nome.textContent.trim()&&nome.textContent.trim()!=='—')
         ? nome.textContent.trim() : (localStorage.getItem('pr_nome')||'Aluno');
-      ws.send(JSON.stringify({tipo:'entrar_sala', codigo:token, nome:nomeVal, bike:dadosSessao.bike_num||null}));
+      // 23/09c: este era o TERCEIRO ponto que manda entrar_sala (entrada pela
+      // reserva/sessao) e tambem ia sem o FTP — o Ginasio ficava com 150.
+      var _ftpS=0; try{ _ftpS=parseInt(_ftpDoAluno(),10)||0; }catch(e){}
+      ws.send(JSON.stringify({tipo:'entrar_sala', codigo:token, nome:nomeVal, bike:dadosSessao.bike_num||null,
+        foto:(localStorage.getItem('pr_foto')||null), ftpBase:(_ftpS>0?_ftpS:null)}));
+      _entrarNome=nomeVal; _entrarCodigo=token;
       if(dadosSessao.bike_num) _bikeSelNum=parseInt(dadosSessao.bike_num); // casa o relay com a bike da sessão
     };
     ws.onmessage = function(e){
@@ -7493,7 +7550,10 @@ function _tentarConexaoWS(wsUrl, token, dadosSessao){
         _salaInfo={ numBikes:data.numBikes||0, bikes:data.bikes||[], ocupadas:data.ocupadas||[] };
         if(_salaInfo.numBikes) _numBikesCacheSalvar(_salaInfo.numBikes);
       }
-      if(data.tipo==='conectado' || data.tipo==='entrou_sala'){
+      if((data.tipo==='conectado' || data.tipo==='entrou_sala') && window._ftpReenvio && Date.now()-window._ftpReenvio<5000 && wsConn===ws){
+        // resposta ao reenvio do FTP (23/09c): ja estamos na aula, nao navega
+        if(data.tipo==='entrou_sala') window._ftpReenvio=0;
+      } else if(data.tipo==='conectado' || data.tipo==='entrou_sala'){
         // Substituir wsConn pelo local
         if(wsConn && wsConn !== ws) try{ wsConn.close(); }catch(e){}
         wsConn = ws;
@@ -7544,14 +7604,37 @@ function _pushLiveTelemetria(){
   try{
     var src=null;
     if(typeof liveRelay!=='undefined' && liveRelay && (Date.now()-liveRelay.ts)<3000){
-      src={ r:liveRelay.r||0, w:liveRelay.w||0, ftp:liveRelay.ftp||0, z:liveRelay.z||'z1' };
+      src={ r:liveRelay.r||0, w:liveRelay.w||0, ftp:liveRelay.ftp||0, z:liveRelay.z||'z1', g:liveRelay.g||0, hr:liveRelay.hr||0 };
     } else if(_bleTs && (Date.now()-_bleTs)<3000){
       src={ r:_bleRpm||0, w:_bleWatts||0, ftp:Math.round((_bleWatts||0)/150*100), z:'z1' };
     }
     if(!src) return; // sem dado fresco → não mexe (deixa tick/simulação/padrão)
     var rpmR=Math.round(src.r), wR=Math.round(src.w), ftpR=Math.round(src.ftp);
+    // 23/09c: %FTP calculada com o FTP do PROPRIO app (o da gaveta). O valor
+    // que vem do Ginasio usa o FTP que ele recebeu na entrada — e so muda
+    // quando ele recebe o novo. Assim a troca na gaveta aparece na hora aqui,
+    // mesmo com um Ginasio antigo na TV.
+    try{ var _mf=_ftpDoAluno(); if(_mf>0 && src.w>=0) ftpR=Math.round(src.w/_mf*100); }catch(e){}
     var elR=document.getElementById('bigRpm');   if(elR) elR.textContent=rpmR;
     var elW=document.getElementById('bigWatts');  if(elW) elW.textContent=wR;
+    // 23/09c: MARCHA e FC na aula da academia. So o tick() da aula propria do
+    // app as escrevia — na aula do Ginasio o tick nao roda, e as caixas GEAR e
+    // BPM ficavam em "-" mesmo com o Ginasio mandando g e hr no bikes_live.
+    // Celular ligado direto na bike/cinta por Bluetooth continua com prioridade.
+    try{
+      if(src.g>0 && !(typeof connected!=='undefined' && connected.bike)){
+        dGear=src.g; var elG=document.getElementById('bigGear'); if(elG) elG.textContent=src.g;
+      }
+      if(src.hr>0 && !(typeof connected!=='undefined' && connected.hr)){
+        var elH=document.getElementById('bigHR'); if(elH) elH.textContent=src.hr;
+      }
+      // relogio do bloco dentro do gauge: o Ginasio manda o que falta do bloco
+      // (blocoRest) 1x por segundo; entre um e outro, desconta o relogio local.
+      if(typeof _blocoRestTs!=='undefined' && _blocoRestTs && !(typeof cAula!=='undefined' && cAula && cAula.blocos)){
+        var _bt=document.getElementById('gBlocoTempo');
+        if(_bt){ var _r=Math.max(0,Math.round(_blocoRest-(Date.now()-_blocoRestTs)/1000)); _bt.textContent=Math.floor(_r/60)+':'+String(_r%60).padStart(2,'0'); }
+      }
+    }catch(e){}
     var ptr=document.getElementById('gPtr');
     var gVal=document.getElementById('gValue');
     if(typeof gaugeMode==='undefined') return;
@@ -7960,7 +8043,7 @@ updateProfileUI = function() {
          + ' fill="none" stroke="'+col(fm)+'" stroke-width="30" stroke-linecap="'+cap+'"/>';
     }
     g.innerHTML=out;
-    try{ console.log('%c[ProRider Aluno] BUILD 23/09b — caloria por watt (kJ/eficiencia) + basal Mifflin-St Jeor no cadastro + historico gravado no aparelho + FTP na gaveta + card 1080x1920 reposicionado + 6 protocolos de FTP + TSS + teste de 3 min + fator do teste de 5 min corrigido (era 1,05) + explicacao de FTP em cada teste + gaveta esconde pela propria altura + importacao de treino do TrainingPeaks (grade 2x2 na tela inicial + construtor) com tela de conferencia (botoes acima da navegacao) + corrigido: aula aberta por objeto agora e a que roda + botao Revisar o treino na gaveta + FTP e peso persistem no aparelho + gauge reequilibrado + textos do Brasil + codigo de sala normalizado (QR do navegador deixava a sala inexistente) + faixa de voltar corrigida + reconexao nao trava mais + sala encerrada limpa o codigo guardado + VISTA DA SALA + card comprido de Construtor para professor + fim da corrida no login','color:#ea860c;font-weight:700;'); }catch(e){}
+    try{ console.log('%c[ProRider Aluno] BUILD 23/09d — gauge com FTP e BLOCO simetricos + marcha e FC na aula da academia + %FTP com o FTP da gaveta na hora + FTP da gaveta vai para a sala na hora + FTP tambem na entrada pela reserva + Revisar o treino mostra a aula do Ginasio + caloria por watt (kJ/eficiencia) + basal Mifflin-St Jeor no cadastro + historico gravado no aparelho + FTP na gaveta + card 1080x1920 reposicionado + 6 protocolos de FTP + TSS + teste de 3 min + fator do teste de 5 min corrigido (era 1,05) + explicacao de FTP em cada teste + gaveta esconde pela propria altura + importacao de treino do TrainingPeaks (grade 2x2 na tela inicial + construtor) com tela de conferencia (botoes acima da navegacao) + corrigido: aula aberta por objeto agora e a que roda + botao Revisar o treino na gaveta + FTP e peso persistem no aparelho + gauge reequilibrado + textos do Brasil + codigo de sala normalizado (QR do navegador deixava a sala inexistente) + faixa de voltar corrigida + reconexao nao trava mais + sala encerrada limpa o codigo guardado + VISTA DA SALA + card comprido de Construtor para professor + fim da corrida no login','color:#ea860c;font-weight:700;'); }catch(e){}
   }
   if(document.readyState!=='loading') buildGaugeArc();
   else document.addEventListener('DOMContentLoaded', buildGaugeArc);
