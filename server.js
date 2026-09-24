@@ -418,6 +418,14 @@ async function runMigrations() {
     await db.query(`ALTER TABLE sessao_conexoes ADD COLUMN IF NOT EXISTS fonte TEXT DEFAULT 'qr'`);
     await db.query(`ALTER TABLE sessao_conexoes ADD COLUMN IF NOT EXISTS user_id_nullable INTEGER`);
     log('Migração sessoes_ao_vivo OK');
+    // 24/09: licenca demo com 20 bikes (decisao do Mario). So troca se ainda
+    // estiver no valor antigo (0 ou 15) — uma mudanca feita depois pelo super
+    // admin nao e desfeita a cada arranque.
+    try {
+      await db.query(`UPDATE licencas SET max_bikes=20,
+                        bikes_disponiveis = CASE WHEN COALESCE(bikes_disponiveis,0) IN (0,15) THEN 20 ELSE LEAST(bikes_disponiveis,20) END
+                      WHERE codigo='PRDR-DEMO-001' AND COALESCE(max_bikes,0) IN (0,15)`);
+    } catch(e) { log('demo 20 bikes: ' + e.message); }
     // Onboarding token para licenses (tabela legacy — ignorar se não existir)
     try {
       await db.query(`ALTER TABLE licenses ADD COLUMN IF NOT EXISTS onboarding_token TEXT`);
@@ -532,10 +540,10 @@ app.post('/setup/bootstrap', async (req, res) => {
     // Criar licença demo
     await db.query(
       "INSERT INTO licencas (codigo, nome, status, max_bikes) VALUES ($1,$2,'ativa',$3) ON CONFLICT (codigo) DO NOTHING",
-      ['PRDR-DEMO-001', 'ProRider Demo', 15]
+      ['PRDR-DEMO-001', 'ProRider Demo', 20]
     );
 
-    res.json({ ok: true, user: u.rows[0], licenca: 'PRDR-DEMO-001', max_bikes: 15 });
+    res.json({ ok: true, user: u.rows[0], licenca: 'PRDR-DEMO-001', max_bikes: 20 });
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
@@ -552,7 +560,7 @@ app.post('/setup/sessao-teste', async (req, res) => {
     const token = crypto.randomBytes(20).toString('hex');
     const r = await db.query(
       `INSERT INTO sessoes_ao_vivo (license_id, token, nome_aula, professor, max_conexoes, status)
-       VALUES ('PRDR-DEMO-001', $1, 'Aula Teste', 'Mario', 15, 'em_andamento') RETURNING *`,
+       VALUES ('PRDR-DEMO-001', $1, 'Aula Teste', 'Mario', 20, 'em_andamento') RETURNING *`,
       [token]
     );
     res.json({ ok: true, sessao: r.rows[0], token, qr_payload: `prorider://sessao?token=${token}` });
@@ -1208,6 +1216,28 @@ wss.on('connection', (ws) => {
           } catch(dbErr) { /* não bloqueia se o banco falhar */ }
         }
 
+        // ── 24/09: TETO DA SALA = BIKES DA LICENCA ──────────────────────
+        // O Ginasio manda numBikes no sala_info ja limitado pela licenca.
+        // 1) bike acima do numero da sala (exceto a 99, do professor) e recusada;
+        // 2) quem entra SEM bike da sala (de casa, no rolo) tambem tem teto:
+        //    o mesmo numero de bikes da licenca (decisao do Mario).
+        const _tetoSala = (sala.lastSalaInfo && parseInt(sala.lastSalaInfo.numBikes)) || 0;
+        const _bikeN = bike ? Number(bike) : 0;
+        if (_tetoSala > 0 && _bikeN && _bikeN !== 99 && _bikeN > _tetoSala) {
+          ws.send(JSON.stringify({ tipo: 'erro', msg: `Esta sala tem ${_tetoSala} bikes. Escolha uma bike de 1 a ${_tetoSala}.` }));
+          return;
+        }
+        const _remoto = (msg.remoto === true) || !_bikeN;
+        if (_remoto && _tetoSala > 0) {
+          let _emCasa = 0;
+          for (const [n, aws] of sala.alunos) { if (n !== nome && aws._remoto && aws.readyState === WebSocket.OPEN) _emCasa++; }
+          if (_emCasa >= _tetoSala) {
+            ws.send(JSON.stringify({ tipo: 'erro', msg: `Aula de casa cheia — limite de ${_tetoSala} pessoas pedalando de casa.` }));
+            return;
+          }
+        }
+        ws._remoto = _remoto;
+
         // Recusar bike trancada
         if (bike && sala.trancadas && sala.trancadas.has(Number(bike))) {
           ws.send(JSON.stringify({ tipo: 'erro', msg: `Bike ${bike} está em manutenção. Escolha outra posição.` }));
@@ -1507,6 +1537,10 @@ app.post('/admin/licencas', adminAuth, async (req, res) => {
   if (!db) return res.status(503).json({ error: 'Banco indisponível' });
   const { nome, contato_nome, contato_email, contato_tel, plano, max_alunos, max_profs, valor_mensal, vencimento, obs, max_bikes } = req.body;
   if (!nome) return res.status(400).json({ error: 'nome obrigatório' });
+  // 24/09: licenca nasce com o numero de bikes vendido — minimo 10
+  const _mb = _validaMaxBikes(max_bikes);
+  if (!_mb.ok) return res.status(400).json({ error: _mb.erro });
+  if (_mb.valor === null) return res.status(400).json({ error: `Informe quantas bikes foram vendidas (mínimo ${MIN_BIKES_LICENCA}).` });
   const codigo = shortId().substring(0, 8).toUpperCase();
   try {
     const r = await db.query(
@@ -1514,8 +1548,10 @@ app.post('/admin/licencas', adminAuth, async (req, res) => {
        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) RETURNING *`,
       [codigo, nome, contato_nome||null, contato_email||null, contato_tel||null,
        plano||'basico', max_alunos||30, max_profs||2,
-       valor_mensal||0, vencimento||null, obs||null, parseInt(max_bikes)||0]
+       valor_mensal||0, vencimento||null, obs||null, _mb.valor]
     );
+    // bikes disponiveis comecam iguais ao vendido
+    try { await db.query('UPDATE licencas SET bikes_disponiveis=max_bikes WHERE id=$1', [r.rows[0].id]); r.rows[0].bikes_disponiveis = r.rows[0].max_bikes; } catch(_e) {}
     res.json(r.rows[0]);
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
@@ -1525,18 +1561,22 @@ app.put('/admin/licencas/:id', adminAuth, async (req, res) => {
   const { nome, contato_nome, contato_email, contato_tel, plano, max_alunos, max_profs,
           valor_mensal, vencimento, status, obs, max_bikes,
           logradouro, numero, bairro, cep, cidade_lic, estado, pais } = req.body;
+  const _mb = _validaMaxBikes(max_bikes);
+  if (!_mb.ok) return res.status(400).json({ error: _mb.erro });
   try {
     const r = await db.query(
       `UPDATE licencas SET nome=$1, contato_nome=$2, contato_email=$3, contato_tel=$4,
        plano=$5, max_alunos=$6, max_profs=$7, valor_mensal=$8, vencimento=$9,
-       status=$10, obs=$11, max_bikes=$12,
+       status=$10, obs=$11, max_bikes=COALESCE($12, max_bikes),
        logradouro=$13, numero=$14, bairro=$15, cep=$16, cidade_lic=$17, estado=$18, pais=$19,
        updated_at=NOW() WHERE id=$20 RETURNING *`,
       [nome, contato_nome, contato_email, contato_tel, plano, max_alunos, max_profs,
-       valor_mensal, vencimento, status, obs, parseInt(max_bikes)||0,
+       valor_mensal, vencimento, status, obs, _mb.valor,
        logradouro||null, numero||null, bairro||null, cep||null, cidade_lic||null, estado||null, pais||'Brasil',
        req.params.id]
     );
+    // disponiveis nunca acima do vendido (24/09)
+    try { await db.query('UPDATE licencas SET bikes_disponiveis=LEAST(COALESCE(NULLIF(bikes_disponiveis,0), max_bikes), max_bikes) WHERE id=$1', [req.params.id]); } catch(_e) {}
     res.json(r.rows[0]);
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
@@ -1786,7 +1826,7 @@ app.post('/display/ativar', async (req, res) => {
       JWT_SECRET,
       { expiresIn: '15d' }
     );
-    res.json({ token, nome_academia: lic.nome, codigo: lic.codigo });
+    res.json({ token, nome_academia: lic.nome, codigo: lic.codigo, max_bikes: parseInt(lic.max_bikes)||0, teto: _tetoDe(lic) });
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
@@ -1836,8 +1876,54 @@ app.post('/display/renovar', async (req, res) => {
       JWT_SECRET,
       { expiresIn: '15d' }
     );
-    res.json({ token });
+    res.json({ token, max_bikes: parseInt(l.max_bikes)||0, teto: _tetoDe(l) });
   } catch(e) { res.status(401).json({ error: 'Token inválido: ' + e.message }); }
+});
+
+// ── TETO DE BIKES DA LICENCA (24/09) ─────────────────────────────
+// Regra do Mario: a licenca e vendida por quantidade de bikes e e ela que
+// manda. max_bikes e o que foi vendido (so o super admin altera);
+// bikes_disponiveis pode ser menor (bike parada), nunca maior.
+// Devolve 0 quando a licenca nao tem numero definido (nao limita).
+function _tetoDe(row){
+  if(!row) return 0;
+  const max = parseInt(row.max_bikes) || 0;
+  const disp = parseInt(row.bikes_disponiveis) || 0;
+  if (max > 0) return disp > 0 ? Math.min(disp, max) : max;
+  return disp;
+}
+async function tetoLicenca(licId){
+  if(!db || !licId) return 0;
+  try{
+    const r = await db.query('SELECT max_bikes, bikes_disponiveis FROM licencas WHERE codigo=$1', [licId]);
+    return _tetoDe(r.rows[0]);
+  }catch(e){ return 0; }
+}
+// Minimo de bikes de uma licenca vendida (decisao do Mario, 24/09).
+const MIN_BIKES_LICENCA = 10;
+function _validaMaxBikes(v){
+  if (v === undefined || v === null || v === '') return { ok: true, valor: null };  // nao informado: mantem
+  const n = parseInt(v);
+  if (!(n >= MIN_BIKES_LICENCA))
+    return { ok: false, erro: `A licença precisa de pelo menos ${MIN_BIKES_LICENCA} bikes (recebido: ${v}).` };
+  return { ok: true, valor: n };
+}
+function _capVagas(v, teto){
+  const n = parseInt(v) || 0;
+  if (!teto) return n || 20;
+  return n > 0 ? Math.min(n, teto) : teto;
+}
+
+// Quantas bikes esta licenca tem — para o Ginasio limitar a grade da sala.
+app.get('/display/licenca', displayAuth, async (req, res) => {
+  if (!db) return res.status(503).json({ error: 'Banco indisponível' });
+  try {
+    const r = await db.query('SELECT codigo, nome, max_bikes, bikes_disponiveis FROM licencas WHERE codigo=$1', [req.user.license_id]);
+    if (!r.rows.length) return res.status(404).json({ error: 'Licença não encontrada' });
+    const l = r.rows[0];
+    res.json({ codigo: l.codigo, nome: l.nome, max_bikes: parseInt(l.max_bikes)||0,
+               bikes_disponiveis: parseInt(l.bikes_disponiveis)||0, teto: _tetoDe(l) });
+  } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
 // Middleware display
@@ -1943,7 +2029,7 @@ app.get('/display/proxima-aula', displayAuth, async (req, res) => {
       sessao = se.rows[0] || null;
       if (!sessao) {
         const lic = await db.query('SELECT bikes_disponiveis, max_bikes FROM licencas WHERE codigo=$1', [licId]);
-        const max_conexoes = lic.rows[0]?.bikes_disponiveis || lic.rows[0]?.max_bikes || aula.vagas_max || 1;
+        const max_conexoes = _tetoDe(lic.rows[0]) || aula.vagas_max || 1;   // 24/09: teto da licenca
         const token = crypto.randomBytes(20).toString('hex');
         const inicioProg = new Date(Date.now() + segundos_ate_aula * 1000).toISOString();
         const ns = await db.query(
@@ -2393,7 +2479,7 @@ app.get('/gestor/proxima-aula', gestorAuth, async (req, res) => {
       [aula.id]
     );
     const reservadas = parseInt(reservas.rows[0].count);
-    const vagas_livres = Math.max(0, (aula.vagas_max || 0) - reservadas);
+    const vagas_livres = Math.max(0, _capVagas(aula.vagas_max, await tetoLicenca(licId)) - reservadas);
 
     // ── 6. Criar sessão de espera se dentro da janela e não bloqueada ──
     let sessao = null;
@@ -2413,7 +2499,7 @@ app.get('/gestor/proxima-aula', gestorAuth, async (req, res) => {
         }
       } else {
         const lic = await db.query('SELECT bikes_disponiveis, max_bikes FROM licencas WHERE codigo=$1', [licId]);
-        const max_conexoes = lic.rows[0]?.bikes_disponiveis || lic.rows[0]?.max_bikes || aula.vagas_max || 1;
+        const max_conexoes = _tetoDe(lic.rows[0]) || aula.vagas_max || 1;   // 24/09: teto da licenca
         const token = require('crypto').randomBytes(20).toString('hex');
         const inicioProg = new Date(Date.now() + segundos_ate_aula * 1000).toISOString();
         const ns = await db.query(`
@@ -2586,7 +2672,7 @@ app.put('/gestor/agenda/:id', gestorAuth, async (req, res) => {
     const max_bikes         = lic.rows[0]?.max_bikes         || 0;
     const bikes_disponiveis = lic.rows[0]?.bikes_disponiveis || max_bikes || 0;
     const teto = bikes_disponiveis > 0 ? bikes_disponiveis : max_bikes;
-    const vagasSolicitadas = parseInt(vagas_max) || 20;
+    const vagasSolicitadas = parseInt(vagas_max) || teto || 20;
     if (teto > 0 && vagasSolicitadas > teto)
       return res.status(400).json({
         error: `A sala tem ${teto} bikes disponíveis no momento. Você não pode configurar mais vagas do que isso.`
@@ -2628,7 +2714,7 @@ app.get('/gestor/agenda/:id/reservas', professorAuth, async (req, res) => {
       WHERE r.agenda_id=$1 AND r.data_aula=$2
       ORDER BY r.created_at
     `, [req.params.id, data]);
-    const vagas_max = aula.rows[0].vagas_max || 20;
+    const vagas_max = _capVagas(aula.rows[0].vagas_max, await tetoLicenca(aula.rows[0].license_id));
     const confirmados = r.rows.filter(x => x.status !== 'cancelado').length;
     res.json({ reservas: r.rows, vagas_max, confirmados, vagas_livres: vagas_max - confirmados });
   } catch(e) { res.status(500).json({ error: e.message }); }
@@ -2792,7 +2878,7 @@ app.get('/agenda/grade/:license_id', async (req, res) => {
   if (!db) return res.status(503).json({ error: 'Banco indisponível' });
   try {
     const [lic, aulas] = await Promise.all([
-      db.query('SELECT codigo, nome, nome_fantasia, cidade FROM licencas WHERE codigo=$1 AND status=$2',
+      db.query('SELECT codigo, nome, nome_fantasia, cidade, max_bikes, bikes_disponiveis FROM licencas WHERE codigo=$1 AND status=$2',
         [req.params.license_id, 'ativa']),
       db.query(`
         SELECT a.*,
@@ -2806,7 +2892,11 @@ app.get('/agenda/grade/:license_id', async (req, res) => {
       `, [req.params.license_id]),
     ]);
     if (!lic.rows.length) return res.status(404).json({ error: 'Academia não encontrada' });
-    res.json({ academia: lic.rows[0], aulas: aulas.rows });
+    // 24/09: nenhuma aula mostra mais vagas do que a licenca tem de bikes
+    const teto = _tetoDe(lic.rows[0]);
+    const academia = Object.assign({}, lic.rows[0], { teto_bikes: teto });
+    const lista = aulas.rows.map(a => Object.assign({}, a, { vagas_max: _capVagas(a.vagas_max, teto) }));
+    res.json({ academia, aulas: lista });
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
@@ -2863,7 +2953,10 @@ app.post('/aluno/reservar', authMiddleware, async (req, res) => {
       "SELECT COUNT(*) FROM aulas_reservas WHERE agenda_id=$1 AND data_aula=$2 AND status<>'cancelado'",
       [agenda_id, data_aula]
     );
-    if (parseInt(confirmados.rows[0].count) >= aula.rows[0].vagas_max)
+    // 24/09: o limite e o menor entre as vagas da aula e as bikes da licenca
+    const _licR = await db.query('SELECT a.license_id FROM aulas_agenda a WHERE a.id=$1', [agenda_id]);
+    const _teto = await tetoLicenca(_licR.rows[0] && _licR.rows[0].license_id);
+    if (parseInt(confirmados.rows[0].count) >= _capVagas(aula.rows[0].vagas_max, _teto))
       return res.status(409).json({ error: 'Aula lotada' });
     const r = await db.query(`
       INSERT INTO aulas_reservas (agenda_id, user_id, data_aula)
@@ -3270,7 +3363,7 @@ app.get('/sessao/status', async (req, res) => {
     );
     if (!licRow.rows.length) return res.status(404).json({ error: 'Academia não encontrada' });
     const academia = licRow.rows[0];
-    const maxBikes = academia.bikes_disponiveis || academia.max_bikes || 20;
+    const maxBikes = _tetoDe(academia) || 20;   // 24/09: disponiveis nunca acima do vendido
 
     // Sessão ativa em andamento
     const sessaoAtiva = await db.query(
@@ -3334,7 +3427,7 @@ app.get('/sessao/status', async (req, res) => {
         hora: proxAula.rows[0].hora,
         duracao_min: proxAula.rows[0].duracao_min,
         segundos_ate_aula: Math.round(parseFloat(proxAula.rows[0].segundos_ate_aula)),
-        vagas_total: proxAula.rows[0].vagas_max,
+        vagas_total: _capVagas(proxAula.rows[0].vagas_max, _tetoDe(academia)),
       } : null,
     });
   } catch(e) { res.status(500).json({ error: e.message }); }
@@ -3353,7 +3446,7 @@ app.post('/sessao/reservar', authMiddleware, async (req, res) => {
     );
     if (!licRow.rows.length) return res.status(404).json({ error: 'Academia não encontrada' });
     const academia = licRow.rows[0];
-    const maxBikes = academia.bikes_disponiveis || academia.max_bikes || 20;
+    const maxBikes = _tetoDe(academia) || 20;   // 24/09: disponiveis nunca acima do vendido
 
     // Buscar ou criar sessão para a próxima aula
     let sessao = null;

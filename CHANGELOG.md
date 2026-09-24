@@ -44,6 +44,60 @@ Componentes: `servidor` · `app` · `ginasio` · `portal` · `banco`.
 
 ---
 
+## 2026-09-24 · servidor (licenças) · ginasio 24/09a · app 24/09a
+
+**Regras (decisões do Mario, 24/09)**
+- A licença é vendida por **quantidade de bikes** (`licencas.max_bikes`, definida pelo super admin), e é ela que manda em tudo: grade da sala, vagas das aulas, reservas e sessões.
+- **Mínimo de 10 bikes** por licença.
+- **Licença demo: 20 bikes.**
+- **Aula de casa (rolo):** até o mesmo número de bikes da licença. Licença de 15 → até 15 de casa, além das 15 da sala.
+
+**O que mudou — servidor (`server.js`)**
+- `_tetoDe(licença)`: teto = `max_bikes`, ou `bikes_disponiveis` se for menor (bike parada); nunca acima do vendido.
+- **`GET /display/licenca`** (novo, `displayAuth`): `{ max_bikes, bikes_disponiveis, teto }`. `POST /display/ativar` e `/display/renovar` passam a devolver também `max_bikes` e `teto`.
+- `GET /agenda/grade/:license_id`: `academia.teto_bikes`, e o `vagas_max` de cada aula limitado ao teto. Isto corrige o app que mostrava mais vagas do que a licença (aulas antigas com o padrão de 20).
+- `POST /aluno/reservar`, `/gestor/agenda/:id/reservas`, `/gestor/proxima-aula` e `vagas_total` da próxima aula: todos limitados ao teto. `max_conexoes` das sessões usa o mesmo teto.
+- `PUT /gestor/agenda/:id` sem `vagas_max` usa o teto em vez de 20.
+- **Sala ao vivo (`entrar_sala`):** usa o `numBikes` do `sala_info` (que o Ginásio já manda limitado pela licença). Bike acima do número da sala é recusada (a 99 do professor passa sempre). Quem entra **sem bike da sala** (de casa) tem teto igual ao número de bikes; o seguinte recebe "Aula de casa cheia".
+- `POST /admin/licencas` exige `max_bikes` ≥ 10 e começa `bikes_disponiveis` = `max_bikes`. `PUT /admin/licencas/:id` recusa < 10, mantém o valor atual se `max_bikes` não vier e baixa `bikes_disponiveis` se ficar acima.
+- **Demo com 20:** no arranque, `PRDR-DEMO-001` passa a 20 bikes **só se ainda estiver em 0 ou 15** (o valor antigo). Uma mudança feita depois pelo super admin não é desfeita. O `/setup` e a sessão de teste passam a criar com 20.
+
+**O que mudou — Ginásio 24/09a**
+- Pergunta o teto em `/display/licenca` (6 s depois de abrir e a cada 6 h), e também o recebe na ativação e na renovação. A grade (`parNumBikes`) nunca passa do teto, nem no ajuste manual; se estiver maior, é reduzida e o `sala_info` é reenviado.
+
+**O que mudou — app 24/09a**
+- **Aula anterior "grudada".** Relato: encerrar uma aula, começar outra, ler o QR novo, e o app mostrava a aula anterior no fim do bloco, sem atualizar até recarregar o app. Havia duas causas: (1) `_encerrarAulaApp` só fechava o socket se o app estivesse na tela da aula; (2) `connectQR`, com um socket aberto, ia direto para a aula sem entrar na sala nova. Agora o fim da aula fecha o socket e limpa o estado em qualquer tela, e o QR de outra sala fecha a ligação anterior e entra na nova (`wsConn._prCodigo`). Testado com o socket simulado: antes ficava na sala velha; depois entra na nova com o gráfico zerado.
+
+**Testado**
+- Servidor rodando localmente (sem banco), com WebSocket: sala de 3 bikes → bike 2 ok, bike 5 recusada, 99 ok, 3 de casa ok, a 4.ª de casa recusada.
+- Ginásio com grade salva em 30 e licença com 20 → grade 20; o ajuste manual para até 20.
+
+**Cuidados**
+- **Precisa de deploy do servidor.** Sem ele, o Ginásio e o app funcionam como antes: a rota nova dá 404 e é ignorada.
+- As regras de banco só valem com o banco ligado; os testes acima foram sem banco.
+
+---
+
+## 2026-09-24 · ginasio 23/09e
+
+**O que mudou**
+- **Gráfico 2 atrasado ou adiantado conforme a tela (item 2.6 do roteiro).** Causa: dentro de um mesmo segmento, a troca de página do gráfico de cartões só era desenhada quando outra coisa chamava `_pg2Render` (troca de segmento, troca de tela, resize). Até lá, a tela mantinha os cartões da página anterior, e o `_pg2Pin` (que já usava o índice da página nova) movia a agulha por cima de blocos errados. Agora `_pg2Render` guarda qual página está desenhada (`window._pg2Chave`) e `_pg2Pin` redesenha quando ela não é a da vez.
+- **Bike 99 (professor) aparece na aula.** Era descartada em `_processDevice` (`if(bikeN === 99) return;`) antes de qualquer coisa: pareava e transmitia, mas nunca entrava em `alunosMap`. Também estava fora do `bikes_live`, então o professor na 99 pelo app ficava com 0 W e a Vista da sala a mostrava como não conectada. Agora entra como as outras, com o cartão "Professor" quando ninguém está logado nela (`_nomeVirtual(99)`), e vai no relay. O `sala_info` continua sem a 99, porque o app já a mostra à parte.
+- Marcha e FC também nos alunos virtuais (bikes sem login).
+
+**Como confirmar**
+- Aula com um segmento de muitos blocos, no gráfico 2: quando a aula passa para a página seguinte, a tela vira na hora, e a agulha fica sobre o bloco certo sem precisar de trocar de tela. No Console, `[pg2] … pagina 2/N` aparece no momento da passagem.
+- Bike 99 pareada e a pedalar: aparece o cartão "Professor" nas telas de FTP e RPM.
+- Professor no app escolhendo a bike 99: watts e RPM no celular; na Vista da sala, a 99 aparece conectada.
+
+**Testado** (simulação no navegador): 60 blocos em 3 páginas, com passagens nos blocos 15, 25, 35 e 45. Antes, da passagem para a página 2 em diante, a tela ficava na página 1; depois, os cartões desenhados são sempre os da página da vez. Bike 99 com dado de dongle simulado: antes não aparecia nem ia no relay; depois aparece como "Professor" e segue no relay.
+
+**Cuidados**
+- Nada na leitura das bikes foi alterado.
+- O professor aparece também no ranking. Se não for para aparecer, é um ajuste pequeno.
+
+---
+
 ## 2026-09-23 · ginasio 23/09d
 
 **O que mudou**

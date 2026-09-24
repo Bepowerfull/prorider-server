@@ -2292,14 +2292,24 @@ function connectQR(code){
     }
     return;
   }
+  // sala diferente da ultima: nada da aula anterior pode aparecer nesta (23/09e)
+  if(lastCode && lastCode!==code && !(wsConn && wsConn.readyState===1 && wsConn._prCodigo===code)){
+    if(!(wsConn && wsConn.readyState===1)) { try{ aulaGrafico=[]; aulaBlocoIdx=0; aulaGraficoNome=''; _blocoRest=0; _blocoRestTs=0; liveRelay=null; }catch(e){} }
+  }
   lastCode=code;
   try{ localStorage.setItem('pr_last_sala', JSON.stringify({code:code, bike:_bikeSelNum||0, ts:Date.now()})); }catch(e){}
-  // Se já está conectado, vai direto para sLive
-  if(wsConn && wsConn.readyState===1){ go('sLive'); return; }
+  // Se já está conectado NESTA sala, vai direto para sLive. Se o socket aberto
+  // e de OUTRA sala (aula anterior), fecha e entra na nova (23/09e).
+  if(wsConn && wsConn.readyState===1){
+    if(!wsConn._prCodigo || wsConn._prCodigo===code){ go('sLive'); return; }
+    _prLimparAulaAnterior('QR de outra sala: '+wsConn._prCodigo+' -> '+code);
+    try{ _bikeSelNum=null; }catch(e){}
+  }
   var statusEl=document.getElementById('qrStatus');
   if(statusEl){statusEl.textContent='Conectando...';statusEl.style.color='#ea860c';}
   try{
     wsConn=new WebSocket(SERVER_URL);
+    wsConn._prCodigo=code;
     wsConn.onopen=function(){
       var nome=document.getElementById('profNome');
       var nomeVal=(nome&&nome.textContent.trim()&&nome.textContent.trim()!=='—')?nome.textContent.trim():(localStorage.getItem('pr_nome')||'Aluno');
@@ -5405,11 +5415,32 @@ function _prEsquecerSala(motivo){
   console.warn('[ProRider] sala esquecida ('+(motivo||'encerrada')+') — faixa de voltar removida.');
 }
 
+// 23/09e — AULA ANTERIOR "GRUDADA". Relato: encerrar uma aula, comecar outra,
+// ler o QR novo e o app mostrar a aula anterior no fim do bloco; ao comecar,
+// nada atualizava ate recarregar o app. Duas causas:
+//  1) _encerrarAulaApp so fechava o socket se o app estivesse NA TELA DA AULA.
+//     Em qualquer outra tela (inicio, Vista da sala...) o socket da sala velha
+//     ficava aberto.
+//  2) connectQR: "se ja esta conectado, vai direto para a aula" — com o socket
+//     velho aberto, o QR novo nem chegava a entrar na sala nova.
+// Agora o fim da aula sempre fecha o socket e limpa o estado da aula, e o QR de
+// uma sala DIFERENTE fecha a ligacao anterior e entra na nova.
+function _prLimparAulaAnterior(motivo){
+  try{ if(wsConn){ wsConn.onclose=null; wsConn.close(); } }catch(e){}
+  wsConn=null;
+  try{ aulaGrafico=[]; aulaBlocoIdx=0; aulaGraficoNome=''; }catch(e){}
+  try{ _blocoRest=0; _blocoRestTs=0; }catch(e){}
+  try{ liveRelay=null; _salaInfo=null; }catch(e){}
+  try{ _entrarCodigo=''; _entrarNome=''; }catch(e){}
+  try{ var gp=document.getElementById('aulaGraficoPainel'); if(gp) gp.style.display='none'; }catch(e){}
+  try{ var gn=document.getElementById('graficoNativo'); if(gn) gn.style.display=''; }catch(e){}
+  try{ console.log('[ProRider] estado da aula anterior limpo ('+(motivo||'-')+').'); }catch(e){}
+}
 function _encerrarAulaApp(){
   _prEsquecerSala('professor encerrou');
   var sl=document.getElementById('sLive');
   var emAula=(typeof lInt!=='undefined' && lInt) || (sl && sl.classList.contains('active'));
-  if(!emAula) return;
+  if(!emAula){ _prLimparAulaAnterior('aula encerrada fora da tela da aula'); return; }
   try{
     if(typeof quitW==='function'){ quitW(); return; }
   }catch(err){ try{ console.error('[ProRider] fim_aula -> quitW erro:',err); }catch(e){} }
@@ -7513,6 +7544,7 @@ async function entrarSessaoAoVivo(token, localAddr){
 function _tentarConexaoWS(wsUrl, token, dadosSessao){
   return new Promise(function(resolve, reject){
     var ws = new WebSocket(wsUrl);
+    ws._prCodigo = token;
     var timeout = setTimeout(function(){ ws.close(); reject(new Error('timeout')); }, 3000);
     ws.onopen = function(){
       clearTimeout(timeout);
@@ -8043,7 +8075,7 @@ updateProfileUI = function() {
          + ' fill="none" stroke="'+col(fm)+'" stroke-width="30" stroke-linecap="'+cap+'"/>';
     }
     g.innerHTML=out;
-    try{ console.log('%c[ProRider Aluno] BUILD 23/09d — gauge com FTP e BLOCO simetricos + marcha e FC na aula da academia + %FTP com o FTP da gaveta na hora + FTP da gaveta vai para a sala na hora + FTP tambem na entrada pela reserva + Revisar o treino mostra a aula do Ginasio + caloria por watt (kJ/eficiencia) + basal Mifflin-St Jeor no cadastro + historico gravado no aparelho + FTP na gaveta + card 1080x1920 reposicionado + 6 protocolos de FTP + TSS + teste de 3 min + fator do teste de 5 min corrigido (era 1,05) + explicacao de FTP em cada teste + gaveta esconde pela propria altura + importacao de treino do TrainingPeaks (grade 2x2 na tela inicial + construtor) com tela de conferencia (botoes acima da navegacao) + corrigido: aula aberta por objeto agora e a que roda + botao Revisar o treino na gaveta + FTP e peso persistem no aparelho + gauge reequilibrado + textos do Brasil + codigo de sala normalizado (QR do navegador deixava a sala inexistente) + faixa de voltar corrigida + reconexao nao trava mais + sala encerrada limpa o codigo guardado + VISTA DA SALA + card comprido de Construtor para professor + fim da corrida no login','color:#ea860c;font-weight:700;'); }catch(e){}
+    try{ console.log('%c[ProRider Aluno] BUILD 24/09a — aula anterior nao fica mais grudada (fim da aula fecha o socket em qualquer tela; QR de outra sala troca de sala) + gauge com FTP e BLOCO simetricos + marcha e FC na aula da academia + %FTP com o FTP da gaveta na hora + FTP da gaveta vai para a sala na hora + FTP tambem na entrada pela reserva + Revisar o treino mostra a aula do Ginasio + caloria por watt (kJ/eficiencia) + basal Mifflin-St Jeor no cadastro + historico gravado no aparelho + FTP na gaveta + card 1080x1920 reposicionado + 6 protocolos de FTP + TSS + teste de 3 min + fator do teste de 5 min corrigido (era 1,05) + explicacao de FTP em cada teste + gaveta esconde pela propria altura + importacao de treino do TrainingPeaks (grade 2x2 na tela inicial + construtor) com tela de conferencia (botoes acima da navegacao) + corrigido: aula aberta por objeto agora e a que roda + botao Revisar o treino na gaveta + FTP e peso persistem no aparelho + gauge reequilibrado + textos do Brasil + codigo de sala normalizado (QR do navegador deixava a sala inexistente) + faixa de voltar corrigida + reconexao nao trava mais + sala encerrada limpa o codigo guardado + VISTA DA SALA + card comprido de Construtor para professor + fim da corrida no login','color:#ea860c;font-weight:700;'); }catch(e){}
   }
   if(document.readyState!=='loading') buildGaugeArc();
   else document.addEventListener('DOMContentLoaded', buildGaugeArc);
