@@ -44,6 +44,44 @@ Componentes: `servidor` · `app` · `ginasio` · `portal` · `banco`.
 
 ---
 
+## 2026-09-25 · ginasio 25/09a
+
+**O que mudou**
+- **Gráfico 2, 25% maior** (pedido do Mario): alturas `--pg2h1` 5,0 → 6,25vh; `--pg2h7` 14,0 × 1,25 = 17,5, com a diferença ampliada em mais 15% → 19,2vh; piso e teto 46→58 px e 168→235 px; rótulos das zonas, nome do segmento, "você está aqui", INÍCIO/FIM e caixas do `#pg2Info` +25%. A largura não cresceu: o gráfico já ocupa o espaço entre os círculos. A faixa de informação ganhou 110 px de largura. `_pg2Cabe()` reduz a letra de uma caixa até caber (piso de 18 px), medindo a largura real do texto com `Range`, porque o `scrollWidth` arredondado não acusava o corte com reticências.
+- **Largura proporcional ao tempo mais marcada:** `flex-grow` = segundos^1,3 (15 s × 60 s: 1:4 → 1:6).
+- **Perfil da pré-aula:** a linha fica atrás das barras (`z-index` 0), e as barras passam de opacidade .55 para .9. A agulha fica por cima (`z-index` 3).
+- **TrainingPeaks no pendrive e em Minhas Aulas:** `_prDeTrainingPeaks()` converte o `.json` do TrainingPeaks (`Structure`, repetições, `% FTP` ou watts pelo FTP do arquivo, cadência, notas, WarmUp/CoolDown → segmentos), com a mesma regra do app. Um `.json` que não seja aula passa a gerar um aviso no Console.
+- **Faixa preta gravada no vídeo:** mede as linhas pretas no alto e no baixo do quadro a 1,5 s, 6 s e 15 s. Com a tarja em pelo menos 2 amostras e entre 1,5% e 20% da altura exibida, aplica `--prVidCrop` (translate + scale com origem no canto) no `#backgroundVideo`. O CSS de trava da 23/09b agora usa `transform: var(--prVidCrop, none)`.
+
+**Por quê**
+- Testes do Mario com a 24/09a em 24–25/09: gráfico pequeno e pouco diferenciado; linha do perfil visível por cima; TrainingPeaks não subiu no Ginásio; faixa preta ainda presente (com o vídeo já travado no topo, logo a faixa vem do arquivo).
+
+**Como confirmar**
+- Tela inicial: `BUILD 25/09a`.
+- Aula com vídeo que tenha tarja: sem faixa na TV, e no Console `… cortada automaticamente: ampliado N%`.
+- `.json` do TrainingPeaks no pendrive: aparece na lista e abre com os blocos certos.
+
+**Testado** (navegador): vídeo de teste com tarja de 40 px → cortado (ampliado 6%, tarja fora da tela); sem tarja → nada muda. TrainingPeaks com aquecimento, 3×(10 min + 5 min) e volta à calma → 8 blocos, 60 min, três segmentos. Paginação do gráfico 2 continua correta (60 blocos, 3 páginas).
+
+**Cuidados**
+- O corte do vídeo lê pixels do quadro. Se o vídeo vier de outra origem (p.ex. `file://` no executável), o navegador pode bloquear a leitura; nesse caso não corta e não há erro na tela.
+
+---
+
+## 2026-09-24 · ginasio 24/09b
+
+**O que mudou**
+- **Versão na tela inicial**, embaixo de SISTEMA PRONTO, no lugar do "Ver. 2.1.0" fixo. Vem de `PR_BUILD`, no topo do `script.js`.
+- **Linha do BUILD consertada.** O texto tinha `'< 55%'` entre aspas simples dentro de uma string com aspas simples. A frase partia-se numa comparação (`'…' < 55 % '…'`), o Console mostrava `false 'color:…'` e a versão não aparecia.
+
+**Por quê**
+- Na TV, em 24/09, o Console mostrou `false` na linha do BUILD, em `script.js:9270`. Os números de linha dessa captura (`script.js:3024`, `4718`, `9270`; `bled112.js:452`, `530`, `536`) batem exatamente com a 24/09a. Ou seja, **o executável já estava na 24/09a**; só a versão não aparecia.
+
+**Como confirmar**
+- Tela inicial → canto inferior direito → `BUILD 24/09b`.
+
+---
+
 ## 2026-09-24 · servidor (licenças) · ginasio 24/09a · app 24/09a
 
 **Regras (decisões do Mario, 24/09)**
