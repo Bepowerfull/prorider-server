@@ -41,6 +41,30 @@ Componentes: `servidor` · `app` · `ginasio` · `portal` · `banco`.
 
 ---
 
+## 2026-09-26 · ginasio 26/09c
+
+**O que mudou**
+- Resultado do desafio **congelado**: `_desafioMostrarResultadoFinais` grava `desafio.congelado` (`{nome: valor}`), além da zona e do tempo de aula do instante do fim. `_desafioGetMetrica` passa a ler desse registro, e quem entrou depois fica de fora. `desafioIniciar` limpa o registro.
+- Desafio fluido: relógio a 4 Hz, medido pelo tempo real (`desafio._seg`). A tela é atualizada no lugar (`_desPintar` + `_desMorph`, que muda só texto e atributos diferentes) em vez de refeita com `innerHTML`, então as transições CSS de barras, anel e corda funcionam. A letra é reajustada só onde o texto mudou. As kcal usam `_kcalF` (fracionária), a potência média é ponderada pelo tempo e a corda anda proporcional a `dt`. O `desafio_update` para os celulares continua 1× por segundo.
+- Potência máxima do desafio = pico **dentro** do desafio (`desafio.potPico`); antes usava `a.potMax`, o pico da aula toda.
+- Gráfico antigo (barras) desativado: `PG2_MODO = 1` fixo, e o LB não alterna mais. O RT esconde as caixas de informação (`display:none`) e põe `.pg2-grande`: `_pg2Encaixar` usa a base do eixo e aplica k × 1,3, limitado aos círculos. Os cartões têm transição de altura de 0,35 s.
+- Trocas de tela com esmaecimento rápido (`_prFade` / `_prFadeOut`, 0,22 s / 0,18 s) nos painéis do controle (X, A, Y, B), no painel de desafio e nos resultados.
+- Teste de FTP no padrão das telas de desafio (`_ftpTelaHTML`): ao vivo (projeção por aluno, 20 por tela, relógio do teste no centro, atualização no lugar 4×/s) e resultado final (pódio da maior evolução %, FTP médio, maior salto, fecha em 1 min). A barra antiga `profFtpBar` continua existindo, escondida, porque o controle a usa como marcador de "teste em curso".
+- **FTP pela média do teste**: `_calcNovoFtp` = média ponderada pelo tempo (`_ftpAmostrar`, 4×/s, só participantes) × fator do protocolo, igual ao app do aluno. Antes era potência instantânea ÷ fator: pegava só o último segundo e inflava o resultado (250 W ÷ 0,95 = 263 W, quando o correto, com média de 250 W, é 238 W). A média congela quando o resultado abre.
+- Ranking (botão B) com mais de 10 alunos: em duas colunas saem o nome da zona sob o nome e as unidades sob os números (classe `rk-enxuto`), a coluna do nome fica mais larga (`--rkNomeFr`) e a escala (`_rkAplicarK`) encolhe até o conteúdo caber na linha. Posição e WPP passam a encolher junto (antes só cresciam).
+
+**Por quê**
+- Mario: trocas de tela "secas" demais; e teste de FTP fora do padrão novo.
+- Mario: nos desafios, os segundos e os números andavam travados, "quadrados"; e ele pediu para deixar só o gráfico novo, com o RT fazendo o gráfico crescer no lugar das caixas.
+- Mario: ao terminar um desafio, os números do resultado continuavam mudando.
+- Foto da TV com 21 alunos: cada linha tinha ~58 px e o conteúdo pedia ~86 px; nomes, números e posições saíam cortados.
+
+**Como confirmar**
+- Tela inicial `BUILD 26/09c`. Ranking com 20+ alunos: nomes inteiros, números e posições sem corte.
+- Encerrar um desafio com a turma pedalando: os números do resultado não mudam mais.
+
+---
+
 ## 2026-09-26 · servidor 26/09b
 
 **O que mudou**
