@@ -1274,6 +1274,9 @@ wss.on('connection', (ws) => {
         }
         ws.send(JSON.stringify({ tipo: 'conectado', codigo, nome }));
         ws.send(JSON.stringify({ tipo: 'entrou_sala', codigo, nome }));
+        // 26/09d: a aula desta sala ja foi encerrada (o celular perdeu o aviso
+        // ou esta reentrando): manda o fim de novo, para o app fechar a aula.
+        if (sala.estado.encerrada && !sala.estado.iniciada) ws.send(JSON.stringify({ tipo: 'fim_aula' }));
         if (sala.estado.iniciada && sala.estado.grafico.length > 0) {
           ws.send(JSON.stringify({ tipo: 'aula_iniciada', grafico: sala.estado.grafico, blocoIdx: sala.estado.blocoIdx, nomeAula: sala.estado.nomeAula }));
         }
@@ -1394,7 +1397,7 @@ wss.on('connection', (ws) => {
         const salaCode = ws._salaCode;
         if (!salaCode || !salas[salaCode]) return;
         const sala = salas[salaCode];
-        sala.estado.iniciada = true;
+        sala.estado.iniciada = true; sala.estado.encerrada = false;
         sala.estado.grafico  = msg.grafico || [];
         sala.estado.blocoIdx = msg.blocoIdx || 0;
         sala.estado.nomeAula = msg.nomeAula || '';
@@ -1427,6 +1430,7 @@ wss.on('connection', (ws) => {
         const salaCode = ws._salaCode;
         if (!salaCode || !salas[salaCode]) return;
         const sala = salas[salaCode];
+        sala.estado.encerrada = false; // 26/09d: aula correndo de novo
         if (msg.grafico)              sala.estado.grafico  = msg.grafico;
         if (msg.blocoIdx !== undefined) sala.estado.blocoIdx = msg.blocoIdx;
         if (msg.nomeAula)             sala.estado.nomeAula = msg.nomeAula;
@@ -1469,6 +1473,7 @@ wss.on('connection', (ws) => {
         const salaCode = ws._salaCode;
         if (!salaCode || !salas[salaCode]) return;
         salas[salaCode].estado.iniciada = false;
+        salas[salaCode].estado.encerrada = true;   // 26/09d: quem (re)entrar depois recebe o fim
         log(`Aula encerrada na sala ${salaCode}`);
         broadcastAlunos(salaCode, { tipo: 'fim_aula' });
         break;
@@ -3784,7 +3789,10 @@ setInterval(() => {
   for (const [codigo, sala] of Object.entries(salas)) {
     const profOk = sala.professor && sala.professor.readyState === WebSocket.OPEN;
     if (profOk) { sala.profCaiuEm = null; continue; }
-    if (sala.alunos.size > 0) { sala.profCaiuEm = null; continue; }
+    // 26/09d: antes, havendo alunos na sala, o prazo nunca corria — com o
+    // Ginasio fechado direto, os celulares ficavam "em aula" para sempre.
+    // Agora os 3 minutos contam mesmo com alunos; no fim eles recebem
+    // 'sala_encerrada' e o app fecha a aula e mostra o resultado.
     if (!sala.profCaiuEm) { sala.profCaiuEm = agora; continue; }   // começa a contar
     if (agora - sala.profCaiuEm >= CARENCIA_SALA_MS) {
       // avisa quem ainda estiver na sala ANTES de apaga-la, para o app do aluno

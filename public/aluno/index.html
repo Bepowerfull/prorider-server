@@ -2235,6 +2235,20 @@ function _desafioResultadoApp(d){
     try{ if(navigator.vibrate) navigator.vibrate([80,60,80]); }catch(e){}
   }catch(e){ try{ console.warn('[ProRider] resultado do desafio:',e); }catch(_e){} }
 }
+
+// 26/09d — FC NO APP, UMA FONTE SO: o numero grande (BPM) mostra a FC atual e
+// "Avg. HR" passa a mostrar a MEDIA da aula (antes mostrava a FC do instante).
+var _hrAcc={s:0,n:0,t:0};
+function _appHr(v){
+  v=Math.round(v||0); if(!(v>0)) return;
+  var e=document.getElementById('bigHR'); if(e) e.textContent=v;
+  var sl=document.getElementById('sLive');
+  if(sl && sl.classList.contains('active')){
+    var ag=Date.now(); if(ag-_hrAcc.t>=900){ _hrAcc.s+=v; _hrAcc.n++; _hrAcc.t=ag; }   // ~1 amostra/s
+    var e2=document.getElementById('p2AHr'); if(e2) e2.textContent=Math.round(_hrAcc.s/_hrAcc.n);
+  }
+}
+function _appHrZerar(){ _hrAcc={s:0,n:0,t:0}; var e2=document.getElementById('p2AHr'); if(e2) e2.textContent='0'; }
 var _entrarCodigo = '', _entrarNome = '';            // 23/09c: codigo usado no ultimo entrar_sala (QR ou reserva)
 var _bikeSelNum = null;             // bike escolhida pelo aluno (null = ainda só observando)
 var _salaInfo   = null;             // {numBikes,bikes:[],ocupadas:[]} vindo do ginásio
@@ -2583,6 +2597,14 @@ function connectQR(code){
         // morta, e o aluno tenta voltar para ela indefinidamente.
         if(/n[aã]o encontrada|inexistente|encerrada/i.test(String(_msgErr))){
           _prEsquecerSala('sala nao existe mais');
+          // 26/09d: em plena aula, sala que sumiu = aula acabou (Ginasio fechado
+          // ou encerrado sem o aviso chegar). Fecha a aula e mostra o resultado.
+          var _slE=document.getElementById('sLive');
+          if(_slE && _slE.classList.contains('active')){
+            try{ if(typeof _reconStop==='function') _reconStop(); }catch(e){}
+            if(typeof showToast==='function') showToast('A aula foi encerrada.');
+            _encerrarAulaApp(); return;
+          }
         }
         if(statusEl){statusEl.textContent=_msgErr;statusEl.style.color='#d62d2d';}
         // Mostra o erro de forma VISÍVEL mesmo fora da tela de QR (antes só atualizava um campo oculto → parecia travado)
@@ -5138,10 +5160,7 @@ function tick(){
     if(!connected.bike && liveRelay.g>0) dGear=liveRelay.g;
     // FC idem: a cinta ligada no proprio celular manda mais que o relay
     if(!connected.hr && liveRelay.hr>0){
-      var _hrEl=document.getElementById('bigHR');
-      var _hrEl2=document.getElementById('p2AHr');
-      if(_hrEl)  _hrEl.textContent  = liveRelay.hr;
-      if(_hrEl2) _hrEl2.textContent = liveRelay.hr;
+      _appHr(liveRelay.hr);
     }
   } else if(connected.bike && _bleTs && (Date.now()-_bleTs)<3000){
     dRpm=_bleRpm; rpm=Math.round(_bleRpm);
@@ -5517,6 +5536,7 @@ function _prEsquecerSala(motivo){
 // Agora o fim da aula sempre fecha o socket e limpa o estado da aula, e o QR de
 // uma sala DIFERENTE fecha a ligacao anterior e entra na nova.
 function _prLimparAulaAnterior(motivo){
+  try{ _appHrZerar(); }catch(e){}
   try{ if(wsConn){ wsConn.onclose=null; wsConn.close(); } }catch(e){}
   wsConn=null;
   try{ aulaGrafico=[]; aulaBlocoIdx=0; aulaGraficoNome=''; }catch(e){}
@@ -6196,8 +6216,8 @@ function btConnectHR(server, device){
             if(hrEl)  hrEl.style.color  = '';
             if(hrEl2) hrEl2.style.color = '';
           }
-          if(hrEl)  hrEl.textContent  = hr;
-          if(hrEl2) hrEl2.textContent = hr;
+          _appHr(hr);
+          window._meuHr={v:hr,ts:Date.now()};   // 26/09d: vai para o Ginasio (cartoes de FC)
         });
         connDev('hr', device.name, '');
       });
@@ -7822,7 +7842,7 @@ function _pushLiveTelemetria(){
         dGear=src.g; var elG=document.getElementById('bigGear'); if(elG) elG.textContent=src.g;
       }
       if(src.hr>0 && !(typeof connected!=='undefined' && connected.hr)){
-        var elH=document.getElementById('bigHR'); if(elH) elH.textContent=src.hr;
+        _appHr(src.hr);
       }
       // relogio do bloco dentro do gauge: o Ginasio manda o que falta do bloco
       // (blocoRest) 1x por segundo; entre um e outro, desconta o relogio local.
@@ -7875,6 +7895,17 @@ setInterval(function(){
     console.log('[ProRider] sem noticias da aula ha '+Math.round((Date.now()-window._ultUpdateAula)/1000)+' s — entrando de novo na sala.');
   }catch(e){}
 },5000);
+// 26/09d — FC DA CINTA LIGADA NO CELULAR VAI PARA O GINASIO. Ate aqui a FC
+// que o celular lia (cinta/relogio) so aparecia no proprio celular; o Ginasio
+// so via a FC que vinha da bike. 1x por segundo, so com dado fresco.
+setInterval(function(){
+  try{
+    var h=window._meuHr; if(!h || Date.now()-h.ts>4000 || !(h.v>0)) return;
+    if(!(typeof wsConn!=='undefined' && wsConn && wsConn.readyState===1)) return;
+    var nm=_entrarNome; if(!nm) return;
+    wsConn.send(JSON.stringify({tipo:'dados_aluno',nome:nm,fc:h.v}));
+  }catch(e){}
+},1000);
 var _liveTelInt=null;
 (function(){ if(_liveTelInt) return; _liveTelInt=setInterval(_pushLiveTelemetria,250); })();
 
@@ -8260,7 +8291,7 @@ updateProfileUI = function() {
          + ' fill="none" stroke="'+col(fm)+'" stroke-width="30" stroke-linecap="'+cap+'"/>';
     }
     g.innerHTML=out;
-    try{ console.log('%c[ProRider Aluno] BUILD 26/09d — resultado do teste de FTP da aula no celular (1 min; automatico grava, senao pergunta) + home do professor: sai o Build Workout antigo (com senha), fica Agenda + Treino do Treinador + Construtor de Treino + voltar para a propria bike depois de reabrir o app + relogio do bloco anda sem bike transmitindo + vigia: reentra na sala se a aula parar de chegar + resultado do desafio no celular (10 s, toque fecha) + sexo enviado na entrada da sala (desafio Homens x Mulheres) + aluno sem nome nao entra mais como "-" na sala + leitor do app aceita o QR de Minhas Aulas do Ginasio + aula anterior nao fica mais grudada (fim da aula fecha o socket em qualquer tela; QR de outra sala troca de sala) + gauge com FTP e BLOCO simetricos + marcha e FC na aula da academia + %FTP com o FTP da gaveta na hora + FTP da gaveta vai para a sala na hora + FTP tambem na entrada pela reserva + Revisar o treino mostra a aula do Ginasio + caloria por watt (kJ/eficiencia) + basal Mifflin-St Jeor no cadastro + historico gravado no aparelho + FTP na gaveta + card 1080x1920 reposicionado + 6 protocolos de FTP + TSS + teste de 3 min + fator do teste de 5 min corrigido (era 1,05) + explicacao de FTP em cada teste + gaveta esconde pela propria altura + importacao de treino do TrainingPeaks (grade 2x2 na tela inicial + construtor) com tela de conferencia (botoes acima da navegacao) + corrigido: aula aberta por objeto agora e a que roda + botao Revisar o treino na gaveta + FTP e peso persistem no aparelho + gauge reequilibrado + textos do Brasil + codigo de sala normalizado (QR do navegador deixava a sala inexistente) + faixa de voltar corrigida + reconexao nao trava mais + sala encerrada limpa o codigo guardado + VISTA DA SALA + card comprido de Construtor para professor + fim da corrida no login','color:#ea860c;font-weight:700;'); }catch(e){}
+    try{ console.log('%c[ProRider Aluno] BUILD 26/09d — FC da cinta do celular vai para o Ginasio; Avg. HR = media da aula; aula termina quando a sala some + resultado do teste de FTP da aula no celular (1 min; automatico grava, senao pergunta) + home do professor: sai o Build Workout antigo (com senha), fica Agenda + Treino do Treinador + Construtor de Treino + voltar para a propria bike depois de reabrir o app + relogio do bloco anda sem bike transmitindo + vigia: reentra na sala se a aula parar de chegar + resultado do desafio no celular (10 s, toque fecha) + sexo enviado na entrada da sala (desafio Homens x Mulheres) + aluno sem nome nao entra mais como "-" na sala + leitor do app aceita o QR de Minhas Aulas do Ginasio + aula anterior nao fica mais grudada (fim da aula fecha o socket em qualquer tela; QR de outra sala troca de sala) + gauge com FTP e BLOCO simetricos + marcha e FC na aula da academia + %FTP com o FTP da gaveta na hora + FTP da gaveta vai para a sala na hora + FTP tambem na entrada pela reserva + Revisar o treino mostra a aula do Ginasio + caloria por watt (kJ/eficiencia) + basal Mifflin-St Jeor no cadastro + historico gravado no aparelho + FTP na gaveta + card 1080x1920 reposicionado + 6 protocolos de FTP + TSS + teste de 3 min + fator do teste de 5 min corrigido (era 1,05) + explicacao de FTP em cada teste + gaveta esconde pela propria altura + importacao de treino do TrainingPeaks (grade 2x2 na tela inicial + construtor) com tela de conferencia (botoes acima da navegacao) + corrigido: aula aberta por objeto agora e a que roda + botao Revisar o treino na gaveta + FTP e peso persistem no aparelho + gauge reequilibrado + textos do Brasil + codigo de sala normalizado (QR do navegador deixava a sala inexistente) + faixa de voltar corrigida + reconexao nao trava mais + sala encerrada limpa o codigo guardado + VISTA DA SALA + card comprido de Construtor para professor + fim da corrida no login','color:#ea860c;font-weight:700;'); }catch(e){}
   }
   if(document.readyState!=='loading') buildGaugeArc();
   else document.addEventListener('DOMContentLoaded', buildGaugeArc);

@@ -45,9 +45,11 @@ Componentes: `servidor` · `app` · `ginasio` · `portal` · `banco`.
 
 **O que mudou**
 - Novo caso WebSocket `ftp_resultado` (professor → **um** aluno, pelo nome): repassa `{nome, ftp, ant, protocolo}`.
+- **Fim de aula garantido:** `fim_aula` marca `estado.encerrada`, que é zerado em `iniciar_aula`/`update_aula`. Quem (re)entra numa sala com a aula encerrada recebe `fim_aula` na hora. A limpeza de salas passa a contar os 3 min sem professor **mesmo com alunos** (antes nunca contava, e com o Ginásio fechado os celulares ficavam "em aula" para sempre) e envia `sala_encerrada`.
 
 **Por quê**
 - O Ginásio sempre enviou o FTP do teste para cada aluno, mas o servidor não tinha esse caso e descartava a mensagem: o FTP nunca chegava ao celular.
+- Mario (26/09): fechando o programa, o celular não recebia o fim; encerrando do jeito certo, uma vez a aula também não terminou no celular.
 
 **Como confirmar**
 - Teste de FTP na aula com um aluno pelo app: ao encerrar, o celular mostra "Seu novo FTP". No log: `FTP …W enviado para …`.
@@ -57,6 +59,8 @@ Componentes: `servidor` · `app` · `ginasio` · `portal` · `banco`.
 ## 2026-09-26 · app 26/09d
 
 **O que mudou**
+- FC da cinta/relógio ligado no celular vai para o Ginásio (`dados_aluno.fc`, 1×/s). "Avg. HR" passa a ser a média da aula (antes, a FC do instante); tudo passa por `_appHr`.
+- Em aula, se o servidor responde que a sala não existe/foi encerrada, o app fecha a aula e mostra o resultado (antes ficava tentando reconectar).
 - Resultado do teste de FTP da aula no celular (`_ftpResultadoApp`, 60 s na tela). Com atualização automática ligada, grava e avisa; desligada, pergunta "Atualizar meu FTP / Agora não" e só grava no sim. Nos dois casos, o novo FTP vale para o resto da aula. `aplicarFtpResultado(ftp, forcar)`.
 
 **Como confirmar**
@@ -72,10 +76,14 @@ Componentes: `servidor` · `app` · `ginasio` · `portal` · `banco`.
 - Desafio e teste de FTP: de 4 para 10 atualizações por segundo; transições de 0,12 a 0,15 s.
 - Cartões de Potência e Rotação e o Ranking: de 4 para ~7 atualizações por segundo, atualizados no lugar (antes, `innerHTML` refazia a grade inteira).
 - Agulha do perfil na tela do QR: de 1 para 5 atualizações por segundo.
-- **Modo espaço** (`espacoLigar` / `espacoDesligar`): segurar LB+RB por 1 s na aula abre, em tela cheia, um canvas preto com estrelas vindo em direção a quem olha, em projeção 3D (sem planeta, pedido do Mario). A velocidade segue a razão média watts/FTP da sala, suavizada. LB+RB de novo ou B fecham; atalho de teclado Shift+E.
+- **Modo espaço** (`espacoLigar` / `espacoDesligar`): segurar LB+RB por 1 s na aula abre, em tela cheia, um canvas preto com estrelas vindo em direção a quem olha, em projeção 3D (sem planeta, pedido do Mario). A velocidade segue a razão média watts/FTP da sala, suavizada. LB+RB (5 s) de novo ou B fecham; atalho de teclado Shift+E.
 - Teste de FTP — participação: entra só quem mandou ≥5 W em algum momento dos **10 primeiros segundos** (`FTP_JANELA_S`); a decisão sai aos 10 s (`_ftpDecidido`). Só os participantes recebem `ftp_resultado`, agora com `ant`. O resultado final congela a lista (`_ftpFinalSnap`).
 - Tela do QR na aula: lista sem rolagem (`_qrListaRender`). As linhas crescem até 96 px; se não couber, rodízio de 10 s. Atualizada no lugar, também pelo tick da aula.
 - Ranking: acima de 20 alunos, 20 por vez em rodízio de 10 s (`#rkPagInfo`); em duas colunas, nome e foto maiores.
+- **Mapa do controle na aula:** RB (toque curto, ao soltar, sem LB junto) = QR Code (tela 3); Y = frequência cardíaca (tela 5, `overlayFC`/`fcGrid`); RT = esconde as caixas; **LB+RB segurados 5 s** = modo espaço, sem abrir o QR.
+- **Frequência cardíaca:** fonte única `_hrDe(a)` (FC do celular `a.fc` se fresca <5 s, senão bike `bpm`/`hr`). A tela nova mostra bpm, zona de FC e % da FC máxima (`_fcMaxDe`: `fcMax`, ou 220 − idade, ou 190). Cartões, lista do QR, relay `bikes_live.hr` e WPP (`hrSum`) usam a mesma fonte. Nas telas de desafio, o ♥ mostrava o tempo de aula e virou ⏱.
+- **Fim de aula no padrão novo** (`_fimNovoMostrar` / `_fimNovoRanking`, `#fimNovo`): jornada da aula por tempo real, tempo por zona, TSS, kcal da turma, potência e FC médias, pódio WPP; ranking com pódio, classificação em rodízio e destaques. Tudo em segundos: a tela antiga mostrava "NaN min" com aulas só em `durationSec`. Navegação e botões são os mesmos (`fimBtn_*` recebem o foco).
+- **Fim de aula chega ao celular:** sem conexão no encerramento, `_fimAulaPendente` envia `fim_aula` ao reconectar; `beforeunload` (fechar o programa) também envia.
 
 **Por quê**
 - Pedidos do Mario (26/09): tela escura para o professor, regra de participação do FTP, fim da rolagem na tela do QR e ranking maior.
