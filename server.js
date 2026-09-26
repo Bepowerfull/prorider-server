@@ -639,7 +639,7 @@ app.post('/user/login', async (req, res) => {
     const ok = await bcrypt.compare(password, user.password_hash);
     if (!ok) return res.status(401).json({ error: 'Email ou senha incorretos' });
     const token = jwt.sign({ id: user.id, email: user.email, role: user.role, license_id: user.license_id || undefined }, JWT_SECRET, { expiresIn: '30d' });
-    res.json({ user: { id: user.id, email: user.email, name: user.name, role: user.role, license_id: user.license_id || null, points: user.points, level: user.level }, token });
+    res.json({ user: { id: user.id, email: user.email, name: user.name, role: user.role, license_id: user.license_id || null, points: user.points, level: user.level, sexo: user.sexo || null }, token }); // 26/09b: sexo
   } catch(e) {
     log('login error: ' + e.message);
     res.status(500).json({ error: 'Erro interno' });
@@ -651,7 +651,7 @@ app.get('/user/me', authMiddleware, async (req, res) => {
   if (!db) return res.status(503).json({ error: 'Banco não disponível' });
   try {
     const r = await db.query(
-      'SELECT id, email, name, role, license_id, points, level, peso, ftp, created_at FROM users WHERE id=$1',
+      'SELECT id, email, name, role, license_id, points, level, peso, ftp, sexo, created_at FROM users WHERE id=$1', // 26/09b: sexo
       [req.user.id]
     );
     if (!r.rows.length) return res.status(404).json({ error: 'Usuário não encontrado' });
@@ -1248,7 +1248,7 @@ wss.on('connection', (ws) => {
         ws._salaCode = codigo; ws._tipo = 'aluno'; ws._nome = nome; ws._bike = bike || null; ws._bikeNum = bike ? Number(bike) : null;
         log(`Aluno entrou: ${nome} na sala ${codigo}`);
         if (sala.professor && sala.professor.readyState === WebSocket.OPEN) {
-          sala.professor.send(JSON.stringify({ tipo: 'aluno_conectou', nome, bike: bike || null, foto: msg.foto || null, ftpBase: (msg.ftpBase != null ? msg.ftpBase : null), horario: new Date().toLocaleTimeString('pt-BR') }));
+          sala.professor.send(JSON.stringify({ tipo: 'aluno_conectou', nome, bike: bike || null, foto: msg.foto || null, ftpBase: (msg.ftpBase != null ? msg.ftpBase : null), genero: ((msg.genero === 'F' || msg.genero === 'M') ? msg.genero : null), horario: new Date().toLocaleTimeString('pt-BR') })); // 26/09b: genero para o desafio Homens x Mulheres
         }
         ws.send(JSON.stringify({ tipo: 'conectado', codigo, nome }));
         ws.send(JSON.stringify({ tipo: 'entrou_sala', codigo, nome }));

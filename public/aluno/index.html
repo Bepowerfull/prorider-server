@@ -2172,6 +2172,68 @@ function _prNomeAluno(){
   if(!v){ try{ v=_limpo(localStorage.getItem('pr_nome')); }catch(e){} }
   return v||'Aluno';
 }
+// 26/09b: sexo do aluno para o desafio Homens x Mulheres do Ginasio.
+// Vem da conta (prUser.sexo); sem ela, do que a pessoa marcou no cadastro.
+function _prSexoAluno(){
+  var v='';
+  try{ v=(typeof prUser!=='undefined'&&prUser&&prUser.sexo)||''; }catch(e){}
+  if(!v){ try{ v=localStorage.getItem('pr_sexo')||''; }catch(e){} }
+  if(!v){ try{ v=(typeof obData!=='undefined'&&obData&&obData.sexo)||''; }catch(e){} }
+  v=String(v).toUpperCase();
+  if(v==='M'||v==='F'){ try{ localStorage.setItem('pr_sexo',v); }catch(e){} return v; }
+  return null;
+}
+// 26/09b: RESULTADO DO DESAFIO NO CELULAR. O Ginasio manda o ranking no fim
+// do desafio; cada celular procura o proprio nome e mostra a colocacao por
+// 10 s. Um toque fecha antes.
+function _desafioResultadoApp(d){
+  try{
+    if(!d || !Array.isArray(d.ranking)) return;
+    var eu=_entrarNome||_prNomeAluno();
+    var r=null; for(var i=0;i<d.ranking.length;i++){ if(String(d.ranking[i].nome)===String(eu)){ r=d.ranking[i]; break; } }
+    if(!r) return;
+    var modo=d.desafioModo||'geral', un=d.unidade||'', nomeD=d.nomeDesafio||'Desafio';
+    var fmt=function(v){ v=Number(v)||0; return un==='km'?v.toFixed(2).replace('.',','):String(Math.round(v)); };
+    var pos=r.pos, de=r.de||d.ranking.length, ctx='de '+de+' participantes', extra='', cor='#ea860c', venc='';
+    if(modo==='mvsf' && r.posGrupo){
+      pos=r.posGrupo; de=r.deGrupo;
+      ctx=(r.genero==='F'?'entre as mulheres':'entre os homens')+' · de '+de;
+      cor=(r.genero==='F')?'#ff4fb8':'#2f8bff';
+      extra='Geral: '+r.pos+'º de '+(r.de||d.ranking.length);
+      if(d.vencedor==='empate') venc='Empate entre homens e mulheres!';
+      else if(d.vencedor) venc=(d.vencedor==='F'?'As mulheres':'Os homens')+' venceram! 🏆';
+    } else if(modo==='equipes' && r.posGrupo){
+      pos=r.posGrupo; de=r.deGrupo;
+      ctx='na equipe '+(r.equipe==='azul'?'azul':'laranja')+' · de '+de;
+      cor=(r.equipe==='azul')?'#2f8bff':'#ea860c';
+      extra='Geral: '+r.pos+'º de '+(r.de||d.ranking.length);
+      if(d.vencedor==='empate') venc='Empate entre as equipes!';
+      else if(d.vencedor) venc=(d.vencedor===r.equipe?'Sua equipe venceu! 🏆':'A equipe '+(d.vencedor==='azul'?'azul':'laranja')+' venceu.');
+    }
+    var med=pos===1?'🥇':pos===2?'🥈':pos===3?'🥉':'🏁';
+    var velho=document.getElementById('prDesafioRes'); if(velho) velho.remove();
+    var el=document.createElement('div'); el.id='prDesafioRes';
+    el.style.cssText='position:fixed;inset:0;z-index:99999;background:rgba(4,4,10,.86);display:flex;align-items:center;justify-content:center;padding:24px;box-sizing:border-box;-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);';
+    el.innerHTML='<div style="width:100%;max-width:360px;border-radius:24px;padding:26px 22px 20px;text-align:center;background:linear-gradient(180deg,#141222,#0a0913);border:1px solid '+cor+'66;box-shadow:0 0 40px '+cor+'44;font-family:inherit;color:#fff;">'
+      +'<div style="font-size:12px;font-weight:800;letter-spacing:2.5px;color:rgba(255,255,255,.55);text-transform:uppercase;">Desafio · '+nomeD+'</div>'
+      +(modo!=='geral'?'<div style="font-size:11px;font-weight:700;letter-spacing:2px;color:'+cor+';text-transform:uppercase;margin-top:4px;">'+(modo==='mvsf'?'Homens × Mulheres':'Equipes')+'</div>':'')
+      +'<div style="font-size:54px;line-height:1;margin-top:16px;">'+med+'</div>'
+      +'<div style="font-size:14px;font-weight:700;letter-spacing:2px;color:rgba(255,255,255,.6);margin-top:10px;text-transform:uppercase;">Você ficou em</div>'
+      +'<div style="font-size:84px;font-weight:900;line-height:1;color:'+cor+';margin-top:4px;">'+pos+'º</div>'
+      +'<div style="font-size:15px;color:rgba(255,255,255,.75);margin-top:6px;">'+ctx+'</div>'
+      +'<div style="font-size:30px;font-weight:900;margin-top:14px;">'+fmt(r.val)+' <span style="font-size:15px;color:rgba(255,255,255,.55);">'+un+'</span></div>'
+      +(extra?'<div style="font-size:13px;color:rgba(255,255,255,.5);margin-top:6px;">'+extra+'</div>':'')
+      +(venc?'<div style="font-size:16px;font-weight:800;color:#ffd23f;margin-top:12px;">'+venc+'</div>':'')
+      +'<div style="height:4px;border-radius:2px;background:rgba(255,255,255,.1);margin-top:18px;overflow:hidden;"><div id="prDesafioResBar" style="height:100%;width:100%;background:'+cor+';transition:width 10s linear;"></div></div>'
+      +'<div style="font-size:11px;color:rgba(255,255,255,.35);margin-top:8px;">toque para fechar</div></div>';
+    var fechar=function(){ clearTimeout(el._t); if(el.parentNode) el.parentNode.removeChild(el); };
+    el.addEventListener('click',fechar);
+    document.body.appendChild(el);
+    requestAnimationFrame(function(){ requestAnimationFrame(function(){ var b=document.getElementById('prDesafioResBar'); if(b) b.style.width='0%'; }); });
+    el._t=setTimeout(fechar,10000);
+    try{ if(navigator.vibrate) navigator.vibrate([80,60,80]); }catch(e){}
+  }catch(e){ try{ console.warn('[ProRider] resultado do desafio:',e); }catch(_e){} }
+}
 var _entrarCodigo = '', _entrarNome = '';            // 23/09c: codigo usado no ultimo entrar_sala (QR ou reserva)
 var _bikeSelNum = null;             // bike escolhida pelo aluno (null = ainda só observando)
 var _salaInfo   = null;             // {numBikes,bikes:[],ocupadas:[]} vindo do ginásio
@@ -2253,7 +2315,7 @@ function selectBike(num){
   // Já estava observando (socket aberto) → vira participante de verdade na bike escolhida
   if(wsConn && wsConn.readyState===1){
     _entrarNome=nomeVal; _entrarCodigo=lastCode;
-    wsConn.send(JSON.stringify({tipo:'entrar_sala',codigo:lastCode,nome:nomeVal,bike:num,
+    wsConn.send(JSON.stringify({tipo:'entrar_sala',codigo:lastCode,nome:nomeVal,genero:_prSexoAluno(),bike:num,
       foto:(localStorage.getItem('pr_foto')||null),
       ftpBase:(function(){ try{ var f=parseInt(_ftpDoAluno(),10)||0; return f>0?f:null; }catch(e){ return null; } })()}));
   } else {
@@ -2334,7 +2396,7 @@ function connectQR(code){
         var _meuFtp = 0;
         try{ _meuFtp = parseInt(_ftpDoAluno(),10) || 0; }catch(e){}
         _entrarNome=nomeVal; _entrarCodigo=code;
-        wsConn.send(JSON.stringify({tipo:'entrar_sala',codigo:code,nome:nomeVal,bike:_bikeSelNum,
+        wsConn.send(JSON.stringify({tipo:'entrar_sala',codigo:code,nome:nomeVal,genero:_prSexoAluno(),bike:_bikeSelNum,
           foto:(localStorage.getItem('pr_foto')||null),
           ftpBase:(_meuFtp>0?_meuFtp:null)}));
       } else {
@@ -2379,6 +2441,7 @@ function connectQR(code){
           }
         }
       }
+      if(data.tipo==='fim_desafio'){ _desafioResultadoApp(data); }
       if(data.tipo==='ftp_resultado' && data.nome){
         // o ginasio manda um por aluno; cada celular pega o seu
         try{ if(!prUser || !prUser.name || String(data.nome)===String(prUser.name)) aplicarFtpResultado(data.ftp); }catch(e){ aplicarFtpResultado(data.ftp); }
@@ -3310,7 +3373,7 @@ function obDoRegister(){
     peso:obData.peso,
     altura:obData.altura,
     idade:obData.idade,
-    sexo:obData.sexo,
+    sexo:(function(){ try{ if(obData.sexo) localStorage.setItem('pr_sexo',obData.sexo); }catch(e){} return obData.sexo; })(),
     tmb:obData.tmb,
     ftp:obData.ftp
   };
@@ -5701,7 +5764,7 @@ function _ftpAvisarSala(){
       var nomeVal=_entrarNome; if(!nomeVal) return;
       var _cod=_entrarCodigo||lastCode; if(!_cod) return;
       window._ftpReenvio=Date.now();
-      wsConn.send(JSON.stringify({tipo:'entrar_sala',codigo:_cod,nome:nomeVal,bike:_bikeSelNum,
+      wsConn.send(JSON.stringify({tipo:'entrar_sala',codigo:_cod,nome:nomeVal,genero:_prSexoAluno(),bike:_bikeSelNum,
         foto:(localStorage.getItem('pr_foto')||null), ftpBase:f}));
       console.log('[ProRider] FTP '+f+'W enviado a sala (bike '+_bikeSelNum+').');
     }catch(e){ console.warn('[ProRider] nao consegui enviar o FTP a sala:', e&&e.message); }
@@ -7584,7 +7647,7 @@ function _tentarConexaoWS(wsUrl, token, dadosSessao){
       // 23/09c: este era o TERCEIRO ponto que manda entrar_sala (entrada pela
       // reserva/sessao) e tambem ia sem o FTP — o Ginasio ficava com 150.
       var _ftpS=0; try{ _ftpS=parseInt(_ftpDoAluno(),10)||0; }catch(e){}
-      ws.send(JSON.stringify({tipo:'entrar_sala', codigo:token, nome:nomeVal, bike:dadosSessao.bike_num||null,
+      ws.send(JSON.stringify({tipo:'entrar_sala', codigo:token, nome:nomeVal, genero:_prSexoAluno(), bike:dadosSessao.bike_num||null,
         foto:(localStorage.getItem('pr_foto')||null), ftpBase:(_ftpS>0?_ftpS:null)}));
       _entrarNome=nomeVal; _entrarCodigo=token;
       if(dadosSessao.bike_num) _bikeSelNum=parseInt(dadosSessao.bike_num); // casa o relay com a bike da sessão
@@ -7605,6 +7668,7 @@ function _tentarConexaoWS(wsUrl, token, dadosSessao){
           }
         }
       }
+      if(data.tipo==='fim_desafio'){ _desafioResultadoApp(data); }
       if(data.tipo==='ftp_resultado' && data.nome){
         try{ if(!prUser || !prUser.name || String(data.nome)===String(prUser.name)) aplicarFtpResultado(data.ftp); }catch(e){ aplicarFtpResultado(data.ftp); }
       }
@@ -8105,7 +8169,7 @@ updateProfileUI = function() {
          + ' fill="none" stroke="'+col(fm)+'" stroke-width="30" stroke-linecap="'+cap+'"/>';
     }
     g.innerHTML=out;
-    try{ console.log('%c[ProRider Aluno] BUILD 26/09b — aluno sem nome nao entra mais como "-" na sala + leitor do app aceita o QR de Minhas Aulas do Ginasio + aula anterior nao fica mais grudada (fim da aula fecha o socket em qualquer tela; QR de outra sala troca de sala) + gauge com FTP e BLOCO simetricos + marcha e FC na aula da academia + %FTP com o FTP da gaveta na hora + FTP da gaveta vai para a sala na hora + FTP tambem na entrada pela reserva + Revisar o treino mostra a aula do Ginasio + caloria por watt (kJ/eficiencia) + basal Mifflin-St Jeor no cadastro + historico gravado no aparelho + FTP na gaveta + card 1080x1920 reposicionado + 6 protocolos de FTP + TSS + teste de 3 min + fator do teste de 5 min corrigido (era 1,05) + explicacao de FTP em cada teste + gaveta esconde pela propria altura + importacao de treino do TrainingPeaks (grade 2x2 na tela inicial + construtor) com tela de conferencia (botoes acima da navegacao) + corrigido: aula aberta por objeto agora e a que roda + botao Revisar o treino na gaveta + FTP e peso persistem no aparelho + gauge reequilibrado + textos do Brasil + codigo de sala normalizado (QR do navegador deixava a sala inexistente) + faixa de voltar corrigida + reconexao nao trava mais + sala encerrada limpa o codigo guardado + VISTA DA SALA + card comprido de Construtor para professor + fim da corrida no login','color:#ea860c;font-weight:700;'); }catch(e){}
+    try{ console.log('%c[ProRider Aluno] BUILD 26/09b — resultado do desafio no celular (10 s, toque fecha) + sexo enviado na entrada da sala (desafio Homens x Mulheres) + aluno sem nome nao entra mais como "-" na sala + leitor do app aceita o QR de Minhas Aulas do Ginasio + aula anterior nao fica mais grudada (fim da aula fecha o socket em qualquer tela; QR de outra sala troca de sala) + gauge com FTP e BLOCO simetricos + marcha e FC na aula da academia + %FTP com o FTP da gaveta na hora + FTP da gaveta vai para a sala na hora + FTP tambem na entrada pela reserva + Revisar o treino mostra a aula do Ginasio + caloria por watt (kJ/eficiencia) + basal Mifflin-St Jeor no cadastro + historico gravado no aparelho + FTP na gaveta + card 1080x1920 reposicionado + 6 protocolos de FTP + TSS + teste de 3 min + fator do teste de 5 min corrigido (era 1,05) + explicacao de FTP em cada teste + gaveta esconde pela propria altura + importacao de treino do TrainingPeaks (grade 2x2 na tela inicial + construtor) com tela de conferencia (botoes acima da navegacao) + corrigido: aula aberta por objeto agora e a que roda + botao Revisar o treino na gaveta + FTP e peso persistem no aparelho + gauge reequilibrado + textos do Brasil + codigo de sala normalizado (QR do navegador deixava a sala inexistente) + faixa de voltar corrigida + reconexao nao trava mais + sala encerrada limpa o codigo guardado + VISTA DA SALA + card comprido de Construtor para professor + fim da corrida no login','color:#ea860c;font-weight:700;'); }catch(e){}
   }
   if(document.readyState!=='loading') buildGaugeArc();
   else document.addEventListener('DOMContentLoaded', buildGaugeArc);

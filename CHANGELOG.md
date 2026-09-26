@@ -42,9 +42,28 @@ Componentes: `servidor` · `app` · `ginasio` · `portal` · `banco`.
 
 ---
 
+## 2026-09-26 · servidor 26/09b
+
+**O que mudou**
+- `aluno_conectou` (WebSocket, para o Ginásio) passa a levar `genero` ('M'/'F'), vindo do `entrar_sala` do app.
+- `POST /user/login` devolve `sexo` no objeto `user`; `GET /user/me` também seleciona `sexo`. A coluna já existia (`users.sexo`), nada muda no banco.
+
+**Por quê**
+- O desafio Homens × Mulheres do Ginásio separava os grupos por `genero`, mas ninguém mandava esse dado: todo aluno real caía em "Homens".
+
+**Como confirmar**
+- Entrar numa sala com uma conta de sexo F e iniciar no Ginásio um desafio Homens × Mulheres: o aluno aparece na coluna MULHERES.
+
+**Cuidados**
+- Retrocompatível: app antigo não manda `genero` e o servidor envia `null` (o Ginásio trata como homem, como antes).
+
+---
+
 ## 2026-09-26 · app 26/09b
 
 **O que mudou**
+- Resultado do desafio no celular: ao receber `fim_desafio`, o app procura o próprio nome no ranking e mostra a colocação (no grupo e no geral), o valor e o grupo vencedor por 10 s; um toque fecha. Tratado nos dois sockets (QR e reserva/sessão).
+- `entrar_sala` leva `genero` (`_prSexoAluno()`: `prUser.sexo`, senão o sexo marcado no cadastro, guardado em `pr_sexo`).
 - Nova função `_prNomeAluno()`: os três pontos que enviam `entrar_sala` com o nome do perfil passam a usá-la. Um nome feito só de tracinhos (`-`, `–`, `—`) ou vazio conta como "sem nome"; o app tenta então `prUser.name`, depois `pr_nome`, e só no fim usa "Aluno".
 
 **Por quê**
@@ -65,6 +84,8 @@ Componentes: `servidor` · `app` · `ginasio` · `portal` · `banco`.
 - Gráfico 2 (cartões): cabe entre os círculos laterais. Margens reduzidas e nova `_pg2Encaixar()`, que calcula `--pg2k` (multiplicador da altura dos cartões) a partir do círculo do tempo e do cartão mais alto possível (z7).
 - Gráfico 2: "INÍCIO" só na tela que mostra o primeiro bloco da aula e "FIM" só na que mostra o último; no meio, só a seta. Os rótulos ficam alinhados pela borda do gráfico, sem invadir o círculo.
 - Gráfico 2: a agulha passa a ser medida a partir do topo das zonas (`zl.offsetTop`); antes ignorava o nome do segmento e o "VOCÊ ESTÁ AQUI" caía em cima dele.
+- Desafio Homens × Mulheres: tela nova (`_desMvsfHTML`), usada ao vivo e no resultado final. 10 por lado sem rolagem; mais de 10 trocam de página a cada 5 s. Vencedor pela média por pessoa. Letras encolhem sozinhas se a fonte de reserva for mais larga (`_desAjustar`).
+- `fim_desafio` leva, por aluno, `posGrupo`, `deGrupo`, `genero`, `de`, e no topo `vencedor`, `unidade`, `nomeDesafio`, `duracao` — para o app mostrar o resultado individual.
 - Mini gráfico das telas de cartões (Potência/Rotação/Ranking): barras posicionadas em % do tempo, no mesmo eixo do véu. Antes, vãos de 2 px e separadores deslocavam as barras e o véu ficava alguns pixels (≈5 s) fora do lugar.
 
 **Por quê**
