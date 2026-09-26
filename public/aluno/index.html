@@ -2246,6 +2246,19 @@ function _bikeCacheLer(){ try{ var s=localStorage.getItem(_bikeCacheKey()); retu
 function _numBikesCacheSalvar(n){ try{ if(n) localStorage.setItem('pr_sala_nb_'+(lastCode||'_'), String(n)); }catch(e){} }
 function _numBikesCacheLer(){ try{ var s=localStorage.getItem('pr_sala_nb_'+(lastCode||'_')); return s?parseInt(s):0; }catch(e){ return 0; } }
 
+// 26/09b: a bike "ocupada" pode ser a MINHA — o app foi reaberto ou a
+// conexao caiu e a TV ainda me mostra nela. Nesse caso ela aparece livre
+// para mim (marcada SUA), e posso voltar para ela. Duas pistas: o nome de
+// quem ocupa (Ginasio novo manda 'ocupantes') e a ultima bike que escolhi
+// nesta sala, guardada no aparelho (funciona mesmo com Ginasio antigo).
+function _bikeEhMinha(n){
+  try{
+    var oc=(_salaInfo&&_salaInfo.ocupantes)||{}, quem=oc[n]||oc[String(n)];
+    if(quem){ var eu=_entrarNome||_prNomeAluno(); return String(quem)===String(eu); }
+    var ult=parseInt(localStorage.getItem('pr_ult_bike_'+(lastCode||''))||'0',10);
+    return ult>0 && ult===parseInt(n,10);
+  }catch(e){ return false; }
+}
 function _renderBikeGrid(){
   var grid=document.getElementById('bikeSelGrid'); if(!grid) return;
   // Mostra TODAS as posições da sala (numBikes configurado no ginásio) e marca as ocupadas.
@@ -2267,8 +2280,8 @@ function _renderBikeGrid(){
     grid.parentNode.insertBefore(topo,grid);
   }
   var tranc=(_salaInfo && _salaInfo.trancadas) ? _salaInfo.trancadas : [];
-  var p99 = ocup.indexOf(99)>=0 && _bikeSelNum!==99;
-  var sel99 = (_bikeSelNum===99);
+  var p99 = ocup.indexOf(99)>=0 && _bikeSelNum!==99 && !_bikeEhMinha(99);
+  var sel99 = (_bikeSelNum===99) || (ocup.indexOf(99)>=0 && _bikeEhMinha(99));
   topo.innerHTML='<button '+(p99?'disabled':'onclick="selectBike(99)"')
     +' style="width:100%;display:flex;align-items:center;gap:12px;padding:13px 16px;border-radius:14px;'
     +'background:'+(sel99?'rgba(234,134,12,.22)':(p99?'rgba(234,134,12,.06)':'rgba(234,134,12,.11)'))+';'
@@ -2298,7 +2311,7 @@ function _renderBikeGrid(){
         +'<span style="font-size:11px;letter-spacing:.5px;">'+i+'</span></button>';
       continue;
     }
-    var taken=ocup.indexOf(i)>=0 && i!==_bikeSelNum;
+    var taken=ocup.indexOf(i)>=0 && i!==_bikeSelNum && !_bikeEhMinha(i);
     var bg=taken?'rgba(214,45,45,.12)':'rgba(255,255,255,.06)';
     var bc=taken?'rgba(214,45,45,.4)':(i===_bikeSelNum?'#ea860c':'rgba(255,255,255,.1)');
     var op=taken?'opacity:.45;':'';
@@ -2309,6 +2322,7 @@ function _renderBikeGrid(){
 
 function selectBike(num){
   _bikeSelNum=num;
+  try{ localStorage.setItem('pr_ult_bike_'+(lastCode||''), String(num)); }catch(e){}
   _renderBikeGrid();
   var nome=document.getElementById('profNome');
   var nomeVal=_prNomeAluno();
@@ -2425,7 +2439,7 @@ function connectQR(code){
       }catch(_e){}
 
       if(data.tipo==='sala_info'){
-        _salaInfo={ numBikes:data.numBikes||0, bikes:data.bikes||[], ocupadas:data.ocupadas||[] };
+        _salaInfo={ numBikes:data.numBikes||0, bikes:data.bikes||[], ocupadas:data.ocupadas||[], ocupantes:data.ocupantes||{}, trancadas:data.trancadas||[] }; // 26/09b: + ocupantes e trancadas (trancadas nao era guardado)
         _bikeCacheSalvar(_salaInfo.bikes);
         if(_salaInfo.numBikes) _numBikesCacheSalvar(_salaInfo.numBikes);
         var sb=document.getElementById('sBikeSel');
@@ -2471,6 +2485,7 @@ function connectQR(code){
         }, 300);
       }
       if(data.tipo==='update_aula'){
+        window._ultUpdateAula=Date.now();
         if(data.grafico && data.grafico.length>0){
           aulaGrafico=data.grafico; aulaBlocoIdx=data.blocoIdx||0; _graficoLocalAtivo=false;
           aulaGraficoNome=data.nomeAula||'ProRider';
@@ -7673,7 +7688,7 @@ function _tentarConexaoWS(wsUrl, token, dadosSessao){
         try{ if(!prUser || !prUser.name || String(data.nome)===String(prUser.name)) aplicarFtpResultado(data.ftp); }catch(e){ aplicarFtpResultado(data.ftp); }
       }
       if(data.tipo==='sala_info'){
-        _salaInfo={ numBikes:data.numBikes||0, bikes:data.bikes||[], ocupadas:data.ocupadas||[] };
+        _salaInfo={ numBikes:data.numBikes||0, bikes:data.bikes||[], ocupadas:data.ocupadas||[], ocupantes:data.ocupantes||{}, trancadas:data.trancadas||[] }; // 26/09b: + ocupantes e trancadas (trancadas nao era guardado)
         if(_salaInfo.numBikes) _numBikesCacheSalvar(_salaInfo.numBikes);
       }
       if((data.tipo==='conectado' || data.tipo==='entrou_sala') && window._ftpReenvio && Date.now()-window._ftpReenvio<5000 && wsConn===ws){
@@ -7734,6 +7749,14 @@ function _pushLiveTelemetria(){
     } else if(_bleTs && (Date.now()-_bleTs)<3000){
       src={ r:_bleRpm||0, w:_bleWatts||0, ftp:Math.round((_bleWatts||0)/150*100), z:'z1' };
     }
+    // 26/09b: o relogio do bloco anda SEMPRE — antes ficava depois do "sem
+    // dado fresco", entao sem bike transmitindo o bloco parava na tela.
+    try{
+      if(typeof _blocoRestTs!=='undefined' && _blocoRestTs && !(typeof cAula!=='undefined' && cAula && cAula.blocos)){
+        var _bt0=document.getElementById('gBlocoTempo');
+        if(_bt0){ var _r0=Math.max(0,Math.round(_blocoRest-(Date.now()-_blocoRestTs)/1000)); _bt0.textContent=Math.floor(_r0/60)+':'+String(_r0%60).padStart(2,'0'); }
+      }
+    }catch(e){}
     if(!src) return; // sem dado fresco → não mexe (deixa tick/simulação/padrão)
     var rpmR=Math.round(src.r), wR=Math.round(src.w), ftpR=Math.round(src.ftp);
     // 23/09c: %FTP calculada com o FTP do PROPRIO app (o da gaveta). O valor
@@ -7784,6 +7807,27 @@ function _pushLiveTelemetria(){
     }
   }catch(e){}
 }
+// 26/09b — VIGIA DA AULA. Se o Ginasio parar de mandar a aula por 15 s com o
+// socket aberto (a sala foi recriada no servidor e este aluno ficou de fora),
+// o app entra de novo na mesma bike, sem o aluno perceber. No maximo 1x a
+// cada 20 s. Com a aula pausada tambem nao faz mal: so reconfirma a entrada.
+setInterval(function(){
+  try{
+    var sl=document.getElementById('sLive');
+    if(!sl || !sl.classList.contains('active')) return;
+    if(!window._ultUpdateAula || Date.now()-window._ultUpdateAula<15000) return;
+    if(window._vigiaTs && Date.now()-window._vigiaTs<20000) return;
+    if(!(typeof wsConn!=='undefined' && wsConn && wsConn.readyState===1)) return;
+    var cod=_entrarCodigo||lastCode, nm=_entrarNome||_prNomeAluno();
+    if(!cod || !nm) return;
+    window._vigiaTs=Date.now();
+    var f=0; try{ f=parseInt(_ftpDoAluno(),10)||0; }catch(e){}
+    wsConn.send(JSON.stringify({tipo:'entrar_sala',codigo:cod,nome:nm,genero:_prSexoAluno(),bike:(_bikeSelNum||null),
+      foto:(localStorage.getItem('pr_foto')||null),ftpBase:(f>0?f:null)}));
+    window._ftpReenvio=Date.now(); // a resposta nao deve navegar de tela
+    console.log('[ProRider] sem noticias da aula ha '+Math.round((Date.now()-window._ultUpdateAula)/1000)+' s — entrando de novo na sala.');
+  }catch(e){}
+},5000);
 var _liveTelInt=null;
 (function(){ if(_liveTelInt) return; _liveTelInt=setInterval(_pushLiveTelemetria,250); })();
 
@@ -8169,7 +8213,7 @@ updateProfileUI = function() {
          + ' fill="none" stroke="'+col(fm)+'" stroke-width="30" stroke-linecap="'+cap+'"/>';
     }
     g.innerHTML=out;
-    try{ console.log('%c[ProRider Aluno] BUILD 26/09b — resultado do desafio no celular (10 s, toque fecha) + sexo enviado na entrada da sala (desafio Homens x Mulheres) + aluno sem nome nao entra mais como "-" na sala + leitor do app aceita o QR de Minhas Aulas do Ginasio + aula anterior nao fica mais grudada (fim da aula fecha o socket em qualquer tela; QR de outra sala troca de sala) + gauge com FTP e BLOCO simetricos + marcha e FC na aula da academia + %FTP com o FTP da gaveta na hora + FTP da gaveta vai para a sala na hora + FTP tambem na entrada pela reserva + Revisar o treino mostra a aula do Ginasio + caloria por watt (kJ/eficiencia) + basal Mifflin-St Jeor no cadastro + historico gravado no aparelho + FTP na gaveta + card 1080x1920 reposicionado + 6 protocolos de FTP + TSS + teste de 3 min + fator do teste de 5 min corrigido (era 1,05) + explicacao de FTP em cada teste + gaveta esconde pela propria altura + importacao de treino do TrainingPeaks (grade 2x2 na tela inicial + construtor) com tela de conferencia (botoes acima da navegacao) + corrigido: aula aberta por objeto agora e a que roda + botao Revisar o treino na gaveta + FTP e peso persistem no aparelho + gauge reequilibrado + textos do Brasil + codigo de sala normalizado (QR do navegador deixava a sala inexistente) + faixa de voltar corrigida + reconexao nao trava mais + sala encerrada limpa o codigo guardado + VISTA DA SALA + card comprido de Construtor para professor + fim da corrida no login','color:#ea860c;font-weight:700;'); }catch(e){}
+    try{ console.log('%c[ProRider Aluno] BUILD 26/09b — voltar para a propria bike depois de reabrir o app + relogio do bloco anda sem bike transmitindo + vigia: reentra na sala se a aula parar de chegar + resultado do desafio no celular (10 s, toque fecha) + sexo enviado na entrada da sala (desafio Homens x Mulheres) + aluno sem nome nao entra mais como "-" na sala + leitor do app aceita o QR de Minhas Aulas do Ginasio + aula anterior nao fica mais grudada (fim da aula fecha o socket em qualquer tela; QR de outra sala troca de sala) + gauge com FTP e BLOCO simetricos + marcha e FC na aula da academia + %FTP com o FTP da gaveta na hora + FTP da gaveta vai para a sala na hora + FTP tambem na entrada pela reserva + Revisar o treino mostra a aula do Ginasio + caloria por watt (kJ/eficiencia) + basal Mifflin-St Jeor no cadastro + historico gravado no aparelho + FTP na gaveta + card 1080x1920 reposicionado + 6 protocolos de FTP + TSS + teste de 3 min + fator do teste de 5 min corrigido (era 1,05) + explicacao de FTP em cada teste + gaveta esconde pela propria altura + importacao de treino do TrainingPeaks (grade 2x2 na tela inicial + construtor) com tela de conferencia (botoes acima da navegacao) + corrigido: aula aberta por objeto agora e a que roda + botao Revisar o treino na gaveta + FTP e peso persistem no aparelho + gauge reequilibrado + textos do Brasil + codigo de sala normalizado (QR do navegador deixava a sala inexistente) + faixa de voltar corrigida + reconexao nao trava mais + sala encerrada limpa o codigo guardado + VISTA DA SALA + card comprido de Construtor para professor + fim da corrida no login','color:#ea860c;font-weight:700;'); }catch(e){}
   }
   if(document.readyState!=='loading') buildGaugeArc();
   else document.addEventListener('DOMContentLoaded', buildGaugeArc);

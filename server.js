@@ -1181,10 +1181,27 @@ wss.on('connection', (ws) => {
       case 'criar_sala': {
         const codigo = msg.codigo;
         if (!codigo) return;
-        salas[codigo] = { professor: ws, alunos: new Map(), observadores: new Set(), lastSalaInfo: null, trancadas: new Set(), estado: { iniciada: false, grafico: [], blocoIdx: 0, nomeAula: '' } };
+        // 26/09b — RECONEXAO DO GINASIO NAO APAGA A SALA.
+        // Antes, todo 'criar_sala' trocava a sala por uma nova e vazia. Quando a
+        // conexao do Ginasio caia e voltava (poucos segundos), os alunos ficavam
+        // fora do mapa da sala: o celular continuava "conectado", mas nao recebia
+        // mais nada (bloco parado, sem reconexao), e a bike dele seguia ocupada
+        // na TV. Agora, se a sala ja existe, so o professor e trocado e os alunos
+        // continuam. A resposta leva a lista de quem esta na sala, para o Ginasio
+        // conferir (depois de um reinicio do servidor a lista vem vazia).
+        const existente = salas[codigo];
+        if (existente) {
+          existente.professor = ws;
+          existente.profCaiuEm = null;
+          for (const [n, aws] of existente.alunos) { if (aws.readyState !== WebSocket.OPEN) existente.alunos.delete(n); }
+          log(`Sala retomada: ${codigo} (${existente.alunos.size} alunos continuam)`);
+        } else {
+          salas[codigo] = { professor: ws, alunos: new Map(), observadores: new Set(), lastSalaInfo: null, trancadas: new Set(), estado: { iniciada: false, grafico: [], blocoIdx: 0, nomeAula: '' } };
+          log(`Sala criada: ${codigo}`);
+        }
         ws._salaCode = codigo; ws._tipo = 'professor';
-        log(`Sala criada: ${codigo}`);
-        ws.send(JSON.stringify({ tipo: 'sala_criada', codigo }));
+        const _lista = [...salas[codigo].alunos.entries()].map(([n, aws]) => ({ nome: n, bike: aws._bikeNum || null }));
+        ws.send(JSON.stringify({ tipo: 'sala_criada', codigo, retomada: !!existente, alunos: _lista }));
         break;
       }
 
@@ -1243,6 +1260,11 @@ wss.on('connection', (ws) => {
           ws.send(JSON.stringify({ tipo: 'erro', msg: `Bike ${bike} está em manutenção. Escolha outra posição.` }));
           return;
         }
+        // 26/09b: o mesmo aluno entrando de novo (app reaberto, rede trocada)
+        // substitui a conexao antiga em vez de ficar com duas. A antiga e
+        // fechada; o 'close' dela nao tira o aluno da sala (ver ws.on('close')).
+        const _antigo = sala.alunos.get(nome);
+        if (_antigo && _antigo !== ws) { try { _antigo._substituido = true; _antigo.close(4000, 'substituido'); } catch (e) {} }
         sala.alunos.set(nome, ws);
         sala.observadores.delete(ws); // se estava só observando o mapa, agora é participante
         ws._salaCode = codigo; ws._tipo = 'aluno'; ws._nome = nome; ws._bike = bike || null; ws._bikeNum = bike ? Number(bike) : null;
@@ -1274,7 +1296,7 @@ wss.on('connection', (ws) => {
         const salaCode = ws._salaCode; // socket do professor
         if (!salaCode || !salas[salaCode]) return;
         const sala = salas[salaCode];
-        const info = { tipo: 'sala_info', numBikes: msg.numBikes || 0, bikes: msg.bikes || [], ocupadas: msg.ocupadas || [], trancadas: [...(sala.trancadas || [])] };
+        const info = { tipo: 'sala_info', numBikes: msg.numBikes || 0, bikes: msg.bikes || [], ocupadas: msg.ocupadas || [], ocupantes: (msg.ocupantes && typeof msg.ocupantes === 'object') ? msg.ocupantes : {}, trancadas: [...(sala.trancadas || [])] }; // 26/09b: ocupantes = {bike: nome}
         sala.lastSalaInfo = info; // cache: novo observador recebe o mapa na hora
         const data = JSON.stringify(info);
         for (const [, aws] of sala.alunos) { if (aws.readyState === WebSocket.OPEN) aws.send(data); }
@@ -1470,9 +1492,13 @@ wss.on('connection', (ws) => {
       // alunos. Se o professor voltar antes disso, ninguem percebe nada.
       // Encerramento DELIBERADO continua imediato: vem pela mensagem
       // 'fim_aula', tratada acima, nao por aqui.
+      if (sala.professor && sala.professor !== ws) return; // 26/09b: conexao antiga; o Ginasio ja voltou por outra
       log(`Professor caiu da sala ${salaCode} — aguardando ate 3 min antes de encerrar`);
       sala.profCaiuEm = Date.now();
     } else if (ws._tipo === 'aluno' && ws._nome) {
+      // 26/09b: so tira o aluno se ESTA conexao ainda e a dele. Se ele ja
+      // entrou de novo por outra, a antiga fechando nao pode derruba-lo.
+      if (sala.alunos.get(ws._nome) !== ws) return;
       sala.alunos.delete(ws._nome);
       log(`Aluno saiu: ${ws._nome}`);
       if (sala.professor && sala.professor.readyState === WebSocket.OPEN)

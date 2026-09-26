@@ -48,11 +48,19 @@ Componentes: `servidor` · `app` · `ginasio` · `portal` · `banco`.
 - `aluno_conectou` (WebSocket, para o Ginásio) passa a levar `genero` ('M'/'F'), vindo do `entrar_sala` do app.
 - `POST /user/login` devolve `sexo` no objeto `user`; `GET /user/me` também seleciona `sexo`. A coluna já existia (`users.sexo`), nada muda no banco.
 
+- **Reconexão do Ginásio não apaga mais a sala.** `criar_sala` com um código que já existe mantém a sala e os alunos e troca só o professor. A resposta `sala_criada` leva `retomada` e `alunos: [{nome, bike}]`.
+- `entrar_sala` do mesmo nome por outra conexão fecha a conexão antiga (`_substituido`). No `close`, o aluno só sai da sala se aquela conexão ainda for a dele, e o professor antigo só marca a queda se ainda for o professor da sala.
+- `sala_info` repassa `ocupantes` (`{bike: nome}`) vindo do Ginásio.
+- `aluno_conectou` passa a levar `genero` ('M'/'F'), vindo do `entrar_sala` do app.
+- `POST /user/login` devolve `sexo` no objeto `user`, e `GET /user/me` também seleciona `sexo`. A coluna já existia (`users.sexo`), então nada muda no banco.
+
 **Por quê**
-- O desafio Homens × Mulheres do Ginásio separava os grupos por `genero`, mas ninguém mandava esse dado: todo aluno real caía em "Homens".
+- Teste de 26/09: a conexão do Ginásio caiu e voltou. O `criar_sala` recriou a sala vazia, e o celular do aluno continuou "conectado" sem receber nada: o bloco parou e não houve reconexão. A bike dele (99) seguiu ocupada na TV, e, ao reabrir o app, ele não conseguia voltar para ela.
+- O desafio Homens × Mulheres separava os grupos por `genero`, mas ninguém mandava esse dado: todo aluno real caía em "Homens".
 
 **Como confirmar**
 - Entrar numa sala com uma conta de sexo F e iniciar no Ginásio um desafio Homens × Mulheres: o aluno aparece na coluna MULHERES.
+- Com um aluno na aula, fechar e reabrir o Ginásio (ou derrubar a rede dele por uns segundos): no log, `Sala retomada: … (1 alunos continuam)`. O celular continua a receber a aula.
 
 **Cuidados**
 - Retrocompatível: app antigo não manda `genero` e o servidor envia `null` (o Ginásio trata como homem, como antes).
@@ -62,6 +70,10 @@ Componentes: `servidor` · `app` · `ginasio` · `portal` · `banco`.
 ## 2026-09-26 · app 26/09b
 
 **O que mudou**
+- Voltar para a própria bike: uma bike ocupada pelo próprio aluno (pelo nome em `ocupantes` ou pela última bike escolhida naquela sala, guardada em `pr_ult_bike_<código>`) aparece livre e marcada como SUA (`_bikeEhMinha`).
+- O relógio do bloco anda mesmo sem bike transmitindo. Antes, ficava depois do "sem dado fresco" e parava.
+- Vigia da aula: se o `update_aula` parar por 15 s com o socket aberto, o app reenvia o `entrar_sala` na mesma bike (no máximo 1 vez a cada 20 s).
+- `_salaInfo` passa a guardar `trancadas` (antes era descartado, e o cadeado das bikes em manutenção nunca aparecia) e `ocupantes`.
 - Resultado do desafio no celular: ao receber `fim_desafio`, o app procura o próprio nome no ranking e mostra a colocação (no grupo e no geral), o valor e o grupo vencedor por 10 s; um toque fecha. Tratado nos dois sockets (QR e reserva/sessão).
 - `entrar_sala` leva `genero` (`_prSexoAluno()`: `prUser.sexo`, senão o sexo marcado no cadastro, guardado em `pr_sexo`).
 - Nova função `_prNomeAluno()`: os três pontos que enviam `entrar_sala` com o nome do perfil passam a usá-la. Um nome feito só de tracinhos (`-`, `–`, `—`) ou vazio conta como "sem nome"; o app tenta então `prUser.name`, depois `pr_nome`, e só no fim usa "Aluno".
@@ -84,8 +96,10 @@ Componentes: `servidor` · `app` · `ginasio` · `portal` · `banco`.
 - Gráfico 2 (cartões): cabe entre os círculos laterais. Margens reduzidas e nova `_pg2Encaixar()`, que calcula `--pg2k` (multiplicador da altura dos cartões) a partir do círculo do tempo e do cartão mais alto possível (z7).
 - Gráfico 2: "INÍCIO" só na tela que mostra o primeiro bloco da aula e "FIM" só na que mostra o último; no meio, só a seta. Os rótulos ficam alinhados pela borda do gráfico, sem invadir o círculo.
 - Gráfico 2: a agulha passa a ser medida a partir do topo das zonas (`zl.offsetTop`); antes ignorava o nome do segmento e o "VOCÊ ESTÁ AQUI" caía em cima dele.
-- Desafio Homens × Mulheres: tela nova (`_desMvsfHTML`), usada ao vivo e no resultado final. 10 por lado sem rolagem; mais de 10 trocam de página a cada 5 s. Vencedor pela média por pessoa. Letras encolhem sozinhas se a fonte de reserva for mais larga (`_desAjustar`).
+- Desafios com tela nova (`_desTelaHTML`), ao vivo e no resultado final, nos três modos: Todos × Todos (colunas 1–10 e 11–20), Homens × Mulheres e Equipes. 10 por coluna, sem rolagem; mais que isso troca de página a cada 5 s, e a última página mostra os 10 últimos. Coluna central estreita, nomes em destaque. Letras encolhem sozinhas se a fonte de reserva for mais larga (`_desAjustar`).
+- Equilíbrio: em todo desafio de grupo (Homens × Mulheres e Equipes) vence a maior **média por pessoa** (`_desVencedor`). Equipes antes decidia pela soma.
 - `fim_desafio` leva, por aluno, `posGrupo`, `deGrupo`, `genero`, `de`, e no topo `vencedor`, `unidade`, `nomeDesafio`, `duracao` — para o app mostrar o resultado individual.
+- Reconexão: ao receber `sala_criada` com a lista de alunos, o Ginásio marca quem ele mostra e o servidor não conhece (`_semSala`). Esse aluno não segura a bike no `sala_info` e sai da tela se não voltar em 90 s; se voltar, mantém os números. O `sala_info` leva `ocupantes`.
 - Mini gráfico das telas de cartões (Potência/Rotação/Ranking): barras posicionadas em % do tempo, no mesmo eixo do véu. Antes, vãos de 2 px e separadores deslocavam as barras e o véu ficava alguns pixels (≈5 s) fora do lugar.
 
 **Por quê**
