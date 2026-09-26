@@ -41,6 +41,23 @@ Componentes: `servidor` · `app` · `ginasio` · `portal` · `banco`.
 
 ---
 
+## 2026-09-26 · ginasio 26/09d
+
+**O que mudou**
+- Fluidez em todo o sistema. A regra agora é: nunca refazer a tela inteira. Monta-se o HTML novo fora da tela e aplica-se só o que mudou (`_prMorphHTML` / `_prMorphFilhos`, sobre `_desMorph`). Coisas que dependem do tempo andam a cada quadro (`_prAnimar`, com `requestAnimationFrame`).
+- Anel do teste de FTP atualizado a cada quadro pelo relógio real (`ftp-arco`). O relógio do teste (`profFtpInt`) passou a contar pelo relógio real, sem acumular atraso de `setInterval`.
+- Desafio e teste de FTP: de 4 para 10 atualizações por segundo; transições de 0,12 a 0,15 s.
+- Cartões de Potência e Rotação e o Ranking: de 4 para ~7 atualizações por segundo, atualizados no lugar (antes, `innerHTML` refazia a grade inteira).
+- Agulha do perfil na tela do QR: de 1 para 5 atualizações por segundo.
+
+**Por quê**
+- Mario (teste do 26/09c): o anel do teste de FTP andava "bem quebrado", e ele pediu mais fluidez em todo o sistema.
+
+**Como confirmar**
+- Na tela inicial deve aparecer `BUILD 26/09d`. No teste de FTP, o anel deve andar contínuo. Nos desafios, nos cartões e no ranking, os números e as barras devem mudar sem piscar.
+
+---
+
 ## 2026-09-26 · ginasio 26/09c
 
 **O que mudou**
