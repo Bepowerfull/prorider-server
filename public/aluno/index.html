@@ -6301,7 +6301,13 @@ function bldProfAtualizar(){
 var _parearPendente=null;
 try{ _parearPendente=new URLSearchParams(location.search).get('parear'); }catch(e){}
 async function parearConfirmar(){
-  if(!_parearPendente || !prToken) return;
+  if(!_parearPendente) return;
+  if(!prToken){
+    // sem login nao ha como dizer ao servidor quem e o professor; o codigo
+    // fica guardado e e usado assim que a pessoa entrar na conta
+    try{ _bldAviso('Entre na sua conta de professor para conectar o Ginásio.'); }catch(e){}
+    return;
+  }
   var cod=_parearPendente; _parearPendente=null;
   try{ history.replaceState(null,'',location.pathname); }catch(e){}
   try{
@@ -7281,6 +7287,19 @@ function pararCamera(){
 
 function processarQRCode(raw){
   var status = document.getElementById('qrStatus');
+  // ── 26/09: QR de MINHAS AULAS do Ginasio (…/aluno?parear=CODIGO) ──
+  // A TV diz "escaneie com o app ProRider", mas o leitor do app so conhecia
+  // codigo de sala: lia o endereco, nao achava sala e respondia "esse e o QR
+  // do navegador". O pareamento nunca chegava ao servidor.
+  try{
+    var _pm=String(raw||'').match(/[?&]parear=([A-Za-z0-9]+)/);
+    if(_pm){
+      _parearPendente=_pm[1];
+      if(status){ status.textContent='Conectando ao Ginásio…'; status.style.color='#ea860c'; }
+      parearConfirmar();
+      return;
+    }
+  }catch(e){}
   // ── Formato bike fixa: prorider://bike?n=7&lic=GYM-XYZ ──
   var bikeMatch = raw.match(/prorider:\/\/bike\?(.+)/i);
   if(bikeMatch){
@@ -8075,7 +8094,7 @@ updateProfileUI = function() {
          + ' fill="none" stroke="'+col(fm)+'" stroke-width="30" stroke-linecap="'+cap+'"/>';
     }
     g.innerHTML=out;
-    try{ console.log('%c[ProRider Aluno] BUILD 24/09a — aula anterior nao fica mais grudada (fim da aula fecha o socket em qualquer tela; QR de outra sala troca de sala) + gauge com FTP e BLOCO simetricos + marcha e FC na aula da academia + %FTP com o FTP da gaveta na hora + FTP da gaveta vai para a sala na hora + FTP tambem na entrada pela reserva + Revisar o treino mostra a aula do Ginasio + caloria por watt (kJ/eficiencia) + basal Mifflin-St Jeor no cadastro + historico gravado no aparelho + FTP na gaveta + card 1080x1920 reposicionado + 6 protocolos de FTP + TSS + teste de 3 min + fator do teste de 5 min corrigido (era 1,05) + explicacao de FTP em cada teste + gaveta esconde pela propria altura + importacao de treino do TrainingPeaks (grade 2x2 na tela inicial + construtor) com tela de conferencia (botoes acima da navegacao) + corrigido: aula aberta por objeto agora e a que roda + botao Revisar o treino na gaveta + FTP e peso persistem no aparelho + gauge reequilibrado + textos do Brasil + codigo de sala normalizado (QR do navegador deixava a sala inexistente) + faixa de voltar corrigida + reconexao nao trava mais + sala encerrada limpa o codigo guardado + VISTA DA SALA + card comprido de Construtor para professor + fim da corrida no login','color:#ea860c;font-weight:700;'); }catch(e){}
+    try{ console.log('%c[ProRider Aluno] BUILD 26/09a — leitor do app aceita o QR de Minhas Aulas do Ginasio + aula anterior nao fica mais grudada (fim da aula fecha o socket em qualquer tela; QR de outra sala troca de sala) + gauge com FTP e BLOCO simetricos + marcha e FC na aula da academia + %FTP com o FTP da gaveta na hora + FTP da gaveta vai para a sala na hora + FTP tambem na entrada pela reserva + Revisar o treino mostra a aula do Ginasio + caloria por watt (kJ/eficiencia) + basal Mifflin-St Jeor no cadastro + historico gravado no aparelho + FTP na gaveta + card 1080x1920 reposicionado + 6 protocolos de FTP + TSS + teste de 3 min + fator do teste de 5 min corrigido (era 1,05) + explicacao de FTP em cada teste + gaveta esconde pela propria altura + importacao de treino do TrainingPeaks (grade 2x2 na tela inicial + construtor) com tela de conferencia (botoes acima da navegacao) + corrigido: aula aberta por objeto agora e a que roda + botao Revisar o treino na gaveta + FTP e peso persistem no aparelho + gauge reequilibrado + textos do Brasil + codigo de sala normalizado (QR do navegador deixava a sala inexistente) + faixa de voltar corrigida + reconexao nao trava mais + sala encerrada limpa o codigo guardado + VISTA DA SALA + card comprido de Construtor para professor + fim da corrida no login','color:#ea860c;font-weight:700;'); }catch(e){}
   }
   if(document.readyState!=='loading') buildGaugeArc();
   else document.addEventListener('DOMContentLoaded', buildGaugeArc);

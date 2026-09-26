@@ -35,12 +35,27 @@ Componentes: `servidor` · `app` · `ginasio` · `portal` · `banco`.
 
 ## 2026-09-22 · servidor · a750387, 4409582, 1263390, 9d4528d
 
+- PUT /admin/users/:id, PUT /admin/licencas/:id address fields
+- trancadas: Set, prof_remover_aluno/trocar_bikes/trancar_bike WS cases
+- GET /agenda/aula-ativa/:license_id
+- JWT_SECRET obrigatório — throw; valor fixo no Railway em 23/09
+
+---
+
+## 2026-09-26 · app 26/09a
+
 **O que mudou**
-- `PUT /admin/users/:id` (super_admin): altera `role`, `license_id` e `name`.
-- `PUT /admin/licencas/:id` aceita campos de endereço.
-- Sala WebSocket com `trancadas: Set`; novos casos `prof_remover_aluno`, `prof_trocar_bikes`, `prof_trancar_bike`.
-- `GET /agenda/aula-ativa/:license_id` (sem auth).
-- `JWT_SECRET` obrigatório — `throw` no arranque se não definido; valor fixo definido no Railway em 23/09.
+- **QR de Minhas Aulas lido pelo app.** A TV diz "escaneie com o app ProRider", mas o leitor do app só reconhecia código de sala: lia o endereço `…/aluno?parear=CODIGO`, não achava sala e respondia "esse é o QR do navegador". O pareamento nunca chegava a `POST /professor/parear`. Agora `processarQRCode` reconhece `parear=` e chama `parearConfirmar()`.
+- Sem login, `parearConfirmar()` avisava nada e descartava; agora avisa para entrar na conta e guarda o código, que é usado assim que a pessoa entra.
+
+**A cadeia inteira do Minhas Aulas (para conferir quando der erro)**
+1. Ginásio → `POST /ginasio/pareamento` com o token do display. **401** = Ginásio precisa ser reativado (5 toques no logo).
+2. Celular do professor lê o QR (pelo app, desde esta versão, ou pela câmera, se já estiver logado no navegador).
+3. `POST /professor/parear`: **403** = o professor não está ligado àquela licença (`professor_licencas`); o gestor precisa adicioná-lo. **410** = código expirou (vale 2 min).
+4. Ginásio consulta `GET /ginasio/pareamento/:codigo` e recebe as aulas do professor.
+
+**Como confirmar**
+- No Ginásio: Minhas Aulas → QR. No app do professor: ler o QR pelo leitor do app → "Ginásio conectado" e as aulas aparecem na TV.
 
 ---
 
