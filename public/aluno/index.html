@@ -2459,7 +2459,7 @@ function connectQR(code){
       if(data.tipo==='fim_desafio'){ _desafioResultadoApp(data); }
       if(data.tipo==='ftp_resultado' && data.nome){
         // o ginasio manda um por aluno; cada celular pega o seu
-        try{ if(!prUser || !prUser.name || String(data.nome)===String(prUser.name)) aplicarFtpResultado(data.ftp); }catch(e){ aplicarFtpResultado(data.ftp); }
+        try{ var _eu=_entrarNome||(prUser&&prUser.name)||''; if(!_eu || String(data.nome)===String(_eu) || (prUser&&String(data.nome)===String(prUser.name))) _ftpResultadoApp(data); }catch(e){ _ftpResultadoApp(data); }
       }
       if(data.tipo==='fim_aula' || data.tipo==='sala_encerrada'){
         // Professor encerrou a aula no ginásio → encerra no app e mostra resultados
@@ -5798,13 +5798,13 @@ function dFtpPrompt(){
   if(v<50||v>600){ alert('Informe um FTP entre 50 e 600 W.'); return; }
   aplicarFtpResultado(v); dFtpRender(); _ftpAvisarSala();
 }
-function aplicarFtpResultado(novoFtp){
+function aplicarFtpResultado(novoFtp, forcar){
   novoFtp = parseInt(novoFtp)||0;
   if(novoFtp<=0) return;
   _ftpDaAula = novoFtp;                 // vale para a aula em curso, sempre
   var el=document.getElementById('ftpDisplay');
   if(el) el.textContent = novoFtp+' W';
-  if(!ftpAutoAtivo()){
+  if(!forcar && !ftpAutoAtivo()){
     console.log('[ProRider] FTP do teste ('+novoFtp+'W) aplicado só nesta aula — atualização automática desligada.');
     return;
   }
@@ -5822,6 +5822,47 @@ function aplicarFtpResultado(novoFtp){
   console.log('[ProRider] FTP atualizado para '+novoFtp+'W pelo teste da aula.');
 }
 var _ftpDaAula = 0;
+// 26/09d — RESULTADO DO TESTE DE FTP DA AULA NO CELULAR (1 minuto na tela).
+// Regra do Mario: com a atualizacao automatica LIGADA, o FTP ja e gravado e a
+// mensagem so avisa; DESLIGADA, so grava se a pessoa tocar em "Atualizar". Nos
+// dois casos o novo FTP vale para o resto desta aula.
+function _ftpResultadoApp(d){
+  try{
+    var novo=parseInt(d&&d.ftp,10)||0; if(novo<=0) return;
+    var ant=parseInt(d.ant,10)||parseInt(_ftpDoAluno(),10)||0;
+    var auto=ftpAutoAtivo();
+    aplicarFtpResultado(novo, false);          // aula em curso sempre; conta so se automatico
+    var dif=ant>0?novo-ant:0, cor=dif>0?'#5db13d':(dif<0?'#9aa0aa':'#ea860c');
+    var velho=document.getElementById('prFtpRes'); if(velho) velho.remove();
+    var el=document.createElement('div'); el.id='prFtpRes';
+    el.style.cssText='position:fixed;inset:0;z-index:99999;background:rgba(4,4,10,.88);display:flex;align-items:center;justify-content:center;padding:24px;box-sizing:border-box;-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);';
+    var btns = auto
+      ? '<div style="font-size:14px;font-weight:800;color:#5db13d;margin-top:16px;">✓ Seu FTP foi atualizado</div>'
+        +'<button id="prFtpOk" style="margin-top:14px;width:100%;padding:14px;border-radius:14px;border:none;background:#ea860c;color:#fff;font-size:16px;font-weight:800;">OK</button>'
+      : '<div style="font-size:13px;color:rgba(255,255,255,.55);margin-top:14px;">Quer usar este FTP daqui para a frente?</div>'
+        +'<div style="display:flex;gap:10px;margin-top:10px;">'
+        +'<button id="prFtpNao" style="flex:1;padding:14px;border-radius:14px;border:1px solid rgba(255,255,255,.2);background:transparent;color:rgba(255,255,255,.8);font-size:15px;font-weight:700;">Agora não</button>'
+        +'<button id="prFtpSim" style="flex:1.4;padding:14px;border-radius:14px;border:none;background:#5db13d;color:#fff;font-size:15px;font-weight:800;">Atualizar meu FTP</button></div>';
+    el.innerHTML='<div style="width:100%;max-width:360px;border-radius:24px;padding:24px 22px 18px;text-align:center;background:linear-gradient(180deg,#141222,#0a0913);border:1px solid '+cor+'66;box-shadow:0 0 40px '+cor+'44;color:#fff;">'
+      +'<div style="font-size:12px;font-weight:800;letter-spacing:2.5px;color:rgba(255,255,255,.55);text-transform:uppercase;">Teste de FTP'+(d.protocolo?' · '+d.protocolo+' min':'')+'</div>'
+      +'<div style="font-size:44px;line-height:1;margin-top:14px;">🏁</div>'
+      +'<div style="font-size:14px;font-weight:700;letter-spacing:2px;color:rgba(255,255,255,.6);margin-top:10px;text-transform:uppercase;">Seu novo FTP</div>'
+      +'<div style="font-size:78px;font-weight:900;line-height:1;color:'+cor+';margin-top:4px;">'+novo+'<span style="font-size:26px;color:rgba(255,255,255,.6);"> W</span></div>'
+      +(ant>0?'<div style="font-size:16px;color:rgba(255,255,255,.75);margin-top:6px;">antes '+ant+' W · <b style="color:'+cor+'">'+(dif>0?'+':'')+dif+' W</b></div>':'')
+      +btns
+      +'<div style="height:4px;border-radius:2px;background:rgba(255,255,255,.1);margin-top:16px;overflow:hidden;"><div id="prFtpResBar" style="height:100%;width:100%;background:'+cor+';transition:width 60s linear;"></div></div>'
+      +'</div>';
+    var fechar=function(){ clearTimeout(el._t); if(el.parentNode) el.parentNode.removeChild(el); };
+    document.body.appendChild(el);
+    var ok=document.getElementById('prFtpOk'); if(ok) ok.onclick=fechar;
+    var nao=document.getElementById('prFtpNao'); if(nao) nao.onclick=fechar;
+    var sim=document.getElementById('prFtpSim'); if(sim) sim.onclick=function(){ aplicarFtpResultado(novo,true); if(typeof showToast==='function') showToast('FTP atualizado para '+novo+' W'); fechar(); };
+    requestAnimationFrame(function(){ requestAnimationFrame(function(){ var b=document.getElementById('prFtpResBar'); if(b) b.style.width='0%'; }); });
+    el._t=setTimeout(fechar,60000);
+    try{ if(navigator.vibrate) navigator.vibrate([80,60,80]); }catch(e){}
+  }catch(e){ try{ aplicarFtpResultado(d&&d.ftp); }catch(_e){} }
+}
+
 
 function saveFtp(){
   var vEl=document.getElementById('ftpResultVal');
@@ -7691,7 +7732,7 @@ function _tentarConexaoWS(wsUrl, token, dadosSessao){
       }
       if(data.tipo==='fim_desafio'){ _desafioResultadoApp(data); }
       if(data.tipo==='ftp_resultado' && data.nome){
-        try{ if(!prUser || !prUser.name || String(data.nome)===String(prUser.name)) aplicarFtpResultado(data.ftp); }catch(e){ aplicarFtpResultado(data.ftp); }
+        try{ var _eu=_entrarNome||(prUser&&prUser.name)||''; if(!_eu || String(data.nome)===String(_eu) || (prUser&&String(data.nome)===String(prUser.name))) _ftpResultadoApp(data); }catch(e){ _ftpResultadoApp(data); }
       }
       if(data.tipo==='sala_info'){
         _salaInfo={ numBikes:data.numBikes||0, bikes:data.bikes||[], ocupadas:data.ocupadas||[], ocupantes:data.ocupantes||{}, trancadas:data.trancadas||[] }; // 26/09b: + ocupantes e trancadas (trancadas nao era guardado)
@@ -8219,7 +8260,7 @@ updateProfileUI = function() {
          + ' fill="none" stroke="'+col(fm)+'" stroke-width="30" stroke-linecap="'+cap+'"/>';
     }
     g.innerHTML=out;
-    try{ console.log('%c[ProRider Aluno] BUILD 26/09b — home do professor: sai o Build Workout antigo (com senha), fica Agenda + Treino do Treinador + Construtor de Treino + voltar para a propria bike depois de reabrir o app + relogio do bloco anda sem bike transmitindo + vigia: reentra na sala se a aula parar de chegar + resultado do desafio no celular (10 s, toque fecha) + sexo enviado na entrada da sala (desafio Homens x Mulheres) + aluno sem nome nao entra mais como "-" na sala + leitor do app aceita o QR de Minhas Aulas do Ginasio + aula anterior nao fica mais grudada (fim da aula fecha o socket em qualquer tela; QR de outra sala troca de sala) + gauge com FTP e BLOCO simetricos + marcha e FC na aula da academia + %FTP com o FTP da gaveta na hora + FTP da gaveta vai para a sala na hora + FTP tambem na entrada pela reserva + Revisar o treino mostra a aula do Ginasio + caloria por watt (kJ/eficiencia) + basal Mifflin-St Jeor no cadastro + historico gravado no aparelho + FTP na gaveta + card 1080x1920 reposicionado + 6 protocolos de FTP + TSS + teste de 3 min + fator do teste de 5 min corrigido (era 1,05) + explicacao de FTP em cada teste + gaveta esconde pela propria altura + importacao de treino do TrainingPeaks (grade 2x2 na tela inicial + construtor) com tela de conferencia (botoes acima da navegacao) + corrigido: aula aberta por objeto agora e a que roda + botao Revisar o treino na gaveta + FTP e peso persistem no aparelho + gauge reequilibrado + textos do Brasil + codigo de sala normalizado (QR do navegador deixava a sala inexistente) + faixa de voltar corrigida + reconexao nao trava mais + sala encerrada limpa o codigo guardado + VISTA DA SALA + card comprido de Construtor para professor + fim da corrida no login','color:#ea860c;font-weight:700;'); }catch(e){}
+    try{ console.log('%c[ProRider Aluno] BUILD 26/09d — resultado do teste de FTP da aula no celular (1 min; automatico grava, senao pergunta) + home do professor: sai o Build Workout antigo (com senha), fica Agenda + Treino do Treinador + Construtor de Treino + voltar para a propria bike depois de reabrir o app + relogio do bloco anda sem bike transmitindo + vigia: reentra na sala se a aula parar de chegar + resultado do desafio no celular (10 s, toque fecha) + sexo enviado na entrada da sala (desafio Homens x Mulheres) + aluno sem nome nao entra mais como "-" na sala + leitor do app aceita o QR de Minhas Aulas do Ginasio + aula anterior nao fica mais grudada (fim da aula fecha o socket em qualquer tela; QR de outra sala troca de sala) + gauge com FTP e BLOCO simetricos + marcha e FC na aula da academia + %FTP com o FTP da gaveta na hora + FTP da gaveta vai para a sala na hora + FTP tambem na entrada pela reserva + Revisar o treino mostra a aula do Ginasio + caloria por watt (kJ/eficiencia) + basal Mifflin-St Jeor no cadastro + historico gravado no aparelho + FTP na gaveta + card 1080x1920 reposicionado + 6 protocolos de FTP + TSS + teste de 3 min + fator do teste de 5 min corrigido (era 1,05) + explicacao de FTP em cada teste + gaveta esconde pela propria altura + importacao de treino do TrainingPeaks (grade 2x2 na tela inicial + construtor) com tela de conferencia (botoes acima da navegacao) + corrigido: aula aberta por objeto agora e a que roda + botao Revisar o treino na gaveta + FTP e peso persistem no aparelho + gauge reequilibrado + textos do Brasil + codigo de sala normalizado (QR do navegador deixava a sala inexistente) + faixa de voltar corrigida + reconexao nao trava mais + sala encerrada limpa o codigo guardado + VISTA DA SALA + card comprido de Construtor para professor + fim da corrida no login','color:#ea860c;font-weight:700;'); }catch(e){}
   }
   if(document.readyState!=='loading') buildGaugeArc();
   else document.addEventListener('DOMContentLoaded', buildGaugeArc);

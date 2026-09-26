@@ -41,6 +41,29 @@ Componentes: `servidor` · `app` · `ginasio` · `portal` · `banco`.
 
 ---
 
+## 2026-09-26 · servidor 26/09d
+
+**O que mudou**
+- Novo caso WebSocket `ftp_resultado` (professor → **um** aluno, pelo nome): repassa `{nome, ftp, ant, protocolo}`.
+
+**Por quê**
+- O Ginásio sempre enviou o FTP do teste para cada aluno, mas o servidor não tinha esse caso e descartava a mensagem: o FTP nunca chegava ao celular.
+
+**Como confirmar**
+- Teste de FTP na aula com um aluno pelo app: ao encerrar, o celular mostra "Seu novo FTP". No log: `FTP …W enviado para …`.
+
+---
+
+## 2026-09-26 · app 26/09d
+
+**O que mudou**
+- Resultado do teste de FTP da aula no celular (`_ftpResultadoApp`, 60 s na tela). Com atualização automática ligada, grava e avisa; desligada, pergunta "Atualizar meu FTP / Agora não" e só grava no sim. Nos dois casos, o novo FTP vale para o resto da aula. `aplicarFtpResultado(ftp, forcar)`.
+
+**Como confirmar**
+- `/aluno` → `[ProRider Aluno] BUILD 26/09d`.
+
+---
+
 ## 2026-09-26 · ginasio 26/09d
 
 **O que mudou**
@@ -49,8 +72,13 @@ Componentes: `servidor` · `app` · `ginasio` · `portal` · `banco`.
 - Desafio e teste de FTP: de 4 para 10 atualizações por segundo; transições de 0,12 a 0,15 s.
 - Cartões de Potência e Rotação e o Ranking: de 4 para ~7 atualizações por segundo, atualizados no lugar (antes, `innerHTML` refazia a grade inteira).
 - Agulha do perfil na tela do QR: de 1 para 5 atualizações por segundo.
+- **Modo espaço** (`espacoLigar` / `espacoDesligar`): segurar LB+RB por 1 s na aula abre, em tela cheia, um canvas preto com estrelas vindo em direção a quem olha, em projeção 3D (sem planeta, pedido do Mario). A velocidade segue a razão média watts/FTP da sala, suavizada. LB+RB de novo ou B fecham; atalho de teclado Shift+E.
+- Teste de FTP — participação: entra só quem mandou ≥5 W em algum momento dos **10 primeiros segundos** (`FTP_JANELA_S`); a decisão sai aos 10 s (`_ftpDecidido`). Só os participantes recebem `ftp_resultado`, agora com `ant`. O resultado final congela a lista (`_ftpFinalSnap`).
+- Tela do QR na aula: lista sem rolagem (`_qrListaRender`). As linhas crescem até 96 px; se não couber, rodízio de 10 s. Atualizada no lugar, também pelo tick da aula.
+- Ranking: acima de 20 alunos, 20 por vez em rodízio de 10 s (`#rkPagInfo`); em duas colunas, nome e foto maiores.
 
 **Por quê**
+- Pedidos do Mario (26/09): tela escura para o professor, regra de participação do FTP, fim da rolagem na tela do QR e ranking maior.
 - Mario (teste do 26/09c): o anel do teste de FTP andava "bem quebrado", e ele pediu mais fluidez em todo o sistema.
 
 **Como confirmar**

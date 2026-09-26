@@ -1442,6 +1442,21 @@ wss.on('connection', (ws) => {
         break;
       }
 
+      // 26/09d — RESULTADO DO TESTE DE FTP PARA O CELULAR DE CADA ALUNO.
+      // O Ginasio sempre mandou 'ftp_resultado' (um por aluno), mas o servidor
+      // nao tinha este caso: a mensagem era descartada e o FTP nunca chegava ao
+      // app. Vai so para o aluno do nome indicado.
+      case 'ftp_resultado': {
+        const salaCodeR = ws._salaCode;
+        if (!salaCodeR || !salas[salaCodeR] || ws._tipo !== 'professor') return;
+        const alvo = salas[salaCodeR].alunos.get(msg.nome);
+        if (alvo && alvo.readyState === WebSocket.OPEN) {
+          alvo.send(JSON.stringify({ tipo: 'ftp_resultado', nome: msg.nome, ftp: msg.ftp, ant: msg.ant != null ? msg.ant : null, protocolo: msg.protocolo || null }));
+          log(`FTP ${msg.ftp}W enviado para ${msg.nome} (sala ${salaCodeR})`);
+        }
+        break;
+      }
+
       case 'fim_ftp': {
         const salaCodeFtp = ws._salaCode;
         if (!salaCodeFtp || !salas[salaCodeFtp]) return;
