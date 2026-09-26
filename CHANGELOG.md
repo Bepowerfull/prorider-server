@@ -42,6 +42,45 @@ Componentes: `servidor` · `app` · `ginasio` · `portal` · `banco`.
 
 ---
 
+## 2026-09-26 · app 26/09b
+
+**O que mudou**
+- Nova função `_prNomeAluno()`: os três pontos que enviam `entrar_sala` com o nome do perfil passam a usá-la. Um nome feito só de tracinhos (`-`, `–`, `—`) ou vazio conta como "sem nome"; o app tenta então `prUser.name`, depois `pr_nome`, e só no fim usa "Aluno".
+
+**Por quê**
+- Foto da TV (26/09): na tela do QR, durante a aula, aparecia um aluno "-" a 0 W. O campo `profNome` começa com "–" (travessão curto), mas o teste comparava com "—" (travessão longo). Sem o nome carregado, o app entrava na sala com o nome "–".
+
+**Como confirmar**
+- `/aluno` → F12 → `[ProRider Aluno] BUILD 26/09b`. Entrar numa sala sem o perfil carregado: a TV mostra o nome da conta, ou "Aluno", e nunca "-".
+
+---
+
+## 2026-09-26 · ginasio 26/09b
+
+**O que mudou**
+- Lobby (tela antes da aula): a linha branca do PERFIL DA AULA foi removida; ficam só as barras.
+- Lobby, coluna 3: o cartão AULA SELECIONADA fica sempre com a altura do próprio conteúdo e quem encolhe é o QR do browser (`.pb-sel` / `.pb-brw` em `ginasio.html`). Resolvido só com CSS; `_fitPreAulaCol3()` virou função vazia.
+- Tela do QR durante a aula (`#overlayQR`): o PERFIL DA AULA ganhou agulha de progresso (`#qrAulaAgulha`) e a parte já pedalada escurecida. As barras passaram a ser posicionadas pelo tempo real de cada bloco (`_prSec`), o mesmo eixo da agulha.
+- A agulha lê o tempo da aula do loop principal (`window._prDoneSecAgora`), então anda também dentro do bloco, não só na troca de bloco.
+- Gráfico 2 (cartões): cabe entre os círculos laterais. Margens reduzidas e nova `_pg2Encaixar()`, que calcula `--pg2k` (multiplicador da altura dos cartões) a partir do círculo do tempo e do cartão mais alto possível (z7).
+- Gráfico 2: "INÍCIO" só na tela que mostra o primeiro bloco da aula e "FIM" só na que mostra o último; no meio, só a seta. Os rótulos ficam alinhados pela borda do gráfico, sem invadir o círculo.
+- Gráfico 2: a agulha passa a ser medida a partir do topo das zonas (`zl.offsetTop`); antes ignorava o nome do segmento e o "VOCÊ ESTÁ AQUI" caía em cima dele.
+- Mini gráfico das telas de cartões (Potência/Rotação/Ranking): barras posicionadas em % do tempo, no mesmo eixo do véu. Antes, vãos de 2 px e separadores deslocavam as barras e o véu ficava alguns pixels (≈5 s) fora do lugar.
+
+**Por quê**
+- Fotos da TV (26/09, executável 25/09a): o gráfico de cartões passava acima dos círculos, "INÍCIO" ficava sob o círculo e "FIM" aparecia no meio da aula; o mini gráfico das telas de cartões parecia uns 5 s atrasado; no lobby, a linha ainda aparecia como contorno; Música e Status da sala vazavam por cima do perfil; e a agulha nunca aparecia — ela estava desenhada no lobby, mas só era movida quando o `#overlayQR` estava aberto, que tem outro perfil.
+
+**Como confirmar**
+- Tela inicial: `BUILD 26/09b`. Abrir o lobby: perfil só com barras; a coluna da direita não encosta no perfil.
+- Iniciar uma aula e apertar Y: no perfil de baixo, risco branco com ponto no ponto da aula, escurecendo o que já passou, andando a cada segundo.
+- Gráfico de cartões: do nome do segmento até a faixa de informação, tudo entre o topo e a base dos círculos; "FIM" só no desaquecimento.
+- Apertar X: no mini gráfico do topo, a marca laranja cai exatamente na borda do bloco quando o bloco troca.
+
+**Cuidados**
+- Só arquivos do Ginásio (`script.js`, `ginasio.html`, `style.css`, `LEIA-ME.txt`). Precisa gerar o executável de novo (`npm run dist`).
+
+---
+
 ## 2026-09-26 · app 26/09a
 
 **O que mudou**

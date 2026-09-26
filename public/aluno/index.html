@@ -2160,6 +2160,18 @@ var lastCode='';
 // Fluxo: scan QR → assinar_sala (observa o mapa ao vivo) → escolhe a bike → entrar_sala
 // Fonte de dados na aula: relay do ginásio (iOS sem BLE) ou BLE do próprio celular (Android)
 // ════════════════════════════════════════════════════════════
+// 26/09b: o campo profNome comeca com "–" (travessao curto) e o teste antigo
+// comparava com "—" (travessao longo). Sem o nome carregado, o app entrava na
+// sala com o nome "–" e a TV mostrava um aluno "-" a 0 W. Qualquer tracinho
+// sozinho agora conta como "sem nome".
+function _prNomeAluno(){
+  var _limpo=function(v){ v=String(v||'').trim(); return /^[-–—\s]*$/.test(v)?'':v; };
+  var el=document.getElementById('profNome');
+  var v=_limpo(el&&el.textContent);
+  if(!v){ try{ v=_limpo(typeof prUser!=='undefined'&&prUser&&prUser.name); }catch(e){} }
+  if(!v){ try{ v=_limpo(localStorage.getItem('pr_nome')); }catch(e){} }
+  return v||'Aluno';
+}
 var _entrarCodigo = '', _entrarNome = '';            // 23/09c: codigo usado no ultimo entrar_sala (QR ou reserva)
 var _bikeSelNum = null;             // bike escolhida pelo aluno (null = ainda só observando)
 var _salaInfo   = null;             // {numBikes,bikes:[],ocupadas:[]} vindo do ginásio
@@ -2237,7 +2249,7 @@ function selectBike(num){
   _bikeSelNum=num;
   _renderBikeGrid();
   var nome=document.getElementById('profNome');
-  var nomeVal=(nome&&nome.textContent.trim()&&nome.textContent.trim()!=='—')?nome.textContent.trim():(localStorage.getItem('pr_nome')||'Aluno');
+  var nomeVal=_prNomeAluno();
   // Já estava observando (socket aberto) → vira participante de verdade na bike escolhida
   if(wsConn && wsConn.readyState===1){
     _entrarNome=nomeVal; _entrarCodigo=lastCode;
@@ -2312,7 +2324,7 @@ function connectQR(code){
     wsConn._prCodigo=code;
     wsConn.onopen=function(){
       var nome=document.getElementById('profNome');
-      var nomeVal=(nome&&nome.textContent.trim()&&nome.textContent.trim()!=='—')?nome.textContent.trim():(localStorage.getItem('pr_nome')||'Aluno');
+      var nomeVal=_prNomeAluno();
       if(_bikeSelNum){
         // Já escolheu a bike (ou reconexão durante a aula) → entra como participante
         // ── FTP VAI JUNTO ──────────────────────────────────────────
@@ -7568,8 +7580,7 @@ function _tentarConexaoWS(wsUrl, token, dadosSessao){
     ws.onopen = function(){
       clearTimeout(timeout);
       var nome = document.getElementById('profNome');
-      var nomeVal = (nome&&nome.textContent.trim()&&nome.textContent.trim()!=='—')
-        ? nome.textContent.trim() : (localStorage.getItem('pr_nome')||'Aluno');
+      var nomeVal = _prNomeAluno();
       // 23/09c: este era o TERCEIRO ponto que manda entrar_sala (entrada pela
       // reserva/sessao) e tambem ia sem o FTP — o Ginasio ficava com 150.
       var _ftpS=0; try{ _ftpS=parseInt(_ftpDoAluno(),10)||0; }catch(e){}
@@ -8094,7 +8105,7 @@ updateProfileUI = function() {
          + ' fill="none" stroke="'+col(fm)+'" stroke-width="30" stroke-linecap="'+cap+'"/>';
     }
     g.innerHTML=out;
-    try{ console.log('%c[ProRider Aluno] BUILD 26/09a — leitor do app aceita o QR de Minhas Aulas do Ginasio + aula anterior nao fica mais grudada (fim da aula fecha o socket em qualquer tela; QR de outra sala troca de sala) + gauge com FTP e BLOCO simetricos + marcha e FC na aula da academia + %FTP com o FTP da gaveta na hora + FTP da gaveta vai para a sala na hora + FTP tambem na entrada pela reserva + Revisar o treino mostra a aula do Ginasio + caloria por watt (kJ/eficiencia) + basal Mifflin-St Jeor no cadastro + historico gravado no aparelho + FTP na gaveta + card 1080x1920 reposicionado + 6 protocolos de FTP + TSS + teste de 3 min + fator do teste de 5 min corrigido (era 1,05) + explicacao de FTP em cada teste + gaveta esconde pela propria altura + importacao de treino do TrainingPeaks (grade 2x2 na tela inicial + construtor) com tela de conferencia (botoes acima da navegacao) + corrigido: aula aberta por objeto agora e a que roda + botao Revisar o treino na gaveta + FTP e peso persistem no aparelho + gauge reequilibrado + textos do Brasil + codigo de sala normalizado (QR do navegador deixava a sala inexistente) + faixa de voltar corrigida + reconexao nao trava mais + sala encerrada limpa o codigo guardado + VISTA DA SALA + card comprido de Construtor para professor + fim da corrida no login','color:#ea860c;font-weight:700;'); }catch(e){}
+    try{ console.log('%c[ProRider Aluno] BUILD 26/09b — aluno sem nome nao entra mais como "-" na sala + leitor do app aceita o QR de Minhas Aulas do Ginasio + aula anterior nao fica mais grudada (fim da aula fecha o socket em qualquer tela; QR de outra sala troca de sala) + gauge com FTP e BLOCO simetricos + marcha e FC na aula da academia + %FTP com o FTP da gaveta na hora + FTP da gaveta vai para a sala na hora + FTP tambem na entrada pela reserva + Revisar o treino mostra a aula do Ginasio + caloria por watt (kJ/eficiencia) + basal Mifflin-St Jeor no cadastro + historico gravado no aparelho + FTP na gaveta + card 1080x1920 reposicionado + 6 protocolos de FTP + TSS + teste de 3 min + fator do teste de 5 min corrigido (era 1,05) + explicacao de FTP em cada teste + gaveta esconde pela propria altura + importacao de treino do TrainingPeaks (grade 2x2 na tela inicial + construtor) com tela de conferencia (botoes acima da navegacao) + corrigido: aula aberta por objeto agora e a que roda + botao Revisar o treino na gaveta + FTP e peso persistem no aparelho + gauge reequilibrado + textos do Brasil + codigo de sala normalizado (QR do navegador deixava a sala inexistente) + faixa de voltar corrigida + reconexao nao trava mais + sala encerrada limpa o codigo guardado + VISTA DA SALA + card comprido de Construtor para professor + fim da corrida no login','color:#ea860c;font-weight:700;'); }catch(e){}
   }
   if(document.readyState!=='loading') buildGaugeArc();
   else document.addEventListener('DOMContentLoaded', buildGaugeArc);
