@@ -6827,8 +6827,13 @@ function navCenterAtualizar() {
     if (wrap) wrap.onclick = function(){ goTab('sHome','navRide'); };
     if (tabDesafios) tabDesafios.style.display = '';
     if (tabAgenda)   tabAgenda.style.display   = 'none';
-    if (profBtns)  profBtns.style.display  = '';
-    if (agendaBtn) agendaBtn.style.display = 'none';
+    // 26/09b: o professor ve a MESMA grade do aluno (Agenda + Treino do
+    // Treinador) e, abaixo, o card comprido do Construtor de Treino. O card
+    // antigo "Build Workout" (construtor com codigo de acesso) saiu: estava
+    // duplicado com o Construtor e ocupava o lugar do Treino do Treinador.
+    if (profBtns)  profBtns.style.display  = 'none';
+    if (agendaBtn) agendaBtn.style.display = '';
+    try{ homeProfAtualizar(); }catch(e){}
     if (profBadge) profBadge.style.display = 'block';
     if (profNome && prUser) profNome.textContent = (prUser.name||'Professor').split(' ')[0].toUpperCase();
 
@@ -8214,7 +8219,7 @@ updateProfileUI = function() {
          + ' fill="none" stroke="'+col(fm)+'" stroke-width="30" stroke-linecap="'+cap+'"/>';
     }
     g.innerHTML=out;
-    try{ console.log('%c[ProRider Aluno] BUILD 26/09b — voltar para a propria bike depois de reabrir o app + relogio do bloco anda sem bike transmitindo + vigia: reentra na sala se a aula parar de chegar + resultado do desafio no celular (10 s, toque fecha) + sexo enviado na entrada da sala (desafio Homens x Mulheres) + aluno sem nome nao entra mais como "-" na sala + leitor do app aceita o QR de Minhas Aulas do Ginasio + aula anterior nao fica mais grudada (fim da aula fecha o socket em qualquer tela; QR de outra sala troca de sala) + gauge com FTP e BLOCO simetricos + marcha e FC na aula da academia + %FTP com o FTP da gaveta na hora + FTP da gaveta vai para a sala na hora + FTP tambem na entrada pela reserva + Revisar o treino mostra a aula do Ginasio + caloria por watt (kJ/eficiencia) + basal Mifflin-St Jeor no cadastro + historico gravado no aparelho + FTP na gaveta + card 1080x1920 reposicionado + 6 protocolos de FTP + TSS + teste de 3 min + fator do teste de 5 min corrigido (era 1,05) + explicacao de FTP em cada teste + gaveta esconde pela propria altura + importacao de treino do TrainingPeaks (grade 2x2 na tela inicial + construtor) com tela de conferencia (botoes acima da navegacao) + corrigido: aula aberta por objeto agora e a que roda + botao Revisar o treino na gaveta + FTP e peso persistem no aparelho + gauge reequilibrado + textos do Brasil + codigo de sala normalizado (QR do navegador deixava a sala inexistente) + faixa de voltar corrigida + reconexao nao trava mais + sala encerrada limpa o codigo guardado + VISTA DA SALA + card comprido de Construtor para professor + fim da corrida no login','color:#ea860c;font-weight:700;'); }catch(e){}
+    try{ console.log('%c[ProRider Aluno] BUILD 26/09b — home do professor: sai o Build Workout antigo (com senha), fica Agenda + Treino do Treinador + Construtor de Treino + voltar para a propria bike depois de reabrir o app + relogio do bloco anda sem bike transmitindo + vigia: reentra na sala se a aula parar de chegar + resultado do desafio no celular (10 s, toque fecha) + sexo enviado na entrada da sala (desafio Homens x Mulheres) + aluno sem nome nao entra mais como "-" na sala + leitor do app aceita o QR de Minhas Aulas do Ginasio + aula anterior nao fica mais grudada (fim da aula fecha o socket em qualquer tela; QR de outra sala troca de sala) + gauge com FTP e BLOCO simetricos + marcha e FC na aula da academia + %FTP com o FTP da gaveta na hora + FTP da gaveta vai para a sala na hora + FTP tambem na entrada pela reserva + Revisar o treino mostra a aula do Ginasio + caloria por watt (kJ/eficiencia) + basal Mifflin-St Jeor no cadastro + historico gravado no aparelho + FTP na gaveta + card 1080x1920 reposicionado + 6 protocolos de FTP + TSS + teste de 3 min + fator do teste de 5 min corrigido (era 1,05) + explicacao de FTP em cada teste + gaveta esconde pela propria altura + importacao de treino do TrainingPeaks (grade 2x2 na tela inicial + construtor) com tela de conferencia (botoes acima da navegacao) + corrigido: aula aberta por objeto agora e a que roda + botao Revisar o treino na gaveta + FTP e peso persistem no aparelho + gauge reequilibrado + textos do Brasil + codigo de sala normalizado (QR do navegador deixava a sala inexistente) + faixa de voltar corrigida + reconexao nao trava mais + sala encerrada limpa o codigo guardado + VISTA DA SALA + card comprido de Construtor para professor + fim da corrida no login','color:#ea860c;font-weight:700;'); }catch(e){}
   }
   if(document.readyState!=='loading') buildGaugeArc();
   else document.addEventListener('DOMContentLoaded', buildGaugeArc);

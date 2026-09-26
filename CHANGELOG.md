@@ -34,7 +34,6 @@ Componentes: `servidor` · `app` · `ginasio` · `portal` · `banco`.
 ---
 
 ## 2026-09-22 · servidor · a750387, 4409582, 1263390, 9d4528d
-
 - PUT /admin/users/:id, PUT /admin/licencas/:id address fields
 - trancadas: Set, prof_remover_aluno/trocar_bikes/trancar_bike WS cases
 - GET /agenda/aula-ativa/:license_id
@@ -74,6 +73,7 @@ Componentes: `servidor` · `app` · `ginasio` · `portal` · `banco`.
 - O relógio do bloco anda mesmo sem bike transmitindo. Antes, ficava depois do "sem dado fresco" e parava.
 - Vigia da aula: se o `update_aula` parar por 15 s com o socket aberto, o app reenvia o `entrar_sala` na mesma bike (no máximo 1 vez a cada 20 s).
 - `_salaInfo` passa a guardar `trancadas` (antes era descartado, e o cadeado das bikes em manutenção nunca aparecia) e `ocupantes`.
+- Home do professor: saiu o card antigo "Build Workout" (construtor com código de acesso, duplicado). O professor vê a mesma grade do aluno — Agenda de Aulas + Treino do Treinador — e, abaixo, o card Construtor de Treino.
 - Resultado do desafio no celular: ao receber `fim_desafio`, o app procura o próprio nome no ranking e mostra a colocação (no grupo e no geral), o valor e o grupo vencedor por 10 s; um toque fecha. Tratado nos dois sockets (QR e reserva/sessão).
 - `entrar_sala` leva `genero` (`_prSexoAluno()`: `prUser.sexo`, senão o sexo marcado no cadastro, guardado em `pr_sexo`).
 - Nova função `_prNomeAluno()`: os três pontos que enviam `entrar_sala` com o nome do perfil passam a usá-la. Um nome feito só de tracinhos (`-`, `–`, `—`) ou vazio conta como "sem nome"; o app tenta então `prUser.name`, depois `pr_nome`, e só no fim usa "Aluno".
