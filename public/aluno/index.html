@@ -2223,6 +2223,7 @@ function _desafioResultadoApp(d){
       +'<div style="font-size:15px;color:rgba(255,255,255,.75);margin-top:6px;">'+ctx+'</div>'
       +'<div style="font-size:30px;font-weight:900;margin-top:14px;">'+fmt(r.val)+' <span style="font-size:15px;color:rgba(255,255,255,.55);">'+un+'</span></div>'
       +(extra?'<div style="font-size:13px;color:rgba(255,255,255,.5);margin-top:6px;">'+extra+'</div>':'')
+      +(d.regra?'<div style="font-size:11px;color:rgba(255,255,255,.4);margin-top:4px;">'+String(d.regra).replace(/[<>&]/g,'')+'</div>':'')
       +(venc?'<div style="font-size:16px;font-weight:800;color:#ffd23f;margin-top:12px;">'+venc+'</div>':'')
       +'<div style="height:4px;border-radius:2px;background:rgba(255,255,255,.1);margin-top:18px;overflow:hidden;"><div id="prDesafioResBar" style="height:100%;width:100%;background:'+cor+';transition:width 10s linear;"></div></div>'
       +'<div style="font-size:11px;color:rgba(255,255,255,.35);margin-top:8px;">toque para fechar</div></div>';
