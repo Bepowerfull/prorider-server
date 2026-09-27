@@ -1,0 +1,2228 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ProRider — Painel da Academia</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow+Condensed:wght@400;700;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#0d0d0f;--panel:#16161a;--card:#1e1e24;--border:rgba(255,255,255,.08);--accent:#ea860c;--accent2:#d62d2d;--blue:#295fe8;--green:#5db13d;--text:#fff;--muted:rgba(255,255,255,.45)}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+
+/* LOGIN */
+#loginScreen{display:flex;align-items:center;justify-content:center;min-height:100vh;background:radial-gradient(ellipse at 30% 40%,rgba(234,134,12,.07) 0%,transparent 60%)}
+.login-box{width:100%;max-width:380px;background:var(--card);border:1px solid var(--border);border-radius:20px;padding:36px}
+.login-logo{text-align:center;margin-bottom:28px}
+.login-logo .bolt{font-size:40px;margin-bottom:8px}
+.login-logo .brand{font-family:'Bebas Neue',sans-serif;font-size:34px;letter-spacing:3px;background:linear-gradient(135deg,#ffe033,#ea860c,#d62d2d);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.login-logo .sub{font-size:11px;letter-spacing:3px;color:var(--muted);text-transform:uppercase;margin-top:4px}
+.fg{display:flex;flex-direction:column;gap:5px;margin-bottom:14px}
+.fg label{font-size:11px;font-weight:700;letter-spacing:1.5px;color:var(--muted);text-transform:uppercase}
+.fg input{padding:10px 13px;border-radius:8px;border:1px solid var(--border);background:rgba(255,255,255,.05);color:#fff;font-size:14px;outline:none}
+.fg input:focus{border-color:var(--accent)}
+.login-btn{width:100%;padding:13px;border-radius:10px;border:none;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;font-size:15px;font-weight:700;cursor:pointer;letter-spacing:1px;margin-top:4px}
+.login-err{color:#d62d2d;font-size:12px;text-align:center;margin-top:10px;display:none}
+
+/* APP */
+#app{display:none}
+header{background:var(--panel);border-bottom:1px solid var(--border);padding:14px 24px;display:flex;align-items:center;justify-content:space-between}
+.header-brand{display:flex;align-items:center;gap:12px}
+.header-brand .name{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:2px;background:linear-gradient(135deg,#ffe033,#ea860c,#d62d2d);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.header-lic{font-size:12px;color:var(--muted);font-family:monospace;background:rgba(255,255,255,.06);padding:3px 10px;border-radius:6px}
+.header-right{display:flex;align-items:center;gap:12px}
+.header-user{font-size:13px;color:var(--muted)}
+.btn-logout{padding:6px 14px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--muted);font-size:12px;cursor:pointer}
+.btn-logout:hover{color:#fff;border-color:rgba(255,255,255,.3)}
+
+/* NAV TABS */
+.tabs{display:flex;gap:2px;padding:0 24px;background:var(--panel);border-bottom:1px solid var(--border)}
+.tab{padding:12px 20px;font-size:13px;font-weight:600;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;transition:.15s}
+.tab:hover{color:#fff}
+.tab.active{color:#fff;border-bottom-color:var(--accent)}
+
+/* CONTENT */
+.content{padding:28px 24px;max-width:1100px}
+
+/* STATS */
+.stats{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:14px;margin-bottom:28px}
+.stat{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:18px}
+.stat .lbl{font-size:10px;font-weight:700;letter-spacing:2px;color:var(--muted);text-transform:uppercase}
+.stat .val{font-family:'Barlow Condensed',sans-serif;font-size:40px;font-weight:900;line-height:1;margin-top:4px}
+.stat.o .val{color:var(--accent)} .stat.b .val{color:var(--blue)} .stat.g .val{color:var(--green)}
+
+/* TABLE */
+.tcard{background:var(--card);border:1px solid var(--border);border-radius:14px;overflow:hidden}
+.thead-row{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.thead-row h2{font-size:15px;font-weight:700}
+.search{padding:7px 13px;border-radius:8px;border:1px solid var(--border);background:rgba(255,255,255,.04);color:#fff;font-size:13px;outline:none;width:200px}
+.search:focus{border-color:var(--accent)}
+table{width:100%;border-collapse:collapse}
+th{padding:9px 16px;text-align:left;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--muted);text-transform:uppercase;border-bottom:1px solid var(--border);background:rgba(255,255,255,.02)}
+td{padding:12px 16px;font-size:13px;border-bottom:1px solid rgba(255,255,255,.04);vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:rgba(255,255,255,.02);cursor:pointer}
+.badge{display:inline-flex;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:700}
+.badge-ativo{background:rgba(93,177,61,.12);color:#5db13d;border:1px solid rgba(93,177,61,.25)}
+.badge-inativo{background:rgba(255,255,255,.06);color:var(--muted)}
+
+/* ALUNO DETAIL */
+#alunoDetail{display:none;padding:26px 32px}
+.back-btn{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--muted);cursor:pointer;margin-bottom:20px;padding:6px 0}
+.back-btn:hover{color:#fff}
+.detail-top{display:grid;grid-template-columns:280px 1fr;gap:20px;margin-bottom:20px}
+.dcard{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:20px}
+.dcard h3{font-size:11px;font-weight:700;letter-spacing:2px;color:var(--muted);text-transform:uppercase;margin-bottom:16px}
+.irow{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.05);font-size:13px}
+.irow:last-child{border-bottom:none}
+.irow .k{color:var(--muted)} .irow .v{font-weight:600}
+
+/* LEADERBOARD */
+.lb-row{display:flex;align-items:center;gap:14px;padding:12px 20px;border-bottom:1px solid rgba(255,255,255,.04)}
+.lb-row:last-child{border-bottom:none}
+.lb-pos{font-family:'Barlow Condensed',sans-serif;font-size:26px;font-weight:900;width:36px;text-align:center;flex-shrink:0}
+.lb-avatar{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:15px;flex-shrink:0}
+.lb-info{flex:1;min-width:0}
+.lb-name{font-size:14px;font-weight:700}
+.lb-sub{font-size:11px;color:var(--muted);margin-top:1px}
+.lb-points{font-family:'Barlow Condensed',sans-serif;font-size:28px;font-weight:900;color:var(--accent)}
+.lb-pts-lbl{font-size:9px;font-weight:700;letter-spacing:2px;color:var(--muted);text-align:right}
+.lb-bar-wrap{flex:0 0 100px;height:6px;background:rgba(255,255,255,.06);border-radius:3px;overflow:hidden}
+.lb-bar-fill{height:100%;border-radius:3px;background:linear-gradient(90deg,var(--accent),var(--accent2))}
+
+/* REPORTS */
+.rep-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px;margin-bottom:24px}
+.rep-stat{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:18px}
+.rep-stat .rv{font-family:'Barlow Condensed',sans-serif;font-size:42px;font-weight:900;line-height:1}
+.rep-stat .rk{font-size:10px;font-weight:700;letter-spacing:2px;color:var(--muted);text-transform:uppercase;margin-top:3px}
+.chart-bar-wrap{display:flex;flex-direction:column;gap:8px}
+.cbar-row{display:flex;align-items:center;gap:8px;font-size:12px}
+.cbar-lbl{color:var(--muted);width:60px;text-align:right;flex-shrink:0}
+.cbar-track{flex:1;height:20px;background:rgba(255,255,255,.04);border-radius:4px;overflow:hidden}
+.cbar-fill{height:100%;border-radius:4px;display:flex;align-items:center;padding-left:8px;font-size:11px;font-weight:700;color:#fff}
+.zone-bar-row{display:flex;align-items:center;gap:8px;font-size:12px}
+.zone-bar-lbl{width:80px;font-size:11px;color:var(--muted);flex-shrink:0}
+.zone-bar-track{flex:1;height:14px;background:rgba(255,255,255,.04);border-radius:4px;overflow:hidden}
+.zone-bar-fill{height:100%;border-radius:4px;transition:width .5s ease}
+.zone-bar-pct{width:38px;text-align:right;font-size:11px;font-weight:700}
+
+/* EMAIL PREVIEW */
+.email-card{background:var(--card);border:1px solid var(--border);border-radius:14px;overflow:hidden;margin-bottom:20px}
+.email-header{padding:14px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.email-header h3{font-size:14px;font-weight:700}
+.email-meta{font-size:11px;color:var(--muted);padding:10px 20px;border-bottom:1px solid var(--border);display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.email-body{padding:20px}
+
+/* TOAST */
+#toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,#ea860c,#d62d2d);color:#fff;font-size:13px;font-weight:700;padding:11px 24px;border-radius:30px;z-index:999;opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap}
+
+/* PAGE */
+.page{display:none}.page.active{display:block}
+
+/* ══ PORTAL 26/09e — visual novo (mesmo padrão das telas do Ginásio) ══ */
+:root{--bg:#0b0b0e;--panel:#131317;--card:#1b1b21;--card2:#22222a;--border:rgba(255,255,255,.08);--y:#ffe033;--purple:#9b30ff;--dimmer:rgba(255,255,255,.22);--grad:linear-gradient(135deg,#ffe033,#ea860c,#d62d2d)}
+body{background:var(--bg)}
+button{font-family:inherit}
+.pr-imp{position:sticky;top:0;z-index:120;height:46px;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:0 20px;background:linear-gradient(90deg,rgba(41,95,232,.32),rgba(155,48,255,.26));border-bottom:1px solid rgba(41,95,232,.6);font-size:13px;font-weight:600;backdrop-filter:blur(6px)}
+.pr-imp .tag{background:rgba(255,255,255,.14);padding:3px 9px;border-radius:6px;font-size:11px;letter-spacing:.5px;margin-right:10px;font-weight:700}
+.pr-imp b{color:#fff}
+.pr-imp button{background:#fff;color:#1b1b21;border:0;border-radius:8px;padding:7px 16px;font-weight:800;font-size:13px;cursor:pointer;white-space:nowrap}
+.pr-shell{display:flex;min-height:100vh}
+.pr-imp + .pr-shell{min-height:calc(100vh - 46px)}
+.pr-sb{width:248px;flex-shrink:0;background:var(--panel);border-right:1px solid var(--border);display:flex;flex-direction:column;padding:18px 14px;position:sticky;top:0;height:100vh;overflow-y:auto}
+.pr-imp + .pr-shell .pr-sb{top:46px;height:calc(100vh - 46px)}
+.pr-brand{font-family:'Bebas Neue',sans-serif;font-size:30px;letter-spacing:3px;background:var(--grad);-webkit-background-clip:text;-webkit-text-fill-color:transparent;padding:0 8px}
+.pr-lic{margin:10px 0 8px;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:10px 12px;font-size:12px}
+.pr-lic small{display:block;color:var(--muted);font-size:10px;letter-spacing:1px;text-transform:uppercase;margin-bottom:3px}
+.pr-lic b{font-size:14px;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pr-sbh{font-size:10px;letter-spacing:1.5px;color:var(--dimmer);text-transform:uppercase;margin:14px 10px 6px;font-weight:700}
+.pr-it{display:flex;align-items:center;gap:11px;padding:9px 10px;border-radius:9px;font-size:14px;color:var(--muted);font-weight:500;cursor:pointer;transition:background .15s,color .15s;user-select:none}
+.pr-it:hover{color:#fff;background:rgba(255,255,255,.04)}
+.pr-it i{font-style:normal;width:20px;text-align:center;font-size:15px}
+.pr-it.on{background:linear-gradient(90deg,rgba(234,134,12,.22),rgba(234,134,12,.04));color:#fff;box-shadow:inset 3px 0 0 var(--accent)}
+.pr-it .n{margin-left:auto;background:var(--accent2);color:#fff;font-size:10px;font-weight:700;border-radius:10px;padding:1px 7px}
+.pr-me{margin-top:auto;display:flex;align-items:center;gap:10px;padding:10px;background:var(--card);border-radius:12px;border:1px solid var(--border);cursor:pointer}
+.pr-me:hover{border-color:rgba(234,134,12,.4)}
+.pr-av{width:38px;height:38px;border-radius:50%;background:var(--grad);display:flex;align-items:center;justify-content:center;font-weight:800;color:#1b1b21;font-size:15px;flex-shrink:0;overflow:hidden}
+.pr-av img{width:100%;height:100%;object-fit:cover}
+.pr-me .t{font-size:13px;font-weight:600;line-height:1.25;min-width:0;flex:1}
+.pr-me .t span.nm{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pr-out{background:none;border:0;color:var(--muted);font-size:16px;cursor:pointer;padding:4px}
+.pr-out:hover{color:#fff}
+.pr-role{display:inline-block;font-size:10px;font-weight:700;padding:2px 7px;border-radius:5px;letter-spacing:.5px;text-transform:uppercase}
+.r-super_admin{background:rgba(155,48,255,.2);color:#c58bff}.r-gestor{background:rgba(234,134,12,.2);color:#ffb45a}.r-professor{background:rgba(41,95,232,.22);color:#7fa3ff}.r-aluno{background:rgba(93,177,61,.2);color:#8fd66f}.r-financeiro{background:rgba(255,224,51,.15);color:#ffe033}.r-coordenador{background:rgba(0,200,200,.15);color:#5fe0e0}.r-admin{background:rgba(255,255,255,.1);color:#ddd}
+.pr-main{flex:1;min-width:0}
+.pr-main .content{max-width:1320px;padding:26px 32px}
+.pr-hd{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin-bottom:22px;flex-wrap:wrap}
+.pr-hd h1{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:40px;letter-spacing:.5px;text-transform:uppercase;line-height:1}
+.pr-hd p{color:var(--muted);font-size:14px;margin-top:4px}
+.pr-btn{border:0;border-radius:10px;padding:11px 18px;font-weight:700;font-size:14px;display:inline-flex;align-items:center;gap:8px;cursor:pointer;transition:filter .15s,transform .1s;text-decoration:none}
+.pr-btn:hover{filter:brightness(1.1)}.pr-btn:active{transform:scale(.98)}
+.pr-bp{background:var(--grad);color:#1b1b21}
+.pr-bg{background:var(--card2);color:#fff;border:1px solid var(--border)}
+.pr-bs{padding:7px 12px;font-size:12px;border-radius:8px}
+.pr-kp{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;margin-bottom:18px}
+.pr-k{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px 18px}
+.pr-k small{color:var(--muted);font-size:11px;letter-spacing:1px;text-transform:uppercase;font-weight:600}
+.pr-k .v{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:44px;line-height:1.05;margin-top:4px}
+.pr-k .d{font-size:12px;color:var(--green);font-weight:600}
+.pr-k.link{cursor:pointer}.pr-k.link:hover{border-color:rgba(234,134,12,.4)}
+.pr-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:18px}
+.pr-card h3{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:20px;text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;gap:10px}
+.pr-card h3 a{font-family:'Inter',sans-serif;font-size:12px;color:var(--accent);text-transform:none;letter-spacing:0;font-weight:600;cursor:pointer}
+.pr-hero{background:linear-gradient(120deg,rgba(234,134,12,.25),rgba(214,45,45,.18) 60%,rgba(155,48,255,.12));border:1px solid rgba(234,134,12,.4);border-radius:16px;padding:20px 24px;display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:18px;flex-wrap:wrap}
+.pr-hero h2{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:30px;text-transform:uppercase;line-height:1}
+.pr-hero p{color:rgba(255,255,255,.72);font-size:14px;margin-top:6px}
+.pr-wk{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:8px}
+.pr-wk .dy{font-size:11px;color:var(--muted);font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:6px}
+.pr-wk .dy.hoje{color:var(--accent)}
+.pr-cl{background:var(--card2);border-radius:9px;padding:8px 9px;margin-bottom:7px;border-left:3px solid var(--accent);font-size:12px;cursor:pointer}
+.pr-cl:hover{background:#2a2a33}
+.pr-cl b{display:block;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.pr-cl small{color:var(--muted)}
+.pr-bar{height:6px;border-radius:3px;background:rgba(255,255,255,.08);overflow:hidden;margin-top:5px}.pr-bar i{display:block;height:100%;background:var(--grad)}
+.pr-srch{display:flex;align-items:center;gap:10px;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:8px 8px 8px 16px;font-size:15px;transition:border-color .15s}
+.pr-srch.aberta{border-color:var(--accent)}
+.pr-srch input{flex:1;background:none;border:0;outline:none;color:#fff;font-size:15px;padding:6px 0;font-family:inherit}
+.pr-srch .cv{width:36px;height:36px;border-radius:9px;background:var(--card2);display:flex;align-items:center;justify-content:center;font-size:14px;cursor:pointer;border:0;color:#fff;transition:background .15s,transform .2s}
+.pr-srch.aberta .cv{background:var(--accent);color:#1b1b21;transform:rotate(180deg)}
+.pr-chips{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+.pr-chip{font-size:12px;font-weight:700;border-radius:8px;padding:5px 10px;background:var(--card2);color:#fff;cursor:pointer;border:1px solid transparent}
+.pr-chip.on{border-color:var(--accent)}
+.pr-chip.ok{background:rgba(93,177,61,.18);color:#8fd66f}.pr-chip.wa{background:rgba(234,134,12,.18);color:#ffb45a}
+.pr-lst{background:var(--card);border:1px solid var(--border);border-radius:12px;margin-top:8px;overflow:hidden;max-height:62vh;overflow-y:auto}
+.pr-lr{display:flex;align-items:center;gap:12px;padding:10px 16px;border-bottom:1px solid var(--border);font-size:13px;cursor:pointer}
+.pr-lr:last-child{border-bottom:0}
+.pr-lr:hover{background:rgba(255,255,255,.03)}
+.pr-lr .pr-av{width:34px;height:34px;font-size:12px}
+.pr-lr .nm{flex:1;min-width:0}.pr-lr .nm b{display:block;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.pr-lr .nm small{color:var(--muted)}
+.pr-lr .st{text-align:right;color:var(--muted);white-space:nowrap}
+.pr-pill{font-size:11px;font-weight:700;border-radius:6px;padding:3px 8px;white-space:nowrap}
+.pr-ok{background:rgba(93,177,61,.18);color:#8fd66f}.pr-wa{background:rgba(234,134,12,.18);color:#ffb45a}.pr-er{background:rgba(214,45,45,.2);color:#ff7a7a}.pr-nv{background:var(--card2);color:#fff}
+.pr-tg{display:flex;align-items:center;justify-content:space-between;gap:12px;background:var(--card2);border-radius:10px;padding:11px 14px;font-size:14px;margin-bottom:8px;user-select:none}
+.pr-tg small{display:block;color:var(--muted);font-size:12px;margin-top:2px}
+.pr-tg[draggable=true]{cursor:grab}.pr-tg.drag{opacity:.4}
+.pr-sw{width:40px;height:22px;border-radius:11px;background:var(--accent);position:relative;cursor:pointer;flex-shrink:0;border:0;transition:background .15s}
+.pr-sw:after{content:'';position:absolute;right:3px;top:3px;width:16px;height:16px;border-radius:50%;background:#fff;transition:right .15s}
+.pr-sw.off{background:rgba(255,255,255,.15)}.pr-sw.off:after{right:21px}
+.pr-grip{color:var(--dimmer);margin-right:10px;letter-spacing:-2px}
+.pr-tv{background:#000;border-radius:14px;border:6px solid #26262d;aspect-ratio:16/9;padding:14px;display:flex;flex-direction:column;gap:6px;overflow:hidden}
+.pr-tv .tt{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:2px;color:var(--y);display:flex;justify-content:space-between}
+.pr-tv .tt span{font-family:'Inter',sans-serif;font-size:10px;letter-spacing:1px;color:rgba(255,255,255,.4)}
+.pr-tvr{display:grid;align-items:center;gap:8px;background:rgba(255,255,255,.05);border-radius:8px;padding:6px 10px;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:16px}
+.pr-tvr.h{background:none;padding:0 10px;font-size:10px;color:rgba(255,255,255,.4);font-family:'Inter',sans-serif;letter-spacing:.8px}
+.pr-tvr .ps{font-weight:900;font-size:19px;color:var(--y)}
+.pr-tvr .c{text-align:center}
+.pr-fg{display:flex;flex-direction:column;gap:5px}
+.pr-fg label{font-size:11px;color:var(--muted);letter-spacing:.8px;text-transform:uppercase;font-weight:600}
+.pr-fg input,.pr-fg select{background:var(--card2);border:1px solid var(--border);border-radius:9px;padding:10px 12px;font-size:14px;color:#fff;outline:none;font-family:inherit}
+.pr-fg input:focus,.pr-fg select:focus{border-color:var(--accent)}
+.pr-fg select option{background:#1b1b21}
+.pr-grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.pr-note{font-size:12px;color:var(--muted);line-height:1.5}
+.pr-warn{background:rgba(234,134,12,.1);border:1px solid rgba(234,134,12,.35);border-radius:10px;padding:12px 14px;font-size:13px;color:#ffc27a;line-height:1.5}
+.pr-mx{width:100%;border-collapse:collapse;font-size:13px}
+.pr-mx th,.pr-mx td{padding:8px 6px;text-align:center;border-bottom:1px solid var(--border)}
+.pr-mx td:first-child,.pr-mx th:first-child{text-align:left}
+.pr-mx .y{color:var(--green);font-weight:800}.pr-mx .n{color:var(--dimmer)}.pr-mx .p{color:var(--y);font-weight:700;font-size:11px}
+.pr-empty{text-align:center;color:var(--muted);padding:28px 10px;font-size:13px}
+.pr-drawer-bg{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:300;display:none}
+.pr-drawer{position:fixed;top:0;right:0;bottom:0;width:min(480px,100vw);background:var(--panel);border-left:1px solid var(--border);box-shadow:-30px 0 60px rgba(0,0,0,.6);padding:26px;display:flex;flex-direction:column;gap:13px;z-index:301;transform:translateX(105%);transition:transform .22s ease;overflow-y:auto}
+.pr-drawer.open{transform:none}
+.pr-drawer h2{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:30px;text-transform:uppercase}
+.pr-chk{display:flex;align-items:center;gap:9px;font-size:13px;color:var(--muted);cursor:pointer}
+.pr-chk input{width:18px;height:18px;accent-color:var(--accent)}
+@media(max-width:900px){
+  .pr-shell{flex-direction:column}
+  .pr-sb{width:auto;height:auto;position:static;flex-direction:row;flex-wrap:wrap;gap:4px;padding:10px}
+  .pr-imp + .pr-shell .pr-sb{height:auto}
+  .pr-sbh,.pr-lic{display:none}
+  .pr-me{margin-top:0}
+  .pr-main .content{padding:18px 16px}
+  .pr-wk{grid-template-columns:repeat(2,1fr)}
+  .pr-grid2{grid-template-columns:1fr}
+  .pr-imp{height:auto;padding:8px 12px;flex-wrap:wrap}
+}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="loginScreen">
+  <div class="login-box">
+    <div class="login-logo">
+      <div class="bolt">⚡</div>
+      <div class="brand">PRORIDER</div>
+      <div class="sub">Painel da Academia</div>
+    </div>
+    <div class="fg"><label>E-mail</label><input type="email" id="lEmail" placeholder="gestor@academia.com"></div>
+    <div class="fg"><label>Senha</label><input type="password" id="lPass" placeholder="••••••••"></div>
+    <button class="login-btn" onclick="doLogin()">ENTRAR</button>
+    <div class="login-err" id="lErr"></div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <!-- 26/09e: barra do modo suporte (super admin dentro da licença) -->
+  <div class="pr-imp" id="impBar" style="display:none">
+    <span><span class="tag">MODO SUPORTE</span>Você está vendo: <b id="impNome">—</b> como gestor</span>
+    <button onclick="voltarAoAdmin()">← Voltar ao meu painel</button>
+  </div>
+  <div class="pr-shell">
+  <aside class="pr-sb">
+    <div class="pr-brand">PRORIDER</div>
+    <div class="pr-lic"><small>Licença</small><b id="meLic">—</b></div>
+    <nav id="sbNav"></nav>
+    <div class="pr-me" onclick="showTab('perfil')" title="Meu perfil">
+      <div class="pr-av" id="meAv">?</div>
+      <div class="t"><span class="nm" id="meNome">—</span><span id="meRole"></span></div>
+      <button class="pr-out" onclick="event.stopPropagation();doLogout()" title="Sair">⏻</button>
+    </div>
+    <span id="hUser" style="display:none"></span><span id="hLic" style="display:none"></span>
+  </aside>
+  <main class="pr-main" id="mainArea">
+
+  <!-- DASHBOARD (26/09e) -->
+  <div class="page active content" id="page-dashboard">
+    <div class="pr-hero">
+      <div><h2>Criar nova aula</h2><p>Monte blocos, zonas e desafios automáticos no Construtor. A aula aparece no Ginásio e no app dos alunos.</p></div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <button class="pr-btn pr-bg" onclick="openNovaAula()">📅 Agendar na grade</button>
+        <button class="pr-btn pr-bp" onclick="abrirConstrutor()">⚡ Criar aula</button>
+      </div>
+    </div>
+    <div class="pr-kp">
+      <div class="pr-k link" onclick="showTab('grade')"><small>Aulas na grade</small><div class="v" id="kGrade">—</div><div class="d" id="kGradeD">por semana</div></div>
+      <div class="pr-k"><small>Aulas concluídas (7 dias)</small><div class="v" id="kAulas7">—</div><div class="d" id="kAulas7D">&nbsp;</div></div>
+      <div class="pr-k link" onclick="showTab('alunos')"><small>Alunos ativos (30 dias)</small><div class="v" id="kAtivos">—</div><div class="d" id="kAtivosD">&nbsp;</div></div>
+      <div class="pr-k link" onclick="alAbrirFiltro('sumidos')"><small>Sem vir há 14 dias</small><div class="v" id="kSumidos" style="color:var(--accent)">—</div><div class="d" style="color:var(--muted)">ver quem são →</div></div>
+    </div>
+    <div style="display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr);gap:14px" class="pr-dash2">
+      <div class="pr-card"><h3>Agenda da semana <a onclick="showTab('grade')">abrir agenda →</a></h3><div class="pr-wk" id="dashAgenda"><div class="pr-empty">Carregando…</div></div></div>
+      <div class="pr-card"><h3>Top da semana <a onclick="showTab('leaderboard')">ranking →</a></h3><div id="dashTop"><div class="pr-empty">Carregando…</div></div></div>
+    </div>
+  </div>
+
+  <!-- ALUNOS (26/09e): lista escondida, lupa + seta -->
+  <div class="page content" id="page-alunos">
+    <div class="pr-hd">
+      <div><h1>Alunos</h1><p id="alResumo">—</p></div>
+      <button class="pr-btn pr-bg" onclick="exportarAlunosCSV()">⬇ Exportar planilha</button>
+    </div>
+    <div style="display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr);gap:22px" class="pr-dash2">
+      <div>
+        <div class="pr-srch" id="alSrch">
+          <span>🔍</span>
+          <input id="alBusca" placeholder="Buscar aluno por nome ou e-mail…" oninput="alFiltrar()" autocomplete="off">
+          <button class="cv" onclick="alToggle()" title="Abrir / fechar a lista">▾</button>
+        </div>
+        <div class="pr-chips" id="alChips"></div>
+        <div id="alLista" class="pr-lst" style="display:none"></div>
+        <div id="alFechada" class="pr-card" style="margin-top:16px">
+          <h3>Visitaram nesta semana</h3>
+          <div style="font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:56px;line-height:1" id="alVisitas">—</div>
+          <div class="pr-note" style="margin-top:6px">A lista completa só aparece quando você busca um nome, escolhe um filtro ou abre a seta.</div>
+        </div>
+      </div>
+      <div>
+        <div class="pr-card" style="margin-bottom:14px"><h3>Aniversariantes do mês</h3><div id="alNiver"><div class="pr-empty">—</div></div></div>
+        <div class="pr-card"><h3>Dica</h3><div class="pr-note">Aluno que entra numa aula pelo QR da bike passa a ser desta academia sozinho. Não precisa cadastrar ninguém à mão.</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CRIAR AULA (26/09e) -->
+  <div class="page content" id="page-criar">
+    <div class="pr-hd"><div><h1>Criar aula</h1><p>Tudo o que a academia precisa para montar e rodar uma aula</p></div></div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px">
+      <div class="pr-card" style="border-color:rgba(234,134,12,.45)"><h3>⚡ Construtor de treino</h3><p class="pr-note" style="margin-bottom:14px">Blocos, zonas de FTP, cadência, posição e desafio automático no fim do bloco. O treino salvo aparece no Ginásio em "Minhas aulas".</p><button class="pr-btn pr-bp" onclick="abrirConstrutor()">Abrir o Construtor</button></div>
+      <div class="pr-card"><h3>📅 Agendar na grade</h3><p class="pr-note" style="margin-bottom:14px">Dia, horário, professor e vagas. A grade aparece no app para reserva e no Ginásio da sala.</p><button class="pr-btn pr-bg" onclick="openNovaAula()">+ Nova aula na grade</button></div>
+      <div class="pr-card"><h3>📡 Aula ao vivo agora</h3><p class="pr-note" style="margin-bottom:14px">Abre uma sessão com QR para os alunos entrarem pelo app sem reserva.</p><button class="pr-btn pr-bg" onclick="iniciarSessaoAoVivo()">Iniciar sessão</button></div>
+      <div class="pr-card"><h3>🎛 Studio Builder</h3><p class="pr-note" style="margin-bottom:14px">O construtor antigo, com música. Continua disponível para quem já usa.</p><a class="pr-btn pr-bg" href="studio.html" target="_blank">Abrir Studio Builder</a></div>
+    </div>
+  </div>
+
+  <!-- EQUIPE E ACESSOS (26/09e) -->
+  <div class="page content" id="page-equipe">
+    <div class="pr-hd"><div><h1>Equipe e acessos</h1><p>Quem entra no Portal e no app como professor, coordenador ou financeiro</p></div>
+      <button class="pr-btn pr-bp" id="btnConvidar" onclick="eqAbrirConvite()">＋ Convidar pessoa</button></div>
+    <div class="pr-card" style="margin-bottom:16px;padding:6px 8px"><div id="eqLista"><div class="pr-empty">Carregando…</div></div></div>
+    <div class="pr-card"><h3>O que cada papel vê</h3>
+      <div style="overflow-x:auto"><table class="pr-mx">
+        <tr><th>Área</th><th><span class="pr-role r-aluno">Aluno</span></th><th><span class="pr-role r-professor">Professor</span></th><th><span class="pr-role r-coordenador">Coordenador</span></th><th><span class="pr-role r-financeiro">Financeiro</span></th><th><span class="pr-role r-gestor">Gestor</span></th></tr>
+        <tr><td>Meu perfil, histórico, FTP</td><td class="y">✓</td><td class="y">✓</td><td class="y">✓</td><td class="y">✓</td><td class="y">✓</td></tr>
+        <tr><td>Criar aula (Construtor)</td><td class="n">—</td><td class="y">✓</td><td class="y">✓</td><td class="n">—</td><td class="y">✓</td></tr>
+        <tr><td>Agenda da semana</td><td class="p">reservar</td><td class="p">as suas</td><td class="y">✓</td><td class="n">—</td><td class="y">✓</td></tr>
+        <tr><td>Alunos (lista e ficha)</td><td class="n">—</td><td class="p">da aula</td><td class="y">✓</td><td class="p">só ver</td><td class="y">✓</td></tr>
+        <tr><td>Equipe e acessos</td><td class="n">—</td><td class="n">—</td><td class="p">só ver</td><td class="n">—</td><td class="y">✓</td></tr>
+        <tr><td>Ranking na TV, bikes</td><td class="n">—</td><td class="n">—</td><td class="n">—</td><td class="n">—</td><td class="y">✓</td></tr>
+        <tr><td>Relatórios e exportação</td><td class="n">—</td><td class="n">—</td><td class="y">✓</td><td class="y">✓</td><td class="y">✓</td></tr>
+        <tr><td>Financeiro da licença</td><td class="n">—</td><td class="n">—</td><td class="n">—</td><td class="y">✓</td><td class="y">✓</td></tr>
+        <tr><td>E-mails automáticos</td><td class="n">—</td><td class="n">—</td><td class="y">✓</td><td class="n">—</td><td class="y">✓</td></tr>
+      </table></div>
+      <div class="pr-note" style="margin-top:10px">Professor usa o app ProRider (Agenda, Construtor, Sala do professor). Aluno usa o app e o portal do aluno.</div>
+    </div>
+  </div>
+
+  <!-- RANKING NA TV (26/09e) -->
+  <div class="page content" id="page-rankingtv">
+    <div class="pr-hd"><div><h1>Ranking na TV</h1><p>O que aparece na tela de Ranking (botão B do controle) durante a aula</p></div>
+      <button class="pr-btn pr-bp" id="rkSalvarBtn" onclick="rkSalvar()">Salvar</button></div>
+    <div style="display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:26px" class="pr-dash2">
+      <div>
+        <div class="pr-tv" id="rkTv"></div>
+        <div class="pr-note" style="margin-top:10px">Prévia com nomes de exemplo — não é a aula de agora. Depois de salvar, o Ginásio da academia passa a usar estes campos em até 15 minutos (ou na hora, ao reabrir o programa).</div>
+      </div>
+      <div>
+        <div class="pr-card"><h3>Campos <span class="pr-note" style="font-family:Inter,sans-serif;text-transform:none;letter-spacing:0">arraste para ordenar</span></h3>
+          <div id="rkCampos"></div>
+          <div class="pr-tg" style="margin:10px 0 0">Ordenar ranking por
+            <select id="rkOrdem" onchange="rkPrevia()" style="background:var(--card);border:1px solid var(--border);color:#fff;border-radius:8px;padding:6px 10px;font-family:inherit">
+              <option value="wpp">Pontos (WPP)</option><option value="kcal">Kcal</option><option value="watts">Potência média</option><option value="ftp">% do FTP</option>
+            </select>
+          </div>
+        </div>
+        <div class="pr-note" style="margin-top:10px" id="rkMsg"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MEU PERFIL (26/09e) -->
+  <div class="page content" id="page-perfil">
+    <div class="pr-hd"><div><h1>Meu perfil</h1><p>Os mesmos dados do app. O que mudar aqui vale no app e na TV.</p></div></div>
+    <div style="display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:22px" class="pr-dash2">
+      <div class="pr-card">
+        <div style="display:flex;align-items:center;gap:16px;margin-bottom:18px">
+          <div class="pr-av" id="pfAv" style="width:64px;height:64px;font-size:22px">?</div>
+          <div><div style="font-size:20px;font-weight:700" id="pfNomeT">—</div><div style="margin-top:4px" id="pfRole"></div></div>
+        </div>
+        <div class="pr-grid2">
+          <div class="pr-fg"><label>Nome</label><input id="pfNome"></div>
+          <div class="pr-fg"><label>E-mail</label><input id="pfEmail" type="email"></div>
+          <div class="pr-fg"><label>Nascimento</label><input id="pfNasc" type="date"></div>
+          <div class="pr-fg"><label>Sexo</label><select id="pfSexo"><option value="">—</option><option value="F">Feminino</option><option value="M">Masculino</option></select></div>
+          <div class="pr-fg"><label>Peso (kg)</label><input id="pfPeso" type="number" step="0.1"></div>
+          <div class="pr-fg"><label>Altura (cm)</label><input id="pfAltura" type="number"></div>
+          <div class="pr-fg"><label>FTP (W)</label><input id="pfFtp" type="number"></div>
+          <div class="pr-fg"><label>Idade</label><input id="pfIdade" type="number" placeholder="calculada pelo nascimento"></div>
+        </div>
+        <div style="margin-top:16px;display:flex;gap:10px;align-items:center"><button class="pr-btn pr-bp" onclick="pfSalvar()">Salvar perfil</button><span class="pr-note" id="pfMsg"></span></div>
+      </div>
+      <div>
+        <div class="pr-card" style="margin-bottom:14px"><h3>Trocar senha</h3>
+          <div class="pr-fg" style="margin-bottom:10px"><label>Senha atual</label><input id="pfS0" type="password"></div>
+          <div class="pr-fg" style="margin-bottom:12px"><label>Nova senha</label><input id="pfS1" type="password" placeholder="mínimo 6 caracteres"></div>
+          <button class="pr-btn pr-bg" onclick="pfTrocarSenha()">Trocar senha</button> <span class="pr-note" id="pfSMsg"></span>
+        </div>
+        <div class="pr-card"><h3>Minha academia</h3><div id="pfLic" class="pr-note">—</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- QR CODES -->
+  <div class="page content" id="page-qrcodes">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px">
+      <div>
+        <div style="font-size:11px;font-weight:700;letter-spacing:2px;color:var(--muted);text-transform:uppercase;margin-bottom:4px">QR Codes</div>
+        <div style="font-size:22px;font-weight:700">Adesivos & Acesso</div>
+      </div>
+      <button onclick="imprimirQRs()" style="padding:10px 20px;border-radius:10px;background:var(--accent);border:none;color:#fff;font-weight:700;font-size:13px;cursor:pointer;">🖨️ Imprimir tudo</button>
+    </div>
+
+    <!-- QR da porta -->
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:20px;margin-bottom:20px">
+      <div style="font-size:11px;font-weight:700;letter-spacing:2px;color:var(--muted);text-transform:uppercase;margin-bottom:14px">📍 QR da Porta da Sala</div>
+      <div style="display:flex;align-items:center;gap:24px;flex-wrap:wrap">
+        <div id="qrPortaDiv" style="background:#fff;padding:12px;border-radius:12px;display:inline-block"></div>
+        <div>
+          <div style="font-size:14px;font-weight:600;margin-bottom:6px">Coloque na entrada da sala</div>
+          <div style="font-size:12px;color:var(--muted);line-height:1.6;max-width:360px">
+            Aluno escaneia ao chegar → vê se tem vaga na aula atual → pode reservar a próxima.<br>
+            <span style="color:var(--accent);font-weight:600">Nunca muda</span> — imprima uma vez e cole.
+          </div>
+          <div id="qrPortaPayload" style="margin-top:10px;font-size:11px;color:var(--muted);font-family:monospace;word-break:break-all"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- QRs das bikes -->
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:20px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px">
+        <div style="font-size:11px;font-weight:700;letter-spacing:2px;color:var(--muted);text-transform:uppercase">🚲 QR por Bike</div>
+        <div style="font-size:12px;color:var(--muted)">Cole o adesivo correspondente em cada bike ou na parede atrás dela</div>
+      </div>
+      <div id="qrBikesGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:16px">
+        <div style="color:var(--muted);font-size:13px;padding:20px">Carregando...</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- EMAILS -->
+  <div class="page content" id="page-emails">
+    <div class="pr-hd"><div><h1>E-mails automáticos</h1><p>Liga e desliga cada aviso desta academia</p></div>
+      <button class="pr-btn pr-bg" onclick="emTeste()">✉ Mandar um teste para mim</button></div>
+    <div id="emStatus" style="margin-bottom:14px"></div>
+    <div class="pr-card" style="margin-bottom:18px"><div id="emCfg"><div class="pr-empty">Carregando…</div></div></div>
+    <details style="margin-bottom:20px"><summary style="cursor:pointer;color:var(--accent);font-weight:700;font-size:13px;margin-bottom:14px">Ver os modelos dos e-mails</summary>
+    <div style="margin-bottom:20px">
+      <div style="font-size:11px;font-weight:700;letter-spacing:2px;color:var(--muted);text-transform:uppercase;margin-bottom:6px">Automação de e-mails pós-aula</div>
+      <div style="font-size:13px;color:var(--muted);max-width:600px">Estes e-mails são enviados automaticamente para cada aluno após concluir uma aula. Os dados são preenchidos automaticamente com o desempenho real do aluno.</div>
+    </div>
+
+    <!-- E-mail 1 -->
+    <div class="email-card">
+      <div class="email-header">
+        <h3>📊 E-mail 1 — Resumo imediato (5 min após a aula)</h3>
+        <span style="font-size:11px;font-weight:700;color:var(--green);background:rgba(93,177,61,.1);padding:3px 10px;border-radius:20px">Ativo</span>
+      </div>
+      <div class="email-meta">
+        <div><span style="color:var(--muted)">Assunto:</span> ⚡ {{nome}}, sua aula foi incrível!</div>
+        <div><span style="color:var(--muted)">Disparo:</span> 5 minutos após conclusão</div>
+      </div>
+      <div class="email-body">
+        <div style="background:#0a0a0f;border-radius:10px;padding:24px;font-family:Arial,sans-serif;max-width:520px">
+          <div style="font-size:22px;font-weight:900;color:#ea860c;margin-bottom:4px">⚡ PRORIDER</div>
+          <div style="font-size:11px;color:#888;letter-spacing:3px;margin-bottom:20px">CYCLING PERFORMANCE</div>
+          <div style="font-size:18px;font-weight:700;color:#fff;margin-bottom:16px">Parabéns pela aula, <span style="color:#ea860c">{{nome}}</span>! 🔥</div>
+          <div style="background:#16161a;border-radius:8px;padding:16px;margin-bottom:16px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;text-align:center">
+            <div><div style="font-size:28px;font-weight:900;color:#fff">{{duracao}}</div><div style="font-size:10px;color:#888">DURAÇÃO</div></div>
+            <div><div style="font-size:28px;font-weight:900;color:#ea860c">{{kcal}}</div><div style="font-size:10px;color:#888">KCAL</div></div>
+            <div><div style="font-size:28px;font-weight:900;color:#295fe8">{{avg_ftp}}%</div><div style="font-size:10px;color:#888">FTP MÉDIO</div></div>
+          </div>
+          <div style="background:#16161a;border-radius:8px;padding:14px;margin-bottom:16px">
+            <div style="font-size:10px;color:#888;margin-bottom:8px;letter-spacing:2px">ZONA DOMINANTE</div>
+            <div style="font-size:20px;font-weight:700;color:#fff">{{zona_dominante}}</div>
+          </div>
+          <div style="font-size:12px;color:#888;margin-bottom:16px">Aula: <strong style="color:#fff">{{nome_aula}}</strong> · {{data}}</div>
+          <div style="background:linear-gradient(135deg,#ea860c,#d62d2d);border-radius:8px;padding:12px;text-align:center;font-weight:700;color:#fff;font-size:14px">VER RESULTADO COMPLETO →</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- E-mail 2 -->
+    <div class="email-card">
+      <div class="email-header">
+        <h3>💪 E-mail 2 — Recuperação (24h depois)</h3>
+        <span style="font-size:11px;font-weight:700;color:var(--green);background:rgba(93,177,61,.1);padding:3px 10px;border-radius:20px">Ativo</span>
+      </div>
+      <div class="email-meta">
+        <div><span style="color:var(--muted)">Assunto:</span> {{nome}}, como está a recuperação?</div>
+        <div><span style="color:var(--muted)">Disparo:</span> 24 horas após a aula</div>
+      </div>
+      <div class="email-body">
+        <div style="background:#0a0a0f;border-radius:10px;padding:24px;max-width:520px;font-family:Arial,sans-serif">
+          <div style="font-size:22px;font-weight:900;color:#ea860c;margin-bottom:16px">⚡ PRORIDER</div>
+          <div style="font-size:16px;font-weight:700;color:#fff;margin-bottom:12px">Como está a recuperação, <span style="color:#ea860c">{{nome}}</span>?</div>
+          <div style="font-size:13px;color:#aaa;margin-bottom:16px">Ontem você completou <strong style="color:#fff">{{nome_aula}}</strong> com {{avg_ftp}}% de FTP médio. Seu corpo está se adaptando! 🚴</div>
+          <div style="background:#16161a;border-radius:8px;padding:14px;margin-bottom:16px">
+            <div style="font-size:11px;color:#888;margin-bottom:8px">PRÓXIMA AULA SUGERIDA</div>
+            <div style="font-size:15px;font-weight:700;color:#fff">{{proxima_aula}}</div>
+            <div style="font-size:12px;color:#888;margin-top:4px">Para manter o ritmo e continuar evoluindo</div>
+          </div>
+          <div style="background:linear-gradient(135deg,#295fe8,#9b30ff);border-radius:8px;padding:12px;text-align:center;font-weight:700;color:#fff;font-size:14px">AGENDAR PRÓXIMA AULA →</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- E-mail 3 -->
+    <div class="email-card">
+      <div class="email-header">
+        <h3>😴 E-mail 3 — Reativação (7 dias sem aula)</h3>
+        <span style="font-size:11px;font-weight:700;color:var(--accent);background:rgba(234,134,12,.1);padding:3px 10px;border-radius:20px">Em breve</span>
+      </div>
+      <div class="email-meta">
+        <div><span style="color:var(--muted)">Assunto:</span> Sentimos sua falta, {{nome}} 🚴</div>
+        <div><span style="color:var(--muted)">Disparo:</span> 7 dias sem atividade</div>
+      </div>
+      <div class="email-body" style="opacity:.5">
+        <div style="background:#0a0a0f;border-radius:10px;padding:24px;max-width:520px;font-family:Arial,sans-serif">
+          <div style="font-size:22px;font-weight:900;color:#ea860c;margin-bottom:16px">⚡ PRORIDER</div>
+          <div style="font-size:16px;font-weight:700;color:#fff;margin-bottom:12px">Sentimos sua falta, <span style="color:#ea860c">{{nome}}</span>!</div>
+          <div style="font-size:13px;color:#aaa;margin-bottom:16px">Faz {{dias_ausente}} dias desde sua última aula. Sua bicicleta sente sua falta 🚴</div>
+          <div style="background:linear-gradient(135deg,#ea860c,#d62d2d);border-radius:8px;padding:12px;text-align:center;font-weight:700;color:#fff">VOLTAR A PEDALAR →</div>
+        </div>
+      </div>
+    </div>
+    </details>
+  </div>
+
+
+  <!-- GRADE -->
+  <div class="page content" id="page-grade">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px">
+      <div>
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:2px">Grade de Aulas</div>
+        <div style="font-size:12px;color:var(--muted)">Horários fixos semanais da academia</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px">
+        <span id="gradeCapacidade" style="display:none;background:rgba(41,95,232,.1);border:1px solid rgba(41,95,232,.25);color:#295fe8;font-size:11px;font-weight:700;padding:5px 12px;border-radius:20px;letter-spacing:.5px"></span>
+        <button onclick="openNovaAula()" style="padding:9px 20px;border-radius:10px;border:none;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;font-size:13px;font-weight:700;cursor:pointer">+ Nova Aula</button>
+      </div>
+    </div>
+
+    <!-- Grade por dia da semana -->
+    <div id="gradeWrap"></div>
+  </div>
+
+  <!-- MODAL SESSÃO AO VIVO -->
+  <div id="sessaoModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:400;align-items:center;justify-content:center">
+    <div style="background:var(--panel);border:1px solid rgba(93,177,61,.3);border-radius:20px;padding:32px;width:100%;max-width:480px;margin:16px;text-align:center">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+        <div style="font-size:17px;font-weight:700">🖥️ Aula ao Vivo</div>
+        <button onclick="fecharSessaoModal()" style="background:rgba(255,255,255,.06);border:none;color:var(--muted);width:28px;height:28px;border-radius:50%;cursor:pointer;font-size:16px">✕</button>
+      </div>
+
+      <!-- Estado: nenhuma sessão ativa -->
+      <div id="sessaoEstadoNenhuma">
+        <div style="font-size:40px;margin-bottom:12px">📡</div>
+        <p style="color:var(--muted);font-size:13px;margin-bottom:20px">Inicie uma sessão ao vivo. Os alunos escaneiam o QR com o app ProRider e entram automaticamente na tela.</p>
+        <div class="fg" style="text-align:left;margin-bottom:14px">
+          <label style="font-size:11px;font-weight:700;letter-spacing:1.5px;color:var(--muted);text-transform:uppercase">Nome da Aula</label>
+          <input id="sessaoNomeAula" placeholder="Ex: Spinning Avançado — Manhã" style="width:100%;padding:11px 14px;border-radius:9px;border:1px solid var(--border);background:rgba(255,255,255,.05);color:#fff;font-size:14px">
+        </div>
+        <div class="fg" style="text-align:left;margin-bottom:20px">
+          <label style="font-size:11px;font-weight:700;letter-spacing:1.5px;color:var(--muted);text-transform:uppercase">Professor</label>
+          <input id="sessaoProfessor" placeholder="Nome do professor" style="width:100%;padding:11px 14px;border-radius:9px;border:1px solid var(--border);background:rgba(255,255,255,.05);color:#fff;font-size:14px">
+        </div>
+        <button onclick="criarSessaoAoVivo()" style="width:100%;padding:14px;border-radius:12px;border:none;background:linear-gradient(135deg,var(--green),#3a8a28);color:#fff;font-size:15px;font-weight:700;cursor:pointer">▶ Iniciar Sessão</button>
+      </div>
+
+      <!-- Estado: sessão ativa com QR -->
+      <div id="sessaoEstadoAtiva" style="display:none">
+        <div style="font-size:12px;font-weight:700;color:var(--green);letter-spacing:1px;margin-bottom:4px">● SESSÃO ATIVA</div>
+        <div id="sessaoNomeDisplay" style="font-size:18px;font-weight:700;margin-bottom:4px"></div>
+        <div id="sessaoLimiteDisplay" style="font-size:12px;color:var(--muted);margin-bottom:16px"></div>
+        <!-- QR Code gerado via API qrserver.com -->
+        <div id="sessaoQRWrap" style="display:inline-block;background:#fff;padding:12px;border-radius:12px;margin-bottom:16px">
+          <img id="sessaoQRImg" src="" width="180" height="180" alt="QR Code">
+        </div>
+        <div style="font-size:11px;color:var(--muted);margin-bottom:16px">Alunos escaneiam com o app ProRider</div>
+        <div id="sessaoConectadosInfo" style="font-size:13px;font-weight:700;color:var(--green);margin-bottom:16px">0 alunos conectados</div>
+        <button onclick="encerrarSessaoAtiva()" style="width:100%;padding:12px;border-radius:12px;border:1px solid rgba(214,45,45,.4);background:rgba(214,45,45,.08);color:var(--accent2);font-size:14px;font-weight:700;cursor:pointer">⏹ Encerrar Sessão</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL NOVA AULA / EDITAR -->
+  <div id="aulaModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:300;align-items:center;justify-content:center">
+    <div style="background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:28px;width:100%;max-width:420px;margin:16px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+        <div style="font-size:16px;font-weight:700" id="aulaModalTitle">Nova Aula</div>
+        <button onclick="closeAulaModal()" style="background:rgba(255,255,255,.06);border:none;color:var(--muted);width:28px;height:28px;border-radius:50%;cursor:pointer;font-size:16px">✕</button>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="fg"><label>Nome da aula</label><input id="fNome" placeholder="Indoor Cycle, Power Bike..."></div>
+        <div class="fg"><label>Professor</label><input id="fProf" placeholder="Nome do professor"></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <div class="fg"><label>Dia da semana</label>
+            <select id="fDia" style="padding:10px 13px;border-radius:8px;border:1px solid var(--border);background:rgba(255,255,255,.05);color:#fff;font-size:14px;outline:none">
+              <option value="1">Segunda</option><option value="2">Terça</option><option value="3">Quarta</option>
+              <option value="4">Quinta</option><option value="5">Sexta</option><option value="6">Sábado</option><option value="0">Domingo</option>
+            </select>
+          </div>
+          <div class="fg"><label>Horário</label><input id="fHora" type="time" value="07:00"></div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <div class="fg"><label>Duração (min)</label><input id="fDur" type="number" value="50" min="20" max="120"></div>
+          <div class="fg">
+            <label>Vagas <span id="fVagasHint" style="font-weight:400;color:var(--muted);font-size:10px;text-transform:none;letter-spacing:0"></span></label>
+            <input id="fVagas" type="number" value="20" min="1" max="100">
+          </div>
+        </div>
+        <div class="fg"><label>Sala (opcional)</label><input id="fSala" placeholder="Sala 1, Studio B..."></div>
+      </div>
+      <!-- Modo de início — define comportamento do ProRider Jim (mini PC) -->
+      <div class="fg" style="margin-top:12px">
+        <label>🖥️ Início da aula no mini PC</label>
+        <select id="fModoInicio" style="padding:10px 14px;border-radius:9px;border:1px solid var(--border);background:rgba(255,255,255,.05);color:#fff;font-size:13px;width:100%">
+          <option value="professor">⏸ Aguardar professor pressionar Iniciar</option>
+          <option value="automatico">▶ Automático — inicia quando o cronômetro chegar a zero</option>
+        </select>
+        <div style="font-size:11px;color:var(--muted);margin-top:4px;line-height:1.5">
+          O mini PC exibe a tela de QR automaticamente 10 min antes da aula começar.
+        </div>
+      </div>
+      <div style="display:flex;gap:10px;margin-top:20px">
+        <button onclick="salvarAula()" style="flex:1;padding:11px;border-radius:10px;border:none;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;font-size:14px;font-weight:700;cursor:pointer" id="btnSalvarAula">Salvar</button>
+        <button onclick="closeAulaModal()" style="padding:11px 20px;border-radius:10px;border:1px solid var(--border);background:transparent;color:var(--muted);font-size:14px;cursor:pointer">Cancelar</button>
+      </div>
+      <div id="aulaErr" style="color:#d62d2d;font-size:12px;text-align:center;margin-top:8px;display:none"></div>
+    </div>
+  </div>
+
+  <!-- MODAL LISTA DE RESERVAS (professor view) -->
+  <div id="reservasModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:300;align-items:flex-end;justify-content:center">
+    <div style="background:var(--panel);border-radius:20px 20px 0 0;width:100%;max-width:500px;max-height:85vh;overflow-y:auto;padding:24px 20px 32px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+        <div style="font-size:16px;font-weight:700" id="resModalTitle">Lista de Reservas</div>
+        <button onclick="closeReservasModal()" style="background:rgba(255,255,255,.06);border:none;color:var(--muted);width:28px;height:28px;border-radius:50%;cursor:pointer;font-size:16px">✕</button>
+      </div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:16px" id="resModalSub"></div>
+      <div style="display:flex;gap:8px;margin-bottom:16px;align-items:center">
+        <input type="date" id="resData" style="padding:7px 10px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:#fff;font-size:13px" onchange="loadReservas()">
+        <button onclick="openWalkin()" style="padding:7px 14px;border-radius:8px;border:1px solid var(--border);background:rgba(255,255,255,.04);color:#fff;font-size:12px;cursor:pointer">+ Walk-in</button>
+      </div>
+      <div id="resList"></div>
+    </div>
+  </div>
+
+  <!-- FINANCEIRO -->
+  <div class="page content" id="page-financeiro">
+
+    <!-- Aviso para admin em modo suporte -->
+    <div id="finAdminNotice" style="display:none;background:rgba(41,95,232,.08);border:1px solid rgba(41,95,232,.25);border-radius:12px;padding:14px 18px;margin-bottom:20px;font-size:13px;color:#295fe8">
+      ⚡ <strong>Modo Suporte:</strong> Você está visualizando o financeiro desta academia. Dados do cartão são invisíveis por política de privacidade — apenas o responsável financeiro pode ver e editar essas informações.
+    </div>
+
+    <!-- Status de pagamento -->
+    <div id="finStatusCard" style="border-radius:14px;padding:24px;margin-bottom:20px;border:1px solid var(--border);background:var(--card)">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
+        <div>
+          <div style="font-size:11px;font-weight:700;letter-spacing:2px;color:var(--muted);text-transform:uppercase;margin-bottom:6px">Status do plano</div>
+          <div id="finStatusDot" style="font-size:20px;font-weight:700"></div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-size:11px;color:var(--muted)">Mensalidade</div>
+          <div id="finValor" style="font-family:'Barlow Condensed',sans-serif;font-size:36px;font-weight:900;color:var(--green)">—</div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-size:11px;color:var(--muted)">Vencimento</div>
+          <div id="finVenc" style="font-size:22px;font-weight:700">Dia —</div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-size:11px;color:var(--muted)">Último pagamento</div>
+          <div id="finUltimoPgto" style="font-size:15px;font-weight:600">—</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Cartão cadastrado -->
+    <div class="tcard" style="margin-bottom:20px">
+      <div class="thead-row">
+        <h2>💳 Forma de pagamento</h2>
+        <div id="finCartaoEditBtn"></div>
+      </div>
+      <div style="padding:20px" id="finCartaoArea"></div>
+    </div>
+
+    <!-- Histórico de pagamentos -->
+    <div class="tcard">
+      <div class="thead-row"><h2>📋 Histórico de pagamentos</h2></div>
+      <table>
+        <thead><tr><th>Data</th><th>Referência</th><th>Valor</th><th>Método</th><th>Status</th></tr></thead>
+        <tbody id="finPgtosTable"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- MODAL CADASTRAR CARTÃO -->
+  <div id="cartaoModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:400;align-items:center;justify-content:center">
+    <div style="background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:28px;width:100%;max-width:400px;margin:16px">
+      <div style="font-size:16px;font-weight:700;margin-bottom:6px">💳 Dados do cartão</div>
+      <div style="background:rgba(214,45,45,.06);border:1px solid rgba(214,45,45,.2);border-radius:10px;padding:10px 14px;font-size:12px;color:rgba(255,255,255,.6);margin-bottom:18px;line-height:1.6">
+        🔒 Para sua segurança, informe <strong>apenas os últimos 4 dígitos</strong> e a validade.<br>
+        Número completo e CVV são processados diretamente pelo gateway de pagamento.
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+        <div class="fg"><label>Bandeira</label>
+          <select id="cBandeira" style="padding:10px 13px;border-radius:8px;border:1px solid var(--border);background:rgba(255,255,255,.05);color:#fff;font-size:14px;outline:none">
+            <option value="Visa">Visa</option><option value="Mastercard">Mastercard</option>
+            <option value="Elo">Elo</option><option value="Amex">Amex</option><option value="Hipercard">Hipercard</option>
+          </select>
+        </div>
+        <div class="fg"><label>Últimos 4 dígitos</label><input id="cFinal" maxlength="4" placeholder="0000" style="letter-spacing:4px;font-size:18px"></div>
+        <div class="fg"><label>Validade (MM/AAAA)</label><input id="cValidade" placeholder="12/2028" maxlength="7"></div>
+        <div class="fg"><label>Nome no cartão</label><input id="cTitular" placeholder="MARIO SILVA"></div>
+      </div>
+      <div id="cartaoErr" style="color:#d62d2d;font-size:12px;margin-bottom:10px;display:none"></div>
+      <div style="display:flex;gap:10px">
+        <button onclick="salvarCartao()" style="flex:1;padding:11px;border-radius:10px;border:none;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;font-size:14px;font-weight:700;cursor:pointer">Salvar</button>
+        <button onclick="fecharCartaoModal()" style="padding:11px 18px;border-radius:10px;border:1px solid var(--border);background:transparent;color:var(--muted);font-size:14px;cursor:pointer">Cancelar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- LEADERBOARD -->
+  <div class="page content" id="page-leaderboard">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+      <div>
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:2px">Ranking da Academia</div>
+        <div style="font-size:12px;color:var(--muted)">Pontos acumulados de todos os alunos ativos</div>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <span style="font-size:11px;color:var(--muted)">Atualizado ao vivo</span>
+        <button onclick="loadLeaderboard()" style="padding:7px 14px;border-radius:8px;border:1px solid var(--border);background:rgba(255,255,255,.04);color:#fff;font-size:12px;cursor:pointer">↻ Atualizar</button>
+      </div>
+    </div>
+    <!-- Top 3 podium -->
+    <div id="lbPodium" style="display:flex;justify-content:center;align-items:flex-end;gap:12px;margin-bottom:28px;min-height:120px"></div>
+    <!-- Full list -->
+    <div class="tcard">
+      <div id="lbList"></div>
+    </div>
+  </div>
+
+  <!-- RELATÓRIOS -->
+  <div class="page content" id="page-relatorio">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px">
+      <div>
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:2px">Relatório Mensal</div>
+        <div style="font-size:12px;color:var(--muted)">Desempenho da academia por período</div>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <select id="repMes" style="padding:7px 10px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:#fff;font-size:13px">
+          <option value="1">Janeiro</option><option value="2">Fevereiro</option><option value="3">Março</option>
+          <option value="4">Abril</option><option value="5">Maio</option><option value="6">Junho</option>
+          <option value="7">Julho</option><option value="8">Agosto</option><option value="9">Setembro</option>
+          <option value="10">Outubro</option><option value="11">Novembro</option><option value="12">Dezembro</option>
+        </select>
+        <select id="repAno" style="padding:7px 10px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:#fff;font-size:13px">
+          <option>2026</option><option>2025</option>
+        </select>
+        <button onclick="loadRelatorio()" style="padding:7px 16px;border-radius:8px;border:none;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;font-size:13px;font-weight:700;cursor:pointer">Ver</button>
+      </div>
+    </div>
+
+    <!-- KPIs -->
+    <div class="rep-grid" id="repKpis"></div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px" id="repCharts">
+      <!-- Aulas por semana -->
+      <div class="tcard" id="repSemanasCard">
+        <div class="thead-row"><h2>📅 Aulas por semana</h2></div>
+        <div style="padding:16px 20px"><div id="repSemanas" class="chart-bar-wrap"></div></div>
+      </div>
+      <!-- Zonas médias -->
+      <div class="tcard" id="repZonasCard">
+        <div class="thead-row"><h2>🎯 Zonas médias do mês</h2></div>
+        <div style="padding:16px 20px"><div id="repZonas" style="display:flex;flex-direction:column;gap:10px"></div></div>
+      </div>
+    </div>
+
+    <!-- Top alunos do mês -->
+    <div class="tcard" style="margin-bottom:16px">
+      <div class="thead-row"><h2>🏆 Top alunos do mês</h2></div>
+      <table><thead><tr><th>#</th><th>Aluno</th><th>Aulas</th><th>Kcal</th><th>FTP médio</th></tr></thead>
+      <tbody id="repTopAlunos"></tbody></table>
+    </div>
+
+    <!-- Lista de aulas -->
+    <div class="tcard">
+      <div class="thead-row"><h2>📋 Aulas do mês</h2></div>
+      <table><thead><tr><th>Aluno</th><th>Aula</th><th>Data</th><th>Duração</th><th>Kcal</th><th>FTP%</th></tr></thead>
+      <tbody id="repAulas"></tbody></table>
+    </div>
+  </div>
+
+<!-- ALUNO DETAIL (fullscreen) -->
+<div id="alunoDetail">
+  <div class="content" style="max-width:1100px">
+    <div class="back-btn" onclick="closeDetail()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+      Voltar para alunos
+    </div>
+    <div class="detail-top">
+      <div>
+        <!-- Dados editáveis -->
+        <div class="dcard" style="margin-bottom:16px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+            <h3 style="margin:0">Dados do aluno</h3>
+            <div style="display:flex;gap:8px">
+              <button id="btnEditAluno" onclick="toggleEditAluno()" style="padding:5px 14px;border-radius:8px;border:1px solid var(--border);background:rgba(255,255,255,.05);color:var(--muted);font-size:12px;cursor:pointer">✏️ Editar</button>
+              <button onclick="abrirResetSenha()" style="padding:5px 14px;border-radius:8px;border:1px solid rgba(214,45,45,.3);background:rgba(214,45,45,.06);color:var(--accent2);font-size:12px;cursor:pointer">🔑 Resetar senha</button>
+            </div>
+          </div>
+          <!-- Modo visualização -->
+          <div id="dInfo"></div>
+          <!-- Modo edição -->
+          <div id="dEditForm" style="display:none">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+              <div class="fg"><label>Nome</label><input id="eNome" placeholder="Nome completo"></div>
+              <div class="fg"><label>E-mail</label><input id="eEmail" type="email" placeholder="email@exemplo.com"></div>
+              <div class="fg"><label>FTP (W)</label><input id="eFtp" type="number" min="50" max="600" placeholder="130"></div>
+              <div class="fg"><label>Peso (kg)</label><input id="ePeso" type="number" step="0.1" min="30" max="200" placeholder="70"></div>
+            </div>
+            <div style="display:flex;gap:8px">
+              <button onclick="salvarEdicaoAluno()" style="padding:9px 20px;border-radius:9px;border:none;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;font-size:13px;font-weight:700;cursor:pointer">Salvar alterações</button>
+              <button onclick="cancelarEdicaoAluno()" style="padding:9px 16px;border-radius:9px;border:1px solid var(--border);background:transparent;color:var(--muted);font-size:13px;cursor:pointer">Cancelar</button>
+            </div>
+            <div id="dEditErr" style="color:#d62d2d;font-size:12px;margin-top:8px;display:none"></div>
+          </div>
+        </div>
+        <div class="dcard">
+          <h3>Desempenho</h3>
+          <div id="dPerf"></div>
+        </div>
+      </div>
+      <div class="dcard" style="height:fit-content">
+        <h3>Histórico de aulas</h3>
+        <div id="dHist"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+  </main>
+  </div><!-- /pr-shell -->
+</div><!-- /app -->
+
+<!-- 26/09e: convite da equipe -->
+<div class="pr-drawer-bg" id="eqDrawerBg" onclick="prDrawer('eqDrawer',false)"></div>
+<div class="pr-drawer" id="eqDrawer">
+  <h2>Convidar pessoa</h2>
+  <div class="pr-fg"><label>Nome</label><input id="eqNome" placeholder="Nome completo"></div>
+  <div class="pr-fg"><label>E-mail</label><input id="eqEmail" type="email" placeholder="pessoa@academia.com"></div>
+  <div class="pr-fg"><label>Papel</label><select id="eqPapel">
+    <option value="professor">Professor — dá aula e usa o Construtor no app</option>
+    <option value="coordenador">Coordenador — agenda, alunos, relatórios</option>
+    <option value="financeiro">Financeiro — pagamentos e relatórios</option>
+  </select></div>
+  <div class="pr-note">Se a pessoa ainda não tem conta, criamos uma com senha provisória e mandamos o e-mail de boas-vindas.</div>
+  <div id="eqRes"></div>
+  <div style="margin-top:auto;display:flex;gap:10px"><button class="pr-btn pr-bg" style="flex:1;justify-content:center" onclick="prDrawer('eqDrawer',false)">Fechar</button><button class="pr-btn pr-bp" style="flex:2;justify-content:center" onclick="eqConvidar()">Convidar</button></div>
+</div>
+
+<!-- MODAL RESET DE SENHA -->
+<div id="resetSenhaModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:400;align-items:center;justify-content:center;">
+  <div style="background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:28px;width:100%;max-width:360px;margin:16px">
+    <div style="font-size:16px;font-weight:700;margin-bottom:6px">🔑 Resetar senha</div>
+    <div style="font-size:13px;color:var(--muted);margin-bottom:18px" id="resetSenhaSubtitle">—</div>
+    <div class="fg"><label>Nova senha</label><input id="novaSenha" type="password" placeholder="Mínimo 6 caracteres"></div>
+    <div class="fg" style="margin-top:10px"><label>Confirmar senha</label><input id="confirmarSenha" type="password" placeholder="Repita a senha"></div>
+    <div id="resetErr" style="color:#d62d2d;font-size:12px;margin-top:8px;display:none"></div>
+    <div style="display:flex;gap:10px;margin-top:18px">
+      <button onclick="confirmarResetSenha()" style="flex:1;padding:11px;border-radius:10px;border:none;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;font-size:14px;font-weight:700;cursor:pointer">Confirmar</button>
+      <button onclick="fecharResetSenha()" style="padding:11px 18px;border-radius:10px;border:1px solid var(--border);background:transparent;color:var(--muted);font-size:14px;cursor:pointer">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+const SERVER = 'https://prorider-server-production-5784.up.railway.app';
+// Impersonação usa sessionStorage (não polui localStorage; some ao fechar a aba)
+var _impSession = sessionStorage.getItem('pr_imp_token') ? {
+  token: sessionStorage.getItem('pr_imp_token'),
+  user:  JSON.parse(sessionStorage.getItem('pr_imp_user') || 'null')
+} : null;
+
+var token = (_impSession ? _impSession.token : null) || localStorage.getItem('pr_gestor_token') || '';
+var user  = (_impSession ? _impSession.user  : null) || JSON.parse(localStorage.getItem('pr_gestor_user') || 'null');
+var allAlunos = [];
+
+
+// ══════════════════════════════════════════════════════════════
+// PORTAL 26/09e — menu lateral por papel, perfil, alunos com lupa,
+// ranking na TV, equipe e e-mails
+// ══════════════════════════════════════════════════════════════
+const PORTAL_ROLES = ['gestor','coordenador','financeiro','admin','super_admin'];
+const ROLE_NOME = {aluno:'Aluno',professor:'Professor',coordenador:'Coordenador',financeiro:'Financeiro',gestor:'Gestor',admin:'Admin',super_admin:'Super Admin'};
+// [id, ícone, nome, papéis que veem (vazio = todos do Portal)]
+const PR_NAV = [
+  ['Operação', [
+    ['dashboard','◉','Início',[]],
+    ['grade','📅','Agenda da semana',['gestor','coordenador','admin','super_admin']],
+    ['criar','⚡','Criar aula',['gestor','coordenador','admin','super_admin']],
+  ]],
+  ['Pessoas', [
+    ['alunos','👥','Alunos',[]],
+    ['equipe','🎓','Equipe e acessos',['gestor','coordenador','admin','super_admin']],
+  ]],
+  ['Academia', [
+    ['rankingtv','📺','Ranking na TV',['gestor','admin','super_admin']],
+    ['leaderboard','🏆','Ranking da academia',['gestor','coordenador','admin','super_admin']],
+    ['relatorio','📊','Relatórios',[]],
+    ['emails','✉','E-mails automáticos',['gestor','coordenador','admin','super_admin']],
+    ['qrcodes','🔲','QR das bikes',['gestor','coordenador','admin','super_admin']],
+    ['financeiro','💳','Financeiro',['gestor','financeiro','admin','super_admin']],
+  ]],
+  ['Conta', [
+    ['perfil','👤','Meu perfil',[]],
+  ]],
+];
+function prPapel(){ return (user && user.impersonated_by) ? 'gestor' : String((user && user.role) || ''); }
+function prPode(tab){
+  const r = prPapel();
+  for (const [, itens] of PR_NAV) for (const it of itens) if (it[0] === tab) return !it[3].length || it[3].includes(r);
+  return true;
+}
+function prIniciais(n){ return String(n||'?').replace(/^⚡\s*/,'').split(/\s+/).filter(Boolean).slice(0,2).map(w=>w[0]).join('').toUpperCase() || '?'; }
+function prEsc(t){ return String(t==null?'':t).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function prMontarMenu(){
+  const nav = document.getElementById('sbNav'); if (!nav) return;
+  nav.innerHTML = PR_NAV.map(([grp, itens]) => {
+    const vis = itens.filter(it => prPode(it[0]));
+    if (!vis.length) return '';
+    return `<div class="pr-sbh">${grp}</div>` + vis.map(it =>
+      `<div class="pr-it" id="tab-${it[0]}" onclick="showTab('${it[0]}')"><i>${it[1]}</i>${it[2]}<span class="n" id="nb-${it[0]}" style="display:none"></span></div>`).join('');
+  }).join('');
+}
+function prMontarMe(){
+  // modo suporte: quem está logado é o super admin, não o gestor
+  const imp = user && user.impersonated_by;
+  const nome = imp ? String(user.impersonated_by).split('@')[0] : ((user && (user.name || user.email)) || '—');
+  document.getElementById('meAv').textContent = prIniciais(nome);
+  document.getElementById('meNome').textContent = String(nome).replace(/^⚡\s*/,'');
+  const r = imp ? 'super_admin' : prPapel();
+  document.getElementById('meRole').innerHTML = `<span class="pr-role r-${r}">${imp ? 'Suporte' : (ROLE_NOME[r]||r)}</span>`;
+}
+async function apiSend(method, path, body){
+  const r = await fetch(SERVER + path, { method, headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' }, body: body ? JSON.stringify(body) : undefined });
+  let d = {}; try { d = await r.json(); } catch(e) {}
+  if (!r.ok) throw new Error(d.error || ('Erro ' + r.status));
+  return d;
+}
+function abrirConstrutor(){
+  // o Construtor mora no app (/aluno). O mesmo login do Portal vale lá.
+  window.open(SERVER + '/aluno#construtor', '_blank');
+}
+
+// ── Dashboard ──
+const DIAS_CURTO = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+async function loadDashboard() {
+  try {
+    const [stats, alunos, grade] = await Promise.all([
+      api('/gestor/stats'),
+      api('/gestor/alunos').catch(() => []),
+      prPode('grade') ? api('/gestor/agenda').catch(() => []) : Promise.resolve([])
+    ]);
+    allAlunos = Array.isArray(alunos) ? alunos : [];
+    const n = v => (v == null ? '—' : v);
+    document.getElementById('kGrade').textContent = Array.isArray(grade) ? grade.length : n(stats.aulas_grade);
+    document.getElementById('kAulas7').textContent = n(stats.aulas_7d);
+    document.getElementById('kAulas7D').textContent = (stats.aulas_30d != null ? stats.aulas_30d + ' em 30 dias' : '');
+    document.getElementById('kAtivos').textContent = n(stats.ativos_30d != null ? stats.ativos_30d : stats.total_alunos);
+    document.getElementById('kAtivosD').textContent = `de ${stats.total_alunos||0} alunos` + (stats.novos_30d ? ` · +${stats.novos_30d} novos` : '');
+    document.getElementById('kSumidos').textContent = n(stats.sumidos);
+    // agenda da semana
+    const ag = document.getElementById('dashAgenda');
+    if (!prPode('grade')) { ag.innerHTML = '<div class="pr-empty" style="grid-column:1/-1">Sem acesso à agenda.</div>'; }
+    else if (!Array.isArray(grade) || !grade.length) { ag.innerHTML = '<div class="pr-empty" style="grid-column:1/-1">Nenhuma aula na grade ainda. <a style="color:var(--accent);cursor:pointer" onclick="openNovaAula()">Agendar a primeira →</a></div>'; }
+    else {
+      const hoje = new Date().getDay();
+      ag.innerHTML = [1,2,3,4,5,6,0].map(d => {
+        const aulas = grade.filter(a => a.dia_semana === d && a.ativa !== false).sort((a,b) => String(a.hora).localeCompare(String(b.hora)));
+        return `<div><div class="dy${d===hoje?' hoje':''}">${DIAS_CURTO[d]}</div>` + aulas.map(a => {
+          const v = a.vagas_max || 20, r = parseInt(a.reservas_hoje||0), pct = Math.min(100, Math.round(r/v*100));
+          return `<div class="pr-cl" style="border-left-color:${a.cor||'var(--accent)'}" onclick="showTab('grade')"><b>${String(a.hora).slice(0,5)} ${prEsc(a.nome)}</b><small>${prEsc(a.professor_nome||'—')} · ${r}/${v}</small><div class="pr-bar"><i style="width:${pct}%"></i></div></div>`;
+        }).join('') + '</div>';
+      }).join('');
+    }
+    // top da semana
+    const top = stats.top_semana || [];
+    document.getElementById('dashTop').innerHTML = top.length ? top.map((a,i) => `
+      <div class="pr-lr" style="padding:8px 0" onclick="verAluno(${(allAlunos.find(x=>x.name===a.name)||{}).id||0})">
+        <div class="pr-av">${prIniciais(a.name)}</div>
+        <div class="nm"><b>${prEsc(a.name||'—')}</b><small>${a.aulas} aula${a.aulas==1?'':'s'} · ${Number(a.kcal||0).toLocaleString('pt-BR')} kcal</small></div>
+        <span>${['🥇','🥈','🥉'][i]||''}</span></div>`).join('')
+      : '<div class="pr-empty">Ninguém pedalou nos últimos 7 dias.</div>';
+  } catch(e) { console.error(e); }
+}
+
+// ── Alunos: lista escondida, lupa + seta ──
+let alAberta = false, alFiltroAtual = '';
+const AL_FILTROS = [
+  ['', 'Todos', a => true, ''],
+  ['ativos', 'Ativos', a => a.ultima_aula && (Date.now() - new Date(a.ultima_aula)) < 30*864e5, 'ok'],
+  ['sumidos', 'Sumidos', a => a.ultima_aula && (Date.now() - new Date(a.ultima_aula)) >= 14*864e5, 'wa'],
+  ['novos', 'Novos', a => a.created_at && (Date.now() - new Date(a.created_at)) < 30*864e5, ''],
+  ['nunca', 'Nunca pedalaram', a => !a.ultima_aula, ''],
+];
+async function loadAlunos() {
+  try { allAlunos = await api('/gestor/alunos'); } catch(e) {}
+  if (!Array.isArray(allAlunos)) allAlunos = [];
+  const ativos = allAlunos.filter(AL_FILTROS[1][2]).length;
+  document.getElementById('alResumo').textContent = `${allAlunos.length} aluno${allAlunos.length==1?'':'s'} · ${ativos} ativo${ativos==1?'':'s'} no mês`;
+  const sem = allAlunos.filter(a => a.ultima_aula && (Date.now() - new Date(a.ultima_aula)) < 7*864e5).length;
+  document.getElementById('alVisitas').textContent = sem;
+  const mes = new Date().getMonth();
+  const niver = allAlunos.filter(a => a.nascimento && new Date(String(a.nascimento).slice(0,10)+'T12:00:00').getMonth() === mes);
+  document.getElementById('alNiver').innerHTML = niver.length ? niver.map(a => `<div class="pr-lr" style="padding:6px 0" onclick="verAluno(${a.id})"><div class="pr-av">${prIniciais(a.name)}</div><div class="nm"><b>${prEsc(a.name)}</b><small>dia ${new Date(String(a.nascimento).slice(0,10)+'T12:00:00').getDate()}</small></div></div>`).join('') : '<div class="pr-empty" style="padding:8px">Ninguém este mês (ou sem data no perfil).</div>';
+  alChips();
+  alFiltrar();
+}
+function alChips(){
+  document.getElementById('alChips').innerHTML = AL_FILTROS.map(([k, nome, fn, cls]) =>
+    `<span class="pr-chip ${cls}${alFiltroAtual===k && alAberta ? ' on' : ''}" onclick="alAbrirFiltro('${k}')">${nome} ${allAlunos.filter(fn).length}</span>`).join('');
+}
+function alAbrirFiltro(k){
+  if (document.getElementById('page-alunos') && !document.getElementById('page-alunos').classList.contains('active')) { alFiltroAtual = k; alAberta = true; showTab('alunos'); return; }
+  alFiltroAtual = k; alAberta = true; alChips(); alFiltrar();
+}
+function alToggle(){ alAberta = !alAberta; if (!alAberta) alFiltroAtual = ''; alChips(); alFiltrar(); }
+function alFiltrar(){
+  const q = (document.getElementById('alBusca').value || '').trim().toLowerCase();
+  const mostra = alAberta || q.length > 0;
+  document.getElementById('alSrch').classList.toggle('aberta', mostra);
+  document.getElementById('alLista').style.display = mostra ? 'block' : 'none';
+  document.getElementById('alFechada').style.display = mostra ? 'none' : 'block';
+  if (!mostra) return;
+  const f = (AL_FILTROS.find(x => x[0] === alFiltroAtual) || AL_FILTROS[0])[2];
+  const lista = allAlunos.filter(f).filter(a => !q || (a.name||'').toLowerCase().includes(q) || (a.email||'').toLowerCase().includes(q));
+  renderAlunos(lista);
+}
+function renderAlunos(list) {
+  const el = document.getElementById('alLista'); if (!el) return;
+  if (!list.length) { el.innerHTML = '<div class="pr-empty">Nenhum aluno encontrado.</div>'; return; }
+  el.innerHTML = list.map(a => {
+    const dias = a.ultima_aula ? Math.floor((Date.now() - new Date(a.ultima_aula)) / 864e5) : null;
+    const novo = a.created_at && (Date.now() - new Date(a.created_at)) < 30*864e5;
+    const st = a.status === 'inativo' ? '<span class="pr-pill pr-er">Bloqueado</span>'
+      : dias == null ? (novo ? '<span class="pr-pill pr-nv">Novo</span>' : '<span class="pr-pill pr-nv">Sem aulas</span>')
+      : dias >= 14 ? '<span class="pr-pill pr-wa">Sumido</span>' : '<span class="pr-pill pr-ok">Ativo</span>';
+    const quando = dias == null ? '—' : dias === 0 ? 'hoje' : dias === 1 ? 'ontem' : `há ${dias} dias`;
+    return `<div class="pr-lr" onclick="verAluno(${a.id})">
+      <div class="pr-av">${prIniciais(a.name)}</div>
+      <div class="nm"><b>${prEsc(a.name||'—')}</b><small>${prEsc(a.email||'')} · FTP ${a.ftp||'—'} W</small></div>
+      <div class="st">${a.aulas_30d!=null ? a.aulas_30d + ' aula' + (a.aulas_30d==1?'':'s') + '/mês<br>' : ''}<small>${quando}</small></div>${st}</div>`;
+  }).join('');
+}
+function filterAlunos(q){ const i = document.getElementById('alBusca'); if (i) { i.value = q; alFiltrar(); } }
+function exportarAlunosCSV(){
+  const cab = ['Nome','E-mail','FTP','Peso','Idade','Sexo','Aulas no mês','Aulas no total','Última aula','Cadastro','Status'];
+  const lin = allAlunos.map(a => [a.name, a.email, a.ftp, a.peso, a.idade, a.sexo, a.aulas_30d, a.total_aulas,
+    a.ultima_aula ? new Date(a.ultima_aula).toLocaleDateString('pt-BR') : '', a.created_at ? new Date(a.created_at).toLocaleDateString('pt-BR') : '', a.status || 'ativo']);
+  const csv = [cab].concat(lin).map(r => r.map(v => '"' + String(v==null?'':v).replace(/"/g,'""') + '"').join(';')).join('\r\n');
+  const b = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' });
+  const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = 'alunos_' + (user.license_id||'') + '.csv'; a.click();
+}
+
+// ── Equipe e acessos ──
+async function loadEquipe(){
+  const el = document.getElementById('eqLista');
+  document.getElementById('btnConvidar').style.display = ['gestor','admin','super_admin'].includes(prPapel()) ? '' : 'none';
+  try {
+    const lista = await api('/gestor/equipe');
+    if (!Array.isArray(lista) || !lista.length) { el.innerHTML = '<div class="pr-empty">Ninguém na equipe ainda. Convide professores, coordenador e financeiro.</div>'; return; }
+    const podeMudar = ['gestor','admin','super_admin'].includes(prPapel());
+    el.innerHTML = lista.map(p => `<div class="pr-lr" style="cursor:default">
+      <div class="pr-av">${prIniciais(p.name)}</div>
+      <div class="nm"><b>${prEsc(p.name||'—')}</b><small>${prEsc(p.email)}</small></div>
+      ${podeMudar && !['gestor','admin','super_admin'].includes(p.role)
+        ? `<select onchange="eqMudarPapel(${p.id}, this.value)" style="background:var(--card2);border:1px solid var(--border);color:#fff;border-radius:8px;padding:6px 10px;font-family:inherit">
+            ${['professor','coordenador','financeiro','aluno'].map(r => `<option value="${r}"${r===p.role?' selected':''}>${r==='aluno'?'Tirar acesso (vira aluno)':ROLE_NOME[r]}</option>`).join('')}</select>`
+        : `<span class="pr-role r-${p.role}">${ROLE_NOME[p.role]||p.role}</span>`}
+    </div>`).join('');
+  } catch(e) { el.innerHTML = `<div class="pr-empty">${prEsc(e.message||'Erro ao carregar')}</div>`; }
+}
+async function eqMudarPapel(id, papel){
+  try { await apiSend('PUT', `/gestor/equipe/${id}/papel`, { papel }); toast('✓ Acesso atualizado'); loadEquipe(); }
+  catch(e) { toast('⚠ ' + e.message); loadEquipe(); }
+}
+function eqAbrirConvite(){
+  document.getElementById('eqNome').value = ''; document.getElementById('eqEmail').value = '';
+  document.getElementById('eqPapel').value = 'professor'; document.getElementById('eqRes').innerHTML = '';
+  prDrawer('eqDrawer', true);
+}
+async function eqConvidar(){
+  const email = document.getElementById('eqEmail').value.trim(), nome = document.getElementById('eqNome').value.trim(), papel = document.getElementById('eqPapel').value;
+  const res = document.getElementById('eqRes');
+  try {
+    const d = await apiSend('POST', '/gestor/equipe', { email, nome, papel });
+    res.innerHTML = d.senha_provisoria
+      ? `<div class="pr-warn">Conta criada. Senha provisória: <b style="color:#fff;user-select:all">${prEsc(d.senha_provisoria)}</b><br>${d.email_enviado ? 'O e-mail de boas-vindas já foi enviado.' : 'O e-mail não saiu (servidor sem e-mail configurado): passe a senha à pessoa.'}</div>`
+      : `<div class="pr-warn">A conta já existia e agora é ${ROLE_NOME[papel]} desta academia. A senha dela não mudou.</div>`;
+    loadEquipe();
+  } catch(e) { res.innerHTML = `<div class="pr-warn" style="color:#ff8a8a">${prEsc(e.message)}</div>`; }
+}
+function prDrawer(id, abrir){
+  const d = document.getElementById(id), bg = document.getElementById(id + 'Bg');
+  if (bg) bg.style.display = abrir ? 'block' : 'none';
+  if (d) requestAnimationFrame(() => d.classList.toggle('open', !!abrir));
+}
+
+// ── Ranking na TV ──
+const RK_INFO = {
+  zona:  ['Zona de treino', 'Z1 a Z6 com a cor da zona'],
+  rpm:   ['Rotação média (RPM)', 'cadência média da aula'],
+  ftp:   ['% do FTP médio', 'esforço relativo — justo entre níveis'],
+  watts: ['Potência média (W)', 'watts médios da aula'],
+  kcal:  ['Kcal', 'calorias gastas na aula'],
+  fc:    ['Frequência cardíaca', 'da bike ou da cinta ligada no celular'],
+  wpp:   ['Pontos (WPP)', 'pontuação ProRider da aula'],
+};
+const RK_ORDEM_PADRAO = ['zona','rpm','ftp','watts','kcal','fc','wpp'];
+let rkEstado = { campos: ['zona','rpm','ftp','watts','kcal','wpp'], ordem: 'wpp' }, rkLista = RK_ORDEM_PADRAO.slice();
+async function loadRankingTv(){
+  try {
+    const c = await api('/gestor/config/ranking');
+    if (c && Array.isArray(c.campos)) rkEstado = { campos: c.campos, ordem: c.ordem || 'wpp' };
+  } catch(e) {}
+  rkLista = rkEstado.campos.concat(RK_ORDEM_PADRAO.filter(x => !rkEstado.campos.includes(x)));
+  document.getElementById('rkOrdem').value = rkEstado.ordem;
+  const pode = ['gestor','admin','super_admin'].includes(prPapel());
+  document.getElementById('rkSalvarBtn').style.display = pode ? '' : 'none';
+  document.getElementById('rkMsg').textContent = pode ? '' : 'Só o gestor altera esta configuração.';
+  rkDesenhar();
+}
+function rkDesenhar(){
+  const el = document.getElementById('rkCampos');
+  el.innerHTML = rkLista.map(k => `<div class="pr-tg" draggable="true" data-k="${k}">
+      <span><span class="pr-grip">⋮⋮</span>${RK_INFO[k][0]}<small>${RK_INFO[k][1]}</small></span>
+      <button class="pr-sw${rkEstado.campos.includes(k)?'':' off'}" onclick="rkAlternar('${k}')" aria-label="ligar/desligar"></button></div>`).join('');
+  let arr = null;
+  el.querySelectorAll('.pr-tg').forEach(row => {
+    row.addEventListener('dragstart', e => { arr = row; row.classList.add('drag'); e.dataTransfer.effectAllowed = 'move'; });
+    row.addEventListener('dragend', () => { row.classList.remove('drag'); rkLista = [...el.querySelectorAll('.pr-tg')].map(r => r.dataset.k); rkSync(); });
+    row.addEventListener('dragover', e => { e.preventDefault(); if (!arr || arr === row) return; const r = row.getBoundingClientRect(); el.insertBefore(arr, (e.clientY - r.top) > r.height / 2 ? row.nextSibling : row); });
+  });
+  rkPrevia();
+}
+function rkAlternar(k){
+  const on = rkEstado.campos.includes(k);
+  if (on && rkEstado.campos.length <= 1) { toast('Deixe pelo menos um campo ligado'); return; }
+  rkEstado.campos = on ? rkEstado.campos.filter(x => x !== k) : rkEstado.campos.concat(k);
+  rkSync(); rkDesenhar();
+}
+function rkSync(){ rkEstado.campos = rkLista.filter(k => rkEstado.campos.includes(k)); rkPrevia(); }
+function rkPrevia(){
+  rkEstado.ordem = document.getElementById('rkOrdem').value;
+  const ex = [['CARLA M.','z4',92,98,268,412,164,86.4],['RAFAEL S.','z5',95,104,281,398,158,84.1],['JULIA P.','z3',88,87,233,355,171,79.9],['TIAGO F.','z4',90,95,246,341,149,77.2],['BRUNO L.','z2',84,72,229,322,152,70.5],['MARINA K.','z3',91,83,198,310,166,68.8]];
+  const Z = {z2:'#295fe8',z3:'#5db13d',z4:'#d7c414',z5:'#ea860c'};
+  const idx = {wpp:7,kcal:5,watts:4,ftp:3}[rkEstado.ordem];
+  ex.sort((a,b) => b[idx] - a[idx]);
+  const cols = rkEstado.campos;
+  const tmpl = `28px minmax(0,2.2fr) ${cols.map(c => c==='wpp' ? 'minmax(0,1.2fr)' : 'minmax(0,1fr)').join(' ')}`;
+  const hdr = {zona:'ZONA',rpm:'RPM',ftp:'FTP %',watts:'WATTS',kcal:'KCAL',fc:'FC',wpp:'WPP'};
+  const cel = (c, r) => ({zona:`<span style="color:${Z[r[1]]};border:1px solid ${Z[r[1]]}88;border-radius:5px;padding:0 5px">${r[1].toUpperCase()}</span>`,
+    rpm:r[2], ftp:r[3]+'%', watts:r[4], kcal:`<span style="color:#ea860c">${r[5]}</span>`, fc:`<span style="color:#ff5a6e">${r[6]}</span>`, wpp:`<span style="color:#ffe033">${r[7].toFixed(1)}</span>`}[c]);
+  const sub = {wpp:'por pontos',kcal:'por kcal',watts:'por potência',ftp:'por % do FTP'}[rkEstado.ordem];
+  document.getElementById('rkTv').innerHTML = `<div class="tt">PRÉVIA · COMO VAI APARECER NA TV<span>ORDENADO ${sub.toUpperCase()}</span></div>`
+    + `<div class="pr-tvr h" style="grid-template-columns:${tmpl}"><span>#</span><span>ALUNO</span>${cols.map(c => `<span class="c">${hdr[c]}</span>`).join('')}</div>`
+    + ex.map((r,i) => `<div class="pr-tvr" style="grid-template-columns:${tmpl}"><span class="ps">${i+1}</span><span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${r[0]}</span>${cols.map(c => `<span class="c">${cel(c,r)}</span>`).join('')}</div>`).join('');
+}
+async function rkSalvar(){
+  try { await apiSend('PUT', '/gestor/config/ranking', { campos: rkEstado.campos, ordem: rkEstado.ordem }); toast('✓ Ranking da TV salvo'); document.getElementById('rkMsg').textContent = 'Salvo. O Ginásio pega a mudança em até 15 minutos.'; }
+  catch(e) { toast('⚠ ' + e.message); }
+}
+
+// ── Meu perfil ──
+let pfDados = null;
+async function loadPerfil(){
+  try { pfDados = await api('/user/me'); } catch(e) { pfDados = null; }
+  const u = pfDados || user || {};
+  const nome = u.name || user.name || '';
+  document.getElementById('pfAv').textContent = prIniciais(nome);
+  document.getElementById('pfNomeT').textContent = String(nome).replace(/^⚡\s*/,'');
+  const r = user.impersonated_by ? (u.role || 'super_admin') : prPapel();
+  document.getElementById('pfRole').innerHTML = `<span class="pr-role r-${r}">${ROLE_NOME[r]||r}</span>` + (user.impersonated_by ? ' <span class="pr-note">· você está em modo suporte; este é o SEU perfil</span>' : '');
+  document.getElementById('pfNome').value = u.name || '';
+  document.getElementById('pfEmail').value = u.email || '';
+  document.getElementById('pfNasc').value = u.nascimento ? String(u.nascimento).slice(0,10) : '';
+  document.getElementById('pfSexo').value = u.sexo || '';
+  document.getElementById('pfPeso').value = u.peso || '';
+  document.getElementById('pfAltura').value = u.altura || '';
+  document.getElementById('pfFtp').value = u.ftp || '';
+  document.getElementById('pfIdade').value = u.idade || '';
+  document.getElementById('pfLic').innerHTML = `${prEsc(document.getElementById('meLic').textContent)}<br>Código da licença: <b style="color:#fff;font-family:monospace">${prEsc(user.license_id||'—')}</b>`;
+}
+async function pfSalvar(){
+  const v = id => document.getElementById(id).value;
+  const body = { name: v('pfNome'), email: v('pfEmail'), nascimento: v('pfNasc') || undefined, sexo: v('pfSexo') || undefined,
+    peso: v('pfPeso') || undefined, altura: v('pfAltura') || undefined, ftp: v('pfFtp') || undefined, idade: v('pfIdade') || undefined };
+  try {
+    const d = await apiSend('PUT', '/user/profile', body);
+    if (d.user && !user.impersonated_by) { user.name = d.user.name; try { localStorage.setItem('pr_gestor_user', JSON.stringify(user)); } catch(e) {} }
+    prMontarMe(); document.getElementById('pfMsg').textContent = '✓ Salvo'; toast('✓ Perfil salvo'); loadPerfil();
+  } catch(e) { document.getElementById('pfMsg').textContent = '⚠ ' + e.message; }
+}
+async function pfTrocarSenha(){
+  const m = document.getElementById('pfSMsg');
+  try { await apiSend('PUT', '/user/senha', { senha_atual: document.getElementById('pfS0').value, nova: document.getElementById('pfS1').value });
+    m.textContent = '✓ Senha trocada'; document.getElementById('pfS0').value = ''; document.getElementById('pfS1').value = ''; }
+  catch(e) { m.textContent = '⚠ ' + e.message; }
+}
+
+// ── E-mails automáticos ──
+const EM_INFO = [
+  ['boas_vindas','Boas-vindas','quando alguém entra na academia (aluno pela primeira aula, equipe pelo convite)'],
+  ['resumo_aula','Resumo depois da aula','kcal, potência, zona e pontos da aula'],
+  ['sumido','Sumido há 14 dias','convite para voltar a quem parou de vir'],
+  ['novo_ftp','Novo FTP','quando o FTP do aluno sobe'],
+  ['aniversario','Aniversário','no dia (precisa da data no perfil do aluno)'],
+  ['relatorio_mensal','Relatório mensal ao gestor','dia 1º, com os números do mês anterior'],
+];
+let emCfg = {};
+async function loadEmails(){
+  const box = document.getElementById('emCfg'); if (!box) return;
+  try {
+    const d = await api('/gestor/emails');
+    emCfg = d.cfg || {};
+    const env = {}; (d.enviados_30d || []).forEach(x => env[x.tipo] = x.total);
+    document.getElementById('emStatus').innerHTML = d.provedor
+      ? `<span class="pr-pill pr-ok">E-mail ligado (${d.provedor === 'resend' ? 'Resend' : 'SMTP'})</span>`
+      : `<div class="pr-warn">O servidor ainda não tem um serviço de e-mail configurado — nada é enviado por enquanto. As escolhas abaixo ficam guardadas e passam a valer assim que o desenvolvedor configurar.</div>`;
+    const pode = ['gestor','coordenador','admin','super_admin'].includes(prPapel());
+    box.innerHTML = EM_INFO.map(([k, nome, desc]) => `<div class="pr-tg"><span>${nome}<small>${desc}${env[k] ? ` · ${env[k]} enviados em 30 dias` : ''}</small></span>
+      <button class="pr-sw${emCfg[k] ? '' : ' off'}" ${pode ? `onclick="emAlternar('${k}')"` : 'disabled'}></button></div>`).join('');
+  } catch(e) { box.innerHTML = `<div class="pr-empty">${prEsc(e.message||'Erro')}</div>`; }
+}
+async function emAlternar(k){
+  emCfg[k] = !emCfg[k];
+  try { await apiSend('PUT', '/gestor/emails', emCfg); toast(emCfg[k] ? '✓ E-mail ligado' : 'E-mail desligado'); } catch(e) { toast('⚠ ' + e.message); emCfg[k] = !emCfg[k]; }
+  loadEmails();
+}
+async function emTeste(){
+  try { const d = await apiSend('POST', '/gestor/emails/teste', {}); toast('✓ Teste enviado para ' + d.para); }
+  catch(e) { toast('⚠ ' + e.message); }
+}
+
+// ── Navegação (26/09e) ──
+function showTab(t) {
+  if (!prPode(t)) t = 'dashboard';
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.pr-it').forEach(b => b.classList.remove('on'));
+  const pg = document.getElementById('page-' + t); if (pg) pg.classList.add('active');
+  const it = document.getElementById('tab-' + t); if (it) it.classList.add('on');
+  document.getElementById('alunoDetail').style.display = 'none';
+  window.scrollTo(0, 0);
+  try { history.replaceState(null, '', '#' + t); } catch(e) {}
+  if (t === 'dashboard') loadDashboard();
+  if (t === 'alunos') loadAlunos();
+  if (t === 'financeiro') loadFinanceiro();
+  if (t === 'grade') loadGrade();
+  if (t === 'leaderboard') loadLeaderboard();
+  if (t === 'relatorio') loadRelatorio();
+  if (t === 'qrcodes') loadQRCodes();
+  if (t === 'equipe') loadEquipe();
+  if (t === 'rankingtv') loadRankingTv();
+  if (t === 'perfil') loadPerfil();
+  if (t === 'emails') loadEmails();
+}
+function voltarAoAdmin(){
+  sessionStorage.removeItem('pr_imp_token');
+  sessionStorage.removeItem('pr_imp_user');
+  window.location.href = 'index.html#licencas';
+}
+async function showApp() {
+  document.getElementById('loginScreen').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
+  document.getElementById('hUser').textContent = user.name || user.email;
+  document.getElementById('hLic').textContent = user.license_id || '';
+  document.getElementById('meLic').textContent = user.academia_nome || user.license_id || '—';
+  if (user.impersonated_by) {
+    document.getElementById('impBar').style.display = 'flex';
+    document.getElementById('impNome').textContent = user.academia_nome || String(user.name||'').replace(/^⚡\s*/,'').replace(/\s*\(modo suporte\)$/,'') || user.license_id;
+  }
+  prMontarMenu(); prMontarMe();
+  // quem não cria aula (financeiro) não vê o destaque de Criar aula
+  document.querySelectorAll('#page-dashboard .pr-hero').forEach(h => h.style.display = prPode('criar') ? '' : 'none');
+  const now = new Date();
+  document.getElementById('repMes').value = now.getMonth() + 1;
+  document.getElementById('repAno').value = now.getFullYear();
+  const inicial = String(location.hash || '').replace('#','');
+  showTab(document.getElementById('page-' + inicial) ? inicial : 'dashboard');
+  // nome da academia no menu (o token só traz o código)
+  try { const c = await api('/gestor/config'); if (c && (c.nome_fantasia || c.nome)) { user.academia_nome = c.nome_fantasia || c.nome; document.getElementById('meLic').textContent = user.academia_nome; } } catch(e) {}
+}
+
+function init() {
+  // Impersonação: admin navega para academia.html?impersonate=TOKEN
+  const params = new URLSearchParams(window.location.search);
+  const impToken = params.get('impersonate');
+  const acadNome = params.get('academia');
+  if (impToken) {
+    try {
+      const payload = JSON.parse(atob(impToken.split('.')[1]));
+      token = impToken;
+      user  = { ...payload, name: '⚡ ' + (acadNome||'Academia') + ' (modo suporte)', academia_nome: acadNome || '' };
+      // Guarda APENAS em sessionStorage — não toca o localStorage do gestor real
+      sessionStorage.setItem('pr_imp_token', token);
+      sessionStorage.setItem('pr_imp_user', JSON.stringify(user));
+      // Limpa URL sem reload
+      window.history.replaceState({}, '', 'academia.html');
+      showApp();
+      return;
+    } catch(e) {}
+  }
+  if (token && user && (PORTAL_ROLES.includes(user.role) || user.impersonated_by)) {
+    showApp();
+  }
+}
+
+async function doLogin() {
+  const email = document.getElementById('lEmail').value.trim();
+  const pass  = document.getElementById('lPass').value;
+  const err   = document.getElementById('lErr');
+  err.style.display = 'none';
+  if (!email || !pass) { err.textContent = 'Preencha e-mail e senha.'; err.style.display = 'block'; return; }
+  try {
+    const r = await fetch(SERVER + '/user/login', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ email, password: pass })
+    });
+    const d = await r.json();
+    if (!r.ok) { err.textContent = d.error || 'Credenciais inválidas.'; err.style.display = 'block'; return; }
+    // 26/09e: cada papel entra no seu lugar
+    if (d.user.role === 'super_admin' || (d.user.role === 'admin' && !d.user.license_id)) {
+      localStorage.setItem('pr_admin_token', d.token); localStorage.setItem('pr_admin_user', JSON.stringify(d.user));
+      window.location.href = 'index.html'; return;
+    }
+    if (d.user.role === 'aluno') { window.location.href = 'aluno.html'; return; }
+    if (d.user.role === 'professor') {
+      err.innerHTML = 'Professor usa o app ProRider: <a href="' + SERVER + '/aluno" style="color:var(--accent)">abrir o app</a>.'; err.style.display = 'block'; return;
+    }
+    if (!PORTAL_ROLES.includes(d.user.role)) {
+      err.textContent = 'Seu usuário não tem acesso ao Portal.'; err.style.display = 'block'; return;
+    }
+    token = d.token; user = d.user;
+    localStorage.setItem('pr_gestor_token', token);
+    localStorage.setItem('pr_gestor_user', JSON.stringify(user));
+    showApp();
+  } catch(e) { err.textContent = 'Erro de conexão.'; err.style.display = 'block'; }
+}
+
+document.addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+
+function doLogout() {
+  const wasImpersonating = !!(user && user.impersonated_by);
+  localStorage.removeItem('pr_gestor_token');
+  localStorage.removeItem('pr_gestor_user');
+  sessionStorage.removeItem('pr_imp_token');
+  sessionStorage.removeItem('pr_imp_user');
+  if (wasImpersonating) {
+    // Volta ao painel do admin em vez de mostrar tela de login da academia
+    window.location.href = 'index.html';
+  } else {
+    location.reload();
+  }
+}
+
+
+// ── Tabs ──
+
+// ── API ──
+async function api(path) {
+  const r = await fetch(SERVER + path, { headers: { 'Authorization': 'Bearer ' + token } });
+  return r.json();
+}
+
+// ── Dashboard ──
+
+// ── Alunos ──
+
+
+
+// ── Detalhe do aluno ──
+async function verAluno(id) {
+  if (!id) return;
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('alunoDetail').style.display = 'block';
+  window.scrollTo(0, 0);
+  try {
+    const a = await api('/gestor/alunos/' + id);
+    document.getElementById('dInfo').innerHTML = [
+      ['Nome', a.name || '—'],
+      ['E-mail', a.email],
+      ['Cadastro', new Date(a.created_at).toLocaleDateString('pt-BR')],
+      ['Status', `<span class="badge badge-${a.status||'ativo'}">${a.status||'ativo'}</span>`],
+    ].map(([k,v]) => `<div class="irow"><span class="k">${k}</span><span class="v">${v}</span></div>`).join('');
+    document.getElementById('dPerf').innerHTML = [
+      ['FTP', (a.ftp||'—') + ' W'],
+      ['Peso', (a.peso||'—') + ' kg'],
+      ['Nível', a.level||'Iniciante'],
+      ['Pontos', a.points||0],
+    ].map(([k,v]) => `<div class="irow"><span class="k">${k}</span><span class="v">${v}</span></div>`).join('');
+    const hist = a.historico || [];
+    if (!hist.length) {
+      document.getElementById('dHist').innerHTML = '<div style="text-align:center;padding:32px;color:var(--muted)">Nenhuma aula registrada.</div>';
+    } else {
+      document.getElementById('dHist').innerHTML = '<table style="width:100%"><thead><tr><th>Aula</th><th>Data</th><th>Duração</th><th>Watts</th></tr></thead><tbody>' +
+        hist.map(h => `<tr><td><strong>${h.nome||'—'}</strong></td><td style="font-size:12px;color:var(--muted)">${new Date(h.data_aula).toLocaleDateString('pt-BR')}</td><td>${fmtSeg(h.dur_seg)}</td><td>${h.avg_watts||'—'} W</td></tr>`).join('') +
+        '</tbody></table>';
+    }
+  } catch(e) { console.error(e); }
+}
+
+function closeDetail() {
+  document.getElementById('alunoDetail').style.display = 'none';
+  cancelarEdicaoAluno();
+  showTab('alunos');
+}
+
+// ── Edição de aluno ──────────────────────────────────────────
+var _alunoAtual = null;
+
+// Sobrescreve verAluno para guardar dados localmente
+const _verAlunoOrig = verAluno;
+async function verAluno(id) {
+  _alunoAtual = null;
+  cancelarEdicaoAluno();
+  if (!id) return;
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('alunoDetail').style.display = 'block';
+  window.scrollTo(0, 0);
+  try {
+    const a = await api('/gestor/alunos/' + id);
+    _alunoAtual = a;
+    renderDetalheAluno(a);
+  } catch(e) { console.error(e); }
+}
+
+function renderDetalheAluno(a) {
+  document.getElementById('dInfo').innerHTML = [
+    ['Nome',     a.name||'—'],
+    ['E-mail',   a.email],
+    ['Cadastro', new Date(a.created_at).toLocaleDateString('pt-BR')],
+    ['Status',   `<span class="badge badge-${a.status||'ativo'}">${a.status||'ativo'}</span>`],
+  ].map(([k,v]) => `<div class="irow"><span class="k">${k}</span><span class="v">${v}</span></div>`).join('');
+  document.getElementById('dPerf').innerHTML = [
+    ['FTP',    (a.ftp||'—') + ' W'],
+    ['Peso',   (a.peso||'—') + ' kg'],
+    ['Nível',  a.level||'Iniciante'],
+    ['Pontos', a.points||0],
+  ].map(([k,v]) => `<div class="irow"><span class="k">${k}</span><span class="v">${v}</span></div>`).join('');
+  const hist = a.historico || [];
+  document.getElementById('dHist').innerHTML = !hist.length
+    ? '<div style="text-align:center;padding:32px;color:var(--muted)">Nenhuma aula registrada.</div>'
+    : '<table style="width:100%"><thead><tr><th>Aula</th><th>Data</th><th>Duração</th><th>Watts</th></tr></thead><tbody>' +
+      hist.map(h => `<tr><td><strong>${h.nome||'—'}</strong></td><td style="font-size:12px;color:var(--muted)">${new Date(h.data_aula).toLocaleDateString('pt-BR')}</td><td>${fmtSeg(h.dur_seg)}</td><td>${h.avg_watts||'—'} W</td></tr>`).join('') +
+      '</tbody></table>';
+}
+
+function toggleEditAluno() {
+  if (!_alunoAtual) return;
+  const form = document.getElementById('dEditForm');
+  const info = document.getElementById('dInfo');
+  const btn  = document.getElementById('btnEditAluno');
+  if (form.style.display === 'none') {
+    // Preenche campos
+    document.getElementById('eNome').value  = _alunoAtual.name  || '';
+    document.getElementById('eEmail').value = _alunoAtual.email || '';
+    document.getElementById('eFtp').value   = _alunoAtual.ftp   || '';
+    document.getElementById('ePeso').value  = _alunoAtual.peso  || '';
+    document.getElementById('dEditErr').style.display = 'none';
+    form.style.display = 'block';
+    info.style.display = 'none';
+    btn.textContent = '✕ Cancelar';
+  } else {
+    cancelarEdicaoAluno();
+  }
+}
+
+function cancelarEdicaoAluno() {
+  const form = document.getElementById('dEditForm');
+  const info = document.getElementById('dInfo');
+  const btn  = document.getElementById('btnEditAluno');
+  if (form) form.style.display = 'none';
+  if (info) info.style.display = 'block';
+  if (btn)  btn.textContent = '✏️ Editar';
+}
+
+async function salvarEdicaoAluno() {
+  if (!_alunoAtual) return;
+  const nome  = document.getElementById('eNome').value.trim();
+  const email = document.getElementById('eEmail').value.trim();
+  const ftp   = parseInt(document.getElementById('eFtp').value) || 0;
+  const peso  = parseFloat(document.getElementById('ePeso').value) || 0;
+  const errEl = document.getElementById('dEditErr');
+  if (!nome || !email) { errEl.textContent = 'Nome e e-mail são obrigatórios.'; errEl.style.display = 'block'; return; }
+  try {
+    const r = await fetch(SERVER + '/gestor/alunos/' + _alunoAtual.id, {
+      method: 'PUT',
+      headers: {'Content-Type':'application/json','Authorization':'Bearer '+token},
+      body: JSON.stringify({ name: nome, email, ftp, peso })
+    });
+    const d = await r.json();
+    if (!r.ok) { errEl.textContent = d.error || 'Erro ao salvar.'; errEl.style.display = 'block'; return; }
+    // Atualiza local
+    _alunoAtual = { ..._alunoAtual, name: nome, email, ftp, peso };
+    // Atualiza também na lista
+    const idx = allAlunos.findIndex(a => a.id === _alunoAtual.id);
+    if (idx >= 0) allAlunos[idx] = { ...allAlunos[idx], name: nome, email, ftp, peso };
+    cancelarEdicaoAluno();
+    renderDetalheAluno(_alunoAtual);
+    toast('✅ Dados do aluno atualizados!');
+  } catch(e) { errEl.textContent = 'Erro de conexão.'; errEl.style.display = 'block'; }
+}
+
+// ── Reset de senha ───────────────────────────────────────────
+function abrirResetSenha() {
+  if (!_alunoAtual) return;
+  document.getElementById('resetSenhaSubtitle').textContent = _alunoAtual.name + ' · ' + _alunoAtual.email;
+  document.getElementById('novaSenha').value = '';
+  document.getElementById('confirmarSenha').value = '';
+  document.getElementById('resetErr').style.display = 'none';
+  document.getElementById('resetSenhaModal').style.display = 'flex';
+}
+
+function fecharResetSenha() { document.getElementById('resetSenhaModal').style.display = 'none'; }
+
+async function confirmarResetSenha() {
+  const nova    = document.getElementById('novaSenha').value;
+  const confirma= document.getElementById('confirmarSenha').value;
+  const errEl   = document.getElementById('resetErr');
+  if (!nova || nova.length < 6) { errEl.textContent = 'Mínimo 6 caracteres.'; errEl.style.display = 'block'; return; }
+  if (nova !== confirma) { errEl.textContent = 'As senhas não coincidem.'; errEl.style.display = 'block'; return; }
+  try {
+    const r = await fetch(SERVER + '/gestor/alunos/' + _alunoAtual.id + '/reset-senha', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json','Authorization':'Bearer '+token},
+      body: JSON.stringify({ password: nova })
+    });
+    const d = await r.json();
+    if (!r.ok) { errEl.textContent = d.error || 'Erro ao resetar.'; errEl.style.display = 'block'; return; }
+    fecharResetSenha();
+    toast('🔑 Senha resetada com sucesso!');
+  } catch(e) { errEl.textContent = 'Erro de conexão.'; errEl.style.display = 'block'; }
+}
+
+function fmtSeg(s) {
+  if (!s) return '—';
+  var m = Math.floor(s/60), sec = s%60;
+  return m+'m '+(sec<10?'0':'')+sec+'s';
+}
+
+// ── Financeiro ──────────────────────────────────────────────
+const PGTO_LABELS = {
+  em_dia:   { cor:'#5db13d', txt:'🟢 Pagamento em dia' },
+  atrasado: { cor:'#d7c414', txt:'🟡 Pagamento atrasado' },
+  bloqueado:{ cor:'#d62d2d', txt:'🔴 Acesso bloqueado — pagamento pendente' },
+  pendente: { cor:'#888',    txt:'⚪ Aguardando primeiro pagamento' },
+};
+// Determina se o usuário atual pode ver/editar cartão
+// Admin em modo suporte NÃO pode — apenas financeiro ou gestor titular
+function podeVerCartao() {
+  return user && (user.role === 'financeiro' || (user.role === 'gestor' && !user.impersonated_by));
+}
+
+async function loadFinanceiro() {
+  // Mostrar aviso para admin
+  const notice = document.getElementById('finAdminNotice');
+  if (notice) notice.style.display = (user && (user.role === 'admin' || user.impersonated_by)) ? 'block' : 'none';
+  try {
+    const r = await fetch(SERVER + '/academia/financeiro', { headers:{'Authorization':'Bearer '+token} });
+    const d = await r.json();
+    if (!r.ok) { console.error(d.error); return; }
+    // Status
+    const st = PGTO_LABELS[d.status_pagamento] || PGTO_LABELS.pendente;
+    document.getElementById('finStatusDot').innerHTML = `<span style="color:${st.cor}">${st.txt}</span>`;
+    document.getElementById('finValor').textContent = 'R$ ' + parseFloat(d.valor_mensal||0).toFixed(2);
+    document.getElementById('finVenc').textContent = 'Dia ' + (d.dia_vencimento||10);
+    document.getElementById('finUltimoPgto').textContent = d.ultimo_pagamento
+      ? new Date(d.ultimo_pagamento+'T00:00').toLocaleDateString('pt-BR') : 'Nenhum';
+    // Cartão
+    const cartaoArea = document.getElementById('finCartaoArea');
+    const cartaoBtn  = document.getElementById('finCartaoEditBtn');
+    if (podeVerCartao()) {
+      if (d.cartao && d.cartao.final) {
+        cartaoArea.innerHTML = `
+          <div style="display:flex;align-items:center;gap:16px">
+            <div style="background:linear-gradient(135deg,rgba(41,95,232,.2),rgba(155,48,255,.2));border:1px solid rgba(41,95,232,.2);border-radius:12px;padding:14px 18px;min-width:200px">
+              <div style="font-size:11px;color:var(--muted);margin-bottom:6px">${d.cartao.bandeira||'Cartão'}</div>
+              <div style="font-family:monospace;font-size:18px;letter-spacing:4px;font-weight:700">•••• •••• •••• ${d.cartao.final}</div>
+              <div style="display:flex;justify-content:space-between;margin-top:8px;font-size:12px;color:var(--muted)">
+                <span>${d.cartao.titular||''}</span><span>${d.cartao.validade||''}</span>
+              </div>
+            </div>
+            <div style="font-size:12px;color:var(--green)">✅ Cartão cadastrado</div>
+          </div>`;
+        cartaoBtn.innerHTML = `<button onclick="abrirCartaoModal('${d.cartao.bandeira||''}','${d.cartao.final}','${d.cartao.validade||''}','${d.cartao.titular||''}')" style="padding:6px 14px;border-radius:8px;border:1px solid var(--border);background:rgba(255,255,255,.04);color:var(--muted);font-size:12px;cursor:pointer">Alterar cartão</button>`;
+      } else {
+        cartaoArea.innerHTML = `<div style="text-align:center;padding:24px;color:var(--muted)">Nenhum cartão cadastrado ainda.</div>`;
+        cartaoBtn.innerHTML = `<button onclick="abrirCartaoModal()" style="padding:6px 14px;border-radius:8px;border:none;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;font-size:12px;font-weight:700;cursor:pointer">+ Cadastrar cartão</button>`;
+      }
+    } else {
+      // Admin / modo suporte — mostra apenas se há cartão, sem dados
+      cartaoArea.innerHTML = d.cartao_cadastrado
+        ? `<div style="display:flex;align-items:center;gap:10px;color:var(--muted)"><span style="font-size:20px">💳</span> Cartão cadastrado — <em>dados ocultos por privacidade</em></div>`
+        : `<div style="color:var(--muted);font-size:13px">Nenhum cartão cadastrado.</div>`;
+      cartaoBtn.innerHTML = '';
+    }
+    // Histórico
+    const tb = document.getElementById('finPgtosTable');
+    if (!d.pagamentos || !d.pagamentos.length) {
+      tb.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:24px;color:var(--muted)">Nenhum pagamento registrado.</td></tr>';
+    } else {
+      tb.innerHTML = d.pagamentos.map(p => `<tr>
+        <td style="font-size:12px">${new Date(p.data_pgto+'T00:00').toLocaleDateString('pt-BR')}</td>
+        <td>${p.referencia||'—'}</td>
+        <td style="color:var(--green);font-weight:700">R$ ${parseFloat(p.valor).toFixed(2)}</td>
+        <td style="font-size:12px;color:var(--muted)">${p.metodo}</td>
+        <td><span class="badge badge-ativo">${p.status}</span></td>
+      </tr>`).join('');
+    }
+  } catch(e) { console.error(e); }
+}
+
+function abrirCartaoModal(bandeira='Visa', final='', validade='', titular='') {
+  document.getElementById('cBandeira').value  = bandeira;
+  document.getElementById('cFinal').value     = final;
+  document.getElementById('cValidade').value  = validade;
+  document.getElementById('cTitular').value   = titular.toUpperCase();
+  document.getElementById('cartaoErr').style.display = 'none';
+  document.getElementById('cartaoModal').style.display = 'flex';
+}
+function fecharCartaoModal() { document.getElementById('cartaoModal').style.display = 'none'; }
+
+async function salvarCartao() {
+  const final    = document.getElementById('cFinal').value.trim();
+  const validade = document.getElementById('cValidade').value.trim();
+  const err      = document.getElementById('cartaoErr');
+  if (!/^\d{4}$/.test(final))              { err.textContent='Informe os últimos 4 dígitos.'; err.style.display='block'; return; }
+  if (!/^\d{2}\/\d{4}$/.test(validade))    { err.textContent='Validade no formato MM/AAAA.'; err.style.display='block'; return; }
+  const body = {
+    bandeira: document.getElementById('cBandeira').value,
+    final, validade,
+    titular: document.getElementById('cTitular').value.trim().toUpperCase(),
+  };
+  try {
+    const r = await fetch(SERVER + '/academia/financeiro/cartao', {
+      method: 'PUT', headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
+      body: JSON.stringify(body)
+    });
+    const d = await r.json();
+    if (!r.ok) { err.textContent = d.error || 'Erro ao salvar.'; err.style.display='block'; return; }
+    fecharCartaoModal();
+    toast('💳 Cartão atualizado!');
+    loadFinanceiro();
+  } catch(e) { err.textContent = 'Erro de conexão.'; err.style.display='block'; }
+}
+
+// ── Grade ──
+const DIAS = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+const DIAS_FULL = ['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado'];
+var gradeData = [];
+var licConfig  = { max_bikes: 0 };  // carregado do servidor — somente leitura para o gestor
+var editingAulaId = null;
+var reservasAgendaId = null;
+
+async function loadGrade() {
+  // Carrega config da licença (inclui max_bikes definido pelo admin)
+  try {
+    const cfg = await api('/gestor/config');
+    if (cfg && !cfg.error) licConfig = cfg;
+  } catch(e) {}
+  // Atualiza indicador de capacidade na aba de grade
+  const capEl = document.getElementById('gradeCapacidade');
+  if (capEl) {
+    const mb = licConfig.max_bikes || 0;
+    const bd = licConfig.bikes_disponiveis || mb;
+    if (mb > 0) {
+      const cor = bd < mb ? '#f59e0b' : '#295fe8';  // amarelo se há bikes fora de serviço
+      const extra = bd < mb ? ` (${mb - bd} fora de serviço)` : '';
+      capEl.innerHTML = `🚲 ${bd} bikes disponíveis${extra}`;
+      capEl.style.background  = bd < mb ? 'rgba(245,158,11,.1)'  : 'rgba(41,95,232,.1)';
+      capEl.style.borderColor = bd < mb ? 'rgba(245,158,11,.3)'  : 'rgba(41,95,232,.25)';
+      capEl.style.color       = cor;
+      capEl.style.display = 'inline-block';
+    } else {
+      capEl.style.display = 'none';
+    }
+  }
+  gradeData = await api('/gestor/agenda');
+  renderGrade();
+}
+
+function renderGrade() {
+  const wrap = document.getElementById('gradeWrap');
+  if (!gradeData.length) {
+    wrap.innerHTML = '<div style="text-align:center;padding:48px;color:var(--muted)"><div style="font-size:40px;margin-bottom:12px">📅</div><p>Nenhuma aula cadastrada ainda.<br>Clique em "+ Nova Aula" para começar.</p></div>';
+    return;
+  }
+  // agrupar por dia
+  const byDay = {};
+  for (let d=0;d<7;d++) byDay[d] = [];
+  gradeData.forEach(a => byDay[a.dia_semana].push(a));
+  const order = [1,2,3,4,5,6,0]; // Seg→Dom
+  wrap.innerHTML = order.filter(d => byDay[d].length > 0).map(d => `
+    <div style="margin-bottom:20px">
+      <div style="font-size:11px;font-weight:700;letter-spacing:2px;color:var(--muted);text-transform:uppercase;margin-bottom:10px">${DIAS_FULL[d]}</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px">
+        ${byDay[d].map(a => aulaCard(a)).join('')}
+      </div>
+    </div>
+  `).join('');
+}
+
+function aulaCard(a) {
+  const vagas = a.vagas_max || 20;
+  const reservas = parseInt(a.reservas_hoje||0);
+  const pct = Math.round(reservas/vagas*100);
+  const cor = pct >= 90 ? 'var(--accent2)' : pct >= 60 ? 'var(--accent)' : 'var(--green)';
+  return `<div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px;position:relative">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
+      <div>
+        <div style="font-size:15px;font-weight:700">${a.nome}</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:2px">👨‍🏫 ${a.professor_nome||'—'}</div>
+      </div>
+      <div style="text-align:right">
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:24px;font-weight:900;color:var(--accent)">${a.hora.slice(0,5)}</div>
+        <div style="font-size:10px;color:var(--muted)">${a.duracao_min} min${a.sala?' · '+a.sala:''}${a.modo_inicio==='automatico'?' · ▶ Auto':' · ⏸ Prof'}</div>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+      <div style="flex:1;height:5px;background:rgba(255,255,255,.06);border-radius:3px;overflow:hidden">
+        <div style="width:${pct}%;height:100%;background:${cor};border-radius:3px;transition:width .4s"></div>
+      </div>
+      <div style="font-size:11px;font-weight:700;color:${cor}">${reservas}/${vagas}</div>
+    </div>
+    <div style="display:flex;gap:8px">
+      <button onclick="openReservas(${a.id},'${a.nome}','${a.hora.slice(0,5)}')" style="flex:1;padding:7px;border-radius:8px;border:1px solid var(--border);background:rgba(255,255,255,.04);color:#fff;font-size:12px;cursor:pointer">👥 Ver lista</button>
+      <button onclick="openEditAula(${a.id})" style="padding:7px 10px;border-radius:8px;border:1px solid var(--border);background:rgba(255,255,255,.04);color:var(--muted);font-size:12px;cursor:pointer">✏️</button>
+      <button onclick="deleteAula(${a.id})" style="padding:7px 10px;border-radius:8px;border:1px solid rgba(214,45,45,.3);background:rgba(214,45,45,.06);color:var(--accent2);font-size:12px;cursor:pointer">🗑</button>
+    </div>
+  </div>`;
+}
+
+function _applyMaxBikes(defaultVal) {
+  const mb = licConfig.max_bikes || 0;
+  const bd = licConfig.bikes_disponiveis || mb;  // teto operacional atual
+  const teto = bd > 0 ? bd : mb;
+  const fv = document.getElementById('fVagas');
+  const hint = document.getElementById('fVagasHint');
+  if (teto > 0) {
+    fv.max = teto;
+    fv.value = Math.min(parseInt(defaultVal)||teto, teto);
+    hint.textContent = bd < mb
+      ? `(máx: ${teto} bikes — ${mb-bd} fora de serviço)`
+      : `(máx: ${teto} bikes)`;
+  } else {
+    fv.max = 200;
+    fv.value = defaultVal || 20;
+    hint.textContent = '';
+  }
+}
+
+function openNovaAula() {
+  editingAulaId = null;
+  document.getElementById('aulaModalTitle').textContent = 'Nova Aula';
+  document.getElementById('fNome').value = '';
+  document.getElementById('fProf').value = '';
+  document.getElementById('fDia').value = new Date().getDay() || 1;
+  document.getElementById('fHora').value = '07:00';
+  document.getElementById('fDur').value = '50';
+  _applyMaxBikes(licConfig.max_bikes || 20);
+  document.getElementById('fSala').value = '';
+  document.getElementById('fModoInicio').value = 'professor';
+  document.getElementById('aulaErr').style.display = 'none';
+  document.getElementById('aulaModal').style.display = 'flex';
+}
+
+function openEditAula(id) {
+  const a = gradeData.find(x => x.id === id);
+  if (!a) return;
+  editingAulaId = id;
+  document.getElementById('aulaModalTitle').textContent = 'Editar Aula';
+  document.getElementById('fNome').value = a.nome;
+  document.getElementById('fProf').value = a.professor_nome || '';
+  document.getElementById('fDia').value = a.dia_semana;
+  document.getElementById('fHora').value = a.hora.slice(0,5);
+  document.getElementById('fDur').value = a.duracao_min;
+  _applyMaxBikes(a.vagas_max);
+  document.getElementById('fSala').value = a.sala || '';
+  document.getElementById('fModoInicio').value = a.modo_inicio || 'professor';
+  document.getElementById('aulaErr').style.display = 'none';
+  document.getElementById('aulaModal').style.display = 'flex';
+}
+
+function closeAulaModal() { document.getElementById('aulaModal').style.display = 'none'; }
+
+// ── Sessão ao Vivo ────────────────────────────────────────────
+var sessaoAtiva = null;
+var sessaoPollingTimer = null;
+
+async function iniciarSessaoAoVivo() {
+  // Verificar se já existe sessão ativa
+  try {
+    const d = await api('/gestor/sessao/ativa');
+    if (d.sessao) {
+      sessaoAtiva = d.sessao;
+      mostrarSessaoAtiva(d.sessao, d.conexoes || [], d.total || 0);
+    } else {
+      document.getElementById('sessaoEstadoNenhuma').style.display = 'block';
+      document.getElementById('sessaoEstadoAtiva').style.display = 'none';
+    }
+  } catch(e) {
+    document.getElementById('sessaoEstadoNenhuma').style.display = 'block';
+    document.getElementById('sessaoEstadoAtiva').style.display = 'none';
+  }
+  document.getElementById('sessaoModal').style.display = 'flex';
+}
+
+async function criarSessaoAoVivo() {
+  const nomeAula   = document.getElementById('sessaoNomeAula').value.trim() || 'Aula ao Vivo';
+  const professor  = document.getElementById('sessaoProfessor').value.trim() || null;
+  try {
+    const d = await api('/gestor/sessao', {
+      method: 'POST',
+      body: JSON.stringify({ nome_aula: nomeAula, professor })
+    });
+    if (d.error) { alert(d.error); return; }
+    sessaoAtiva = d.sessao;
+    mostrarSessaoAtiva(d.sessao, [], 0);
+    iniciarPolling();
+  } catch(e) { alert('Erro ao criar sessão.'); }
+}
+
+function mostrarSessaoAtiva(sessao, conexoes, total) {
+  document.getElementById('sessaoEstadoNenhuma').style.display = 'none';
+  document.getElementById('sessaoEstadoAtiva').style.display = 'block';
+  document.getElementById('sessaoNomeDisplay').textContent = sessao.nome_aula || 'Aula ao Vivo';
+  document.getElementById('sessaoLimiteDisplay').textContent = `Máx: ${sessao.max_conexoes} conexões (bikes na licença)`;
+  document.getElementById('sessaoConectadosInfo').textContent = `${total} aluno${total !== 1 ? 's' : ''} conectado${total !== 1 ? 's' : ''}`;
+  // Gerar QR via API pública (sem depender de biblioteca externa)
+  const qrPayload = `prorider://sessao?token=${sessao.token}`;
+  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(qrPayload)}&bgcolor=ffffff&color=000000`;
+  document.getElementById('sessaoQRImg').src = qrUrl;
+}
+
+function iniciarPolling() {
+  clearInterval(sessaoPollingTimer);
+  sessaoPollingTimer = setInterval(async () => {
+    if (!sessaoAtiva) { clearInterval(sessaoPollingTimer); return; }
+    try {
+      const d = await api('/gestor/sessao/ativa');
+      if (d.sessao) {
+        document.getElementById('sessaoConectadosInfo').textContent =
+          `${d.total} aluno${d.total !== 1 ? 's' : ''} conectado${d.total !== 1 ? 's' : ''}`;
+      }
+    } catch(e) {}
+  }, 5000);
+}
+
+async function encerrarSessaoAtiva() {
+  if (!sessaoAtiva) return;
+  if (!confirm('Encerrar a sessão ao vivo?')) return;
+  try {
+    await api(`/gestor/sessao/${sessaoAtiva.id}`, { method: 'DELETE' });
+    sessaoAtiva = null;
+    clearInterval(sessaoPollingTimer);
+    fecharSessaoModal();
+  } catch(e) { alert('Erro ao encerrar.'); }
+}
+
+function fecharSessaoModal() {
+  document.getElementById('sessaoModal').style.display = 'none';
+  clearInterval(sessaoPollingTimer);
+}
+
+async function salvarAula() {
+  const body = {
+    nome: document.getElementById('fNome').value.trim(),
+    professor_nome: document.getElementById('fProf').value.trim(),
+    dia_semana: parseInt(document.getElementById('fDia').value),
+    hora: document.getElementById('fHora').value,
+    duracao_min: parseInt(document.getElementById('fDur').value),
+    vagas_max:    parseInt(document.getElementById('fVagas').value),
+    sala:         document.getElementById('fSala').value.trim() || null,
+    modo_inicio:  document.getElementById('fModoInicio').value,
+  };
+  const errEl = document.getElementById('aulaErr');
+  if (!body.nome) { errEl.textContent = 'Nome obrigatório.'; errEl.style.display = 'block'; return; }
+  try {
+    const url = editingAulaId ? '/gestor/agenda/'+editingAulaId : '/gestor/agenda';
+    const method = editingAulaId ? 'PUT' : 'POST';
+    const r = await fetch(SERVER + url, {
+      method, headers: {'Content-Type':'application/json','Authorization':'Bearer '+token},
+      body: JSON.stringify(body)
+    });
+    const d = await r.json();
+    if (!r.ok) { errEl.textContent = d.error || 'Erro ao salvar.'; errEl.style.display = 'block'; return; }
+    closeAulaModal();
+    await loadGrade();
+    toast(editingAulaId ? 'Aula atualizada!' : 'Aula criada!');
+  } catch(e) { errEl.textContent = 'Erro de conexão.'; errEl.style.display = 'block'; }
+}
+
+async function deleteAula(id) {
+  if (!confirm('Remover esta aula da grade?')) return;
+  await fetch(SERVER+'/gestor/agenda/'+id, { method:'DELETE', headers:{'Authorization':'Bearer '+token} });
+  await loadGrade();
+  toast('Aula removida.');
+}
+
+// ── Reservas / Lista de alunos ──
+async function openReservas(id, nome, hora) {
+  reservasAgendaId = id;
+  document.getElementById('resModalTitle').textContent = nome + ' · ' + hora;
+  const today = new Date().toISOString().split('T')[0];
+  document.getElementById('resData').value = today;
+  document.getElementById('reservasModal').style.display = 'flex';
+  await loadReservas();
+}
+function closeReservasModal() { document.getElementById('reservasModal').style.display = 'none'; }
+
+async function loadReservas() {
+  const data = document.getElementById('resData').value;
+  const d = await api('/gestor/agenda/'+reservasAgendaId+'/reservas?data='+data);
+  document.getElementById('resModalSub').textContent = `${d.confirmados} confirmados · ${d.vagas_livres} vagas livres de ${d.vagas_max}`;
+  const list = d.reservas || [];
+  if (!list.length) {
+    document.getElementById('resList').innerHTML = '<div style="text-align:center;padding:32px;color:var(--muted)">Nenhuma reserva nesta data.</div>';
+    return;
+  }
+  const STATUS_COLOR = { presente:'var(--green)', reservado:'var(--blue)', ausente:'var(--muted)', cancelado:'var(--accent2)' };
+  const STATUS_LABEL = { presente:'✅ Presente', reservado:'⏳ Reservado', ausente:'❌ Ausente', cancelado:'🚫 Cancelado' };
+  document.getElementById('resList').innerHTML = list.map(r => `
+    <div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.05)">
+      <div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,rgba(41,95,232,.3),rgba(155,48,255,.3));display:flex;align-items:center;justify-content:center;font-weight:700;flex-shrink:0">${(r.name||'?')[0].toUpperCase()}</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;font-weight:700">${r.name||'—'}</div>
+        <div style="font-size:11px;color:var(--muted)">${r.email} · FTP ${r.ftp||'—'}W</div>
+      </div>
+      <div style="display:flex;gap:6px;align-items:center">
+        <span style="font-size:11px;font-weight:700;color:${STATUS_COLOR[r.status]||'var(--muted)'}">${STATUS_LABEL[r.status]||r.status}</span>
+        <select onchange="setStatus(${r.id},this.value)" style="padding:4px 6px;border-radius:6px;border:1px solid var(--border);background:var(--card);color:#fff;font-size:11px;cursor:pointer">
+          <option value="reservado" ${r.status==='reservado'?'selected':''}>⏳</option>
+          <option value="presente"  ${r.status==='presente' ?'selected':''}>✅</option>
+          <option value="ausente"   ${r.status==='ausente'  ?'selected':''}>❌</option>
+          <option value="cancelado" ${r.status==='cancelado'?'selected':''}>🚫</option>
+        </select>
+      </div>
+    </div>`).join('');
+}
+
+async function setStatus(reservaId, status) {
+  await fetch(SERVER+'/gestor/reservas/'+reservaId+'/status', {
+    method:'PUT', headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
+    body: JSON.stringify({ status })
+  });
+  await loadReservas();
+}
+
+function openWalkin() {
+  const nome = prompt('Nome ou e-mail do aluno para adicionar como walk-in:');
+  if (!nome) return;
+  const aluno = allAlunos.find(a => a.name?.toLowerCase().includes(nome.toLowerCase()) || a.email?.toLowerCase().includes(nome.toLowerCase()));
+  if (!aluno) { toast('Aluno não encontrado.'); return; }
+  const data = document.getElementById('resData').value;
+  fetch(SERVER+'/gestor/agenda/'+reservasAgendaId+'/walkin', {
+    method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
+    body: JSON.stringify({ user_id: aluno.id, data })
+  }).then(() => { loadReservas(); toast(aluno.name + ' adicionado!'); });
+}
+
+// ── Leaderboard ──
+const LB_COLORS = ['linear-gradient(135deg,#d7c414,#ea860c)','linear-gradient(135deg,#888,#aaa)','linear-gradient(135deg,#cd7c3a,#a0522d)'];
+const LB_AVATAR_BG = ['#2a2200','#1a1a1a','#1a0e00'];
+
+async function loadLeaderboard() {
+  try {
+    const list = await api('/gestor/leaderboard');
+    if (!list.length) {
+      document.getElementById('lbPodium').innerHTML = '';
+      document.getElementById('lbList').innerHTML = '<div style="text-align:center;padding:40px;color:var(--muted)">Nenhum aluno com pontos ainda.</div>';
+      return;
+    }
+    const maxPts = list[0].points || 1;
+    // Podium top 3
+    const podium = list.slice(0,3);
+    const order  = podium.length >= 3 ? [1,0,2] : (podium.length===2 ? [1,0] : [0]);
+    const heights = [90,120,75];
+    document.getElementById('lbPodium').innerHTML = order.map(i => {
+      const a = podium[i];
+      if (!a) return '';
+      const ini = (a.name||'?')[0].toUpperCase();
+      const h = heights[i];
+      return `<div style="display:flex;flex-direction:column;align-items:center;gap:6px">
+        <div style="width:52px;height:52px;border-radius:50%;background:${LB_COLORS[i]};display:flex;align-items:center;justify-content:center;font-weight:700;font-size:20px;box-shadow:0 0 20px rgba(234,134,12,.3)">${ini}</div>
+        <div style="font-size:13px;font-weight:700;max-width:90px;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${a.name||'—'}</div>
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:900;color:var(--accent)">${a.points||0} pts</div>
+        <div style="background:${LB_COLORS[i]};width:80px;height:${h}px;border-radius:8px 8px 0 0;display:flex;align-items:flex-start;justify-content:center;padding-top:8px;font-family:'Bebas Neue',sans-serif;font-size:36px;color:rgba(0,0,0,.5)">${i+1}</div>
+      </div>`;
+    }).join('');
+    // Full list
+    document.getElementById('lbList').innerHTML = list.map((a,i) => {
+      const pct = Math.round((a.points||0)/maxPts*100);
+      const ini = (a.name||'?')[0].toUpperCase();
+      const posColor = i===0?'#d7c414':i===1?'#aaa':i===2?'#cd7c3a':'var(--muted)';
+      return `<div class="lb-row">
+        <div class="lb-pos" style="color:${posColor}">${i+1}</div>
+        <div class="lb-avatar" style="background:linear-gradient(135deg,rgba(41,95,232,.3),rgba(155,48,255,.3))">${ini}</div>
+        <div class="lb-info">
+          <div class="lb-name">${a.name||'—'}</div>
+          <div class="lb-sub">${a.total_aulas} aulas · ${Math.round(a.total_kcal||0)} kcal · ${a.level||'Iniciante'}</div>
+        </div>
+        <div class="lb-bar-wrap"><div class="lb-bar-fill" style="width:${pct}%"></div></div>
+        <div style="text-align:right">
+          <div class="lb-points">${a.points||0}</div>
+          <div class="lb-pts-lbl">PTS</div>
+        </div>
+      </div>`;
+    }).join('');
+  } catch(e) { console.error(e); }
+}
+
+// ── Relatórios ──
+const ZONE_NAMES = ['Z1 Recuperação','Z2 Resistência','Z3 Tempo','Z4 Limiar','Z5 VO2max','Z6 Anaeróbio','Z7 Neuromuscular'];
+const ZONE_COLORS = ['#888','#295fe8','#5db13d','#d7c414','#ea860c','#d62d2d','#9b30ff'];
+
+async function loadRelatorio() {
+  const mes = document.getElementById('repMes').value;
+  const ano = document.getElementById('repAno').value;
+  try {
+    const d = await api('/gestor/relatorio?mes='+mes+'&ano='+ano);
+    const t = d.totais || {};
+    // KPIs
+    document.getElementById('repKpis').innerHTML = [
+      ['Aulas realizadas', t.total_aulas||0, 'var(--accent)'],
+      ['Alunos ativos', t.alunos_ativos||0, 'var(--blue)'],
+      ['Kcal queimadas', Math.round(t.total_kcal||0), 'var(--accent2)'],
+      ['Horas totais', t.total_seg ? (t.total_seg/3600).toFixed(1)+'h' : '0h', 'var(--green)'],
+    ].map(([k,v,c]) => `<div class="rep-stat"><div class="rv" style="color:${c}">${v}</div><div class="rk">${k}</div></div>`).join('');
+    // Semanas
+    const sem = d.por_semana || [];
+    const maxAulas = Math.max(...sem.map(s=>s.aulas), 1);
+    document.getElementById('repSemanas').innerHTML = sem.length
+      ? sem.map((s,i) => `<div class="cbar-row">
+          <div class="cbar-lbl">Sem. ${i+1}</div>
+          <div class="cbar-track"><div class="cbar-fill" style="width:${Math.round(s.aulas/maxAulas*100)}%;background:linear-gradient(90deg,var(--blue),var(--purple,#9b30ff))">${s.aulas} aulas</div></div>
+        </div>`).join('')
+      : '<div style="color:var(--muted);font-size:13px;padding:8px">Sem dados neste período.</div>';
+    // Zonas
+    const z = d.zonas || {};
+    const zVals = [1,2,3,4,5,6,7].map(n => parseFloat(z['z'+n]||0));
+    const maxZ = Math.max(...zVals, 1);
+    document.getElementById('repZonas').innerHTML = zVals.map((v,i) => `
+      <div class="zone-bar-row">
+        <div class="zone-bar-lbl">${ZONE_NAMES[i]}</div>
+        <div class="zone-bar-track"><div class="zone-bar-fill" style="width:${Math.round(v/maxZ*100)}%;background:${ZONE_COLORS[i]}"></div></div>
+        <div class="zone-bar-pct" style="color:${ZONE_COLORS[i]}">${v}%</div>
+      </div>`).join('');
+    // Top alunos
+    const ta = d.top_alunos || [];
+    document.getElementById('repTopAlunos').innerHTML = ta.length
+      ? ta.map((a,i) => `<tr><td><strong style="color:var(--muted)">${i+1}º</strong></td><td><strong>${a.name}</strong></td><td style="color:var(--accent)">${a.aulas}</td><td>${Math.round(a.kcal)}</td><td style="color:var(--blue)">${a.avg_ftp||'—'}%</td></tr>`).join('')
+      : '<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:20px">Sem aulas neste mês.</td></tr>';
+    // Lista aulas
+    const al = d.aulas || [];
+    document.getElementById('repAulas').innerHTML = al.length
+      ? al.map(a => `<tr><td style="font-size:12px;color:var(--muted)">${a.aluno||'—'}</td><td><strong>${a.nome||'—'}</strong></td><td style="font-size:12px;color:var(--muted)">${new Date(a.data_aula).toLocaleDateString('pt-BR')}</td><td>${fmtSeg(a.dur_seg)}</td><td>${a.kcal||0}</td><td style="color:var(--blue)">${a.avg_ftp||'—'}%</td></tr>`).join('')
+      : '<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:20px">Sem aulas neste mês.</td></tr>';
+  } catch(e) { console.error(e); }
+}
+
+function toast(msg) {
+  var t = document.getElementById('toast');
+  t.textContent = msg; t.style.opacity = '1';
+  clearTimeout(t._to); t._to = setTimeout(() => t.style.opacity = '0', 3000);
+}
+
+init();
+
+// ══════════════════════════════════════════════════════════════
+// QR CODES — Geração e impressão dos adesivos
+// ══════════════════════════════════════════════════════════════
+
+function _qrImgUrl(text, size) {
+  return 'https://chart.googleapis.com/chart?cht=qr&chs=' + size + 'x' + size
+    + '&chl=' + encodeURIComponent(text) + '&choe=UTF-8&chld=M|1';
+}
+
+function _qrPortaHtml(payload, size) {
+  size = size || 180;
+  return '<div style="position:relative;display:inline-block;background:#fff;padding:14px;border-radius:16px;box-shadow:0 4px 20px rgba(0,0,0,.3)">'
+    + '<img src="' + _qrImgUrl(payload, size) + '" width="' + size + '" height="' + size + '" style="display:block">'
+    + '<div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#fff;border-radius:10px;padding:5px 7px;text-align:center;box-shadow:0 0 0 2px rgba(234,134,12,.25)">'
+    + '<div style="font-size:14px;line-height:1;margin-bottom:1px">⚡</div>'
+    + '<div style="font-size:7px;font-weight:900;letter-spacing:1.5px;color:#111;font-family:Arial,sans-serif;line-height:1.2">PRO<br>RIDER</div>'
+    + '</div>'
+    + '</div>';
+}
+
+async function loadQRCodes() {
+  var grid = document.getElementById('qrBikesGrid');
+  var portaDiv = document.getElementById('qrPortaDiv');
+  var portaLabel = document.getElementById('qrPortaPayload');
+  if (grid) grid.innerHTML = '<div style="color:var(--muted);font-size:13px;padding:20px;grid-column:1/-1">A carregar...</div>';
+
+  // Sempre busca do servidor para garantir número correto de bikes
+  try {
+    var r = await fetch(SERVER + '/gestor/config', { headers: { Authorization: 'Bearer ' + token } });
+    var cfg = await r.json();
+    if (cfg && !cfg.error) licConfig = cfg;
+  } catch(e) {}
+
+  var licCodigo = licConfig.codigo || licConfig.license_id || user?.license_id || '';
+  var numBikes  = parseInt(licConfig.bikes_disponiveis || licConfig.max_bikes || 0, 10);
+
+  // Se o servidor não devolveu nada útil, mostra erro claro
+  if (!numBikes) {
+    if (grid) grid.innerHTML = '<div style="color:var(--muted);font-size:13px;padding:20px;grid-column:1/-1">⚠️ Não foi possível obter o número de bikes da licença. Verifique a ligação ao servidor.</div>';
+    return;
+  }
+
+  // ── QR da porta ──
+  var portaPayload = 'prorider://gym?lic=' + licCodigo;
+  if (portaDiv) portaDiv.innerHTML = _qrPortaHtml(portaPayload, 180);
+  if (portaLabel) portaLabel.textContent = portaPayload;
+
+  // ── QRs das bikes ──
+  if (!grid) return;
+  grid.innerHTML = '';
+  for (var i = 1; i <= numBikes; i++) {
+    var payload = 'prorider://bike?n=' + i + '&lic=' + licCodigo;
+    var card = document.createElement('div');
+    card.style.cssText = 'background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:14px;padding:16px;text-align:center;';
+    card.innerHTML = '<div style="font-size:10px;font-weight:700;letter-spacing:2px;color:var(--muted);text-transform:uppercase;margin-bottom:10px">Bike ' + String(i).padStart(2,'0') + '</div>'
+      + '<div style="background:#fff;padding:8px;border-radius:10px;display:inline-block;margin-bottom:10px;box-shadow:0 2px 8px rgba(0,0,0,.2)">'
+      + '<img src="' + _qrImgUrl(payload, 120) + '" width="120" height="120" style="display:block">'
+      + '</div>'
+      + '<div style="font-size:9px;color:var(--muted);word-break:break-all;line-height:1.5;font-family:monospace">' + payload + '</div>';
+    grid.appendChild(card);
+  }
+}
+
+function imprimirQRs() {
+  // Abre janela de impressão com layout otimizado para adesivos
+  var licCodigo = licConfig?.codigo || user?.license_id || '';
+  var numBikes  = licConfig?.bikes_disponiveis || licConfig?.max_bikes || 20;
+  var SERVER_HTTP = SERVER;
+
+  var items = '';
+  // QR da porta
+  var portaUrl = 'https://chart.googleapis.com/chart?cht=qr&chs=200x200&chl='
+    + encodeURIComponent('prorider://gym?lic=' + licCodigo) + '&choe=UTF-8&chld=M|1';
+  items += '<div class="qr-item porta">'
+    + '<div class="qr-label">📍 PORTA DA SALA</div>'
+    + '<img src="' + portaUrl + '" width="140" height="140">'
+    + '<div class="qr-sub">Escaneie ao entrar</div>'
+    + '<div class="qr-lic">' + licCodigo + '</div>'
+    + '</div>';
+
+  // QRs das bikes
+  for (var i = 1; i <= numBikes; i++) {
+    var url = 'https://chart.googleapis.com/chart?cht=qr&chs=200x200&chl='
+      + encodeURIComponent('prorider://bike?n=' + i + '&lic=' + licCodigo) + '&choe=UTF-8&chld=M|1';
+    items += '<div class="qr-item">'
+      + '<div class="qr-label">🚲 BIKE ' + i + '</div>'
+      + '<img src="' + url + '" width="120" height="120">'
+      + '<div class="qr-sub">Escaneie com o app</div>'
+      + '</div>';
+  }
+
+  var html = '<!DOCTYPE html><html><head><meta charset="UTF-8">'
+    + '<title>QR Codes — ProRider</title>'
+    + '<style>'
+    + 'body{font-family:Arial,sans-serif;background:#fff;margin:0;padding:20px}'
+    + 'h1{font-size:18px;margin-bottom:4px}'
+    + '.sub{font-size:12px;color:#666;margin-bottom:20px}'
+    + '.grid{display:flex;flex-wrap:wrap;gap:12px}'
+    + '.qr-item{border:1.5px solid #ddd;border-radius:12px;padding:14px 12px;text-align:center;width:150px;page-break-inside:avoid}'
+    + '.qr-item.porta{width:200px;border-color:#295fe8;border-width:2px}'
+    + '.qr-label{font-size:11px;font-weight:700;letter-spacing:2px;color:#333;margin-bottom:8px}'
+    + '.qr-sub{font-size:10px;color:#888;margin-top:6px}'
+    + '.qr-lic{font-size:9px;color:#aaa;margin-top:3px;font-family:monospace}'
+    + '.qr-logo{position:relative;display:inline-block}'
+    + '.qr-logo-badge{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#fff;border-radius:8px;padding:4px 6px;text-align:center;box-shadow:0 0 0 2px rgba(234,134,12,.25)}'
+    + '@media print{body{padding:8px}.no-print{display:none}.qr-item{break-inside:avoid}}'
+    + '</style></head><body>'
+    + '<div class="no-print" style="margin-bottom:16px">'
+    + '<button onclick="window.print()" style="padding:10px 24px;background:#295fe8;color:#fff;border:none;border-radius:8px;font-size:14px;cursor:pointer;font-weight:700">🖨️ Imprimir / Salvar PDF</button>'
+    + '<span style="margin-left:12px;font-size:12px;color:#888">Ctrl+P também funciona · Recomendado: papel adesivo A4</span>'
+    + '</div>'
+    + '<h1>ProRider — QR Codes de Acesso</h1>'
+    + '<div class="sub">Academia: <strong>' + licCodigo + '</strong> · ' + numBikes + ' bikes</div>'
+    + '<div class="grid">' + items + '</div>'
+    + '</body></html>';
+
+  var blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+  var url  = URL.createObjectURL(blob);
+  window.open(url, '_blank');
+}
+</script>
+</body>
+</html>

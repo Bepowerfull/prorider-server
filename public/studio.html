@@ -1,0 +1,978 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ProRider Studio Builder</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow+Condensed:wght@400;700;900&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+*{ margin:0; padding:0; box-sizing:border-box; }
+body{ background:#080c14; color:#fff; font-family:'Barlow',sans-serif; min-height:100vh; }
+
+/* ── HEADER ── */
+header{
+  position:sticky; top:0;
+  padding:14px 26px;
+  display:flex; align-items:center; justify-content:space-between;
+  z-index:20;
+  background:rgba(5,8,16,0.97);
+  border-bottom:1px solid rgba(255,255,255,0.06);
+  backdrop-filter:blur(8px);
+}
+.header-logo{ display:flex; align-items:center; gap:12px; }
+.header-name{ font-family:'Bebas Neue',sans-serif; font-size:30px; letter-spacing:3px; line-height:1; }
+.header-pro{ color:#fff; }
+.header-rider{ background:linear-gradient(90deg,#ffe033,#ea860c,#d62d2d); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+.header-bar{ height:2px; width:100%; background:linear-gradient(90deg,#ffe033,#ea860c,#d62d2d); border-radius:1px; box-shadow:0 0 6px rgba(234,134,12,.4); margin-top:1px; }
+.header-tagline{ font-family:'Barlow Condensed',sans-serif; font-size:9px; font-weight:700; letter-spacing:4px; color:rgba(255,255,255,.22); text-transform:uppercase; margin-top:2px; }
+.header-sub{ font-family:'Barlow Condensed',sans-serif; font-size:11px; font-weight:700; letter-spacing:3px; color:rgba(255,255,255,.2); text-transform:uppercase; background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.07); padding:4px 12px; border-radius:20px; }
+#classNameHeader{ font-family:'Barlow Condensed',sans-serif; font-size:14px; font-weight:700; letter-spacing:2px; color:rgba(255,255,255,.28); }
+.header-actions{ display:flex; align-items:center; gap:8px; }
+.btn-hdr{ font-family:'Barlow Condensed',sans-serif; font-weight:700; letter-spacing:1px; cursor:pointer; border-radius:8px; font-size:12px; padding:8px 16px; border:none; }
+.btn-hdr-primary{ background:linear-gradient(135deg,#2850d8,#1a38a8); color:#fff; }
+.btn-hdr-primary:hover{ opacity:.88; }
+.btn-hdr-ghost{ background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.1); color:rgba(255,255,255,.7); }
+.btn-hdr-ghost:hover{ background:rgba(255,255,255,.1); }
+.btn-hdr-usb{ background:rgba(234,134,12,.15); border:1px solid rgba(234,134,12,.3); color:#ea860c; }
+.btn-hdr-usb:hover{ background:rgba(234,134,12,.25); }
+
+/* ── MAIN ── */
+main{ padding:24px; display:grid; grid-template-columns:420px 1fr; gap:22px; }
+
+.builder, .timeline-section{
+  background:rgba(5,10,20,.9);
+  border:1px solid rgba(255,255,255,.07);
+  border-radius:14px; padding:22px;
+}
+.builder h2,.timeline-section h2{
+  font-family:'Barlow Condensed',sans-serif; font-size:18px; font-weight:700;
+  letter-spacing:2px; text-transform:uppercase; color:rgba(255,255,255,.55); margin-bottom:18px;
+}
+
+input[type="text"],input[type="number"],select,textarea{
+  width:100%; padding:13px 14px; margin-bottom:12px;
+  background:rgba(10,15,28,.85); color:#fff;
+  border:1px solid rgba(255,255,255,.09); border-radius:9px;
+  font-family:'Barlow',sans-serif; font-size:14px; transition:border-color .2s; outline:none;
+}
+input:focus,select:focus,textarea:focus{ border-color:rgba(41,95,232,.55); }
+select option{ background:#0d1420; }
+textarea{ height:80px; resize:none; }
+.form-grid{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; }
+.form-grid input,.form-grid select{ margin-bottom:0; }
+
+button{ border:none; border-radius:9px; cursor:pointer; color:#fff; font-family:'Barlow Condensed',sans-serif; font-weight:700; letter-spacing:1px; transition:opacity .2s,transform .12s; }
+button:active{ transform:scale(.97); }
+#addBlock{ width:100%; padding:14px; background:#2850d8; font-size:16px; margin-bottom:14px; margin-top:12px; }
+#addBlock:hover{ opacity:.85; }
+.btn-start{ width:100%; padding:15px; background:linear-gradient(135deg,#2850d8,#1a38a8); font-size:17px; margin-top:20px; box-shadow:0 4px 20px rgba(41,80,216,.35); }
+.btn-start:hover{ opacity:.88; }
+.save-row{ display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:6px; margin-top:16px; }
+.btn-secondary{ padding:10px 6px; font-size:11px; background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.1); }
+.btn-secondary:hover{ background:rgba(255,255,255,.11); }
+.btn-danger{ padding:10px 6px; font-size:11px; background:rgba(200,40,40,.18); border:1px solid rgba(200,40,40,.28); }
+.btn-danger:hover{ background:rgba(200,40,40,.3); }
+.workout-summary{ display:flex; gap:16px; margin-top:14px; padding:12px 14px; background:rgba(41,95,232,.1); border:1px solid rgba(41,95,232,.2); border-radius:9px; font-family:'Barlow Condensed',sans-serif; font-size:14px; font-weight:700; letter-spacing:1px; color:rgba(255,255,255,.65); }
+
+/* ── INTENSITY MODE ── */
+.intensity-mode-row{ margin-bottom:14px; }
+.mode-tabs{ display:flex; gap:6px; margin-top:8px; flex-wrap:wrap; }
+.mode-tab{ padding:7px 12px; font-size:12px; background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.08); border-radius:7px; color:rgba(255,255,255,.45); transition:all .2s; }
+.mode-tab.active{ background:rgba(234,134,12,.2); border-color:rgba(234,134,12,.45); color:#ea860c; }
+.mode-tab:hover:not(.active){ background:rgba(255,255,255,.09); }
+
+/* ── SEGMENTS ── */
+.segment-selector{ margin-bottom:14px; padding:14px; background:rgba(255,255,255,.03); border:1px solid rgba(255,255,255,.07); border-radius:10px; }
+.seg-label-row{ display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; }
+.seg-label{ font-family:'Barlow Condensed',sans-serif; font-size:11px; font-weight:700; letter-spacing:2px; text-transform:uppercase; color:rgba(255,255,255,.35); }
+.btn-add-seg{ padding:6px 12px; font-size:11px; background:rgba(41,95,232,.2); border:1px solid rgba(41,95,232,.35); }
+.seg-tabs{ display:flex; gap:6px; flex-wrap:wrap; margin-bottom:10px; }
+.seg-tab{ padding:8px 12px; font-size:12px; background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.08); border-radius:7px; color:rgba(255,255,255,.5); transition:all .2s; display:flex; align-items:center; gap:6px; }
+.seg-tab.active{ background:rgba(41,95,232,.25); border-color:rgba(41,95,232,.5); color:#fff; }
+.seg-tab:hover:not(.active){ background:rgba(255,255,255,.09); }
+.seg-type-badge{ font-size:9px; padding:2px 5px; border-radius:3px; background:rgba(255,255,255,.1); color:rgba(255,255,255,.45); font-weight:700; letter-spacing:1px; text-transform:uppercase; }
+.seg-tab.type-warmup   .seg-type-badge{ background:rgba(234,134,12,.2); color:#ea860c; }
+.seg-tab.type-main     .seg-type-badge{ background:rgba(41,95,232,.2); color:#295fe8; }
+.seg-tab.type-cooldown .seg-type-badge{ background:rgba(161,161,161,.2); color:#a1a1a1; }
+.seg-edit-row{ display:flex; gap:8px; }
+.seg-rename-input{ flex:1; padding:9px 12px; margin-bottom:0; font-size:13px; }
+.btn-rename{ padding:9px 16px; background:#2850d8; font-size:14px; }
+.btn-delete-seg{ padding:9px 12px; background:rgba(200,40,40,.2); border:1px solid rgba(200,40,40,.3); font-size:13px; }
+
+/* ── TIMELINE ── */
+.segment-timeline{ margin-bottom:16px; }
+.seg-timeline-header{ display:flex; align-items:center; justify-content:space-between; margin-bottom:6px; padding:0 4px; }
+.seg-timeline-label{ font-family:'Barlow Condensed',sans-serif; font-size:12px; font-weight:700; letter-spacing:2px; text-transform:uppercase; color:rgba(255,255,255,.35); }
+.seg-timeline-dur{ font-family:'Barlow Condensed',sans-serif; font-size:11px; color:rgba(255,255,255,.22); }
+.seg-blocks{ min-height:80px; display:flex; align-items:flex-end; gap:6px; padding:10px 10px 0; background:#060a10; border-radius:10px; overflow-x:auto; border:1px solid rgba(255,255,255,.05); }
+.block{ min-width:52px; border-radius:6px 6px 0 0; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; padding:6px 4px; font-family:'Barlow Condensed',sans-serif; font-size:11px; font-weight:700; text-align:center; position:relative; cursor:grab; transition:filter .15s,opacity .15s; }
+.block:hover{ filter:brightness(1.12); }
+.block.dragging{ opacity:.4; cursor:grabbing; }
+.block.drag-over{ outline:2px dashed rgba(255,255,255,.4); outline-offset:2px; }
+.block-actions{ position:absolute; top:-28px; left:50%; transform:translateX(-50%); display:none; gap:4px; padding-bottom:8px; z-index:10; }
+.block:hover .block-actions,.block-actions:hover{ display:flex; }
+.block-btn{ width:24px; height:24px; border-radius:5px; border:none; font-size:13px; font-weight:900; display:flex; align-items:center; justify-content:center; cursor:pointer; line-height:1; box-shadow:0 2px 8px rgba(0,0,0,.5); transition:transform .1s; }
+.block-btn:hover{ transform:scale(1.15); }
+.block-delete{ background:#c82828; color:#fff; }
+.block-duplicate{ background:#2850d8; color:#fff; }
+.z1,.zone1{ background:#a1a1a1; height:38px; }
+.z2,.zone2{ background:#295fe8; height:58px; }
+.z3,.zone3{ background:#5db13d; height:76px; }
+.z4,.zone4{ background:#d7c414; height:92px; }
+.z5,.zone5{ background:#ea860c; height:106px; }
+.z6,.zone6{ background:#d62d2d; height:118px; }
+.z7,.zone7{ background:#9b30ff; height:130px; }
+.block.standing::before{ content:""; position:absolute; top:-5px; left:0; width:100%; height:3px; background:#fff; border-radius:3px; }
+
+/* ── VÍDEO / MP3 ── */
+.video-builder-section{ margin-bottom:14px; padding:14px; background:rgba(255,255,255,.03); border:1px solid rgba(255,255,255,.07); border-radius:10px; }
+.vbs-header{ display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; }
+.vbs-title{ font-family:'Barlow Condensed',sans-serif; font-size:13px; font-weight:700; letter-spacing:1px; color:rgba(255,255,255,.55); }
+.vbs-dur{ font-family:'Barlow Condensed',sans-serif; font-size:12px; color:rgba(255,255,255,.35); }
+.video-source-toggle{ display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-bottom:12px; }
+.vsrc-btn{ padding:10px 8px; font-size:12px; font-weight:700; background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.08); border-radius:8px; color:rgba(255,255,255,.45); transition:all .2s; cursor:pointer; }
+.vsrc-btn.active{ background:rgba(41,95,232,.22); border-color:rgba(41,95,232,.5); color:#fff; }
+.vsrc-btn:hover:not(.active){ background:rgba(255,255,255,.09); }
+.btn-video-load{ display:block; width:100%; padding:11px; text-align:center; background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.1); border-radius:8px; cursor:pointer; font-family:'Barlow Condensed',sans-serif; font-size:14px; font-weight:700; letter-spacing:1px; color:rgba(255,255,255,.7); transition:background .2s; }
+.btn-video-load:hover{ background:rgba(255,255,255,.11); }
+#videoPreview{ width:100%; border-radius:8px; margin-top:10px; max-height:150px; object-fit:cover; background:#000; }
+.sync-block{ margin-top:10px; }
+.sync-row{ display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; }
+.sync-label{ font-family:'Barlow Condensed',sans-serif; font-size:12px; font-weight:700; letter-spacing:1px; color:rgba(255,255,255,.45); }
+.sync-time{ font-family:'Barlow Condensed',sans-serif; font-size:16px; font-weight:900; color:#fff; }
+.sync-slider{ width:100%; margin-bottom:12px; accent-color:#ea860c; height:4px; cursor:pointer; padding:0; border:none; background:transparent; margin-top:4px; }
+.sync-info{ background:rgba(41,95,232,.12); border:1px solid rgba(41,95,232,.25); border-radius:8px; padding:10px 14px; margin-bottom:10px; }
+.sync-info-row{ display:flex; justify-content:space-between; align-items:center; padding:3px 0; font-size:13px; color:rgba(255,255,255,.55); }
+.sync-info-row strong{ font-family:'Barlow Condensed',sans-serif; font-size:15px; color:#fff; font-weight:900; }
+.btn-preview-sync{ width:100%; padding:10px; margin-bottom:8px; background:rgba(41,95,232,.2); border:1px solid rgba(41,95,232,.35); font-size:13px; }
+.btn-preview-sync:hover{ background:rgba(41,95,232,.35); }
+.btn-remove-video{ width:100%; padding:10px; background:rgba(200,40,40,.15); border:1px solid rgba(200,40,40,.25); font-size:13px; }
+.camera-info{ padding:12px 14px; margin-bottom:10px; background:rgba(255,255,255,.03); border:1px solid rgba(255,255,255,.07); border-radius:8px; }
+.camera-info p{ font-size:13px; color:rgba(255,255,255,.45); line-height:1.6; margin-bottom:4px; }
+#cameraPreviewBuilder{ width:100%; border-radius:8px; margin-bottom:8px; max-height:150px; object-fit:cover; background:#000; }
+
+/* ── LIBRARY ── */
+#librarySection{ margin-top:14px; padding:12px 14px; background:rgba(255,255,255,.03); border:1px solid rgba(255,255,255,.07); border-radius:9px; }
+.library-header{ display:flex; justify-content:space-between; align-items:center; }
+.library-title{ font-family:'Barlow Condensed',sans-serif; font-size:13px; font-weight:700; letter-spacing:1px; color:rgba(255,255,255,.45); }
+.btn-lib-toggle{ padding:4px 10px; font-size:11px; background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.1); }
+.library-item{ display:flex; align-items:center; justify-content:space-between; padding:8px 10px; margin-top:8px; background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.06); border-radius:8px; }
+.lib-item-name{ font-family:'Barlow Condensed',sans-serif; font-size:14px; font-weight:700; color:rgba(255,255,255,.75); }
+.lib-item-info{ font-family:'Barlow Condensed',sans-serif; font-size:11px; color:rgba(255,255,255,.3); margin-top:2px; }
+.lib-item-actions{ display:flex; gap:6px; }
+.btn-lib-load{ padding:6px 12px; font-size:11px; background:rgba(41,95,232,.2); border:1px solid rgba(41,95,232,.3); }
+.btn-lib-del{ padding:6px 10px; font-size:11px; background:rgba(200,40,40,.15); border:1px solid rgba(200,40,40,.25); }
+.lib-empty{ font-family:'Barlow Condensed',sans-serif; font-size:12px; color:rgba(255,255,255,.2); padding:8px 0; text-align:center; }
+
+/* ── PENDRIVE INFO ── */
+.usb-banner{ margin-top:20px; padding:14px 18px; background:rgba(234,134,12,.08); border:1px solid rgba(234,134,12,.22); border-radius:10px; }
+.usb-banner h4{ font-family:'Barlow Condensed',sans-serif; font-size:12px; font-weight:700; letter-spacing:2px; text-transform:uppercase; color:#ea860c; margin-bottom:8px; }
+.usb-struct{ font-family:'Barlow Condensed',sans-serif; font-size:12px; line-height:1.9; color:rgba(255,255,255,.45); }
+.usb-struct .d{ color:#6b9eff; } .usb-struct .f{ color:#5db13d; }
+
+/* ── TOAST ── */
+#toast{ position:fixed; bottom:28px; left:50%; transform:translateX(-50%) translateY(20px); background:#11141f; border:1px solid rgba(255,255,255,.1); border-radius:10px; padding:10px 22px; font-family:'Barlow Condensed',sans-serif; font-size:14px; font-weight:700; letter-spacing:1px; opacity:0; transition:all .28s; z-index:9999; pointer-events:none; white-space:nowrap; }
+#toast.show{ opacity:1; transform:translateX(-50%) translateY(0); }
+
+/* Spotify */
+#spotifySection select{ margin-bottom:8px; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-logo">
+    <svg width="22" height="27" viewBox="0 0 44 56" fill="none">
+      <defs><linearGradient id="hg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#ffe033"/><stop offset="50%" stop-color="#ea860c"/><stop offset="100%" stop-color="#d62d2d"/></linearGradient></defs>
+      <path d="M30 4 L10 30 L20 30 L14 52 L34 26 L24 26 Z" fill="url(#hg)"/>
+    </svg>
+    <div>
+      <div class="header-name"><span class="header-pro">PRO</span><span class="header-rider">RIDER</span></div>
+      <div class="header-bar"></div>
+      <div class="header-tagline">studio builder</div>
+    </div>
+  </div>
+  <span id="classNameHeader"></span>
+  <span class="header-sub" title="Salve esta página (Ctrl+S) para usar offline no seu computador">📥 Studio Builder · v1.0</span>
+  <div class="header-actions">
+    <button class="btn-hdr btn-hdr-ghost" onclick="document.getElementById('loadFileInput').click()">📂 Carregar JSON</button>
+    <button class="btn-hdr btn-hdr-usb" onclick="exportarPendrive()">💾 Exportar para Pendrive</button>
+    <button class="btn-hdr btn-hdr-primary" onclick="saveToLibrary()">✓ Salvar</button>
+  </div>
+</header>
+
+<main>
+  <section class="builder">
+    <h2>Nova Aula</h2>
+    <input type="text" id="className" placeholder="Nome da aula">
+
+    <!-- SEGMENTO -->
+    <div class="segment-selector">
+      <div class="seg-label-row">
+        <span class="seg-label">Segmento do bloco</span>
+        <button id="addSegmentBtn" class="btn-add-seg">+ Novo segmento</button>
+      </div>
+      <div class="seg-tabs" id="segTabs"></div>
+      <div class="seg-edit-row">
+        <input type="text" id="editSegName" placeholder="Renomear segmento selecionado" class="seg-rename-input">
+        <button id="applySegName" class="btn-rename">✓</button>
+        <button id="deleteSegBtn" class="btn-delete-seg" title="Remover segmento">🗑</button>
+      </div>
+    </div>
+
+    <!-- MODO DE INTENSIDADE -->
+    <div class="intensity-mode-row">
+      <span class="seg-label">Modo de intensidade</span>
+      <div class="mode-tabs">
+        <button class="mode-tab active" data-mode="ftp">⚡ Potência (FTP)</button>
+        <button class="mode-tab" data-mode="hr">❤️ Freq. Cardíaca</button>
+        <button class="mode-tab" data-mode="pse">😊 Percepção (PSE)</button>
+      </div>
+    </div>
+
+    <div class="form-grid">
+      <input type="number" id="duration"  placeholder="Tempo (min)" min="1">
+      <input type="number" id="rpmMin"    placeholder="RPM mín"     min="1">
+      <input type="number" id="rpmMax"    placeholder="RPM máx"     min="1">
+      <select id="intensity">
+        <option value="zone1">Zone 1 – Recovery</option>
+        <option value="zone2">Zone 2 – Endurance</option>
+        <option value="zone3">Zone 3 – Tempo</option>
+        <option value="zone4">Zone 4 – Threshold</option>
+        <option value="zone5">Zone 5 – VO2 Max</option>
+        <option value="zone6">Zone 6 – Anaerobic 🔥</option>
+        <option value="zone7">Zone 7 – Neuromuscular ⚡</option>
+      </select>
+      <select id="position">
+        <option value="Sentado">Sentado</option>
+        <option value="Em Pé">Em Pé</option>
+      </select>
+    </div>
+    <textarea id="notes" placeholder="Observações (opcional)"></textarea>
+    <button id="addBlock">+ Adicionar Bloco</button>
+
+    <!-- VÍDEO -->
+    <div class="video-builder-section">
+      <div class="vbs-header">
+        <span class="vbs-title">🎬 Vídeo de Fundo</span>
+        <span id="videoDurationLabel" class="vbs-dur"></span>
+      </div>
+      <div class="video-source-toggle">
+        <button class="vsrc-btn active" id="srcVideoBtn">📁 Arquivo de Vídeo</button>
+        <button class="vsrc-btn" id="srcCameraBtn">📷 Câmera Ao Vivo</button>
+      </div>
+      <div id="panelVideo">
+        <label for="videoInputBuilder" class="btn-video-load">Carregar Vídeo</label>
+        <input type="file" id="videoInputBuilder" accept="video/*" style="display:none">
+        <div id="videoPreviewBox" style="display:none">
+          <video id="videoPreview" muted playsinline></video>
+          <div class="sync-block">
+            <div class="sync-row">
+              <span class="sync-label">Chegada = fim do Bloco Principal</span>
+              <span id="endPointDisplay" class="sync-time">--:--:--</span>
+            </div>
+            <input type="range" id="endPointSlider" min="0" max="100" step="0.1" value="100" class="sync-slider">
+            <div class="sync-info" id="syncInfo" style="display:none">
+              <div class="sync-info-row"><span>▶ Vídeo começa em</span><strong id="startPointDisplay">--:--:--</strong></div>
+              <div class="sync-info-row"><span>⏹ Fim do Bloco Principal</span><strong id="endPointFinal">--:--:--</strong></div>
+              <div class="sync-info-row"><span>⏱ Duração da aula</span><strong id="workoutDurDisplay">--</strong></div>
+            </div>
+            <button id="previewSyncBtn" class="btn-preview-sync">👁 Ver ponto de início</button>
+            <button id="removeVideoBuilder" class="btn-remove-video">Remover vídeo</button>
+          </div>
+        </div>
+      </div>
+      <div id="panelCamera" style="display:none">
+        <div class="camera-info"><p>A câmera será ativada ao iniciar a Live Class.</p><p>Prepare o cenário atrás de você — ele será o fundo da aula.</p></div>
+        <video id="cameraPreviewBuilder" autoplay muted playsinline style="display:none"></video>
+        <button id="testCameraBtn" class="btn-preview-sync">📷 Testar câmera</button>
+        <button id="stopCameraBtn" class="btn-remove-video" style="display:none">Parar preview</button>
+      </div>
+    </div>
+
+    <!-- MP3 -->
+    <div class="video-builder-section">
+      <div class="vbs-header">
+        <span class="vbs-title">🎵 Música da Aula (MP3)</span>
+        <span id="mp3DurationLabel" class="vbs-dur"></span>
+      </div>
+      <label for="mp3InputBuilder" class="btn-video-load">🎵 Carregar MP3</label>
+      <input type="file" id="mp3InputBuilder" accept="audio/mp3,audio/mpeg,.mp3" style="display:none">
+      <div id="mp3PreviewBox" style="display:none">
+        <audio id="audioPreview" controls style="width:100%;margin-top:10px;border-radius:8px;"></audio>
+        <div class="sync-block">
+          <div class="sync-row">
+            <span class="sync-label">Chegada musical = fim do Bloco Principal</span>
+            <span id="mp3EndPointDisplay" class="sync-time">--:--</span>
+          </div>
+          <input type="range" id="mp3EndPointSlider" min="0" max="100" step="0.1" value="100" class="sync-slider">
+          <div class="sync-info" id="mp3SyncInfo" style="display:none">
+            <div class="sync-info-row"><span>▶ Música começa em</span><strong id="mp3StartDisplay">--:--</strong></div>
+            <div class="sync-info-row"><span>🎵 Fim do Bloco Principal</span><strong id="mp3EndDisplay">--:--</strong></div>
+            <div class="sync-info-row"><span>⏱ Duração da aula</span><strong id="mp3DurDisplay">--</strong></div>
+          </div>
+          <button id="mp3PreviewBtn" class="btn-preview-sync">▶ Ouvir ponto de início</button>
+          <button id="removeMp3Btn" class="btn-remove-video">Remover MP3</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- SPOTIFY -->
+    <div class="video-builder-section" id="spotifySection">
+      <div class="vbs-header">
+        <div style="display:flex;align-items:center;gap:8px;">
+          <svg width="18" height="18" viewBox="0 0 24 24"><circle cx="12" cy="12" r="12" fill="#1DB954"/><path d="M17.9 10.9C14.7 9 9.35 8.8 6.3 9.75c-.5.15-1-.15-1.15-.6-.15-.5.15-1 .6-1.15 3.55-1.05 9.4-.85 13.1 1.35.45.25.6.85.35 1.3-.25.35-.85.5-1.3.25zm-.1 2.8c-.25.35-.7.5-1.05.25-2.7-1.65-6.8-2.15-9.95-1.15-.4.1-.85-.1-.95-.5-.1-.4.1-.85.5-.95 3.65-1.1 8.15-.55 11.25 1.35.3.15.45.65.2 1zm-1.2 2.75c-.2.3-.55.4-.85.2-2.35-1.45-5.3-1.75-8.8-.95-.35.1-.65-.15-.75-.45-.1-.35.15-.65.45-.75 3.8-.85 7.1-.5 9.7 1.1.35.15.4.55.25.85z" fill="white"/></svg>
+          <span class="vbs-title">Spotify (opcional)</span>
+        </div>
+        <span id="spotifyStatus" class="vbs-dur"></span>
+      </div>
+      <div id="spotifyNotConnected">
+        <div class="camera-info">
+          <p>Conecte sua conta Spotify. A música toca no seu dispositivo — o ProRider só controla a sincronização.</p>
+          <p>O som sai pela caixa de som do seu notebook ou celular normalmente.</p>
+        </div>
+        <button id="spotifyLoginBtn" class="btn-preview-sync" style="background:rgba(29,185,84,.2);border-color:rgba(29,185,84,.4);color:#1DB954;">
+          <svg width="14" height="14" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:6px;"><circle cx="12" cy="12" r="12" fill="#1DB954"/><path d="M17.9 10.9C14.7 9 9.35 8.8 6.3 9.75c-.5.15-1-.15-1.15-.6-.15-.5.15-1 .6-1.15 3.55-1.05 9.4-.85 13.1 1.35.45.25.6.85.35 1.3-.25.35-.85.5-1.3.25zm-.1 2.8c-.25.35-.7.5-1.05.25-2.7-1.65-6.8-2.15-9.95-1.15-.4.1-.85-.1-.95-.5-.1-.4.1-.85.5-.95 3.65-1.1 8.15-.55 11.25 1.35.3.15.45.65.2 1zm-1.2 2.75c-.2.3-.55.4-.85.2-2.35-1.45-5.3-1.75-8.8-.95-.35.1-.65-.15-.75-.45-.1-.35.15-.65.45-.75 3.8-.85 7.1-.5 9.7 1.1.35.15.4.55.25.85z" fill="white"/></svg>
+          Conectar com Spotify
+        </button>
+      </div>
+      <div id="spotifyConnected" style="display:none;">
+        <div id="spotifyUserInfo" style="display:flex;align-items:center;gap:10px;padding:8px 12px;background:rgba(29,185,84,.1);border:1px solid rgba(29,185,84,.2);border-radius:8px;margin-bottom:10px;">
+          <svg width="16" height="16" viewBox="0 0 24 24"><circle cx="12" cy="12" r="12" fill="#1DB954"/><path d="M17.9 10.9C14.7 9 9.35 8.8 6.3 9.75c-.5.15-1-.15-1.15-.6-.15-.5.15-1 .6-1.15 3.55-1.05 9.4-.85 13.1 1.35.45.25.6.85.35 1.3-.25.35-.85.5-1.3.25zm-.1 2.8c-.25.35-.7.5-1.05.25-2.7-1.65-6.8-2.15-9.95-1.15-.4.1-.85-.1-.95-.5-.1-.4.1-.85.5-.95 3.65-1.1 8.15-.55 11.25 1.35.3.15.45.65.2 1zm-1.2 2.75c-.2.3-.55.4-.85.2-2.35-1.45-5.3-1.75-8.8-.95-.35.1-.65-.15-.75-.45-.1-.35.15-.65.45-.75 3.8-.85 7.1-.5 9.7 1.1.35.15.4.55.25.85z" fill="white"/></svg>
+          <span id="spotifyUserName" style="font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;color:#1DB954;"></span>
+          <button id="spotifyLogoutBtn" style="margin-left:auto;padding:4px 10px;font-size:10px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:6px;color:rgba(255,255,255,.4);font-family:'Barlow Condensed',sans-serif;font-weight:700;letter-spacing:1px;cursor:pointer;">Sair</button>
+        </div>
+        <select id="spotifyPlaylistSelect"><option value="">Selecione uma playlist...</option></select>
+        <div id="spotifySelectedInfo" style="display:none;padding:8px 12px;background:rgba(29,185,84,.08);border:1px solid rgba(29,185,84,.15);border-radius:8px;font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;color:rgba(255,255,255,.5);margin-bottom:8px;"></div>
+        <div class="camera-info" style="margin-bottom:0;"><p>⚠️ A música toca no seu Spotify — no celular ou notebook onde você está logado. O ProRider sincroniza o tempo com a aula.</p></div>
+      </div>
+    </div>
+
+    <!-- SALVAR / PDF / LIMPAR -->
+    <div class="save-row">
+      <button id="saveWorkout" class="btn-secondary">💾 Salvar</button>
+      <button id="loadWorkout" class="btn-secondary">📂 Carregar</button>
+      <button id="exportPDF"   class="btn-secondary">📄 PDF</button>
+      <button id="clearWorkout" class="btn-danger">🗑 Limpar</button>
+    </div>
+    <input type="file" id="loadFileInput" accept=".json" style="display:none">
+
+    <div id="librarySection">
+      <div class="library-header">
+        <span class="library-title">📚 Minhas Aulas</span>
+        <button id="toggleLibrary" class="btn-lib-toggle">▾ ver</button>
+      </div>
+      <div id="libraryList" style="display:none"></div>
+    </div>
+
+    <div id="workoutSummary" class="workout-summary" style="display:none">
+      <span id="summaryTotal"></span>
+      <span id="summaryBlocks"></span>
+    </div>
+
+    <!-- PENDRIVE INSTRUCTIONS -->
+    <div class="usb-banner">
+      <h4>📁 Estrutura do Pendrive</h4>
+      <div class="usb-struct">
+        <span class="d">📁 prorider/</span><br>
+        &nbsp;&nbsp;<span class="d">📁 video/</span>&nbsp; ← coloque o arquivo de vídeo aqui<br>
+        &nbsp;&nbsp;<span class="d">📁 musicas/</span>&nbsp; ← coloque os MP3s aqui<br>
+        &nbsp;&nbsp;<span class="f">📄 nome-da-aula.json</span>&nbsp; ← exportado pelo Studio
+      </div>
+    </div>
+  </section>
+
+  <!-- TIMELINE -->
+  <section class="timeline-section">
+    <h2>Timeline da Aula</h2>
+    <div id="segmentTimelineContainer"></div>
+    <button id="startLive" class="btn-start" onclick="exportarPendrive()">💾 Exportar para Pendrive</button>
+  </section>
+</main>
+
+<div id="toast"></div>
+
+<script>
+// ══════════════════════════════════════════
+// ESTADO
+// ══════════════════════════════════════════
+let segments = [
+  { id:"warmup",   name:"Aquecimento",     type:"warmup"   },
+  { id:"main_1",   name:"Bloco Principal", type:"main"     },
+  { id:"cooldown", name:"Volta à Calma",   type:"cooldown" },
+];
+let activeSegmentId = "warmup";
+let mainCounter     = 1;
+let workout         = [];
+let intensityMode   = "ftp";
+let videoSource     = "video";
+let videoDuration   = 0;
+let videoEndPoint   = 0;
+let videoObjectUrl  = null;
+let cameraStream    = null;
+let mp3Duration     = 0;
+let mp3EndPoint     = 0;
+let mp3ObjectUrl    = null;
+let dragSrcBlock    = null;
+let spotifyPlaylistUri = null;
+let spotifyToken    = null;
+
+// ── ZONAS ──────────────────────────────────
+const zoneInfo = {
+  zone1:{ name:"Zone 1 – Recovery",        color:"#a1a1a1", ftp:"< 60%",    ftpFull:"Abaixo de 60%",  fc:"< 60%",   pse:1  },
+  zone2:{ name:"Zone 2 – Endurance",       color:"#295fe8", ftp:"60–75%",   ftpFull:"60% a 75%",      fc:"60–70%",  pse:3  },
+  zone3:{ name:"Zone 3 – Tempo",           color:"#5db13d", ftp:"76–89%",   ftpFull:"76% a 89%",      fc:"71–80%",  pse:5  },
+  zone4:{ name:"Zone 4 – Threshold",       color:"#d7c414", ftp:"90–104%",  ftpFull:"90% a 104%",     fc:"81–90%",  pse:6  },
+  zone5:{ name:"Zone 5 – VO2 Max",         color:"#ea860c", ftp:"105–118%", ftpFull:"105% a 118%",    fc:"91–95%",  pse:7  },
+  zone6:{ name:"Zone 6 – Anaerobic 🔥",    color:"#d62d2d", ftp:"> 118%",   ftpFull:"Acima de 118%",  fc:"> 95%",   pse:9  },
+  zone7:{ name:"Zone 7 – Neuromuscular ⚡", color:"#9b30ff", ftp:"Máx",      ftpFull:"Potência Máxima", fc:"Máx",    pse:10 },
+};
+function zi(key){
+  if(!key) return zoneInfo.zone1;
+  var k = /^z(\d)$/.test(key) ? 'zone'+key[1] : key;
+  return zoneInfo[k] || zoneInfo.zone1;
+}
+function segmentById(id){ return segments.find(s=>s.id===id); }
+
+// ══════════════════════════════════════════
+// INTENSITY MODE
+// ══════════════════════════════════════════
+document.querySelectorAll(".mode-tab").forEach(btn=>{
+  btn.addEventListener("click",()=>{
+    document.querySelectorAll(".mode-tab").forEach(b=>b.classList.remove("active"));
+    btn.classList.add("active");
+    intensityMode=btn.dataset.mode;
+  });
+});
+
+// ══════════════════════════════════════════
+// SEGMENTO TABS
+// ══════════════════════════════════════════
+function renderSegTabs(){
+  const c=document.getElementById("segTabs"); c.innerHTML="";
+  segments.forEach(seg=>{
+    const btn=document.createElement("button");
+    btn.className=`seg-tab type-${seg.type}${seg.id===activeSegmentId?" active":""}`;
+    btn.dataset.id=seg.id;
+    const badge=seg.type==="warmup"?"Aquec.":seg.type==="cooldown"?"Calma":"Principal";
+    btn.innerHTML=`<span>${seg.name}</span><span class="seg-type-badge">${badge}</span>`;
+    btn.addEventListener("click",()=>{ activeSegmentId=seg.id; renderSegTabs(); });
+    c.appendChild(btn);
+  });
+}
+document.getElementById("addSegmentBtn").addEventListener("click",()=>{
+  mainCounter++;
+  const id=`main_${mainCounter}`;
+  const ci=segments.findIndex(s=>s.type==="cooldown");
+  segments.splice(ci,0,{id,name:`Bloco Principal ${mainCounter}`,type:"main"});
+  activeSegmentId=id; renderSegTabs(); renderBuilderTimeline();
+});
+document.getElementById("applySegName").addEventListener("click",()=>{
+  const val=document.getElementById("editSegName").value.trim(); if(!val) return;
+  const seg=segments.find(s=>s.id===activeSegmentId); if(seg) seg.name=val;
+  document.getElementById("editSegName").value=""; renderSegTabs(); renderBuilderTimeline();
+});
+document.getElementById("deleteSegBtn").addEventListener("click",()=>{
+  const seg=segments.find(s=>s.id===activeSegmentId);
+  if(!seg||seg.type!=="main"){ alert("Só é possível remover segmentos do tipo Bloco Principal."); return; }
+  if(workout.some(b=>b.segmentId===activeSegmentId)){
+    if(!confirm(`Remover "${seg.name}" e todos os seus blocos?`)) return;
+    workout=workout.filter(b=>b.segmentId!==activeSegmentId);
+  }
+  segments=segments.filter(s=>s.id!==activeSegmentId);
+  activeSegmentId=segments[0].id;
+  renderSegTabs(); renderBuilderTimeline(); updateSummary(); updateSyncInfo();
+});
+
+// ══════════════════════════════════════════
+// ADICIONAR BLOCO
+// ══════════════════════════════════════════
+document.getElementById("addBlock").addEventListener("click",()=>{
+  const duration=document.getElementById("duration").value;
+  const rpmMin=document.getElementById("rpmMin").value;
+  const rpmMax=document.getElementById("rpmMax").value;
+  const intensity=document.getElementById("intensity").value;
+  const position=document.getElementById("position").value;
+  const notes=document.getElementById("notes").value;
+  if(!duration||!rpmMin||!rpmMax){ alert("Preencha Tempo, RPM mínimo e RPM máximo."); return; }
+  if(Number(rpmMin)>Number(rpmMax)){ alert("RPM mínimo não pode ser maior que o máximo."); return; }
+  const seg=segments.find(s=>s.id===activeSegmentId);
+  function zoneKey(v){ var m=String(v).match(/^zone(\d)$/i); return m?'z'+m[1]:v; }
+  const rawIntensity=(seg&&seg.type==="cooldown")?"zone1":intensity;
+  workout.push({
+    duration:Number(duration), rpmMin:Number(rpmMin), rpmMax:Number(rpmMax),
+    intensity:zoneKey(rawIntensity), position, notes, segmentId:activeSegmentId
+  });
+  renderBuilderTimeline(); updateSummary(); updateSyncInfo(); updateMp3SyncInfo();
+  document.getElementById("duration").value="";
+  document.getElementById("rpmMin").value="";
+  document.getElementById("rpmMax").value="";
+  document.getElementById("notes").value="";
+  toast("✓ Bloco adicionado");
+});
+
+// ══════════════════════════════════════════
+// TIMELINE BUILDER
+// ══════════════════════════════════════════
+function renderBuilderTimeline(){
+  const container=document.getElementById("segmentTimelineContainer"); container.innerHTML="";
+  segments.forEach(seg=>{
+    const segBlocks=workout.filter(b=>b.segmentId===seg.id);
+    const totalMin=segBlocks.reduce((a,b)=>a+b.duration,0);
+    const wrapper=document.createElement("div"); wrapper.className="segment-timeline";
+    const header=document.createElement("div"); header.className="seg-timeline-header";
+    header.innerHTML=`<span class="seg-timeline-label">${seg.name}</span><span class="seg-timeline-dur">${totalMin>0?totalMin+"min":""}</span>`;
+    wrapper.appendChild(header);
+    const row=document.createElement("div"); row.className="seg-blocks"; row.dataset.segId=seg.id;
+    if(!segBlocks.length){
+      row.innerHTML=`<span style="font-family:'Barlow Condensed',sans-serif;font-size:12px;color:rgba(255,255,255,.2);padding:8px;">Nenhum bloco</span>`;
+    } else {
+      segBlocks.forEach(block=>{
+        const gi=workout.indexOf(block);
+        const div=document.createElement("div");
+        div.classList.add("block",block.intensity);
+        if(block.position==="Em Pé") div.classList.add("standing");
+        div.draggable=true; div.dataset.gi=gi;
+        div.innerHTML=`${block.duration}m<br>${block.rpmMin}–${block.rpmMax}<div class="block-actions"><button class="block-btn block-duplicate" title="Duplicar">⧉</button><button class="block-btn block-delete" title="Remover">✕</button></div>`;
+        div.querySelector(".block-duplicate").addEventListener("click",e=>{ e.stopPropagation(); workout.splice(gi+1,0,{...workout[gi]}); renderBuilderTimeline(); updateSummary(); updateSyncInfo(); });
+        div.querySelector(".block-delete").addEventListener("click",e=>{ e.stopPropagation(); workout.splice(gi,1); renderBuilderTimeline(); updateSummary(); updateSyncInfo(); });
+        div.addEventListener("dragstart",e=>{ dragSrcBlock={gi,segId:seg.id}; div.classList.add("dragging"); e.dataTransfer.effectAllowed="move"; });
+        div.addEventListener("dragend",()=>{ div.classList.remove("dragging"); document.querySelectorAll(".drag-over").forEach(el=>el.classList.remove("drag-over")); dragSrcBlock=null; });
+        div.addEventListener("dragover",e=>{ e.preventDefault(); if(dragSrcBlock&&dragSrcBlock.segId===seg.id) div.classList.add("drag-over"); });
+        div.addEventListener("dragleave",()=>div.classList.remove("drag-over"));
+        div.addEventListener("drop",e=>{
+          e.preventDefault(); div.classList.remove("drag-over");
+          if(!dragSrcBlock||dragSrcBlock.gi===gi||dragSrcBlock.segId!==seg.id) return;
+          const moved=workout.splice(dragSrcBlock.gi,1)[0];
+          const newGi=workout.indexOf(block);
+          workout.splice(newGi,0,moved);
+          renderBuilderTimeline(); updateSummary();
+        });
+        row.appendChild(div);
+      });
+    }
+    wrapper.appendChild(row); container.appendChild(wrapper);
+  });
+  document.getElementById("classNameHeader").textContent=document.getElementById("className").value||"";
+}
+document.getElementById("className").addEventListener("input",()=>{
+  document.getElementById("classNameHeader").textContent=document.getElementById("className").value||"";
+});
+
+// ══════════════════════════════════════════
+// RESUMO
+// ══════════════════════════════════════════
+function updateSummary(){
+  const ws=document.getElementById("workoutSummary");
+  if(!workout.length){ ws.style.display="none"; return; }
+  const totalMin=workout.reduce((a,b)=>a+b.duration,0);
+  const h=Math.floor(totalMin/60),m=totalMin%60;
+  document.getElementById("summaryTotal").textContent=`⏱ ${h>0?h+"h "+m+"min":m+" min"}`;
+  document.getElementById("summaryBlocks").textContent=`📦 ${workout.length} blocos`;
+  ws.style.display="flex";
+}
+
+// ══════════════════════════════════════════
+// VÍDEO
+// ══════════════════════════════════════════
+function setVideoSource(src){
+  videoSource=src;
+  document.getElementById("srcVideoBtn").classList.toggle("active",src==="video");
+  document.getElementById("srcCameraBtn").classList.toggle("active",src==="camera");
+  document.getElementById("panelVideo").style.display  = src==="video"  ? "block":"none";
+  document.getElementById("panelCamera").style.display = src==="camera" ? "block":"none";
+  if(src!=="camera") stopCameraPreview();
+}
+document.getElementById("srcVideoBtn").addEventListener("click",()=>setVideoSource("video"));
+document.getElementById("srcCameraBtn").addEventListener("click",()=>setVideoSource("camera"));
+
+document.getElementById("testCameraBtn").addEventListener("click",async()=>{
+  try{
+    const stream=await navigator.mediaDevices.getUserMedia({video:true,audio:false});
+    const cp=document.getElementById("cameraPreviewBuilder");
+    cp.srcObject=stream; cp.style.display="block";
+    document.getElementById("stopCameraBtn").style.display="block";
+    document.getElementById("testCameraBtn").style.display="none";
+    cp._stream=stream;
+  }catch(e){ alert("Não foi possível acessar a câmera."); }
+});
+document.getElementById("stopCameraBtn").addEventListener("click",stopCameraPreview);
+function stopCameraPreview(){
+  const cp=document.getElementById("cameraPreviewBuilder");
+  if(cp._stream){ cp._stream.getTracks().forEach(t=>t.stop()); cp._stream=null; }
+  cp.srcObject=null; cp.style.display="none";
+  document.getElementById("stopCameraBtn").style.display="none";
+  document.getElementById("testCameraBtn").style.display="block";
+}
+
+document.getElementById("videoInputBuilder").addEventListener("change",()=>{
+  const file=document.getElementById("videoInputBuilder").files[0]; if(!file) return;
+  if(videoObjectUrl) URL.revokeObjectURL(videoObjectUrl);
+  videoObjectUrl=URL.createObjectURL(file);
+  const vp=document.getElementById("videoPreview");
+  vp.src=videoObjectUrl; document.getElementById("videoPreviewBox").style.display="block";
+  vp.onloadedmetadata=()=>{
+    videoDuration=vp.duration;
+    document.getElementById("videoDurationLabel").textContent="Duração: "+formatTimeFull(videoDuration);
+    const sl=document.getElementById("endPointSlider");
+    sl.max=videoDuration; sl.value=videoDuration;
+    videoEndPoint=videoDuration;
+    document.getElementById("endPointDisplay").textContent=formatTimeFull(videoDuration);
+    updateSyncInfo();
+  };
+});
+document.getElementById("endPointSlider").addEventListener("input",()=>{
+  videoEndPoint=parseFloat(document.getElementById("endPointSlider").value);
+  document.getElementById("endPointDisplay").textContent=formatTimeFull(videoEndPoint);
+  document.getElementById("videoPreview").currentTime=videoEndPoint; updateSyncInfo();
+});
+function calcVideoStartPoint(){
+  const wSec=workout.filter(b=>segmentById(b.segmentId)?.type==="warmup").reduce((a,b)=>a+b.duration*60,0);
+  const mSec=workout.filter(b=>segmentById(b.segmentId)?.type==="main").reduce((a,b)=>a+b.duration*60,0);
+  return videoEndPoint-wSec-mSec;
+}
+function updateSyncInfo(){
+  const si=document.getElementById("syncInfo");
+  if(!videoDuration||!workout.length){ si.style.display="none"; return; }
+  const sp=calcVideoStartPoint();
+  document.getElementById("workoutDurDisplay").textContent=formatTime(workout.reduce((a,b)=>a+b.duration*60,0))+" total";
+  document.getElementById("endPointFinal").textContent=formatTimeFull(videoEndPoint);
+  const spEl=document.getElementById("startPointDisplay");
+  if(sp<0){ spEl.textContent="⚠ Vídeo curto"; spEl.style.color="#d62d2d"; }
+  else { spEl.textContent=formatTimeFull(sp); spEl.style.color="#fff"; }
+  si.style.display="block";
+}
+document.getElementById("previewSyncBtn").addEventListener("click",()=>{
+  const sp=calcVideoStartPoint(); if(sp<0){ alert("Vídeo mais curto que Aquecimento + Blocos."); return; }
+  const vp=document.getElementById("videoPreview"); vp.currentTime=sp; vp.play(); setTimeout(()=>vp.pause(),4000);
+});
+document.getElementById("removeVideoBuilder").addEventListener("click",()=>{
+  const vp=document.getElementById("videoPreview");
+  vp.pause(); vp.removeAttribute("src"); vp.load();
+  document.getElementById("videoPreviewBox").style.display="none";
+  document.getElementById("videoDurationLabel").textContent="";
+  if(videoObjectUrl){ URL.revokeObjectURL(videoObjectUrl); videoObjectUrl=null; }
+  videoDuration=0; videoEndPoint=0; document.getElementById("videoInputBuilder").value="";
+  document.getElementById("syncInfo").style.display="none";
+});
+
+// ══════════════════════════════════════════
+// MP3
+// ══════════════════════════════════════════
+document.getElementById("mp3InputBuilder").addEventListener("change",()=>{
+  const file=document.getElementById("mp3InputBuilder").files[0]; if(!file) return;
+  if(mp3ObjectUrl) URL.revokeObjectURL(mp3ObjectUrl);
+  mp3ObjectUrl=URL.createObjectURL(file);
+  const ap=document.getElementById("audioPreview");
+  ap.src=mp3ObjectUrl; document.getElementById("mp3PreviewBox").style.display="block";
+  const tmp=new Audio(mp3ObjectUrl);
+  tmp.onloadedmetadata=()=>{
+    mp3Duration=tmp.duration;
+    document.getElementById("mp3DurationLabel").textContent="Duração: "+formatTime(Math.floor(mp3Duration));
+    const sl=document.getElementById("mp3EndPointSlider");
+    sl.max=mp3Duration; sl.value=mp3Duration;
+    mp3EndPoint=mp3Duration;
+    document.getElementById("mp3EndPointDisplay").textContent=formatTime(Math.floor(mp3Duration));
+    updateMp3SyncInfo();
+  };
+});
+document.getElementById("mp3EndPointSlider").addEventListener("input",()=>{
+  mp3EndPoint=parseFloat(document.getElementById("mp3EndPointSlider").value);
+  document.getElementById("mp3EndPointDisplay").textContent=formatTime(Math.floor(mp3EndPoint));
+  document.getElementById("audioPreview").currentTime=mp3EndPoint;
+  updateMp3SyncInfo();
+});
+function calcMp3StartPoint(){
+  const wSec=workout.filter(b=>segmentById(b.segmentId)?.type==="warmup").reduce((a,b)=>a+b.duration*60,0);
+  const mSec=workout.filter(b=>segmentById(b.segmentId)?.type==="main").reduce((a,b)=>a+b.duration*60,0);
+  return mp3EndPoint-wSec-mSec;
+}
+function updateMp3SyncInfo(){
+  const ms=document.getElementById("mp3SyncInfo");
+  if(!mp3Duration||!workout.length){ ms.style.display="none"; return; }
+  const sp=calcMp3StartPoint();
+  document.getElementById("mp3DurDisplay").textContent=formatTime(workout.reduce((a,b)=>a+b.duration*60,0))+" total";
+  document.getElementById("mp3EndDisplay").textContent=formatTime(Math.floor(mp3EndPoint));
+  const spEl=document.getElementById("mp3StartDisplay");
+  if(sp<0){ spEl.textContent="⚠ MP3 curto"; spEl.style.color="#d62d2d"; }
+  else { spEl.textContent=formatTime(Math.floor(sp)); spEl.style.color="#fff"; }
+  ms.style.display="block";
+}
+document.getElementById("mp3PreviewBtn").addEventListener("click",()=>{
+  const sp=calcMp3StartPoint(); if(sp<0){ alert("MP3 mais curto que Aquecimento + Blocos."); return; }
+  const ap=document.getElementById("audioPreview"); ap.currentTime=sp; ap.play(); setTimeout(()=>ap.pause(),5000);
+});
+document.getElementById("removeMp3Btn").addEventListener("click",()=>{
+  const ap=document.getElementById("audioPreview"); ap.pause(); ap.removeAttribute("src"); ap.load();
+  document.getElementById("mp3PreviewBox").style.display="none";
+  if(mp3ObjectUrl){ URL.revokeObjectURL(mp3ObjectUrl); mp3ObjectUrl=null; }
+  mp3Duration=0; mp3EndPoint=0; document.getElementById("mp3InputBuilder").value="";
+  document.getElementById("mp3SyncInfo").style.display="none";
+  document.getElementById("mp3DurationLabel").textContent="";
+});
+
+// ══════════════════════════════════════════
+// SPOTIFY
+// ══════════════════════════════════════════
+// OAuth PKCE flow
+const SP_CLIENT_ID = 'SEU_SPOTIFY_CLIENT_ID'; // gestor deve configurar
+const SP_REDIRECT  = window.location.href.split('?')[0];
+const SP_SCOPES    = 'user-read-playback-state user-modify-playback-state playlist-read-private';
+
+document.getElementById("spotifyLoginBtn").addEventListener("click", iniciarSpotifyLogin);
+document.getElementById("spotifyLogoutBtn").addEventListener("click", ()=>{
+  spotifyToken=null; spotifyPlaylistUri=null;
+  document.getElementById("spotifyConnected").style.display="none";
+  document.getElementById("spotifyNotConnected").style.display="block";
+  document.getElementById("spotifyStatus").textContent="";
+  localStorage.removeItem("sp_token");
+  localStorage.removeItem("sp_expires");
+});
+
+async function iniciarSpotifyLogin(){
+  // PKCE
+  const verifier = gerarVerifier();
+  const challenge = await gerarChallenge(verifier);
+  localStorage.setItem("sp_verifier", verifier);
+  const params = new URLSearchParams({
+    client_id: SP_CLIENT_ID, response_type:'code', redirect_uri:SP_REDIRECT,
+    scope: SP_SCOPES, code_challenge_method:'S256', code_challenge:challenge
+  });
+  window.location = 'https://accounts.spotify.com/authorize?'+params;
+}
+function gerarVerifier(){ const arr=new Uint8Array(64); crypto.getRandomValues(arr); return btoa(String.fromCharCode(...arr)).replace(/\+/g,'-').replace(/\//g,'_').replace(/=/g,''); }
+async function gerarChallenge(v){ const d=new TextEncoder().encode(v); const h=await crypto.subtle.digest('SHA-256',d); return btoa(String.fromCharCode(...new Uint8Array(h))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=/g,''); }
+
+async function trocarCodigoPorToken(code){
+  const verifier=localStorage.getItem("sp_verifier");
+  const r=await fetch('https://accounts.spotify.com/api/token',{
+    method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'},
+    body:new URLSearchParams({grant_type:'authorization_code',code,redirect_uri:SP_REDIRECT,client_id:SP_CLIENT_ID,code_verifier:verifier})
+  });
+  const d=await r.json();
+  if(d.access_token){ spotifyToken=d.access_token; localStorage.setItem("sp_token",d.access_token); localStorage.setItem("sp_expires",Date.now()+d.expires_in*1000); carregarSpotify(); }
+}
+
+async function carregarSpotify(){
+  if(!spotifyToken) return;
+  try {
+    const [me,playlists]=await Promise.all([
+      fetch('https://api.spotify.com/v1/me',{headers:{Authorization:'Bearer '+spotifyToken}}).then(r=>r.json()),
+      fetch('https://api.spotify.com/v1/me/playlists?limit=50',{headers:{Authorization:'Bearer '+spotifyToken}}).then(r=>r.json())
+    ]);
+    document.getElementById("spotifyUserName").textContent=me.display_name||me.id;
+    document.getElementById("spotifyNotConnected").style.display="none";
+    document.getElementById("spotifyConnected").style.display="block";
+    document.getElementById("spotifyStatus").textContent="Conectado";
+    const sel=document.getElementById("spotifyPlaylistSelect"); sel.innerHTML='<option value="">Selecione uma playlist...</option>';
+    (playlists.items||[]).forEach(pl=>{ const o=document.createElement("option"); o.value=pl.uri; o.textContent=pl.name; sel.appendChild(o); });
+  } catch(e){ console.error("Spotify error",e); }
+}
+
+document.getElementById("spotifyPlaylistSelect").addEventListener("change",function(){
+  spotifyPlaylistUri=this.value;
+  const txt=this.options[this.selectedIndex].text;
+  const box=document.getElementById("spotifySelectedInfo");
+  if(spotifyPlaylistUri){ box.style.display="block"; box.textContent="🎵 "+txt; }
+  else { box.style.display="none"; }
+});
+
+// Verifica se voltou do Spotify OAuth
+(async()=>{
+  const params=new URLSearchParams(window.location.search);
+  if(params.has("code")){
+    const code=params.get("code");
+    history.replaceState({},"",window.location.pathname);
+    await trocarCodigoPorToken(code);
+  } else {
+    const t=localStorage.getItem("sp_token");
+    const exp=localStorage.getItem("sp_expires");
+    if(t && exp && Date.now()<Number(exp)){ spotifyToken=t; carregarSpotify(); }
+  }
+})();
+
+// ══════════════════════════════════════════
+// SALVAR / CARREGAR / LIMPAR / PDF
+// ══════════════════════════════════════════
+function getLibrary(){ try{ return JSON.parse(localStorage.getItem("prb_lib")||"[]"); }catch(e){ return []; } }
+function saveLibrary(lib){ localStorage.setItem("prb_lib",JSON.stringify(lib)); }
+
+function saveToLibrary(){
+  if(!workout.length){ alert("Adicione blocos antes de salvar."); return; }
+  const entry = montarEntry();
+  const lib=getLibrary();
+  const idx=lib.findIndex(i=>(i.nome||i.name)===entry.nome);
+  if(idx>=0){ if(!confirm('Substituir "'+entry.nome+'"?')) return; lib[idx]=entry; } else lib.unshift(entry);
+  saveLibrary(lib);
+  const blob=new Blob([JSON.stringify(entry,null,2)],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a'); a.href=url; a.download=slugify(entry.nome)+'.json'; a.click();
+  URL.revokeObjectURL(url);
+  toast("✓ Salvo e baixado: "+a.download);
+  renderLibrary();
+}
+
+function exportarPendrive(){
+  if(!workout.length){ alert("Adicione blocos antes de exportar."); return; }
+  const nome=document.getElementById("className").value||"Aula sem nome";
+  if(!nome.trim()){ alert("Dê um nome à aula."); return; }
+  const entry=montarEntry();
+  const blob=new Blob([JSON.stringify(entry,null,2)],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a'); a.href=url; a.download=slugify(nome)+'.json'; a.click();
+  URL.revokeObjectURL(url);
+  toast("💾 JSON exportado — coloque em prorider/ no pendrive");
+}
+
+function montarEntry(){
+  const name=document.getElementById("className").value||"Aula sem nome";
+  let videoEntry=null, musicaEntry=null;
+  if(videoSource==='camera'){
+    videoEntry={fonte:'camera',arquivo:null,syncOffset:0};
+  } else if(videoObjectUrl){
+    const vInput=document.getElementById('videoInputBuilder');
+    const vName=(vInput&&vInput.files[0])?vInput.files[0].name:'video.mp4';
+    videoEntry={fonte:'local',arquivo:vName,syncOffset:Math.max(0,Math.round(videoEndPoint))};
+  }
+  if(spotifyPlaylistUri){
+    const sel=document.getElementById("spotifyPlaylistSelect");
+    const txt=sel.options[sel.selectedIndex]?.text||'Playlist';
+    musicaEntry={fonte:'spotify',spotifyUri:spotifyPlaylistUri,nomePlaylist:txt,arquivo:null,syncOffset:0};
+  } else if(mp3ObjectUrl){
+    const mInput=document.getElementById('mp3InputBuilder');
+    const mName=(mInput&&mInput.files[0])?mInput.files[0].name:'musica.mp3';
+    musicaEntry={fonte:'mp3',arquivo:mName,syncOffset:0};
+  }
+  const workoutNorm=workout.map(b=>({
+    duration:b.duration||1, rpmMin:b.rpmMin||80, rpmMax:b.rpmMax||90,
+    intensity:b.intensity||'z1', position:b.position||'Sentado',
+    notes:b.notes||'', segmentId:b.segmentId||'main_1'
+  }));
+  return {
+    versao:'1.0', gerado_por:'ProRider Studio Builder', gerado_em:new Date().toISOString(),
+    nome:name, savedAt:new Date().toISOString(),
+    duracaoTotal:workout.reduce((a,b)=>a+b.duration,0),
+    segments, mainCounter, workout:workoutNorm, blocks:workoutNorm,
+    video:videoEntry, musica:musicaEntry,
+    instrucoes_pendrive:{
+      estrutura:'Coloque este JSON em prorider/ no pendrive. Vídeos em prorider/video/ e MP3 em prorider/musicas/',
+      arquivo_json: slugify(name)+'.json'
+    }
+  };
+}
+
+document.getElementById("saveWorkout").addEventListener("click", saveToLibrary);
+document.getElementById("loadWorkout").addEventListener("click",()=>document.getElementById("loadFileInput").click());
+document.getElementById("loadFileInput").addEventListener("change",()=>{
+  const file=document.getElementById("loadFileInput").files[0]; if(!file) return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    try{
+      const data=JSON.parse(e.target.result);
+      const blocos=data.workout||data.blocks;
+      if(!blocos||!Array.isArray(blocos)) throw new Error();
+      workout=blocos.map(b=>{ if(!b.segmentId) b.segmentId="main_1"; if(!b.intensity&&b.z) b.intensity=b.z; return b; });
+      if(data.segments) segments=data.segments;
+      if(data.mainCounter) mainCounter=data.mainCounter;
+      const nome=data.nome||data.name;
+      if(nome) document.getElementById("className").value=nome;
+      activeSegmentId=segments[0].id;
+      renderSegTabs(); renderBuilderTimeline(); updateSummary(); updateSyncInfo(); updateMp3SyncInfo();
+      if(data.video||data.musica){
+        var info=[];
+        if(data.video) info.push('Vídeo: '+data.video.fonte+(data.video.arquivo?' ('+data.video.arquivo+')':''));
+        if(data.musica) info.push('Música: '+data.musica.fonte+(data.musica.arquivo?' ('+data.musica.arquivo+')':data.musica.spotifyUri?' (Spotify)':''));
+        alert('Aula carregada.\n\n'+info.join('\n')+'\n\nColoque os arquivos de mídia nas pastas video/ e musicas/ do pendrive.');
+      }
+      toast("✓ Aula carregada");
+    }catch(e){ alert("Arquivo inválido ou corrompido."); }
+  };
+  reader.readAsText(file); document.getElementById("loadFileInput").value="";
+});
+
+document.getElementById("clearWorkout").addEventListener("click",()=>{
+  if(!workout.length) return;
+  if(!confirm("Limpar todos os blocos?")) return;
+  workout=[];
+  segments=[{id:"warmup",name:"Aquecimento",type:"warmup"},{id:"main_1",name:"Bloco Principal",type:"main"},{id:"cooldown",name:"Volta à Calma",type:"cooldown"}];
+  mainCounter=1; activeSegmentId="warmup";
+  renderSegTabs(); renderBuilderTimeline(); updateSummary();
+  document.getElementById("className").value="";
+  document.getElementById("syncInfo").style.display="none";
+  document.getElementById("mp3SyncInfo").style.display="none";
+});
+
+document.getElementById("toggleLibrary").addEventListener("click",()=>{
+  const list=document.getElementById("libraryList");
+  const open=list.style.display==="block";
+  list.style.display=open?"none":"block";
+  document.getElementById("toggleLibrary").textContent=open?"▾ ver":"▴ fechar";
+  if(!open) renderLibrary();
+});
+function renderLibrary(){
+  const list=document.getElementById("libraryList"); list.innerHTML="";
+  const lib=getLibrary();
+  if(!lib.length){ list.innerHTML=`<div class="lib-empty">Nenhuma aula salva ainda.</div>`; return; }
+  lib.forEach((item,i)=>{
+    const blocks=item.workout||item.blocks||[];
+    const totalMin=blocks.reduce((a,b)=>a+(b.duration||0),0);
+    const h=Math.floor(totalMin/60),m=totalMin%60;
+    const d=document.createElement("div"); d.className="library-item";
+    d.innerHTML=`<div><div class="lib-item-name">${item.nome||item.name||'—'}</div><div class="lib-item-info">${h>0?h+"h "+m+"min":m+"min"} · ${blocks.length} blocos · ${new Date(item.savedAt||0).toLocaleDateString("pt-BR")}</div></div><div class="lib-item-actions"><button class="btn-lib-load">Carregar</button><button class="btn-lib-del">🗑</button></div>`;
+    d.querySelector(".btn-lib-load").addEventListener("click",()=>{
+      workout=blocks.map(b=>{ if(!b.segmentId) b.segmentId="main_1"; return b; });
+      if(item.segments) segments=item.segments;
+      if(item.mainCounter) mainCounter=item.mainCounter;
+      document.getElementById("className").value=item.nome||item.name||"";
+      activeSegmentId=segments[0].id;
+      renderSegTabs(); renderBuilderTimeline(); updateSummary(); updateSyncInfo(); updateMp3SyncInfo();
+      document.getElementById("libraryList").style.display="none";
+      document.getElementById("toggleLibrary").textContent="▾ ver";
+    });
+    d.querySelector(".btn-lib-del").addEventListener("click",()=>{
+      if(!confirm(`Remover "${item.nome||item.name}"?`)) return;
+      const lib2=getLibrary(); lib2.splice(i,1); saveLibrary(lib2); renderLibrary();
+    });
+    list.appendChild(d);
+  });
+}
+
+// ══════════════════════════════════════════
+// PDF
+// ══════════════════════════════════════════
+document.getElementById("exportPDF").addEventListener("click",()=>{
+  if(!workout.length){ alert("Adicione blocos antes de exportar."); return; }
+  const name=document.getElementById("className").value||"Aula";
+  const totalMin=workout.reduce((a,b)=>a+b.duration,0);
+  const h=Math.floor(totalMin/60),m=totalMin%60;
+  let rows="";
+  segments.forEach(seg=>{
+    const sb=workout.filter(b=>b.segmentId===seg.id); if(!sb.length) return;
+    rows+=`<tr><td colspan="5" style="background:#1a2030;color:#7ba7ff;font-weight:700;letter-spacing:2px;text-transform:uppercase;padding:10px 12px;font-size:13px;">${seg.name}</td></tr>`;
+    sb.forEach((b,i)=>{ const z=zi(b.intensity); rows+=`<tr><td style="padding:8px 12px;font-size:13px;color:#aaa;">${i+1}</td><td style="padding:8px 12px;"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${z.color};margin-right:6px;"></span><span style="font-size:13px;color:#fff;">${z.name}</span></td><td style="padding:8px 12px;font-size:13px;color:#fff;">${b.duration} min</td><td style="padding:8px 12px;font-size:13px;color:#fff;">${b.rpmMin}–${b.rpmMax} RPM</td><td style="padding:8px 12px;font-size:13px;color:${z.color};">${z.ftp} FTP · ${b.position}</td></tr>`; });
+  });
+  const html=`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${name}</title>
+  <style>body{background:#080c14;color:#fff;font-family:Arial,sans-serif;padding:32px}h1{font-size:28px;margin-bottom:4px}p{color:#666;margin-bottom:24px}table{width:100%;border-collapse:collapse}tr:nth-child(even){background:rgba(255,255,255,0.03)}</style>
+  </head><body><h1>${name}</h1><p>${h>0?h+"h "+m+"min":m+" min"} · ${workout.length} blocos</p>
+  <table>${rows}</table><script>window.onload=()=>{window.print();setTimeout(()=>window.close(),500)}<\/script></body></html>`;
+  const w=window.open(); w.document.write(html); w.document.close();
+});
+
+// ══════════════════════════════════════════
+// UTILS
+// ══════════════════════════════════════════
+function formatTime(s){ const m=Math.floor(s/60),sec=s%60; return `${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}`; }
+function formatTimeFull(s){ const h=Math.floor(s/3600),m=Math.floor((s%3600)/60),sec=Math.floor(s%60); return h>0?`${h}:${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}`:`${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}`; }
+function slugify(s){ return (s||'aula').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')||'aula'; }
+function toast(msg,dur){
+  const t=document.getElementById("toast");
+  t.textContent=msg; t.classList.add("show");
+  clearTimeout(t._to); t._to=setTimeout(()=>t.classList.remove("show"),dur||2500);
+}
+
+// ── INIT ──
+renderSegTabs();
+renderBuilderTimeline();
+</script>
+</body>
+</html>

@@ -105,6 +105,196 @@ function shortId() {
   return crypto.randomBytes(10).toString('hex'); // 20 chars
 }
 
+// ══════════════════════════════════════════════════════════════
+// E-MAILS AUTOMÁTICOS (26/09e)
+// ══════════════════════════════════════════════════════════════
+// Configuração no Railway (variáveis de ambiente) — basta UMA das duas:
+//   RESEND_API_KEY=re_xxx                 (resend.com, sem instalar nada)
+//   SMTP_HOST / SMTP_PORT / SMTP_USER / SMTP_PASS   (ex.: Gmail com senha de app;
+//        precisa do pacote nodemailer: npm i nodemailer)
+//   EMAIL_FROM="ProRider <nao-responda@seudominio.com>"   (remetente)
+//   PORTAL_URL=https://...   (link dos botões; padrão: este servidor)
+// Sem nenhuma delas, nada é enviado e o Portal mostra "e-mail não configurado".
+const EMAILS_PADRAO = { boas_vindas: true, resumo_aula: true, sumido: true, novo_ftp: true, aniversario: false, relatorio_mensal: true };
+const PORTAL_URL = process.env.PORTAL_URL || 'https://prorider-server-production-5784.up.railway.app';
+let _smtp = null;
+function emailProvedor() {
+  if (process.env.RESEND_API_KEY) return 'resend';
+  if (process.env.SMTP_HOST && process.env.SMTP_USER) return 'smtp';
+  return null;
+}
+async function enviarEmail({ to, subject, html }) {
+  const prov = emailProvedor();
+  if (!prov) return { ok: false, erro: 'e-mail não configurado no servidor' };
+  if (!to || !/@/.test(to)) return { ok: false, erro: 'destinatário inválido' };
+  const from = process.env.EMAIL_FROM || 'ProRider <onboarding@resend.dev>';
+  try {
+    if (prov === 'resend') {
+      const r = await fetch(process.env.RESEND_API_URL || 'https://api.resend.com/emails', {
+        method: 'POST',
+        headers: { 'Authorization': 'Bearer ' + process.env.RESEND_API_KEY, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ from, to: [to], subject, html })
+      });
+      if (!r.ok) return { ok: false, erro: 'resend ' + r.status + ': ' + (await r.text()).slice(0, 200) };
+      return { ok: true };
+    }
+    if (!_smtp) {
+      let nm; try { nm = require('nodemailer'); } catch (e) { return { ok: false, erro: 'SMTP configurado mas falta o pacote nodemailer (npm i nodemailer)' }; }
+      _smtp = nm.createTransport({
+        host: process.env.SMTP_HOST, port: parseInt(process.env.SMTP_PORT) || 587,
+        secure: (parseInt(process.env.SMTP_PORT) || 587) === 465,
+        auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS }
+      });
+    }
+    await _smtp.sendMail({ from: process.env.EMAIL_FROM || process.env.SMTP_USER, to, subject, html });
+    return { ok: true };
+  } catch (e) { return { ok: false, erro: e.message }; }
+}
+// Manda uma vez só por (tipo, ref). Se já foi, não manda de novo.
+async function emailUmaVez(tipo, ref, userId, to, subject, html) {
+  if (!db || !emailProvedor() || !to) return false;
+  try {
+    const ins = await db.query(
+      'INSERT INTO email_log (user_id, email, tipo, ref) VALUES ($1,$2,$3,$4) ON CONFLICT (tipo, ref) DO NOTHING RETURNING id',
+      [userId || null, to, tipo, String(ref)]);
+    if (!ins.rows.length) return false;
+    const r = await enviarEmail({ to, subject, html });
+    if (!r.ok) {
+      // falhou: libera para tentar de novo mais tarde
+      await db.query('DELETE FROM email_log WHERE id=$1', [ins.rows[0].id]);
+      log(`E-mail ${tipo} para ${to} falhou: ${r.erro}`);
+      return false;
+    }
+    log(`E-mail ${tipo} enviado para ${to}`);
+    return true;
+  } catch (e) { log('emailUmaVez erro: ' + e.message); return false; }
+}
+async function emailsCfgDe(licId) {
+  if (!db || !licId) return { ...EMAILS_PADRAO };
+  try {
+    const r = await db.query('SELECT emails_cfg FROM licencas WHERE codigo=$1', [licId]);
+    return { ...EMAILS_PADRAO, ...((r.rows[0] && r.rows[0].emails_cfg) || {}) };
+  } catch (e) { return { ...EMAILS_PADRAO }; }
+}
+function _esc(t) { return String(t == null ? '' : t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])); }
+function emailLayout(titulo, corpo, botaoTxt, botaoUrl, academia) {
+  return `<div style="background:#0b0b0e;padding:28px 12px;font-family:Arial,Helvetica,sans-serif">
+  <div style="max-width:540px;margin:0 auto;background:#16161a;border-radius:14px;overflow:hidden;border:1px solid #26262d">
+    <div style="padding:22px 26px;background:linear-gradient(135deg,#ffe033,#ea860c,#d62d2d)">
+      <div style="font-size:26px;font-weight:900;letter-spacing:3px;color:#16161a">PRORIDER</div>
+      ${academia ? `<div style="font-size:12px;color:#16161a;opacity:.8;margin-top:2px">${_esc(academia)}</div>` : ''}
+    </div>
+    <div style="padding:26px;color:#e8e8ea;font-size:15px;line-height:1.55">
+      <div style="font-size:21px;font-weight:800;color:#fff;margin-bottom:14px">${titulo}</div>
+      ${corpo}
+      ${botaoTxt ? `<div style="margin-top:22px"><a href="${botaoUrl}" style="display:inline-block;background:#ea860c;color:#16161a;text-decoration:none;font-weight:800;padding:12px 22px;border-radius:9px">${botaoTxt}</a></div>` : ''}
+    </div>
+    <div style="padding:14px 26px;border-top:1px solid #26262d;color:#77777f;font-size:11px">Você recebe este e-mail porque tem conta no ProRider. A academia pode desligar estes avisos no Portal.</div>
+  </div></div>`;
+}
+function _numBox(v, l, cor) {
+  return `<td style="text-align:center;padding:10px"><div style="font-size:28px;font-weight:900;color:${cor || '#fff'}">${v}</div><div style="font-size:10px;color:#8a8a92;letter-spacing:1px">${l}</div></td>`;
+}
+async function _userLic(uid) {
+  const r = await db.query(`SELECT u.id, u.name, u.email, u.ftp, u.license_id, l.nome AS academia
+                            FROM users u LEFT JOIN licencas l ON l.codigo=u.license_id WHERE u.id=$1`, [uid]);
+  return r.rows[0] || null;
+}
+async function emailBoasVindas({ userId, email, nome, academia, licId, senhaTemp, papel }) {
+  if (licId) { const c = await emailsCfgDe(licId); if (!c.boas_vindas) return false; }
+  const gestor = papel && papel !== 'aluno';
+  const corpo = gestor
+    ? `<p>Olá, <b>${_esc(nome || '')}</b>! A licença <b>${_esc(academia || '')}</b> está pronta no ProRider.</p>
+       <p>Entre no Portal com:</p>
+       <p style="background:#0b0b0e;border-radius:8px;padding:12px 14px">E-mail: <b>${_esc(email)}</b>${senhaTemp ? `<br>Senha provisória: <b>${_esc(senhaTemp)}</b>` : ''}</p>
+       <p>No Portal você monta a agenda, acompanha os alunos, escolhe o que aparece no ranking da TV e muito mais.${senhaTemp ? ' Troque a senha no primeiro acesso.' : ''}</p>`
+    : `<p>Olá, <b>${_esc(nome || '')}</b>! Seja bem-vindo(a) ao ProRider${academia ? ` da <b>${_esc(academia)}</b>` : ''}.</p>
+       <p>Na aula, escaneie o QR da bike com o app e acompanhe potência, zonas e calorias em tempo real. Depois de cada aula você recebe o seu resumo.</p>`;
+  return emailUmaVez('boas_vindas', 'u' + (userId || email), userId, email,
+    gestor ? `Sua licença ProRider está pronta — ${academia || ''}` : `Bem-vindo(a) ao ProRider${academia ? ' — ' + academia : ''}`,
+    emailLayout(gestor ? 'Bem-vindo ao Portal ProRider' : 'Bem-vindo(a)!', corpo,
+      gestor ? 'Abrir o Portal' : null, PORTAL_URL + '/academia.html', academia));
+}
+async function emailResumoAula(uid, a) {
+  if (!db || !emailProvedor()) return;
+  const u = await _userLic(uid); if (!u || !u.email) return;
+  const c = await emailsCfgDe(u.license_id); if (!c.resumo_aula) return;
+  const min = Math.round((parseInt(a.duracao_sec) || 0) / 60);
+  const corpo = `<p>Parabéns pela aula, <b>${_esc(u.name || '')}</b>! 🔥</p>
+    <table style="width:100%;background:#0b0b0e;border-radius:10px;margin:10px 0"><tr>
+      ${_numBox(min + ' min', 'DURAÇÃO')}${_numBox(parseInt(a.kcal) || 0, 'KCAL', '#ea860c')}${_numBox((parseInt(a.watts_med) || 0) + ' W', 'POTÊNCIA MÉDIA', '#5b8cff')}
+    </tr><tr>
+      ${_numBox(parseInt(a.rpm_med) || 0, 'RPM MÉDIO')}${_numBox(String(a.zona_predominante || '—').toUpperCase(), 'ZONA PREDOMINANTE')}${_numBox('+' + (parseInt(a.pontos) || 0), 'PONTOS', '#ffe033')}
+    </tr></table>
+    <p style="color:#9a9aa2;font-size:13px">Aula: <b style="color:#fff">${_esc(a.aula_nome || 'Aula')}</b></p>`;
+  await emailUmaVez('resumo_aula', 'u' + uid + ':' + Date.now(), uid, u.email,
+    `⚡ ${u.name ? u.name.split(' ')[0] + ', ' : ''}seu resumo da aula`, emailLayout('Seu resumo da aula', corpo, null, null, u.academia));
+}
+async function emailNovoFtp(uid, antes, depois) {
+  if (!db || !emailProvedor()) return;
+  const u = await _userLic(uid); if (!u || !u.email) return;
+  const c = await emailsCfgDe(u.license_id); if (!c.novo_ftp) return;
+  const corpo = `<p>Boa, <b>${_esc(u.name || '')}</b>! Seu FTP subiu.</p>
+    <table style="width:100%;background:#0b0b0e;border-radius:10px;margin:10px 0"><tr>
+      ${_numBox(antes + ' W', 'ANTES')}${_numBox(depois + ' W', 'AGORA', '#5db13d')}${_numBox('+' + (depois - antes) + ' W', 'EVOLUÇÃO', '#ffe033')}
+    </tr></table>
+    <p>As zonas das próximas aulas já usam o FTP novo.</p>`;
+  await emailUmaVez('novo_ftp', 'u' + uid + ':' + depois, uid, u.email, `📈 Novo FTP: ${depois} W`, emailLayout('Novo FTP!', corpo, null, null, u.academia));
+}
+// Rotina diária (10h de Brasília): sumidos, aniversários e relatório mensal.
+async function rotinaEmailsDiaria() {
+  if (!db || !emailProvedor()) return;
+  const agora = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
+  const hoje = agora.toISOString().slice(0, 10);
+  try {
+    const lics = await db.query("SELECT codigo, nome, emails_cfg, contato_email, email_gestor FROM licencas WHERE status='ativa'");
+    for (const l of lics.rows) {
+      const c = { ...EMAILS_PADRAO, ...(l.emails_cfg || {}) };
+      if (c.sumido) {
+        const r = await db.query(`
+          SELECT u.id, u.name, u.email, MAX(ah.data_aula) AS ultima FROM users u
+          JOIN aula_historico ah ON ah.user_id=u.id
+          WHERE u.license_id=$1 AND u.role='aluno' AND COALESCE(u.status,'ativo')='ativo'
+          GROUP BY u.id HAVING MAX(ah.data_aula) BETWEEN NOW()-INTERVAL '30 days' AND NOW()-INTERVAL '14 days'`, [l.codigo]);
+        for (const u of r.rows) {
+          const dias = Math.floor((Date.now() - new Date(u.ultima)) / 86400000);
+          await emailUmaVez('sumido', 'u' + u.id + ':' + new Date(u.ultima).toISOString().slice(0, 10), u.id, u.email,
+            `Sentimos sua falta, ${String(u.name || '').split(' ')[0]} 🚴`,
+            emailLayout('Sentimos sua falta!', `<p>Faz <b>${dias} dias</b> desde a sua última aula na <b>${_esc(l.nome)}</b>.</p><p>Que tal voltar esta semana? Seu FTP e seu histórico continuam guardados.</p>`, null, null, l.nome));
+        }
+      }
+      if (c.aniversario) {
+        const r = await db.query(`SELECT id, name, email FROM users WHERE license_id=$1 AND nascimento IS NOT NULL
+          AND EXTRACT(MONTH FROM nascimento)=$2 AND EXTRACT(DAY FROM nascimento)=$3`, [l.codigo, agora.getMonth() + 1, agora.getDate()]);
+        for (const u of r.rows)
+          await emailUmaVez('aniversario', 'u' + u.id + ':' + agora.getFullYear(), u.id, u.email,
+            `🎉 Feliz aniversário, ${String(u.name || '').split(' ')[0]}!`,
+            emailLayout('Feliz aniversário! 🎂', `<p>A equipe da <b>${_esc(l.nome)}</b> deseja um ótimo dia. Venha comemorar pedalando!</p>`, null, null, l.nome));
+      }
+      if (c.relatorio_mensal && agora.getDate() === 1) {
+        const para = l.email_gestor || l.contato_email; if (!para) continue;
+        const mes = new Date(agora.getFullYear(), agora.getMonth() - 1, 1);
+        const ref = mes.getFullYear() + '-' + String(mes.getMonth() + 1).padStart(2, '0');
+        const r = await db.query(`SELECT COUNT(*)::int AS aulas, COUNT(DISTINCT ah.user_id)::int AS alunos, COALESCE(SUM(ah.kcal),0)::int AS kcal
+          FROM aula_historico ah JOIN users u ON u.id=ah.user_id
+          WHERE u.license_id=$1 AND ah.data_aula >= $2::date AND ah.data_aula < ($2::date + INTERVAL '1 month')`, [l.codigo, ref + '-01']);
+        const d = r.rows[0] || {};
+        const nomeMes = mes.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+        await emailUmaVez('relatorio_mensal', l.codigo + ':' + ref, null, para, `Relatório de ${nomeMes} — ${l.nome}`,
+          emailLayout(`Relatório de ${nomeMes}`, `<table style="width:100%;background:#0b0b0e;border-radius:10px;margin:10px 0"><tr>
+            ${_numBox(d.aulas || 0, 'AULAS CONCLUÍDAS')}${_numBox(d.alunos || 0, 'ALUNOS ATIVOS', '#5db13d')}${_numBox(d.kcal || 0, 'KCAL', '#ea860c')}</tr></table>
+            <p>O relatório completo, com as zonas e os melhores alunos, está no Portal.</p>`, 'Abrir relatórios', PORTAL_URL + '/academia.html', l.nome));
+      }
+    }
+  } catch (e) { log('rotinaEmailsDiaria erro: ' + e.message); }
+  _ultimaRotinaEmail = hoje;
+}
+let _ultimaRotinaEmail = '';
+setInterval(() => {
+  const agora = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
+  if (agora.getHours() >= 10 && _ultimaRotinaEmail !== agora.toISOString().slice(0, 10)) rotinaEmailsDiaria();
+}, 15 * 60 * 1000);
+
 // ══ Migração completa (idempotente — CREATE IF NOT EXISTS + ADD COLUMN IF NOT EXISTS) ══
 async function runMigrations() {
   if (!db) return;
@@ -502,6 +692,46 @@ async function runMigrations() {
     `);
     log('Migração treinos_professor + pareamentos_ginasio OK');
 
+    // ── Portal novo (26/09e) ───────────────────────────────────────
+    // ranking_cfg: campos da tela de Ranking (botão B) escolhidos pelo gestor.
+    // emails_cfg:  e-mails automáticos ligados/desligados por licença.
+    // build:       versão do Ginásio de cada computador (o super admin vê).
+    // nascimento:  para o e-mail de aniversário (opcional no perfil).
+    // email_log:   impede mandar o mesmo e-mail duas vezes.
+    await db.query(`
+      ALTER TABLE licencas
+        ADD COLUMN IF NOT EXISTS ranking_cfg JSONB,
+        ADD COLUMN IF NOT EXISTS emails_cfg  JSONB
+    `);
+    await db.query(`ALTER TABLE licenca_computadores ADD COLUMN IF NOT EXISTS build TEXT`);
+    await db.query(`
+      ALTER TABLE users
+        ADD COLUMN IF NOT EXISTS nascimento DATE,
+        ADD COLUMN IF NOT EXISTS foto_url   TEXT
+    `);
+    await db.query(`
+      CREATE TABLE IF NOT EXISTS email_log (
+        id         SERIAL PRIMARY KEY,
+        user_id    INTEGER,
+        email      TEXT,
+        tipo       TEXT NOT NULL,
+        ref        TEXT NOT NULL,
+        ok         BOOLEAN DEFAULT TRUE,
+        erro       TEXT,
+        enviado_em TIMESTAMPTZ DEFAULT NOW(),
+        UNIQUE(tipo, ref)
+      )
+    `);
+    // Aulas gravadas só em aulas_completadas (antes de 26/09e) entram no
+    // histórico que o Portal lê. Não duplica: compara usuário + horário.
+    await db.query(`
+      INSERT INTO aula_historico (user_id, nome, data_aula, dur_seg, kcal, avg_rpm, avg_watts)
+      SELECT ac.user_id, ac.aula_nome, ac.completed_at, ac.duracao_sec, ac.kcal, ac.rpm_medio, ac.watts_med
+      FROM aulas_completadas ac
+      WHERE NOT EXISTS (SELECT 1 FROM aula_historico ah WHERE ah.user_id=ac.user_id AND ah.data_aula=ac.completed_at)
+    `);
+    log('Migração portal 26/09e OK');
+
   } catch(e) {
     log('Migração ERRO: ' + e.message);
   }
@@ -651,7 +881,7 @@ app.get('/user/me', authMiddleware, async (req, res) => {
   if (!db) return res.status(503).json({ error: 'Banco não disponível' });
   try {
     const r = await db.query(
-      'SELECT id, email, name, role, license_id, points, level, peso, ftp, sexo, created_at FROM users WHERE id=$1', // 26/09b: sexo
+      'SELECT id, email, name, role, license_id, points, level, peso, ftp, sexo, idade, altura, nascimento, created_at FROM users WHERE id=$1', // 26/09b: sexo; 26/09e: idade, altura, nascimento (Meu perfil do Portal)
       [req.user.id]
     );
     if (!r.rows.length) return res.status(404).json({ error: 'Usuário não encontrado' });
@@ -810,6 +1040,20 @@ app.post('/aula/complete', authMiddleware, async (req, res) => {
        zonas?.z5||0, zonas?.z6||0, zonas?.z7||0,
        watts_med, rpm_med, kcal]
     );
+    // 26/09e: o Portal (dashboard, alunos, relatórios, ranking) lê de
+    // aula_historico, mas o app só gravava em aulas_completadas — por isso o
+    // gestor via tudo zerado. Agora grava nas duas.
+    try {
+      const _u = await db.query('SELECT ftp FROM users WHERE id=$1', [req.user.id]);
+      const _ftp = (_u.rows[0] && parseInt(_u.rows[0].ftp)) || 0;
+      const _avgFtp = (_ftp > 0 && watts_med > 0) ? Math.round(watts_med * 100 / _ftp) : 0;
+      await db.query(
+        `INSERT INTO aula_historico (user_id, nome, dur_seg, kcal, zona_pct, avg_ftp, avg_rpm, avg_watts)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
+        [req.user.id, aula_nome || 'Aula', parseInt(duracao_sec) || 0, kcal,
+         JSON.stringify(zonas || {}), _avgFtp, rpm_med, watts_med]
+      );
+    } catch (e) { log('aula_historico (espelho) erro: ' + e.message); }
     // Atualizar pontos e nível do usuário
     const r = await db.query(
       'UPDATE users SET points=points+$1, updated_at=NOW() WHERE id=$2 RETURNING points',
@@ -819,19 +1063,50 @@ app.post('/aula/complete', authMiddleware, async (req, res) => {
     const newLevel  = calcLevel(newPoints);
     await db.query('UPDATE users SET level=$1 WHERE id=$2', [newLevel, req.user.id]);
     res.json({ pontos_ganhos: pontos, total_pontos: newPoints, nivel: newLevel });
+    // 26/09e: e-mail de resumo da aula (se a academia deixou ligado)
+    emailResumoAula(req.user.id, { aula_nome, duracao_sec, kcal, watts_med, rpm_med, zona_predominante, pontos }).catch(() => {});
   } catch(e) {
     log('aula/complete error: ' + e.message);
     res.status(500).json({ error: 'Erro interno' });
   }
 });
 
+// 26/09e: trocar a própria senha (gestor que recebeu senha provisória, etc.)
+app.put('/user/senha', authMiddleware, async (req, res) => {
+  if (!db) return res.status(503).json({ error: 'Banco não disponível' });
+  const { senha_atual, nova } = req.body || {};
+  if (!nova || String(nova).length < 6) return res.status(400).json({ error: 'A nova senha precisa de pelo menos 6 caracteres.' });
+  if (req.user.impersonated_by) return res.status(403).json({ error: 'No modo suporte não dá para trocar a senha.' });
+  try {
+    const r = await db.query('SELECT password_hash FROM users WHERE id=$1', [req.user.id]);
+    if (!r.rows.length) return res.status(404).json({ error: 'Usuário não encontrado' });
+    if (!(await bcrypt.compare(String(senha_atual || ''), r.rows[0].password_hash || '')))
+      return res.status(401).json({ error: 'Senha atual incorreta.' });
+    await db.query('UPDATE users SET password_hash=$1, updated_at=NOW() WHERE id=$2', [await bcrypt.hash(String(nova), 10), req.user.id]);
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: 'Erro interno' }); }
+});
+
 // Atualizar perfil do usuário
 app.put('/user/profile', authMiddleware, async (req, res) => {
   if (!db) return res.status(503).json({ error: 'Banco não disponível' });
-  const { name, email, peso, ftp, altura, idade, sexo } = req.body;
+  const { name, email, peso, ftp, altura, idade, sexo, nascimento } = req.body;
   try {
     const fields = [], vals = [];
     let idx = 1;
+    // 26/09e: FTP antigo, para o e-mail de "novo FTP" quando ele sobe
+    let _ftpAntes = 0;
+    try { const _a = await db.query('SELECT ftp FROM users WHERE id=$1', [req.user.id]); _ftpAntes = parseInt((_a.rows[0]||{}).ftp) || 0; } catch (e) {}
+    if (nascimento && /^\d{4}-\d{2}-\d{2}$/.test(String(nascimento))) {
+      fields.push(`nascimento=$${idx++}`); vals.push(nascimento);
+      // idade acompanha a data de nascimento (o gasto calórico usa a idade)
+      if (!(idade && parseInt(idade) > 0)) {
+        const _n = new Date(nascimento + 'T12:00:00'), _h = new Date();
+        let _id = _h.getFullYear() - _n.getFullYear();
+        if (_h.getMonth() < _n.getMonth() || (_h.getMonth() === _n.getMonth() && _h.getDate() < _n.getDate())) _id--;
+        if (_id > 0 && _id < 120) { fields.push(`idade=$${idx++}`); vals.push(_id); }
+      }
+    }
     if (name  && name.trim())        { fields.push(`name=$${idx++}`);  vals.push(name.trim()); }
     if (email && email.trim())       { fields.push(`email=$${idx++}`); vals.push(email.trim().toLowerCase()); }
     if (peso  && parseFloat(peso)>0) { fields.push(`peso=$${idx++}`);  vals.push(parseFloat(peso)); }
@@ -844,9 +1119,11 @@ app.put('/user/profile', authMiddleware, async (req, res) => {
     vals.push(req.user.id);
     const r = await db.query(
       `UPDATE users SET ${fields.join(',')} WHERE id=$${idx}
-       RETURNING id, email, name, role, points, level, peso, ftp, altura, idade, sexo, tmb`,
+       RETURNING id, email, name, role, points, level, peso, ftp, altura, idade, sexo, tmb, nascimento`,
       vals
     );
+    if (r.rows[0] && _ftpAntes > 0 && parseInt(r.rows[0].ftp) > _ftpAntes)
+      emailNovoFtp(req.user.id, _ftpAntes, parseInt(r.rows[0].ftp)).catch(() => {});
     // Mexeu em peso, altura, idade ou sexo -> o basal guardado ficou velho.
     const u = r.rows[0];
     if (u.peso && u.altura && u.idade && u.sexo) {
@@ -1200,6 +1477,11 @@ wss.on('connection', (ws) => {
           log(`Sala criada: ${codigo}`);
         }
         ws._salaCode = codigo; ws._tipo = 'professor';
+        // 26/09e: o Ginasio manda o token do display; a sala fica sabendo de
+        // que licenca e. Serve para ligar o aluno a academia (ver entrar_sala).
+        if (msg.display_token) {
+          try { const _dp = jwt.verify(msg.display_token, JWT_SECRET); if (_dp && _dp.license_id) salas[codigo].licenca = _dp.license_id; } catch (e) {}
+        }
         const _lista = [...salas[codigo].alunos.entries()].map(([n, aws]) => ({ nome: n, bike: aws._bikeNum || null }));
         ws.send(JSON.stringify({ tipo: 'sala_criada', codigo, retomada: !!existente, alunos: _lista }));
         break;
@@ -1266,6 +1548,19 @@ wss.on('connection', (ws) => {
         const _antigo = sala.alunos.get(nome);
         if (_antigo && _antigo !== ws) { try { _antigo._substituido = true; _antigo.close(4000, 'substituido'); } catch (e) {} }
         sala.alunos.set(nome, ws);
+        // 26/09e: aluno sem academia passa a ser da academia desta sala.
+        // Assim ele aparece na lista de alunos do gestor sem cadastro manual.
+        // Nunca troca quem ja tem academia, nem professor/gestor.
+        if (db && sala.licenca && user_id) {
+          db.query("UPDATE users SET license_id=$1, updated_at=NOW() WHERE id=$2 AND (license_id IS NULL OR license_id='') AND role='aluno' RETURNING id, name, email",
+                   [sala.licenca, parseInt(user_id)])
+            .then(async (r) => {
+              if (!r.rows.length) return;
+              const u = r.rows[0];
+              const l = await db.query('SELECT nome FROM licencas WHERE codigo=$1', [sala.licenca]);
+              emailBoasVindas({ userId: u.id, email: u.email, nome: u.name, academia: (l.rows[0] || {}).nome, licId: sala.licenca, papel: 'aluno' }).catch(() => {});
+            }).catch(() => {});
+        }
         sala.observadores.delete(ws); // se estava só observando o mapa, agora é participante
         ws._salaCode = codigo; ws._tipo = 'aluno'; ws._nome = nome; ws._bike = bike || null; ws._bikeNum = bike ? Number(bike) : null;
         log(`Aluno entrou: ${nome} na sala ${codigo}`);
@@ -1572,7 +1867,12 @@ app.get('/admin/licencas', adminAuth, async (req, res) => {
     const r = await db.query(`
       SELECT l.*,
         (SELECT COUNT(*) FROM users u WHERE u.license_id=l.codigo AND u.role='aluno') AS total_alunos,
-        (SELECT COUNT(*) FROM users u WHERE u.license_id=l.codigo AND u.role='professor') AS total_profs
+        (SELECT COUNT(*) FROM users u WHERE u.license_id=l.codigo AND u.role='professor') AS total_profs,
+        -- 26/09e: versão do Ginásio (TV) e última aula, para o super admin
+        (SELECT lc.build FROM licenca_computadores lc WHERE lc.license_codigo=l.codigo ORDER BY lc.visto_em DESC LIMIT 1) AS ginasio_build,
+        (SELECT MAX(lc.visto_em) FROM licenca_computadores lc WHERE lc.license_codigo=l.codigo) AS ginasio_visto,
+        (SELECT MAX(ah.data_aula) FROM aula_historico ah JOIN users u ON u.id=ah.user_id WHERE u.license_id=l.codigo) AS ultima_aula,
+        (SELECT u.name FROM users u WHERE u.license_id=l.codigo AND u.role='gestor' ORDER BY u.id LIMIT 1) AS gestor_nome
       FROM licencas l ORDER BY l.created_at DESC
     `);
     res.json(r.rows);
@@ -1598,7 +1898,41 @@ app.post('/admin/licencas', adminAuth, async (req, res) => {
     );
     // bikes disponiveis comecam iguais ao vendido
     try { await db.query('UPDATE licencas SET bikes_disponiveis=max_bikes WHERE id=$1', [r.rows[0].id]); r.rows[0].bikes_disponiveis = r.rows[0].max_bikes; } catch(_e) {}
-    res.json(r.rows[0]);
+    // 26/09e: endereço já na criação (antes só dava para pôr editando)
+    const b = req.body || {};
+    try {
+      await db.query(`UPDATE licencas SET logradouro=$1, numero=$2, bairro=$3, cep=$4, cidade_lic=$5, estado=$6, pais=$7, cidade=COALESCE($5, cidade), email_gestor=$8 WHERE id=$9`,
+        [b.logradouro||null, b.numero||null, b.bairro||null, b.cep||null, b.cidade_lic||null, b.estado||null, b.pais||'Brasil',
+         (b.gestor_email||'').trim().toLowerCase() || null, r.rows[0].id]);
+    } catch(_e) { log('licenca endereço: ' + _e.message); }
+    // 26/09e: cria o login do gestor e manda o e-mail de boas-vindas
+    const out = { ...r.rows[0] };
+    const gEmail = String(b.gestor_email || '').trim().toLowerCase();
+    if (gEmail) {
+      try {
+        const ex = await db.query('SELECT id, role, license_id FROM users WHERE email=$1', [gEmail]);
+        let senhaTemp = null, uid;
+        if (ex.rows.length) {
+          uid = ex.rows[0].id;
+          // conta que já existe: vira gestor desta licença (sem mexer na senha),
+          // a não ser que seja admin/super admin
+          if (!['admin', 'super_admin'].includes(ex.rows[0].role))
+            await db.query("UPDATE users SET role='gestor', license_id=$1, updated_at=NOW() WHERE id=$2", [codigo, uid]);
+          out.gestor = { id: uid, email: gEmail, ja_existia: true };
+        } else {
+          senhaTemp = 'PR-' + crypto.randomBytes(4).toString('hex');
+          const ins = await db.query(`INSERT INTO users (email, name, password_hash, role, license_id) VALUES ($1,$2,$3,'gestor',$4) RETURNING id`,
+            [gEmail, b.gestor_nome || contato_nome || 'Gestor', await bcrypt.hash(senhaTemp, 10), codigo]);
+          uid = ins.rows[0].id;
+          out.gestor = { id: uid, email: gEmail, senha_provisoria: senhaTemp };
+        }
+        if (b.enviar_email !== false) {
+          out.email_enviado = await emailBoasVindas({ userId: uid, email: gEmail, nome: b.gestor_nome || contato_nome, academia: nome, licId: null, senhaTemp, papel: 'gestor' });
+          if (!emailProvedor()) out.email_aviso = 'E-mail não configurado no servidor — passe a senha ao gestor manualmente.';
+        }
+      } catch(_e) { out.gestor_erro = _e.message; }
+    }
+    res.json(out);
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
@@ -1843,6 +2177,7 @@ app.get('/admin/financeiro/dashboard', adminAuth, async (req, res) => {
 app.post('/display/ativar', async (req, res) => {
   if (!db) return res.status(503).json({ error: 'Banco indisponível' });
   const { codigo, device_id, nome_computador } = req.body;
+  const _build = String(req.body.build || req.headers['x-pr-build'] || '').slice(0, 40) || null;  // 26/09e
   if (!codigo) return res.status(400).json({ error: 'Código da licença obrigatório' });
   try {
     const r = await db.query(
@@ -1855,10 +2190,10 @@ app.post('/display/ativar', async (req, res) => {
     if (devId) {
       // Registar/atualizar computador; se passar o limite, remove os mais antigos
       await db.query(`
-        INSERT INTO licenca_computadores (license_codigo, device_id, nome_computador, visto_em)
-        VALUES ($1,$2,$3,NOW())
-        ON CONFLICT (license_codigo, device_id) DO UPDATE SET nome_computador=$3, visto_em=NOW()
-      `, [lic.codigo, devId, nome_computador || null]);
+        INSERT INTO licenca_computadores (license_codigo, device_id, nome_computador, visto_em, build)
+        VALUES ($1,$2,$3,NOW(),$4)
+        ON CONFLICT (license_codigo, device_id) DO UPDATE SET nome_computador=$3, visto_em=NOW(), build=COALESCE($4, licenca_computadores.build)
+      `, [lic.codigo, devId, nome_computador || null, _build]);
       const maxComp = lic.max_computadores || 1;
       await db.query(`
         DELETE FROM licenca_computadores
@@ -1872,7 +2207,8 @@ app.post('/display/ativar', async (req, res) => {
       JWT_SECRET,
       { expiresIn: '15d' }
     );
-    res.json({ token, nome_academia: lic.nome, codigo: lic.codigo, max_bikes: parseInt(lic.max_bikes)||0, teto: _tetoDe(lic) });
+    res.json({ token, nome_academia: lic.nome, codigo: lic.codigo, max_bikes: parseInt(lic.max_bikes)||0, teto: _tetoDe(lic),
+               ranking_cfg: rankCfgLimpa(lic.ranking_cfg || RANK_PADRAO) });
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
@@ -1964,11 +2300,12 @@ function _capVagas(v, teto){
 app.get('/display/licenca', displayAuth, async (req, res) => {
   if (!db) return res.status(503).json({ error: 'Banco indisponível' });
   try {
-    const r = await db.query('SELECT codigo, nome, max_bikes, bikes_disponiveis FROM licencas WHERE codigo=$1', [req.user.license_id]);
+    const r = await db.query('SELECT codigo, nome, max_bikes, bikes_disponiveis, ranking_cfg FROM licencas WHERE codigo=$1', [req.user.license_id]);
     if (!r.rows.length) return res.status(404).json({ error: 'Licença não encontrada' });
     const l = r.rows[0];
     res.json({ codigo: l.codigo, nome: l.nome, max_bikes: parseInt(l.max_bikes)||0,
-               bikes_disponiveis: parseInt(l.bikes_disponiveis)||0, teto: _tetoDe(l) });
+               bikes_disponiveis: parseInt(l.bikes_disponiveis)||0, teto: _tetoDe(l),
+               ranking_cfg: rankCfgLimpa(l.ranking_cfg || RANK_PADRAO) });  // 26/09e
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
@@ -1980,6 +2317,13 @@ async function displayAuth(req, res, next) {
     const p = jwt.verify(token, JWT_SECRET);
     if (p.role !== 'display' && p.role !== 'gestor' && p.role !== 'admin')
       return res.status(403).json({ error: 'Acesso negado' });
+    // 26/09e: o Ginásio manda a versão no cabeçalho; o super admin vê
+    // qual BUILD está em cada TV e quando ela falou com o servidor.
+    const _build = String(req.headers['x-pr-build'] || '').slice(0, 40);
+    if (p.role === 'display' && p.device_id && db && _build) {
+      db.query('UPDATE licenca_computadores SET build=$1, visto_em=NOW() WHERE license_codigo=$2 AND device_id=$3',
+               [_build, p.license_id, p.device_id]).catch(() => {});
+    }
     // Verificar device_id (tokens antigos sem device_id: aceitar provisoriamente)
     if (p.role === 'display' && p.device_id && db) {
       const dc = await db.query(
@@ -2108,7 +2452,19 @@ function gestorAuth(req, res, next) {
   if (!token) return res.status(401).json({ error: 'Token necessário' });
   try {
     const p = jwt.verify(token, JWT_SECRET);
-    if (!['gestor','admin','super_admin'].includes(p.role)) return res.status(403).json({ error: 'Acesso negado' });
+    if (!['gestor','admin','super_admin','coordenador','financeiro'].includes(p.role)) return res.status(403).json({ error: 'Acesso negado' });
+    // 26/09e: níveis de acesso do Portal. Coordenador cuida da operação
+    // (agenda, alunos, professores, relatórios, avisos), mas não mexe na
+    // configuração da licença. Financeiro só lê números e alunos.
+    const _rota = String(req.originalUrl || req.path || '').split('?')[0];
+    if (p.role === 'financeiro') {
+      const leitura = req.method === 'GET' && /^\/gestor\/(stats|relatorio|alunos|config|leaderboard)(\/|$)/.test(_rota);
+      if (!leitura) return res.status(403).json({ error: 'Seu acesso (financeiro) não permite esta ação.' });
+    }
+    if (p.role === 'coordenador') {
+      if (/^\/gestor\/config\/(bikes|ranking)/.test(_rota) && req.method !== 'GET')
+        return res.status(403).json({ error: 'Só o gestor altera a configuração da licença.' });
+    }
     req.user = p;
     next();
   } catch(e) { res.status(401).json({ error: 'Token inválido' }); }
@@ -2120,7 +2476,7 @@ function professorAuth(req, res, next) {
   if (!token) return res.status(401).json({ error: 'Token necessário' });
   try {
     const p = jwt.verify(token, JWT_SECRET);
-    if (!['professor','gestor','admin','super_admin'].includes(p.role))
+    if (!['professor','gestor','coordenador','admin','super_admin'].includes(p.role))
       return res.status(403).json({ error: 'Acesso negado' });
     req.user = p;
     next();
@@ -2146,6 +2502,8 @@ app.get('/gestor/alunos', gestorAuth, async (req, res) => {
   try {
     const r = await db.query(`
       SELECT u.id, u.name, u.email, u.status, u.points, u.level, u.peso, u.ftp, u.created_at,
+        u.idade, u.sexo, u.altura, u.nascimento,
+        (SELECT COUNT(*) FROM aula_historico ah WHERE ah.user_id=u.id AND ah.data_aula > NOW()-INTERVAL '30 days')::int AS aulas_30d,
         (SELECT COUNT(*) FROM aula_historico ah WHERE ah.user_id=u.id) AS total_aulas,
         (SELECT MAX(data_aula) FROM aula_historico ah WHERE ah.user_id=u.id) AS ultima_aula
       FROM users u WHERE u.license_id=$1 AND u.role='aluno'
@@ -2219,19 +2577,140 @@ app.get('/gestor/stats', gestorAuth, async (req, res) => {
   if (!db) return res.status(503).json({ error: 'Banco indisponível' });
   const licId = req.user.license_id;
   try {
-    const [alunos, aulas7, aulas30, top] = await Promise.all([
+    const [alunos, aulas7, aulas30, top, extra, topSem] = await Promise.all([
       db.query(`SELECT COUNT(*) FROM users WHERE license_id=$1 AND role='aluno'`, [licId]),
       db.query(`SELECT COUNT(*) FROM aula_historico ah JOIN users u ON u.id=ah.user_id WHERE u.license_id=$1 AND ah.data_aula > NOW()-INTERVAL '7 days'`, [licId]),
       db.query(`SELECT COUNT(*) FROM aula_historico ah JOIN users u ON u.id=ah.user_id WHERE u.license_id=$1 AND ah.data_aula > NOW()-INTERVAL '30 days'`, [licId]),
       db.query(`SELECT u.name, COUNT(ah.id) as total FROM aula_historico ah JOIN users u ON u.id=ah.user_id WHERE u.license_id=$1 GROUP BY u.id, u.name ORDER BY total DESC LIMIT 5`, [licId]),
+      // 26/09e: números do painel novo
+      db.query(`SELECT
+          (SELECT COUNT(DISTINCT ah.user_id) FROM aula_historico ah JOIN users u ON u.id=ah.user_id WHERE u.license_id=$1 AND ah.data_aula > NOW()-INTERVAL '30 days')::int AS ativos_30d,
+          (SELECT COUNT(DISTINCT ah.user_id) FROM aula_historico ah JOIN users u ON u.id=ah.user_id WHERE u.license_id=$1 AND ah.data_aula > NOW()-INTERVAL '7 days')::int AS visitas_7d,
+          (SELECT COUNT(*) FROM users u WHERE u.license_id=$1 AND u.role='aluno' AND u.created_at > NOW()-INTERVAL '30 days')::int AS novos_30d,
+          (SELECT COUNT(*) FROM (SELECT ah.user_id FROM aula_historico ah JOIN users u ON u.id=ah.user_id WHERE u.license_id=$1 AND u.role='aluno'
+             GROUP BY ah.user_id HAVING MAX(ah.data_aula) < NOW()-INTERVAL '14 days') x)::int AS sumidos,
+          (SELECT COUNT(*) FROM aulas_agenda WHERE license_id=$1 AND ativa=true)::int AS aulas_grade`, [licId]),
+      db.query(`SELECT u.name, COUNT(ah.id)::int AS aulas, COALESCE(SUM(ah.kcal),0)::int AS kcal
+                FROM aula_historico ah JOIN users u ON u.id=ah.user_id
+                WHERE u.license_id=$1 AND ah.data_aula > NOW()-INTERVAL '7 days'
+                GROUP BY u.id, u.name ORDER BY kcal DESC LIMIT 5`, [licId]),
     ]);
     res.json({
       total_alunos: parseInt(alunos.rows[0].count),
       aulas_7d: parseInt(aulas7.rows[0].count),
       aulas_30d: parseInt(aulas30.rows[0].count),
       top_alunos: top.rows,
+      ...(extra.rows[0] || {}),
+      top_semana: topSem.rows,
     });
   } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// ══════════════════════════════════════════════════════════════
+// PORTAL 26/09e — ranking da TV e e-mails por licença
+// ══════════════════════════════════════════════════════════════
+// Campos que a tela de Ranking (botão B) do Ginásio sabe mostrar.
+const RANK_CAMPOS = ['zona', 'rpm', 'ftp', 'watts', 'kcal', 'fc', 'wpp'];
+const RANK_ORDENS = ['wpp', 'kcal', 'watts', 'ftp'];
+const RANK_PADRAO = { campos: ['zona', 'rpm', 'ftp', 'watts', 'kcal', 'wpp'], ordem: 'wpp' };
+function rankCfgLimpa(c) {
+  const campos = Array.isArray(c && c.campos) ? c.campos.filter((x, i, a) => RANK_CAMPOS.includes(x) && a.indexOf(x) === i) : RANK_PADRAO.campos;
+  const ordem = RANK_ORDENS.includes(c && c.ordem) ? c.ordem : 'wpp';
+  return { campos: campos.length ? campos : RANK_PADRAO.campos, ordem };
+}
+app.get('/gestor/config/ranking', gestorAuth, async (req, res) => {
+  if (!db) return res.status(503).json({ error: 'Banco indisponível' });
+  try {
+    const r = await db.query('SELECT ranking_cfg FROM licencas WHERE codigo=$1', [req.user.license_id]);
+    if (!r.rows.length) return res.status(404).json({ error: 'Licença não encontrada' });
+    res.json({ ...rankCfgLimpa(r.rows[0].ranking_cfg || RANK_PADRAO), disponiveis: RANK_CAMPOS, ordens: RANK_ORDENS });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+app.put('/gestor/config/ranking', gestorAuth, async (req, res) => {
+  if (!db) return res.status(503).json({ error: 'Banco indisponível' });
+  const cfg = rankCfgLimpa(req.body || {});
+  try {
+    const r = await db.query('UPDATE licencas SET ranking_cfg=$1, updated_at=NOW() WHERE codigo=$2 RETURNING ranking_cfg', [JSON.stringify(cfg), req.user.license_id]);
+    if (!r.rows.length) return res.status(404).json({ error: 'Licença não encontrada' });
+    res.json({ ok: true, ...cfg });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+app.get('/gestor/emails', gestorAuth, async (req, res) => {
+  const cfg = await emailsCfgDe(req.user.license_id);
+  let enviados = [];
+  try {
+    if (db) enviados = (await db.query(`SELECT el.tipo, COUNT(*)::int AS total FROM email_log el
+      LEFT JOIN users u ON u.id=el.user_id
+      WHERE (u.license_id=$1 OR el.ref LIKE $2) AND el.enviado_em > NOW()-INTERVAL '30 days' GROUP BY el.tipo`,
+      [req.user.license_id, req.user.license_id + ':%'])).rows;
+  } catch (e) {}
+  res.json({ cfg, provedor: emailProvedor(), enviados_30d: enviados });
+});
+app.put('/gestor/emails', gestorAuth, async (req, res) => {
+  if (!db) return res.status(503).json({ error: 'Banco indisponível' });
+  const b = req.body || {}, cfg = {};
+  Object.keys(EMAILS_PADRAO).forEach(k => { cfg[k] = (b[k] === undefined) ? EMAILS_PADRAO[k] : !!b[k]; });
+  try {
+    await db.query('UPDATE licencas SET emails_cfg=$1, updated_at=NOW() WHERE codigo=$2', [JSON.stringify(cfg), req.user.license_id]);
+    res.json({ ok: true, cfg });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+// Equipe da licença: quem tem acesso ao Portal/app e com qual papel.
+const PAPEIS_EQUIPE = ['aluno', 'professor', 'coordenador', 'financeiro'];
+app.get('/gestor/equipe', gestorAuth, async (req, res) => {
+  if (!db) return res.status(503).json({ error: 'Banco indisponível' });
+  try {
+    const r = await db.query(`SELECT id, name, email, role, status, created_at FROM users
+      WHERE license_id=$1 AND role <> 'aluno' ORDER BY CASE role WHEN 'gestor' THEN 0 WHEN 'coordenador' THEN 1 WHEN 'professor' THEN 2 ELSE 3 END, name`, [req.user.license_id]);
+    res.json(r.rows);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+app.post('/gestor/equipe', gestorAuth, async (req, res) => {
+  if (!db) return res.status(503).json({ error: 'Banco indisponível' });
+  if (!['gestor', 'admin', 'super_admin'].includes(req.user.role)) return res.status(403).json({ error: 'Só o gestor convida a equipe.' });
+  const email = String((req.body || {}).email || '').trim().toLowerCase();
+  const nome = String((req.body || {}).nome || '').trim();
+  const papel = (req.body || {}).papel;
+  if (!email || !/@/.test(email)) return res.status(400).json({ error: 'E-mail inválido' });
+  if (!PAPEIS_EQUIPE.includes(papel) || papel === 'aluno') return res.status(400).json({ error: 'Papel inválido' });
+  try {
+    const ex = await db.query('SELECT id, role, license_id FROM users WHERE email=$1', [email]);
+    let senhaTemp = null, uid;
+    if (ex.rows.length) {
+      const u = ex.rows[0];
+      if (['gestor', 'admin', 'super_admin'].includes(u.role)) return res.status(409).json({ error: 'Esta conta já é gestor/admin.' });
+      if (u.license_id && u.license_id !== req.user.license_id && u.role !== 'aluno') return res.status(409).json({ error: 'Esta conta já é da equipe de outra academia.' });
+      await db.query('UPDATE users SET role=$1, license_id=$2, updated_at=NOW() WHERE id=$3', [papel, req.user.license_id, u.id]);
+      uid = u.id;
+    } else {
+      senhaTemp = 'PR-' + crypto.randomBytes(4).toString('hex');
+      const ins = await db.query('INSERT INTO users (email, name, password_hash, role, license_id) VALUES ($1,$2,$3,$4,$5) RETURNING id',
+        [email, nome || email.split('@')[0], await bcrypt.hash(senhaTemp, 10), papel, req.user.license_id]);
+      uid = ins.rows[0].id;
+    }
+    const l = await db.query('SELECT nome FROM licencas WHERE codigo=$1', [req.user.license_id]);
+    const enviado = await emailBoasVindas({ userId: uid, email, nome, academia: (l.rows[0] || {}).nome, licId: req.user.license_id, senhaTemp, papel });
+    res.json({ ok: true, id: uid, senha_provisoria: senhaTemp, email_enviado: enviado });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+app.put('/gestor/equipe/:id/papel', gestorAuth, async (req, res) => {
+  if (!db) return res.status(503).json({ error: 'Banco indisponível' });
+  if (!['gestor', 'admin', 'super_admin'].includes(req.user.role)) return res.status(403).json({ error: 'Só o gestor muda papéis.' });
+  const papel = (req.body || {}).papel;
+  if (!PAPEIS_EQUIPE.includes(papel)) return res.status(400).json({ error: 'Papel inválido' });
+  try {
+    const r = await db.query(`UPDATE users SET role=$1, updated_at=NOW() WHERE id=$2 AND license_id=$3
+      AND role NOT IN ('gestor','admin','super_admin') RETURNING id, name, role`, [papel, parseInt(req.params.id), req.user.license_id]);
+    if (!r.rows.length) return res.status(404).json({ error: 'Pessoa não encontrada nesta academia (ou é gestor).' });
+    res.json(r.rows[0]);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+// Manda um e-mail de teste para quem está logado (confere a configuração)
+app.post('/gestor/emails/teste', gestorAuth, async (req, res) => {
+  const para = (req.body && req.body.email) || req.user.email;
+  const r = await enviarEmail({ to: para, subject: 'Teste de e-mail — ProRider',
+    html: emailLayout('Tudo certo!', '<p>Se você está lendo isto, os e-mails automáticos do ProRider estão funcionando.</p>') });
+  res.status(r.ok ? 200 : 400).json(r.ok ? { ok: true, para } : { error: r.erro });
 });
 
 // ══════════════════════════════════════════════════════════════
@@ -2612,7 +3091,7 @@ app.get('/gestor/config', gestorAuth, async (req, res) => {
 
     // Tenta tabela licencas (sistema legado — license_id = codigo texto)
     const rLeg = await db.query(
-      'SELECT max_bikes, bikes_disponiveis, max_alunos, plano, nome_fantasia, cidade FROM licencas WHERE codigo=$1',
+      'SELECT max_bikes, bikes_disponiveis, max_alunos, plano, nome_fantasia, nome, cidade FROM licencas WHERE codigo=$1',
       [lid]
     );
     if (rLeg.rows.length) { row = rLeg.rows[0]; }

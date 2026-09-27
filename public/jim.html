@@ -1,0 +1,1126 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1920,initial-scale=1">
+<title>ProRider Jim — Display</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow+Condensed:wght@400;600;700;900&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#08080a;--card:rgba(255,255,255,.05);--border:rgba(255,255,255,.08);
+  --accent:#ea860c;--accent2:#d62d2d;--green:#5db13d;--blue:#295fe8;--muted:rgba(255,255,255,.4);
+}
+html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);color:#fff;font-family:'Inter',sans-serif;}
+
+/* ── Fundo animado ── */
+.bg-mesh{
+  position:fixed;inset:0;z-index:0;
+  background:
+    radial-gradient(ellipse 60% 50% at 80% 20%, rgba(234,134,12,.07) 0%, transparent 60%),
+    radial-gradient(ellipse 50% 60% at 20% 80%, rgba(41,95,232,.06) 0%, transparent 60%),
+    radial-gradient(ellipse 40% 40% at 50% 50%, rgba(155,48,255,.04) 0%, transparent 70%);
+  animation: bgPulse 8s ease-in-out infinite alternate;
+}
+@keyframes bgPulse{to{opacity:.6}}
+
+/* ── Layout principal ── */
+.layout{position:relative;z-index:1;width:100vw;height:100vh;display:grid;grid-template-columns:1fr 340px;grid-template-rows:80px 1fr;gap:0;transition:grid-template-columns .35s ease;}
+.layout.sidebar-closed{grid-template-columns:1fr 0px;}
+.layout.sidebar-closed .sidebar{border-left:none;padding:0;overflow:hidden;}
+
+/* ── Header ── */
+.header{
+  grid-column:1/-1;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 40px;
+  border-bottom:1px solid var(--border);
+  background:rgba(8,8,10,.6);backdrop-filter:blur(12px);
+}
+.logo{
+  font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:5px;
+  background:linear-gradient(135deg,#ffe033,#ea860c,#d62d2d);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  display:flex;align-items:center;gap:10px;
+}
+.logo .bolt{font-size:22px;-webkit-text-fill-color:#ea860c;}
+.header-right{display:flex;align-items:center;gap:24px;}
+.clock{font-family:'Bebas Neue',sans-serif;font-size:36px;letter-spacing:3px;color:#fff;line-height:1;}
+.date-str{font-size:11px;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;text-align:right;margin-top:2px;}
+
+/* ── Main (centro) ── */
+.main{display:flex;align-items:center;justify-content:center;padding:40px;}
+
+/* ── Sidebar (grade do dia) ── */
+.sidebar{
+  border-left:1px solid var(--border);
+  background:rgba(8,8,10,.4);backdrop-filter:blur(8px);
+  display:flex;flex-direction:column;padding:20px 16px;gap:10px;overflow:hidden;
+  transition:padding .35s ease;
+}
+.sidebar-title{
+  font-size:10px;font-weight:700;letter-spacing:2.5px;color:var(--muted);
+  text-transform:uppercase;padding:0 4px 8px;border-bottom:1px solid var(--border);
+  flex-shrink:0;display:flex;align-items:center;justify-content:space-between;
+}
+.sidebar-toggle{
+  background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);
+  border-radius:6px;padding:3px 8px;font-size:10px;color:rgba(255,255,255,.4);
+  cursor:pointer;letter-spacing:.5px;transition:all .15s;
+}
+.sidebar-toggle:hover{background:rgba(255,255,255,.12);color:#fff;}
+
+/* ── Grade na área principal (estado aguardando) ── */
+.grade-central{width:100%;max-width:760px;}
+.grade-central-title{
+  font-size:11px;font-weight:700;letter-spacing:2.5px;color:var(--muted);
+  text-transform:uppercase;margin-bottom:16px;padding-bottom:10px;
+  border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;
+}
+.grade-central-list{display:flex;flex-direction:column;gap:8px;}
+.gc-item{
+  display:grid;grid-template-columns:64px 1fr auto;align-items:center;gap:16px;
+  padding:14px 18px;border-radius:12px;border:1px solid var(--border);
+  background:rgba(255,255,255,.025);transition:background .2s;
+}
+.gc-item.proxima{border-color:rgba(255,180,0,.25);background:rgba(255,180,0,.04);}
+.gc-item.ao-vivo{border-color:rgba(93,177,61,.3);background:rgba(93,177,61,.05);}
+.gc-item.passada{opacity:.4;}
+.gc-hora{font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:1px;color:#fff;line-height:1;}
+.gc-hora-min{font-size:12px;color:var(--muted);letter-spacing:0;}
+.gc-info{}
+.gc-nome{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:1px;color:#fff;line-height:1;margin-bottom:3px;}
+.gc-meta{font-size:11px;color:var(--muted);}
+.gc-badge{
+  font-size:10px;font-weight:700;letter-spacing:1.5px;padding:4px 10px;
+  border-radius:6px;white-space:nowrap;text-align:center;
+}
+.gc-badge.vivo{background:rgba(93,177,61,.15);border:1px solid rgba(93,177,61,.35);color:var(--green);}
+.gc-badge.prox{background:rgba(255,180,0,.1);border:1px solid rgba(255,180,0,.25);color:#ffb400;}
+.gc-badge.ok{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);color:var(--muted);}
+.gc-badge.pass{display:none;}
+.grade-list{display:flex;flex-direction:column;gap:6px;overflow-y:auto;flex:1;}
+.grade-list::-webkit-scrollbar{width:3px;}
+.grade-list::-webkit-scrollbar-track{background:transparent;}
+.grade-list::-webkit-scrollbar-thumb{background:rgba(255,255,255,.1);border-radius:2px;}
+
+.aula-item{
+  border-radius:10px;padding:11px 13px;
+  border:1px solid var(--border);
+  background:rgba(255,255,255,.03);
+  position:relative;overflow:hidden;
+  transition:border-color .3s,background .3s;
+  flex-shrink:0;
+}
+.aula-item.proxima{
+  border-color:rgba(234,134,12,.5);
+  background:rgba(234,134,12,.07);
+}
+.aula-item.ativa{
+  border-color:rgba(93,177,61,.6);
+  background:rgba(93,177,61,.08);
+  animation:pulseBorder 2s ease-in-out infinite;
+}
+.aula-item.passada{opacity:.35;}
+@keyframes pulseBorder{
+  0%,100%{box-shadow:0 0 0 0 rgba(93,177,61,.2);}
+  50%{box-shadow:0 0 0 4px rgba(93,177,61,.08);}
+}
+.aula-hora{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:1px;line-height:1;}
+.aula-nome{font-size:12px;font-weight:700;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.aula-prof{font-size:10px;color:var(--muted);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.aula-vagas{font-size:10px;margin-top:5px;display:flex;align-items:center;gap:5px;}
+.aula-bar{flex:1;height:3px;background:rgba(255,255,255,.08);border-radius:2px;overflow:hidden;}
+.aula-bar-fill{height:100%;border-radius:2px;transition:width .5s;}
+.aula-badge{
+  position:absolute;top:8px;right:8px;
+  font-size:9px;font-weight:700;letter-spacing:.5px;padding:2px 7px;border-radius:10px;
+}
+.badge-proxima{background:rgba(234,134,12,.2);color:var(--accent);}
+.badge-ativa{background:rgba(93,177,61,.2);color:var(--green);}
+.badge-auto{background:rgba(41,95,232,.2);color:var(--blue);}
+
+/* ── Estado: aguardando ── */
+.state-aguardando{text-align:center;max-width:600px;}
+.state-aguardando .pr-icon{font-size:80px;margin-bottom:20px;opacity:.3;}
+.state-aguardando .msg{font-family:'Bebas Neue',sans-serif;font-size:52px;letter-spacing:4px;color:rgba(255,255,255,.15);}
+.state-aguardando .sub{font-size:14px;color:var(--muted);margin-top:8px;}
+
+/* ── Estado: countdown ── */
+.state-countdown{text-align:center;max-width:700px;}
+.countdown-label{font-size:12px;font-weight:700;letter-spacing:3px;color:var(--muted);text-transform:uppercase;margin-bottom:12px;}
+.countdown-timer{
+  font-family:'Bebas Neue',sans-serif;
+  font-size:clamp(80px,12vw,160px);
+  letter-spacing:4px;line-height:.9;
+  background:linear-gradient(135deg,#fff,rgba(255,255,255,.6));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+}
+.countdown-timer.urgente{
+  background:linear-gradient(135deg,#ea860c,#d62d2d);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  animation:timerPulse 1s ease-in-out infinite;
+}
+@keyframes timerPulse{50%{opacity:.7}}
+.aula-title-big{
+  font-family:'Bebas Neue',sans-serif;font-size:clamp(28px,4vw,48px);
+  letter-spacing:3px;color:#fff;margin-bottom:4px;
+}
+.aula-prof-big{font-size:15px;color:var(--muted);margin-bottom:20px;}
+.vagas-info{
+  display:inline-flex;align-items:center;gap:10px;
+  background:rgba(255,255,255,.05);border:1px solid var(--border);
+  border-radius:30px;padding:8px 20px;font-size:13px;
+  margin-bottom:28px;
+}
+.modo-badge{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:6px 16px;border-radius:20px;font-size:11px;font-weight:700;letter-spacing:1px;
+  margin-bottom:28px;
+}
+.modo-badge.auto{background:rgba(93,177,61,.12);border:1px solid rgba(93,177,61,.3);color:var(--green);}
+.modo-badge.prof{background:rgba(234,134,12,.12);border:1px solid rgba(234,134,12,.3);color:var(--accent);}
+
+/* ── Estado: QR ── */
+.state-qr{text-align:center;max-width:700px;}
+.qr-wrap{
+  display:inline-block;background:#fff;padding:14px;border-radius:16px;
+  margin-bottom:16px;position:relative;
+}
+.qr-wrap img{display:block;}
+.qr-corner{
+  position:absolute;width:16px;height:16px;border-color:var(--accent);border-style:solid;
+  border-width:0;
+}
+.qr-corner.tl{top:-2px;left:-2px;border-top-width:3px;border-left-width:3px;border-radius:4px 0 0 0;}
+.qr-corner.tr{top:-2px;right:-2px;border-top-width:3px;border-right-width:3px;border-radius:0 4px 0 0;}
+.qr-corner.bl{bottom:-2px;left:-2px;border-bottom-width:3px;border-left-width:3px;border-radius:0 0 0 4px;}
+.qr-corner.br{bottom:-2px;right:-2px;border-bottom-width:3px;border-right-width:3px;border-radius:0 0 4px 0;}
+
+.scan-hint{font-size:12px;color:var(--muted);margin-bottom:16px;}
+.alunos-grid{
+  display:flex;flex-wrap:wrap;gap:6px;justify-content:center;
+  max-width:500px;margin:0 auto;
+}
+.aluno-pill{
+  background:rgba(93,177,61,.12);border:1px solid rgba(93,177,61,.25);
+  border-radius:20px;padding:5px 12px;font-size:11px;font-weight:600;color:#fff;
+  animation:fadeIn .3s ease;
+}
+@keyframes fadeIn{from{opacity:0;transform:scale(.8)}to{opacity:1;transform:scale(1)}}
+
+/* ── Estado: aula em andamento ── */
+.state-live{text-align:center;max-width:800px;width:100%;}
+.live-badge{
+  display:inline-flex;align-items:center;gap:8px;
+  background:rgba(93,177,61,.12);border:1px solid rgba(93,177,61,.4);
+  border-radius:30px;padding:7px 20px;font-size:11px;font-weight:700;
+  letter-spacing:1.5px;color:var(--green);margin-bottom:20px;
+}
+.live-dot{width:8px;height:8px;background:var(--green);border-radius:50%;animation:blink 1s ease-in-out infinite;}
+@keyframes blink{50%{opacity:.2}}
+.live-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px;margin-top:20px;}
+.live-card{
+  background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:12px;
+  padding:14px 10px;text-align:center;
+}
+.live-card.has-data{border-color:rgba(93,177,61,.3);background:rgba(93,177,61,.05);}
+.live-card .bike-num{font-size:10px;color:var(--muted);letter-spacing:1px;margin-bottom:4px;}
+.live-card .aluno-nome{font-size:12px;font-weight:700;margin-bottom:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.live-card .watts{font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:1px;color:var(--accent);line-height:1;}
+.live-card .watts-label{font-size:9px;color:var(--muted);}
+.live-card .mini-stats{display:flex;gap:8px;justify-content:center;margin-top:5px;font-size:10px;color:var(--muted);}
+.live-card .empty-spot{font-size:20px;opacity:.2;margin:10px 0;}
+
+/* ── Overlay: professor deve iniciar ── */
+.overlay-prof{
+  position:fixed;inset:0;z-index:100;
+  display:none;align-items:center;justify-content:center;
+  background:rgba(0,0,0,.7);backdrop-filter:blur(8px);
+}
+.overlay-prof.show{display:flex;}
+.overlay-card{
+  background:#13131a;border:1px solid rgba(234,134,12,.4);border-radius:24px;
+  padding:48px;text-align:center;max-width:500px;
+}
+.overlay-card .big{font-family:'Bebas Neue',sans-serif;font-size:64px;letter-spacing:4px;color:var(--accent);}
+.overlay-card p{font-size:14px;color:var(--muted);margin:12px 0 28px;}
+.btn-iniciar{
+  padding:18px 48px;border-radius:16px;border:none;
+  background:linear-gradient(135deg,var(--green),#3a8a28);
+  color:#fff;font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:3px;
+  cursor:pointer;transition:transform .1s;
+}
+.btn-iniciar:active{transform:scale(.97);}
+
+/* ── Dev toolbar (só em desenvolvimento) ── */
+.hidden { display: none !important; }
+
+/* ── Estado: bloqueada ── */
+.state-bloqueada{text-align:center;max-width:600px;}
+.bloqueada-icon{font-size:64px;margin-bottom:16px;animation:bloqPulse 2s ease-in-out infinite;}
+@keyframes bloqPulse{50%{opacity:.4}}
+.bloqueada-msg{font-family:'Bebas Neue',sans-serif;font-size:48px;letter-spacing:3px;color:var(--accent2);line-height:1;margin-bottom:10px;}
+.bloqueada-sub{font-size:14px;color:var(--muted);}
+.bloqueada-aula{
+  display:inline-block;margin-top:20px;padding:14px 24px;
+  background:rgba(214,45,45,.08);border:1px solid rgba(214,45,45,.3);border-radius:12px;
+  font-size:14px;color:rgba(255,255,255,.8);
+}
+
+/* ── Barra do professor (controle) ── */
+.prof-bar{
+  position:fixed;bottom:0;left:0;right:340px;z-index:150;
+  background:rgba(8,8,10,.92);border-top:1px solid rgba(255,255,255,.08);
+  padding:10px 24px;display:flex;gap:10px;align-items:center;
+  backdrop-filter:blur(8px);
+  transition:opacity .3s;
+}
+.prof-bar.hidden{opacity:0;pointer-events:none;}
+.prof-btn{
+  padding:8px 18px;border-radius:8px;font-size:12px;font-weight:700;
+  cursor:pointer;border:1px solid;letter-spacing:.5px;transition:all .15s;
+}
+.prof-btn:active{transform:scale(.97);}
+.prof-btn-start{background:rgba(93,177,61,.15);border-color:rgba(93,177,61,.4);color:var(--green);}
+.prof-btn-end  {background:rgba(214,45,45,.12);border-color:rgba(214,45,45,.35);color:var(--accent2);}
+.prof-btn-reset{background:rgba(245,158,11,.1);border-color:rgba(245,158,11,.3);color:#f59e0b;}
+.prof-btn-cancel{background:rgba(255,255,255,.05);border-color:rgba(255,255,255,.12);color:var(--muted);}
+.prof-label{font-size:11px;color:rgba(255,255,255,.25);letter-spacing:1px;margin-right:4px;}
+
+/* ── Confirmação de reset (2 passos) ── */
+.overlay-confirm{
+  position:fixed;inset:0;z-index:300;display:none;
+  align-items:center;justify-content:center;background:rgba(0,0,0,.8);backdrop-filter:blur(10px);
+}
+.overlay-confirm.show{display:flex;}
+.confirm-card{
+  background:#13131a;border:1px solid rgba(245,158,11,.4);border-radius:20px;
+  padding:40px;text-align:center;max-width:480px;
+}
+.confirm-card .warn{font-size:48px;margin-bottom:16px;}
+.confirm-card h3{font-family:'Bebas Neue',sans-serif;font-size:36px;letter-spacing:2px;color:#f59e0b;margin-bottom:8px;}
+.confirm-card p{font-size:13px;color:var(--muted);margin-bottom:24px;line-height:1.6;}
+.confirm-btns{display:flex;gap:12px;justify-content:center;}
+.confirm-btns button{padding:12px 28px;border-radius:12px;font-size:14px;font-weight:700;cursor:pointer;}
+
+/* ── Dev bar ── */
+.dev-bar{
+  position:fixed;bottom:0;right:0;width:340px;z-index:200;
+  background:rgba(0,0,0,.9);border-top:1px solid rgba(255,255,255,.08);border-left:1px solid rgba(255,255,255,.08);
+  padding:8px 12px;display:flex;gap:6px;align-items:center;flex-wrap:wrap;
+}
+.dev-bar button{
+  padding:4px 10px;border-radius:5px;border:1px solid rgba(255,255,255,.15);
+  background:rgba(255,255,255,.06);color:rgba(255,255,255,.6);font-size:10px;cursor:pointer;
+}
+.dev-bar button:hover{background:rgba(255,255,255,.12);color:#fff;}
+.dev-bar .dev-title{font-size:9px;color:rgba(255,255,255,.25);letter-spacing:1px;width:100%;margin-bottom:2px;}
+</style>
+</head>
+<body>
+
+<div class="bg-mesh"></div>
+
+<!-- ── Layout ── -->
+<div class="layout">
+
+  <!-- Header -->
+  <header class="header">
+    <div class="logo">
+      <span class="bolt">⚡</span>
+      PRORIDER GYM
+    </div>
+    <div class="header-right">
+      <div>
+        <div class="clock" id="clockEl">00:00:00</div>
+        <div class="date-str" id="dateEl">—</div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main area -->
+  <main class="main" id="mainArea">
+    <!-- preenchido pelo JS conforme o estado -->
+  </main>
+
+  <!-- Sidebar: grade do dia -->
+  <aside class="sidebar" id="sidebarEl">
+    <div class="sidebar-title">
+      <span>📅 Grade de hoje</span>
+      <button class="sidebar-toggle" id="sidebarToggleBtn" onclick="toggleSidebar()">✕ Ocultar</button>
+    </div>
+    <div class="grade-list" id="gradeList">
+      <div style="text-align:center;padding:20px;color:var(--muted);font-size:12px">Carregando...</div>
+    </div>
+  </aside>
+
+</div><!-- /layout -->
+
+<!-- Overlay professor deve iniciar -->
+<div class="overlay-prof" id="overlayProf">
+  <div class="overlay-card">
+    <div class="big">PRONTO!</div>
+    <p>Cronômetro zerado. Pressione o botão para iniciar a aula.</p>
+    <button class="btn-iniciar" onclick="professorIniciaAula()">▶ INICIAR AULA</button>
+  </div>
+</div>
+
+<!-- Overlay confirmação de reset -->
+<div class="overlay-confirm" id="overlayConfirmReset">
+  <div class="confirm-card">
+    <div class="warn">⚠️</div>
+    <h3>RESETAR CONEXÕES?</h3>
+    <p>Todos os alunos conectados serão <strong>desconectados</strong> desta sessão.<br>
+    Use apenas para limpar a tela antes de uma nova aula.</p>
+    <div class="confirm-btns">
+      <button onclick="cancelarReset()" style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:rgba(255,255,255,.6)">Cancelar</button>
+      <button onclick="confirmarReset()" style="background:rgba(245,158,11,.15);border:1px solid rgba(245,158,11,.4);color:#f59e0b">🔄 Confirmar Reset</button>
+    </div>
+  </div>
+</div>
+
+<!-- Barra de controle do professor -->
+<div class="prof-bar hidden" id="profBar">
+  <span class="prof-label">CONTROLE:</span>
+  <button class="prof-btn prof-btn-start hidden" id="profBtnIniciar" onclick="profIniciarAula()">▶ Iniciar Aula</button>
+  <button class="prof-btn prof-btn-end hidden" id="profBtnEncerrar" onclick="profEncerrarAula()">⏹ Encerrar Aula</button>
+  <button class="prof-btn prof-btn-reset" id="profBtnReset" onclick="profResetConexoes()">🔄 Reset Conexões</button>
+  <button class="prof-btn" onclick="abrirBiblioteca()" style="margin-left:auto;background:rgba(155,48,255,.15);border-color:rgba(155,48,255,.4);color:#c084fc;">📚 Aulas</button>
+</div>
+
+<!-- ══ MODAL: Biblioteca de Aulas ══ -->
+<div id="modalBiblioteca" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.92);flex-direction:column;">
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:18px 24px;border-bottom:1px solid rgba(255,255,255,.08);">
+    <div>
+      <div style="font-size:10px;font-weight:700;letter-spacing:3px;color:rgba(255,255,255,.3);text-transform:uppercase;">ProRider Gym</div>
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:3px;color:#fff;">BIBLIOTECA DE AULAS</div>
+    </div>
+    <button onclick="fecharBiblioteca()" style="background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);color:rgba(255,255,255,.5);border-radius:8px;padding:8px 16px;font-size:13px;font-weight:700;cursor:pointer;">✕ Fechar</button>
+  </div>
+  <!-- Filtros -->
+  <div style="display:flex;gap:8px;padding:12px 24px;border-bottom:1px solid rgba(255,255,255,.06);">
+    <button class="jbf jbf-on" id="jbfAll" onclick="jbFiltrar('all',this)">Todas</button>
+    <button class="jbf" id="jbfEasy" onclick="jbFiltrar('Easy',this)">🟦 Easy</button>
+    <button class="jbf" id="jbfMed" onclick="jbFiltrar('Medium',this)">🟨 Medium</button>
+    <button class="jbf" id="jbfHard" onclick="jbFiltrar('Hard',this)">🟥 Hard</button>
+    <button class="jbf" id="jbfAdv" onclick="jbFiltrar('Advanced',this)">🟣 Advanced</button>
+    <button class="jbf" id="jbfTest" onclick="jbFiltrar('Teste',this)">🧪 Teste</button>
+  </div>
+  <!-- Grid de aulas -->
+  <div id="jbGrid" style="display:flex;flex-wrap:wrap;gap:14px;padding:20px 24px;overflow-y:auto;flex:1;"></div>
+  <!-- Detalhe da aula selecionada -->
+  <div id="jbDetalhe" style="display:none;position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,.95);flex-direction:column;">
+    <div style="display:flex;align-items:center;gap:14px;padding:16px 24px;border-bottom:1px solid rgba(255,255,255,.08);">
+      <button onclick="document.getElementById('jbDetalhe').style.display='none'" style="background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);color:rgba(255,255,255,.5);border-radius:8px;padding:7px 14px;font-size:13px;font-weight:700;cursor:pointer;">← Voltar</button>
+      <div id="jbDetTitulo" style="font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:2px;color:#fff;"></div>
+      <div id="jbDetBadge" style="padding:4px 12px;border-radius:20px;font-size:11px;font-weight:700;letter-spacing:1px;"></div>
+      <div style="margin-left:auto;font-size:12px;color:rgba(255,255,255,.3);"><span id="jbDetDur"></span> min · <span id="jbDetBlocos"></span> blocos</div>
+    </div>
+    <div style="display:flex;flex:1;overflow:hidden;">
+      <!-- Timeline de blocos -->
+      <div id="jbDetTimeline" style="flex:1;overflow-y:auto;padding:20px 24px;display:flex;flex-direction:column;gap:6px;"></div>
+      <!-- Gráfico visual -->
+      <div style="width:340px;padding:20px 20px 20px 0;display:flex;flex-direction:column;gap:12px;">
+        <div style="font-size:10px;font-weight:700;letter-spacing:2px;color:rgba(255,255,255,.3);text-transform:uppercase;">Perfil da aula</div>
+        <canvas id="jbDetCanvas" height="180" style="width:100%;border-radius:8px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);"></canvas>
+        <div id="jbDetDesc" style="font-size:12px;color:rgba(255,255,255,.4);line-height:1.6;"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Dev toolbar -->
+<div class="dev-bar" id="devBar">
+  <div class="dev-title">🛠 DEMO — Pressione F para fullscreen</div>
+  <button onclick="setEstado('aguardando')">💤 Aguard.</button>
+  <button onclick="setEstado('countdown')">⏱ Count.</button>
+  <button onclick="setEstado('countdown_urgente')">🔴 Urg.</button>
+  <button onclick="setEstado('qr')">📱 QR</button>
+  <button onclick="setEstado('qr_cheio')">🚫 Cheio</button>
+  <button onclick="setEstado('live')">🟢 Live</button>
+  <button onclick="setEstado('bloqueada')">🔒 Bloq.</button>
+  <button onclick="setEstado('aguardando_prof')">⏸ Prof</button>
+  <button onclick="document.getElementById('devBar').style.display='none'">✕</button>
+</div>
+
+<script>
+const SERVER = 'https://prorider-server-production-5784.up.railway.app';
+
+// ── MOCK DATA (usado no modo demo / quando API não responde) ──
+const MOCK_GRADE = [
+  { id:1, hora:'06:00', nome:'Spinning Iniciante',   professor_nome:'Prof. Ana',    vagas_max:20, reservadas:18, modo_inicio:'professor', status:'passada'  },
+  { id:2, hora:'07:00', nome:'Spinning Avançado',    professor_nome:'Prof. Carlos', vagas_max:20, reservadas:14, modo_inicio:'automatico', status:'passada'  },
+  { id:3, hora:'09:00', nome:'Bike & Burn',          professor_nome:'Prof. Luana',  vagas_max:20, reservadas:8,  modo_inicio:'professor', status:'proxima'  },
+  { id:4, hora:'11:00', nome:'Endurance Pro',        professor_nome:'Prof. Rafael', vagas_max:20, reservadas:3,  modo_inicio:'automatico', status:'futura'   },
+  { id:5, hora:'17:00', nome:'Power Hour',           professor_nome:'Prof. Beto',   vagas_max:20, reservadas:20, modo_inicio:'professor', status:'futura'   },
+  { id:6, hora:'19:00', nome:'Spinning Noturno',     professor_nome:'Prof. Ana',    vagas_max:20, reservadas:11, modo_inicio:'automatico', status:'futura'   },
+];
+
+const MOCK_PROXIMA = {
+  id:3, hora:'09:00', nome:'Bike & Burn', professor_nome:'Prof. Luana',
+  vagas_max:20, vagas_livres:12, modo_inicio:'professor',
+};
+
+const MOCK_ALUNOS_CONECTADOS = [
+  { bike_num:1, name:'João P.',    dados:{watts:245,rpm:88,hr:152} },
+  { bike_num:2, name:'Maria S.',   dados:{watts:198,rpm:82,hr:141} },
+  { bike_num:3, name:'Carlos M.',  dados:{watts:312,rpm:94,hr:168} },
+  { bike_num:4, name:'Ana L.',     dados:{watts:187,rpm:79,hr:138} },
+  { bike_num:5, name:'Pedro R.',   dados:{watts:276,rpm:91,hr:159} },
+  { bike_num:6, name:'Julia F.',   dados:{watts:221,rpm:85,hr:147} },
+  { bike_num:7, name:'Bruno T.',   dados:{watts:189,rpm:78,hr:133} },
+  { bike_num:8, name:'Carla N.',   dados:{watts:303,rpm:92,hr:165} },
+];
+
+// ── Estado global ──
+var estado = 'aguardando'; // aguardando | countdown | qr | live
+var aulaAtual = null;
+var sessaoAtual = null;
+var countdownSecs = 0;
+var countdownTimer = null;
+var alunosConectados = [];
+var modoDemo = true;
+
+// ── Clock ──
+function atualizarRelogio(){
+  var agora = new Date();
+  document.getElementById('clockEl').textContent =
+    agora.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  document.getElementById('dateEl').textContent =
+    agora.toLocaleDateString('pt-BR',{weekday:'long',day:'2-digit',month:'long'}).toUpperCase();
+}
+setInterval(atualizarRelogio, 1000);
+atualizarRelogio();
+
+// ── Renderizar grade lateral ──
+function renderGrade(aulas, proximaId){
+  var el = document.getElementById('gradeList');
+  if(!aulas || !aulas.length){
+    el.innerHTML = '<div style="text-align:center;padding:20px;color:var(--muted);font-size:12px">Nenhuma aula hoje.</div>';
+    return;
+  }
+  var agora = new Date();
+  var horaAgora = agora.getHours()*60 + agora.getMinutes();
+
+  el.innerHTML = aulas.map(function(a){
+    var partes = a.hora.split(':');
+    var minAula = parseInt(partes[0])*60 + parseInt(partes[1]);
+    var diff = minAula - horaAgora;
+    var cls = '';
+    var badge = '';
+    if(a.id === proximaId || diff >= 0 && diff <= 10){
+      cls = 'proxima'; badge = '<div class="aula-badge badge-proxima">PRÓXIMA</div>';
+    } else if(estado === 'live' && a.id === (aulaAtual && aulaAtual.id)){
+      cls = 'ativa'; badge = '<div class="aula-badge badge-ativa">● AO VIVO</div>';
+    } else if(diff < -60){
+      cls = 'passada';
+    }
+    // Modo badge
+    var modoBadge = a.modo_inicio === 'automatico'
+      ? '<div class="aula-badge badge-auto" style="top:auto;bottom:8px;right:8px">▶ AUTO</div>'
+      : '';
+
+    var reservadas = a.reservadas || 0;
+    var vagas = a.vagas_max || 20;
+    var pct = Math.min(100, Math.round(reservadas/vagas*100));
+    var corBar = pct>=90?'#d62d2d':pct>=60?'#ea860c':'#5db13d';
+
+    return '<div class="aula-item '+cls+'">'
+      + badge
+      + '<div class="aula-hora" style="color:'+(cls==='proxima'?'var(--accent)':cls==='ativa'?'var(--green)':'#fff')+'">'+a.hora.slice(0,5)+'</div>'
+      + '<div class="aula-nome">'+a.nome+'</div>'
+      + '<div class="aula-prof">👨‍🏫 '+(a.professor_nome||'—')+'</div>'
+      + '<div class="aula-vagas">'
+      +   '<div class="aula-bar"><div class="aula-bar-fill" style="width:'+pct+'%;background:'+corBar+'"></div></div>'
+      +   '<span style="font-size:10px;color:'+corBar+';font-weight:700;flex-shrink:0">'+reservadas+'/'+vagas+'</span>'
+      + '</div>'
+      + modoBadge
+      + '</div>';
+  }).join('');
+}
+
+// ── Renderizar área principal ──
+function renderMain(){
+  var main = document.getElementById('mainArea');
+
+  if(estado === 'aguardando'){
+    // Monta a grade central com todas as aulas do dia
+    var gradeHtml = '';
+    var aulasList = modoDemo ? MOCK_GRADE : (_gradeHoje || MOCK_GRADE);
+    if(aulasList && aulasList.length){
+      var agora = new Date();
+      var agoraMin = agora.getHours()*60 + agora.getMinutes();
+      gradeHtml = aulasList.map(function(a){
+        var hParts = (a.hora||'00:00').split(':');
+        var hMin = parseInt(hParts[0])*60 + parseInt(hParts[1]||0);
+        var fim = hMin + (a.duracao_min||60);
+        var cls = '', badge = '';
+        if(agoraMin >= hMin && agoraMin < fim){ cls='ao-vivo'; badge='<div class="gc-badge vivo">● AO VIVO</div>'; }
+        else if(hMin > agoraMin){ cls='proxima'; badge='<div class="gc-badge prox">PRÓXIMA</div>'; }
+        else { cls='passada'; badge='<div class="gc-badge pass"></div>'; }
+        return '<div class="gc-item '+cls+'">'
+          + '<div class="gc-hora">'+hParts[0]+'<span class="gc-hora-min">:'+((hParts[1]||'00').padStart(2,'0'))+'</span></div>'
+          + '<div class="gc-info">'
+          +   '<div class="gc-nome">'+(a.nome||'Aula')+'</div>'
+          +   '<div class="gc-meta">👨‍🏫 '+(a.professor_nome||'—')+'&nbsp;&nbsp;·&nbsp;&nbsp;⏱ '+(a.duracao_min||'—')+' min&nbsp;&nbsp;·&nbsp;&nbsp;🚲 '+(a.vagas_max||'—')+(a.modo_inicio==='automatico'?' &nbsp;▶ Auto':' &nbsp;⏸ Prof')+'</div>'
+          + '</div>'
+          + badge
+          + '</div>';
+      }).join('');
+    } else {
+      gradeHtml = '<div style="text-align:center;padding:40px;color:var(--muted)">Nenhuma aula agendada para hoje.</div>';
+    }
+    main.innerHTML =
+      '<div class="grade-central">'
+      + '<div class="grade-central-title"><span>⚡</span> PROGRAMAÇÃO DE HOJE</div>'
+      + '<div class="grade-central-list">'+gradeHtml+'</div>'
+      + '</div>';
+    document.getElementById('overlayProf').classList.remove('show');
+    return;
+  }
+
+  if(estado === 'countdown' || estado === 'countdown_urgente'){
+    var aula = aulaAtual || MOCK_PROXIMA;
+    var secs = countdownSecs;
+    var mins = Math.floor(Math.abs(secs)/60);
+    var ss   = Math.abs(secs)%60;
+    var timerStr = (secs<0?'-':'')+String(mins).padStart(2,'0')+':'+String(ss).padStart(2,'0');
+    var urgente = secs <= 120;
+    main.innerHTML =
+      '<div class="state-countdown">'
+      + '<div class="countdown-label">PRÓXIMA AULA EM</div>'
+      + '<div class="countdown-timer'+(urgente?' urgente':'')+'">'+timerStr+'</div>'
+      + '<div style="margin-top:20px">'
+      + '<div class="aula-title-big">'+aula.nome+'</div>'
+      + '<div class="aula-prof-big">👨‍🏫 '+(aula.professor_nome||'—')+'</div>'
+      + '</div>'
+      + '<div class="vagas-info">🚲 '+(aula.vagas_livres||aula.vagas_max||'—')+' vagas disponíveis</div>'
+      + (aula.modo_inicio==='automatico'
+          ? '<div class="modo-badge auto">▶ &nbsp;INÍCIO AUTOMÁTICO</div>'
+          : '<div class="modo-badge prof">⏸ &nbsp;PROFESSOR INICIARÁ A AULA</div>')
+      + '<div style="font-size:12px;color:var(--muted)">A tela de QR abrirá em '
+      + (secs > 600 ? 'alguns minutos' : 'instantes')+'</div>'
+      + '</div>';
+    document.getElementById('overlayProf').classList.remove('show');
+    return;
+  }
+
+  if(estado === 'qr' || estado === 'qr_cheio'){
+    var aula = aulaAtual || MOCK_PROXIMA;
+    var cheio = (estado === 'qr_cheio');
+    var qrToken = (sessaoAtual && sessaoAtual.token) || 'demo_token_abc123';
+    var qrPayload = 'prorider://sessao?token='+qrToken+'&local=192.168.1.5:3001';
+    var qrUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data='+encodeURIComponent(qrPayload)+'&bgcolor=ffffff&color=000000';
+
+    var secs = countdownSecs;
+    var mins = Math.floor(Math.abs(secs)/60);
+    var ss   = Math.abs(secs)%60;
+    var timerStr = (secs<0?'-':'')+String(mins).padStart(2,'0')+':'+String(ss).padStart(2,'0');
+    var urgente = secs <= 30;
+
+    main.innerHTML =
+      '<div class="state-qr">'
+      + '<div style="display:flex;align-items:flex-start;gap:48px;justify-content:center;flex-wrap:wrap">'
+
+      // Lado esquerdo: info da aula + countdown
+      + '<div style="flex:1;min-width:260px;text-align:left">'
+      + '<div style="font-size:10px;font-weight:700;letter-spacing:2.5px;color:var(--muted);text-transform:uppercase;margin-bottom:8px">Iniciando em</div>'
+      + '<div class="countdown-timer'+(urgente?' urgente':'')+'" style="font-size:72px">'+timerStr+'</div>'
+      + '<div style="margin-top:16px">'
+      + '<div class="aula-title-big" style="font-size:36px">'+aula.nome+'</div>'
+      + '<div class="aula-prof-big">👨‍🏫 '+(aula.professor_nome||'—')+'</div>'
+      + '</div>'
+      + '<div style="margin-top:16px">'
+      + (cheio
+        ? '<div style="background:rgba(214,45,45,.1);border:1px solid rgba(214,45,45,.3);border-radius:10px;padding:10px 16px;font-size:13px;color:#d62d2d;font-weight:700">🚫 SALA CHEIA — Aguarde uma vaga</div>'
+        : '<div class="vagas-info" style="display:inline-flex">🚲 '+(aula.vagas_livres||aula.vagas_max||'—')+' vagas disponíveis</div>')
+      + '</div>'
+      + '<div style="margin-top:12px">'
+      + (aula.modo_inicio==='automatico'
+          ? '<div class="modo-badge auto">▶ &nbsp;INÍCIO AUTOMÁTICO</div>'
+          : '<div class="modo-badge prof">⏸ &nbsp;PROFESSOR INICIARÁ A AULA</div>')
+      + '</div>'
+
+      // Alunos já conectados
+      + '<div style="margin-top:16px">'
+      + '<div style="font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--muted);margin-bottom:8px">CONECTADOS</div>'
+      + '<div class="alunos-grid" style="justify-content:flex-start" id="alunosGrid">'
+      + alunosConectados.map(function(a){ return '<div class="aluno-pill">🚲'+a.bike_num+' '+a.name+'</div>'; }).join('')
+      + (alunosConectados.length === 0 ? '<div style="font-size:12px;color:var(--muted)">Aguardando conexões...</div>' : '')
+      + '</div></div>'
+      + '</div>'
+
+      // Lado direito: QR
+      + '<div style="text-align:center;flex-shrink:0">'
+      + (cheio
+        ? '<div style="width:228px;height:228px;background:rgba(255,255,255,.03);border:2px dashed rgba(255,255,255,.1);border-radius:16px;display:flex;align-items:center;justify-content:center;font-size:48px;opacity:.3">🔒</div>'
+        : '<div class="qr-wrap"><img src="'+qrUrl+'" width="200" height="200"><div class="qr-corner tl"></div><div class="qr-corner tr"></div><div class="qr-corner bl"></div><div class="qr-corner br"></div></div>')
+      + '<div class="scan-hint">'+(cheio?'Sala lotada':'Abra o app ProRider e<br>aponte para o QR code')+'</div>'
+      + '</div>'
+
+      + '</div>'
+      + '</div>';
+    document.getElementById('overlayProf').classList.remove('show');
+    return;
+  }
+
+  if(estado === 'live'){
+    var aula = aulaAtual || MOCK_PROXIMA;
+    var maxBikes = (sessaoAtual && sessaoAtual.max_conexoes) || 20;
+    var spots = [];
+    for(var i=1;i<=maxBikes;i++){
+      var aluno = alunosConectados.find(function(a){return a.bike_num===i;});
+      spots.push({num:i, aluno:aluno||null});
+    }
+    main.innerHTML =
+      '<div class="state-live">'
+      + '<div class="live-badge"><div class="live-dot"></div>AULA AO VIVO</div>'
+      + '<div class="aula-title-big">'+aula.nome+' <span style="color:var(--muted);font-size:22px">— '+(aula.professor_nome||'—')+'</span></div>'
+      + '<div class="live-grid">'
+      + spots.map(function(s){
+          if(!s.aluno) return '<div class="live-card"><div class="bike-num">BIKE '+s.num+'</div><div class="empty-spot">🚲</div><div style="font-size:10px;color:var(--muted)">LIVRE</div></div>';
+          var d = s.aluno.dados||{};
+          var w = d.watts||0;
+          return '<div class="live-card has-data">'
+            + '<div class="bike-num">BIKE '+s.num+'</div>'
+            + '<div class="aluno-nome">'+s.aluno.name+'</div>'
+            + '<div class="watts">'+w+'<span style="font-size:14px">W</span></div>'
+            + '<div class="watts-label">POTÊNCIA</div>'
+            + '<div class="mini-stats"><span>'+(d.rpm||'—')+' rpm</span><span>❤ '+(d.hr||'—')+'</span></div>'
+            + '</div>';
+        }).join('')
+      + '</div>'
+      + '</div>';
+    document.getElementById('overlayProf').classList.remove('show');
+    updateProfBar();
+    return;
+  }
+
+  if(estado === 'bloqueada'){
+    var aula = aulaAtual || MOCK_PROXIMA;
+    var aulaEmAndamento = bloqueadaPorAula || {nome_aula:'Aula anterior', professor:'—'};
+    var nomeAndamento = aulaEmAndamento.nome || aulaEmAndamento.nome_aula || 'Aula anterior';
+    var profAndamento = aulaEmAndamento.professor_nome || aulaEmAndamento.professor || '—';
+    main.innerHTML =
+      '<div class="state-bloqueada">'
+      + '<div class="bloqueada-icon">🔒</div>'
+      + '<div class="bloqueada-msg">SALA OCUPADA</div>'
+      + '<div class="bloqueada-sub">A próxima aula só começará após o encerramento da sessão atual.</div>'
+      + '<div class="bloqueada-aula">'
+      +   '<strong style="color:var(--accent2)">EM ANDAMENTO:</strong> '+nomeAndamento
+      +   ' &nbsp;—&nbsp; 👨‍🏫 '+profAndamento
+      + '</div>'
+      + (aula && aula.nome ? '<div style="margin-top:12px;font-size:13px;color:var(--muted)">Aguardando para: <strong style="color:rgba(255,255,255,.7)">'+aula.nome+'</strong></div>' : '')
+      + '</div>';
+    document.getElementById('overlayProf').classList.remove('show');
+    updateProfBar();
+    return;
+  }
+
+  if(estado === 'aguardando_prof'){
+    // Countdown zerou, modo=professor, aguardando press do professor
+    var aula = aulaAtual || MOCK_PROXIMA;
+    main.innerHTML =
+      '<div class="state-aguardando" style="text-align:center">'
+      + '<div class="pr-icon" style="animation:none;font-size:80px">⏸</div>'
+      + '<div class="msg" style="color:var(--accent2)">AGUARDANDO PROFESSOR</div>'
+      + '<div style="margin-top:16px">'
+      + '<div class="aula-title-big">'+aula.nome+'</div>'
+      + '<div class="aula-prof-big">👨‍🏫 '+(aula.professor_nome||'—')+'</div>'
+      + '</div>'
+      + '<div class="modo-badge prof" style="margin-top:20px">⏸ &nbsp;PROFESSOR DEVE INICIAR A AULA</div>'
+      + '<div style="margin-top:16px;font-size:13px;color:var(--muted)">Pressione o botão Iniciar abaixo ou no painel do professor.</div>'
+      + '</div>';
+    document.getElementById('overlayProf').classList.remove('show');
+    updateProfBar();
+    return;
+  }
+}
+
+// ── Barra de controle do professor ──
+function updateProfBar(){
+  var bar = document.getElementById('profBar');
+  var btnIniciar  = document.getElementById('profBtnIniciar');
+  var btnEncerrar = document.getElementById('profBtnEncerrar');
+  var mainEl = document.getElementById('mainArea');
+
+  var showBar = (estado === 'aguardando_prof' || estado === 'live' || estado === 'bloqueada' || estado === 'qr');
+  bar.classList.toggle('hidden', !showBar);
+  // Botão flutuante de aulas — sempre visível (canto superior direito)
+  var btnFlutuante = document.getElementById('btnAulasFlutuante');
+  if(!btnFlutuante){
+    btnFlutuante = document.createElement('button');
+    btnFlutuante.id = 'btnAulasFlutuante';
+    btnFlutuante.textContent = '📚 Aulas';
+    btnFlutuante.onclick = abrirBiblioteca;
+    btnFlutuante.style.cssText = 'position:fixed;top:14px;right:16px;z-index:500;padding:7px 14px;border-radius:20px;background:rgba(155,48,255,.15);border:1px solid rgba(155,48,255,.35);color:#c084fc;font-size:11px;font-weight:700;cursor:pointer;letter-spacing:1px;';
+    document.body.appendChild(btnFlutuante);
+  }
+  if(mainEl) mainEl.style.paddingBottom = showBar ? '70px' : '40px';
+
+  btnIniciar.classList.toggle('hidden', estado !== 'aguardando_prof');
+  btnEncerrar.classList.toggle('hidden', estado !== 'live');
+}
+
+async function profIniciarAula(){
+  if(!sessaoAtual){ setEstado('live'); return; } // demo
+  try{
+    var r = await fetch(SERVER+'/gestor/sessao/'+sessaoAtual.id+'/iniciar', {
+      method:'POST', headers:{Authorization:'Bearer '+gestorToken}
+    });
+    var d = await r.json();
+    if(r.ok){
+      sessaoAtual = Object.assign(sessaoAtual, d.sessao||{});
+      setEstado('live');
+    } else { alert(d.error||'Erro ao iniciar aula'); }
+  }catch(e){ console.error(e); }
+}
+
+async function profEncerrarAula(){
+  if(!sessaoAtual){ setEstado('aguardando'); return; } // demo
+  try{
+    var r = await fetch(SERVER+'/gestor/sessao/'+sessaoAtual.id+'/encerrar', {
+      method:'POST', headers:{Authorization:'Bearer '+gestorToken}
+    });
+    if(r.ok){
+      sessaoAtual = null;
+      alunosConectados = [];
+      setEstado('aguardando');
+    } else { var d = await r.json(); alert(d.error||'Erro ao encerrar aula'); }
+  }catch(e){ console.error(e); }
+}
+
+function profResetConexoes(){
+  document.getElementById('overlayConfirmReset').classList.add('show');
+}
+function cancelarReset(){
+  document.getElementById('overlayConfirmReset').classList.remove('show');
+}
+async function confirmarReset(){
+  document.getElementById('overlayConfirmReset').classList.remove('show');
+  if(!sessaoAtual){ alunosConectados=[]; renderMain(); return; } // demo
+  try{
+    var r = await fetch(SERVER+'/gestor/sessao/'+sessaoAtual.id+'/reset-conexoes', {
+      method:'POST',
+      headers:{Authorization:'Bearer '+gestorToken, 'Content-Type':'application/json'},
+      body: JSON.stringify({confirmado:true})
+    });
+    if(r.ok){ alunosConectados=[]; renderMain(); }
+    else { var d=await r.json(); alert(d.error||'Erro ao resetar'); }
+  }catch(e){ console.error(e); }
+}
+
+// ── Variável global: aula que está bloqueando ──
+var bloqueadaPorAula = null;
+
+// ── Controle de estado ──
+function setEstado(novoEstado, aula, secs){
+  estado = novoEstado;
+  if(aula) aulaAtual = aula;
+  if(secs !== undefined) countdownSecs = secs;
+
+  // Demo: preenche dados mock
+  if(modoDemo){
+    aulaAtual = aulaAtual || MOCK_PROXIMA;
+    if(estado === 'countdown')          countdownSecs = 660;  // 11min
+    if(estado === 'countdown_urgente')  countdownSecs = 118;  // 1:58
+    if(estado === 'live') alunosConectados = MOCK_ALUNOS_CONECTADOS;
+    if(estado === 'qr')   alunosConectados = MOCK_ALUNOS_CONECTADOS.slice(0,3);
+    if(estado === 'qr_cheio'){ alunosConectados = MOCK_ALUNOS_CONECTADOS; aulaAtual = Object.assign({},MOCK_PROXIMA,{vagas_livres:0,vagas_max:8}); }
+    if(estado === 'bloqueada') bloqueadaPorAula = {nome:'Spinning Power', professor_nome:'Carlos'};
+    if(estado === 'aguardando_prof') aulaAtual = Object.assign({},MOCK_PROXIMA,{modo_inicio:'professor'});
+  }
+
+  clearInterval(countdownTimer);
+  if((estado === 'countdown' || estado === 'countdown_urgente' || estado === 'qr') && countdownSecs > 0){
+    countdownTimer = setInterval(function(){
+      countdownSecs--;
+      if(countdownSecs <= 600 && estado === 'countdown') estado = 'qr';
+      if(countdownSecs <= 120 && estado === 'countdown_urgente') estado = 'countdown_urgente';
+      if(countdownSecs <= 0){
+        clearInterval(countdownTimer);
+        // Modo automático → vai direto para live
+        if(aulaAtual && aulaAtual.modo_inicio === 'automatico'){
+          setEstado('live');
+        } else {
+          // Modo professor → aguardando_prof
+          setEstado('aguardando_prof');
+        }
+        return;
+      }
+      renderMain();
+    },1000);
+  }
+
+  var proxId = aulaAtual ? aulaAtual.id : null;
+  renderGrade(modoDemo ? MOCK_GRADE : (_gradeHoje || MOCK_GRADE), proxId);
+  renderMain();
+  updateProfBar();
+}
+
+// Mantido para compatibilidade com overlay (pode ser chamado por botão antigo)
+function professorIniciaAula(){
+  document.getElementById('overlayProf').classList.remove('show');
+  profIniciarAula();
+}
+
+// ── Grade do dia (cache para usar no estado aguardando) ──
+var _gradeHoje = null;
+
+// ── Toggle sidebar ──
+var _sidebarOpen = true;
+function toggleSidebar(){
+  _sidebarOpen = !_sidebarOpen;
+  document.querySelector('.layout').classList.toggle('sidebar-closed', !_sidebarOpen);
+  document.getElementById('sidebarToggleBtn').textContent = _sidebarOpen ? '✕ Ocultar' : '☰ Grade';
+  // Salvar preferência
+  try{ localStorage.setItem('jim_sidebar', _sidebarOpen?'1':'0'); }catch(e){}
+}
+// Restaurar preferência salva
+try{
+  if(localStorage.getItem('jim_sidebar') === '0'){
+    _sidebarOpen = false;
+    document.querySelector('.layout').classList.add('sidebar-closed');
+    document.getElementById('sidebarToggleBtn').textContent = '☰ Grade';
+  }
+}catch(e){}
+
+// ── Fullscreen ──
+document.addEventListener('keydown', function(e){
+  if(e.key==='f'||e.key==='F'){
+    if(!document.fullscreenElement) document.documentElement.requestFullscreen();
+    else document.exitFullscreen();
+  }
+  if(e.key==='Escape' && document.getElementById('overlayProf').classList.contains('show')){
+    // não faz nada — professor deve pressionar o botão
+  }
+});
+
+// ── Inicialização ──
+// Tenta buscar grade real do servidor
+// (em produção o mini PC teria o token do gestor salvo localmente)
+var gestorToken = localStorage.getItem('pr_gestor_token') || sessionStorage.getItem('pr_imp_token');
+
+async function tentarCarregarDaAPI(){
+  if(!gestorToken){ iniciarDemo(); return; }
+  try{
+    var [grade, proxima] = await Promise.all([
+      fetch(SERVER+'/gestor/agenda',{headers:{Authorization:'Bearer '+gestorToken}}).then(r=>r.json()),
+      fetch(SERVER+'/gestor/proxima-aula',{headers:{Authorization:'Bearer '+gestorToken}}).then(r=>r.json()),
+    ]);
+    modoDemo = false;
+
+    // Filtrar grade pelo dia da semana atual
+    var gradeHoje = (Array.isArray(grade)?grade:[]).filter(function(a){
+      return a.dia_semana === new Date().getDay();
+    });
+    _gradeHoje = gradeHoje;
+
+    var proxAula = proxima.proxima_aula || null;
+    sessaoAtual = proxima.sessao || null;
+    bloqueadaPorAula = proxima.sessao_em_andamento || null;
+
+    var esBloqueada = proxAula && proxAula.bloqueada;
+    var esEmAndamento = sessaoAtual && sessaoAtual.status === 'em_andamento';
+
+    if(esEmAndamento && !esBloqueada){
+      // Sessão ativa em andamento — mostrar live
+      setEstado('live', proxAula, 0);
+    } else if(esBloqueada){
+      // Há uma aula em andamento que bloqueia a próxima
+      setEstado('bloqueada', proxAula, 0);
+    } else if(proxAula){
+      aulaAtual = proxAula;
+      var segs = Math.round(proxAula.segundos_ate_aula || 0);
+      if(segs > 600)        setEstado('countdown', proxAula, segs);
+      else if(segs >= 0)    setEstado('qr', proxAula, segs);
+      else if(segs >= -300) setEstado('qr', proxAula, 0);
+      else                   setEstado('live', proxAula, 0);
+    } else {
+      setEstado('aguardando');
+    }
+    renderGrade(gradeHoje, proxAula && proxAula.id);
+  }catch(e){
+    console.warn('API indisponível, usando dados demo:', e.message);
+    iniciarDemo();
+  }
+}
+
+function iniciarDemo(){
+  modoDemo = true;
+  renderGrade(MOCK_GRADE, 3);
+  setEstado('countdown'); // começa no countdown pra mostrar o fluxo
+}
+
+tentarCarregarDaAPI();
+
+// Polling: a cada 60s verifica próxima aula (igual o mini PC real faria)
+setInterval(function(){
+  if(!modoDemo && gestorToken) tentarCarregarDaAPI();
+}, 60000);
+
+// ══════════════════════════════════════════════════════════════
+// BIBLIOTECA DE AULAS — mesma base do app do aluno e mini PC
+// ══════════════════════════════════════════════════════════════
+var PR_AULAS = [
+  {nome:"Endurance Builder #1",icon:"🚴",dur:45,badge:"Easy",badgeColor:"#295fe8",
+   desc:"Zona 2 aeróbica — base de condicionamento. Blocos longos em intensidade moderada com breve subida à Z3.",
+   blocos:[{z:"z1",ftp:"0-55",rpm:"75-80",dur:5,pos:"Seated"},{z:"z2",ftp:"56-75",rpm:"80-85",dur:10,pos:"Seated"},{z:"z1",ftp:"0-55",rpm:"75-80",dur:3,pos:"Seated"},{z:"z2",ftp:"56-75",rpm:"80-85",dur:10,pos:"Seated"},{z:"z3",ftp:"76-90",rpm:"85-90",dur:8,pos:"Seated"},{z:"z2",ftp:"56-75",rpm:"80-85",dur:6,pos:"Seated"},{z:"z1",ftp:"0-55",rpm:"70-75",dur:3,pos:"Seated"}]},
+  {nome:"Endurance Builder #2",icon:"🚴",dur:50,badge:"Easy",badgeColor:"#295fe8",
+   desc:"Sweetspot — Z3/Z4 alternados. Máxima eficiência aeróbica com menor acúmulo de lactato.",
+   blocos:[{z:"z1",ftp:"0-55",rpm:"70-80",dur:4,pos:"Seated"},{z:"z2",ftp:"56-75",rpm:"80-88",dur:3,pos:"Seated"},{z:"z3",ftp:"76-90",rpm:"85-90",dur:2,pos:"Seated"},{z:"z4",ftp:"91-105",rpm:"85-90",dur:1,pos:"Seated"},{z:"z3",ftp:"76-90",rpm:"85-92",dur:10,pos:"Seated"},{z:"z4",ftp:"91-105",rpm:"85-90",dur:5,pos:"Seated"},{z:"z3",ftp:"76-90",rpm:"85-92",dur:5,pos:"Seated"},{z:"z4",ftp:"91-105",rpm:"85-90",dur:5,pos:"Seated"},{z:"z3",ftp:"76-90",rpm:"70-78",dur:5,pos:"Standing"},{z:"z3",ftp:"76-90",rpm:"85-92",dur:5,pos:"Seated"},{z:"z1",ftp:"0-55",rpm:"60-80",dur:5,pos:"Seated"}]},
+  {nome:"Endurance Builder #3",icon:"🚴",dur:50,badge:"Easy",badgeColor:"#295fe8",
+   desc:"Subida aeróbica longa — alternância sentado/em pé. Desenvolve força específica para subidas.",
+   blocos:[{z:"z1",ftp:"0-55",rpm:"70-80",dur:4,pos:"Seated"},{z:"z2",ftp:"56-75",rpm:"80-88",dur:3,pos:"Seated"},{z:"z3",ftp:"76-90",rpm:"85-90",dur:2,pos:"Seated"},{z:"z4",ftp:"91-105",rpm:"85-90",dur:1,pos:"Seated"},{z:"z2",ftp:"56-75",rpm:"82-88",dur:8,pos:"Seated"},{z:"z3",ftp:"76-90",rpm:"70-78",dur:5,pos:"Standing"},{z:"z2",ftp:"56-75",rpm:"82-88",dur:5,pos:"Seated"},{z:"z3",ftp:"76-90",rpm:"88-92",dur:8,pos:"Seated"},{z:"z3",ftp:"76-90",rpm:"70-78",dur:5,pos:"Standing"},{z:"z2",ftp:"56-75",rpm:"80-86",dur:4,pos:"Seated"},{z:"z1",ftp:"0-55",rpm:"60-80",dur:5,pos:"Seated"}]},
+  {nome:"HIIT Threshold #3",icon:"🔥",dur:50,badge:"Medium",badgeColor:"#d7c414",
+   desc:"Alta intensidade progressiva: Z4 → Z5 → Z6 ao longo da aula. Empurra o limiar de lactato para cima.",
+   blocos:[{z:"z1",ftp:"0-55",rpm:"75-80",dur:5,pos:"Seated"},{z:"z3",ftp:"76-90",rpm:"85-90",dur:5,pos:"Seated"},{z:"z4",ftp:"91-105",rpm:"88-93",dur:5,pos:"Seated"},{z:"z5",ftp:"106-120",rpm:"90-95",dur:5,pos:"Standing"},{z:"z2",ftp:"56-75",rpm:"80-85",dur:3,pos:"Seated"},{z:"z4",ftp:"91-105",rpm:"88-93",dur:5,pos:"Seated"},{z:"z5",ftp:"106-120",rpm:"90-95",dur:5,pos:"Standing"},{z:"z6",ftp:"121-150",rpm:"92-98",dur:5,pos:"Standing"},{z:"z1",ftp:"0-55",rpm:"70-75",dur:5,pos:"Seated"}]},
+  {nome:"HIIT Threshold #4",icon:"🔥",dur:50,badge:"Medium",badgeColor:"#d7c414",
+   desc:"Over-Under — alterna Z3 e Z4 em dois blocos. Treina tolerância e remoção de lactato.",
+   blocos:[{z:"z1",ftp:"0-55",rpm:"70-80",dur:3,pos:"Seated"},{z:"z2",ftp:"56-75",rpm:"80-88",dur:3,pos:"Seated"},{z:"z3",ftp:"76-90",rpm:"85-90",dur:2,pos:"Seated"},{z:"z4",ftp:"91-105",rpm:"87-92",dur:1,pos:"Seated"},{z:"z5",ftp:"106-120",rpm:"90-95",dur:1,pos:"Seated"},{z:"z3",ftp:"76-90",rpm:"87-92",dur:3,pos:"Seated"},{z:"z4",ftp:"91-105",rpm:"87-92",dur:2,pos:"Seated"},{z:"z3",ftp:"76-90",rpm:"87-92",dur:3,pos:"Seated"},{z:"z4",ftp:"91-105",rpm:"87-92",dur:2,pos:"Seated"},{z:"z1",ftp:"0-55",rpm:"70-78",dur:4,pos:"Seated"},{z:"z3",ftp:"76-90",rpm:"87-92",dur:3,pos:"Seated"},{z:"z4",ftp:"91-105",rpm:"87-92",dur:2,pos:"Seated"},{z:"z3",ftp:"76-90",rpm:"87-92",dur:3,pos:"Seated"},{z:"z4",ftp:"91-105",rpm:"87-92",dur:2,pos:"Seated"},{z:"z1",ftp:"0-55",rpm:"70-78",dur:4,pos:"Seated"},{z:"z4",ftp:"91-105",rpm:"85-90",dur:3,pos:"Seated"},{z:"z3",ftp:"76-90",rpm:"85-92",dur:2,pos:"Seated"},{z:"z4",ftp:"91-105",rpm:"85-90",dur:2,pos:"Seated"},{z:"z1",ftp:"0-55",rpm:"60-80",dur:5,pos:"Seated"}]},
+  {nome:"HIIT Threshold #5",icon:"🔥",dur:50,badge:"Medium",badgeColor:"#d7c414",
+   desc:"Pirâmide de intervalos no Limiar: 4 → 6 → 8 → 6 min na Z4. Progressão crescente e decrescente.",
+   blocos:[{z:"z1",ftp:"0-55",rpm:"70-80",dur:3,pos:"Seated"},{z:"z2",ftp:"56-75",rpm:"80-88",dur:3,pos:"Seated"},{z:"z3",ftp:"76-90",rpm:"85-90",dur:2,pos:"Seated"},{z:"z4",ftp:"91-105",rpm:"87-92",dur:1,pos:"Seated"},{z:"z5",ftp:"106-120",rpm:"90-95",dur:1,pos:"Seated"},{z:"z4",ftp:"91-105",rpm:"85-90",dur:4,pos:"Seated"},{z:"z2",ftp:"56-75",rpm:"82-88",dur:3,pos:"Seated"},{z:"z4",ftp:"91-105",rpm:"87-92",dur:6,pos:"Seated"},{z:"z2",ftp:"56-75",rpm:"80-86",dur:3,pos:"Seated"},{z:"z4",ftp:"91-105",rpm:"87-92",dur:8,pos:"Seated"},{z:"z1",ftp:"0-55",rpm:"70-78",dur:3,pos:"Seated"},{z:"z4",ftp:"91-105",rpm:"85-90",dur:6,pos:"Seated"},{z:"z2",ftp:"56-75",rpm:"80-86",dur:2,pos:"Seated"},{z:"z1",ftp:"0-55",rpm:"60-80",dur:5,pos:"Seated"}]},
+  {nome:"VO2 Max Intervals",icon:"💪",dur:40,badge:"Hard",badgeColor:"#d62d2d",
+   desc:"Intervalos repetidos na Z6 com recuperação ativa na Z2. Aumenta o VO2 Máximo.",
+   blocos:[{z:"z1",ftp:"0-55",rpm:"75-80",dur:5,pos:"Seated"},{z:"z5",ftp:"106-120",rpm:"90-95",dur:4,pos:"Standing"},{z:"z2",ftp:"56-75",rpm:"78-83",dur:3,pos:"Seated"},{z:"z6",ftp:"121-150",rpm:"92-98",dur:4,pos:"Standing"},{z:"z2",ftp:"56-75",rpm:"78-83",dur:3,pos:"Seated"},{z:"z6",ftp:"121-150",rpm:"92-98",dur:4,pos:"Standing"},{z:"z2",ftp:"56-75",rpm:"78-83",dur:3,pos:"Seated"},{z:"z6",ftp:"121-150",rpm:"92-98",dur:4,pos:"Standing"},{z:"z1",ftp:"0-55",rpm:"70-75",dur:5,pos:"Seated"}]},
+  {nome:"VO2 Max Intervals #2",icon:"💪",dur:50,badge:"Hard",badgeColor:"#d62d2d",
+   desc:"8 repetições de VO2 Máximo na Z5, combinando sentado e em pé. Permite acumular mais volume.",
+   blocos:[{z:"z1",ftp:"0-55",rpm:"70-80",dur:2,pos:"Seated"},{z:"z2",ftp:"56-75",rpm:"80-88",dur:2,pos:"Seated"},{z:"z3",ftp:"76-90",rpm:"85-92",dur:2,pos:"Seated"},{z:"z4",ftp:"91-105",rpm:"87-92",dur:2,pos:"Seated"},{z:"z5",ftp:"106-120",rpm:"90-95",dur:2,pos:"Seated"},{z:"z5",ftp:"106-120",rpm:"90-95",dur:4,pos:"Seated"},{z:"z1",ftp:"0-55",rpm:"70-78",dur:4,pos:"Seated"},{z:"z5",ftp:"106-120",rpm:"90-95",dur:4,pos:"Seated"},{z:"z1",ftp:"0-55",rpm:"70-78",dur:4,pos:"Seated"},{z:"z5",ftp:"106-120",rpm:"68-74",dur:4,pos:"Standing"},{z:"z1",ftp:"0-55",rpm:"70-78",dur:4,pos:"Seated"},{z:"z5",ftp:"106-120",rpm:"90-95",dur:4,pos:"Seated"},{z:"z1",ftp:"0-55",rpm:"70-78",dur:4,pos:"Seated"},{z:"z5",ftp:"106-120",rpm:"90-95",dur:3,pos:"Seated"},{z:"z1",ftp:"0-55",rpm:"60-80",dur:5,pos:"Seated"}]},
+  {nome:"VO2 Max Intervals #3",icon:"💪",dur:50,badge:"Hard",badgeColor:"#d62d2d",
+   desc:"Pirâmide de VO2 com ativador de 30s em pé antes de cada intervalo. Progressivamente mais longos.",
+   blocos:[{z:"z1",ftp:"0-55",rpm:"70-80",dur:2,pos:"Seated"},{z:"z2",ftp:"56-75",rpm:"80-88",dur:2,pos:"Seated"},{z:"z3",ftp:"76-90",rpm:"85-92",dur:2,pos:"Seated"},{z:"z4",ftp:"91-105",rpm:"87-92",dur:2,pos:"Seated"},{z:"z5",ftp:"106-120",rpm:"90-95",dur:2,pos:"Seated"},{z:"z5",ftp:"106-120",rpm:"90-95",dur:3,pos:"Seated"},{z:"z1",ftp:"0-55",rpm:"70-78",dur:2.5,pos:"Seated"},{z:"z5",ftp:"106-120",rpm:"85-90",dur:0.5,pos:"Standing"},{z:"z5",ftp:"106-120",rpm:"90-95",dur:4,pos:"Seated"},{z:"z1",ftp:"0-55",rpm:"70-78",dur:3.5,pos:"Seated"},{z:"z5",ftp:"106-120",rpm:"85-90",dur:0.5,pos:"Standing"},{z:"z5",ftp:"106-120",rpm:"68-74",dur:5,pos:"Standing"},{z:"z1",ftp:"0-55",rpm:"70-78",dur:4.5,pos:"Seated"},{z:"z5",ftp:"106-120",rpm:"85-90",dur:0.5,pos:"Standing"},{z:"z5",ftp:"106-120",rpm:"90-95",dur:4,pos:"Seated"},{z:"z1",ftp:"0-55",rpm:"70-78",dur:2.5,pos:"Seated"},{z:"z5",ftp:"106-120",rpm:"85-90",dur:0.5,pos:"Standing"},{z:"z5",ftp:"106-120",rpm:"90-95",dur:4,pos:"Seated"},{z:"z1",ftp:"0-55",rpm:"60-80",dur:5,pos:"Seated"}]},
+  {nome:"Sprint Neuromuscular",icon:"⚡",dur:35,badge:"Advanced",badgeColor:"#9b30ff",
+   desc:"4 sprints explosivos na Z7 com recuperação completa. Foco em fibras musculares rápidas.",
+   blocos:[{z:"z2",ftp:"56-75",rpm:"80-85",dur:5,pos:"Seated"},{z:"z7",ftp:"Max",rpm:"100-120",dur:1,pos:"Standing"},{z:"z2",ftp:"56-75",rpm:"78-83",dur:3,pos:"Seated"},{z:"z7",ftp:"Max",rpm:"100-120",dur:1,pos:"Standing"},{z:"z2",ftp:"56-75",rpm:"78-83",dur:3,pos:"Seated"},{z:"z7",ftp:"Max",rpm:"100-120",dur:1,pos:"Standing"},{z:"z2",ftp:"56-75",rpm:"78-83",dur:3,pos:"Seated"},{z:"z7",ftp:"Max",rpm:"100-120",dur:1,pos:"Standing"},{z:"z1",ftp:"0-55",rpm:"70-75",dur:5,pos:"Seated"}]},
+  {nome:"Sprint Neuromuscular #2",icon:"⚡",dur:50,badge:"Advanced",badgeColor:"#9b30ff",
+   desc:"4 sprints de 30s + acelerações em pé. Treina potência neuromuscular e capacidade de repetir esforços máximos.",
+   blocos:[{z:"z1",ftp:"0-55",rpm:"70-78",dur:2,pos:"Seated"},{z:"z2",ftp:"56-75",rpm:"80-88",dur:2,pos:"Seated"},{z:"z3",ftp:"76-90",rpm:"85-92",dur:2,pos:"Seated"},{z:"z4",ftp:"91-105",rpm:"87-92",dur:2,pos:"Standing"},{z:"z5",ftp:"106-120",rpm:"90-95",dur:1,pos:"Standing"},{z:"z6",ftp:"121-150",rpm:"85-95",dur:1,pos:"Standing"},{z:"z2",ftp:"56-75",rpm:"82-88",dur:4,pos:"Seated"},{z:"z7",ftp:"Max",rpm:"100-120",dur:0.5,pos:"Standing"},{z:"z2",ftp:"56-75",rpm:"80-86",dur:5.5,pos:"Seated"},{z:"z7",ftp:"Max",rpm:"100-120",dur:0.5,pos:"Standing"},{z:"z2",ftp:"56-75",rpm:"80-86",dur:5.5,pos:"Seated"},{z:"z6",ftp:"121-150",rpm:"68-74",dur:0.5,pos:"Standing"},{z:"z1",ftp:"0-55",rpm:"70-78",dur:4,pos:"Seated"},{z:"z7",ftp:"Max",rpm:"100-120",dur:0.5,pos:"Standing"},{z:"z2",ftp:"56-75",rpm:"80-86",dur:5,pos:"Seated"},{z:"z7",ftp:"Max",rpm:"100-120",dur:0.5,pos:"Standing"},{z:"z2",ftp:"56-75",rpm:"80-86",dur:3,pos:"Seated"},{z:"z6",ftp:"121-150",rpm:"85-95",dur:0.5,pos:"Standing"},{z:"z1",ftp:"0-55",rpm:"70-78",dur:5,pos:"Seated"}]},
+  {nome:"FTP Test 20 min",icon:"🏁",dur:45,badge:"Teste",badgeColor:"#ea860c",
+   desc:"20min de esforço máximo sustentável após aquecimento progressivo. 95% da média de potência = FTP.",
+   blocos:[{z:"z1",ftp:"0-55",rpm:"80-85",dur:5,pos:"Seated"},{z:"z2",ftp:"56-75",rpm:"85-90",dur:3,pos:"Seated"},{z:"z3",ftp:"76-90",rpm:"88-93",dur:3,pos:"Seated"},{z:"z4",ftp:"91-105",rpm:"90-95",dur:3,pos:"Standing"},{z:"z3",ftp:"76-90",rpm:"85-90",dur:3,pos:"Seated"},{z:"z5",ftp:"Max 20min",rpm:"92-100",dur:20,pos:"Seated"},{z:"z1",ftp:"0-55",rpm:"70-75",dur:8,pos:"Seated"}]}
+];
+
+var _jbFiltroAtual='all';
+var _zCores={z1:'#a1a1a1',z2:'#295fe8',z3:'#5db13d',z4:'#d7c414',z5:'#ea860c',z6:'#d62d2d',z7:'#9b30ff'};
+var _zNomes={z1:'Recovery',z2:'Endurance',z3:'Tempo',z4:'Threshold',z5:'VO2 Max',z6:'Anaerobic',z7:'Neuromuscular'};
+var _badgeColor={Easy:'#295fe8',Medium:'#d7c414',Hard:'#d62d2d',Advanced:'#9b30ff',Teste:'#ea860c'};
+
+// Injetar CSS da biblioteca
+(function(){
+  var s=document.createElement('style');
+  s.textContent=
+    '.jbf{padding:6px 14px;border-radius:20px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);color:rgba(255,255,255,.4);font-size:11px;font-weight:700;cursor:pointer;letter-spacing:1px;transition:all .15s}'
+    +'.jbf.jbf-on{background:rgba(255,255,255,.12);border-color:rgba(255,255,255,.25);color:#fff}'
+    +'.jb-card{width:calc(50% - 7px);border-radius:14px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);padding:16px;cursor:pointer;transition:all .15s}'
+    +'.jb-card:hover{background:rgba(255,255,255,.07);border-color:rgba(255,255,255,.15)}'
+    +'.jb-minibar{height:4px;border-radius:2px;margin:2px 0}'
+    +'#modalBiblioteca{flex-direction:column}'
+    +'#jbDetalhe{flex-direction:column}';
+  document.head.appendChild(s);
+})();
+
+function abrirBiblioteca(){
+  var m=document.getElementById('modalBiblioteca');
+  if(m){ m.style.display='flex'; jbRenderGrid(); }
+}
+function fecharBiblioteca(){
+  // Fecha detalhe se estiver aberto (evita reabertura automática)
+  var det=document.getElementById('jbDetalhe');
+  if(det) det.style.display='none';
+  var m=document.getElementById('modalBiblioteca');
+  if(m) m.style.display='none';
+}
+function jbFiltrar(badge, btn){
+  _jbFiltroAtual=badge;
+  document.querySelectorAll('.jbf').forEach(function(b){ b.classList.remove('jbf-on'); });
+  if(btn) btn.classList.add('jbf-on');
+  jbRenderGrid();
+}
+function jbRenderGrid(){
+  var grid=document.getElementById('jbGrid');
+  if(!grid) return;
+  var lista=PR_AULAS.filter(function(a){ return _jbFiltroAtual==='all'||a.badge===_jbFiltroAtual; });
+  grid.innerHTML=lista.map(function(a,i){
+    var cor=_badgeColor[a.badge]||'#888';
+    var totalDur=a.blocos.reduce(function(s,b){return s+b.dur;},0)||1;
+    var barras=a.blocos.map(function(b){
+      var w=Math.round(b.dur/totalDur*100);
+      return '<div class="jb-minibar" style="width:'+w+'%;background:'+(_zCores[b.z]||'#888')+'"></div>';
+    }).join('');
+    var idx=PR_AULAS.indexOf(a);
+    return '<div class="jb-card" onclick="jbVerDetalhe('+idx+')">'
+      +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">'
+      +'<span style="font-size:20px;">'+a.icon+'</span>'
+      +'<div style="flex:1;min-width:0;">'
+      +'<div style="font-size:14px;font-weight:700;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+a.nome+'</div>'
+      +'<div style="font-size:11px;color:rgba(255,255,255,.3);margin-top:1px;">'+a.dur+'min · '+a.blocos.length+' blocos</div>'
+      +'</div>'
+      +'<div style="padding:3px 10px;border-radius:12px;background:'+cor+'22;border:1px solid '+cor+'55;font-size:10px;font-weight:700;color:'+cor+';letter-spacing:1px;white-space:nowrap;">'+a.badge+'</div>'
+      +'</div>'
+      +'<div style="display:flex;gap:2px;height:6px;border-radius:4px;overflow:hidden;">'+barras+'</div>'
+      +'<div style="font-size:11px;color:rgba(255,255,255,.3);margin-top:8px;line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">'+a.desc+'</div>'
+      +'</div>';
+  }).join('');
+}
+function jbVerDetalhe(idx){
+  var a=PR_AULAS[idx];
+  if(!a) return;
+  var cor=_badgeColor[a.badge]||'#888';
+  var det=document.getElementById('jbDetalhe');
+  document.getElementById('jbDetTitulo').textContent=a.icon+' '+a.nome;
+  document.getElementById('jbDetBadge').textContent=a.badge;
+  document.getElementById('jbDetBadge').style.cssText='padding:4px 12px;border-radius:20px;font-size:11px;font-weight:700;letter-spacing:1px;background:'+cor+'22;border:1px solid '+cor+'55;color:'+cor;
+  document.getElementById('jbDetDur').textContent=a.dur;
+  document.getElementById('jbDetBlocos').textContent=a.blocos.length;
+  document.getElementById('jbDetDesc').textContent=a.desc;
+  // Timeline
+  var totalDur=a.blocos.reduce(function(s,b){return s+b.dur;},0)||1;
+  var tl=document.getElementById('jbDetTimeline');
+  tl.innerHTML=a.blocos.map(function(b,i){
+    var cor=_zCores[b.z]||'#888';
+    var durMin=Math.floor(b.dur);
+    var durSec=Math.round((b.dur-durMin)*60);
+    var durStr=durMin+'min'+(durSec?(' '+durSec+'s'):'');
+    var pct=Math.round(b.dur/totalDur*100);
+    return '<div style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:10px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.05);">'
+      +'<div style="width:28px;text-align:center;font-size:11px;font-weight:700;color:rgba(255,255,255,.25);">'+(i+1)+'</div>'
+      +'<div style="width:4px;height:36px;border-radius:2px;background:'+cor+';flex-shrink:0;"></div>'
+      +'<div style="flex:1;">'
+      +'<div style="font-size:12px;font-weight:700;color:'+cor+';">'+(_zNomes[b.z]||b.z.toUpperCase())+'</div>'
+      +'<div style="font-size:10px;color:rgba(255,255,255,.3);margin-top:2px;">'
+      +b.rpm+' RPM · FTP '+b.ftp+'% · '+(b.pos==='Standing'?'Em Pé':'Sentado')
+      +'</div></div>'
+      +'<div style="text-align:right;">'
+      +'<div style="font-size:14px;font-weight:700;color:#fff;">'+durStr+'</div>'
+      +'<div style="font-size:10px;color:rgba(255,255,255,.2);">'+pct+'%</div>'
+      +'</div>'
+      +'</div>';
+  }).join('');
+  // Gráfico de barras
+  var canvas=document.getElementById('jbDetCanvas');
+  if(canvas){
+    canvas.width=canvas.offsetWidth||300;
+    var ctx=canvas.getContext('2d');
+    var W=canvas.width,H=180;
+    ctx.clearRect(0,0,W,H);
+    var x=0;
+    var pad=4;
+    a.blocos.forEach(function(b){
+      var w=Math.max(1,Math.round(b.dur/totalDur*(W-pad*(a.blocos.length+1))));
+      var zN=parseInt(b.z[1])||1;
+      var barH=Math.round(zN/7*(H-30));
+      var c=_zCores[b.z]||'#888';
+      ctx.fillStyle=c+'44';
+      ctx.fillRect(x+pad,H-barH,w,barH);
+      ctx.fillStyle=c;
+      ctx.fillRect(x+pad,H-barH,w,3);
+      x+=w+pad;
+    });
+  }
+  det.style.display='flex';
+}
+</script>
+</body>
+</html>

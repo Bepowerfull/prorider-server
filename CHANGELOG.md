@@ -41,6 +41,123 @@ Componentes: `servidor` · `app` · `ginasio` · `portal` · `banco`.
 
 ---
 
+## 2026-09-26 · portal + servidor + ginasio + app · 26/09e
+
+**O que mudou — Portal (`public/index.html` e `public/academia.html`)**
+- Visual novo, no padrão das telas do Ginásio: menu lateral fixo, cartão "Meu perfil" no rodapé do menu.
+- **Super admin (`index.html`)**
+  - O login aceita `super_admin`: antes só entrava quem era `admin`, e por isso o super admin não achava onde criar licença.
+  - Gestor, coordenador ou financeiro que entra por aqui é levado ao painel da academia.
+  - Licenças: colunas de gestor, bikes, última aula e **Ginásio (TV)** — o BUILD de cada TV, se está online e o aviso "atualizar".
+  - O botão "Entrar →" funciona com um clique.
+  - "+ Nova licença" abre um painel lateral com:
+    - endereço;
+    - gestor (nome e e-mail);
+    - e-mail de boas-vindas.
+
+    Ao criar, mostra o login e a senha provisória do gestor.
+- **Modo suporte:** barra fixa no topo, "Você está vendo: X como gestor · ← Voltar ao meu painel". O botão volta para a lista de licenças.
+- **Painel da academia (`academia.html`)**
+  - O menu muda conforme o papel (gestor, coordenador, financeiro, admin).
+  - Páginas novas:
+
+    | Página | O que tem |
+    |---|---|
+    | Início | "Criar aula" em destaque, números da semana, agenda visual, top da semana |
+    | Criar aula | Construtor do app, agendar na grade, aula ao vivo, Studio Builder |
+    | Equipe e acessos | Convidar pessoa, trocar papel, tabela de permissões |
+    | Ranking na TV | Campos, ordem, prévia |
+    | E-mails automáticos | Liga/desliga cada e-mail e manda um teste |
+    | Meu perfil | Nome, e-mail, nascimento, sexo, peso, altura, FTP; troca de senha |
+  - **Alunos:** a lista fica fechada por padrão. Tem busca com lupa, seta para abrir e filtros:
+    - Ativos;
+    - Sumidos;
+    - Novos;
+    - Nunca pedalaram.
+
+    Também mostra aniversariantes do mês e exporta CSV.
+  - A página abre direto pelo endereço (`academia.html#alunos`, `#rankingtv`, …).
+
+**O que mudou — servidor**
+- **Histórico:** `/aula/complete` passa a gravar também em `aula_historico`.
+  - Antes, o app gravava só em `aulas_completadas`, mas dashboard, alunos, relatórios e ranking do Portal leem `aula_historico` — por isso o gestor via tudo zerado.
+  - Na migração, as aulas antigas são copiadas para `aula_historico`, sem duplicar.
+- **Aluno ligado à academia:** `criar_sala` aceita `display_token`. No `entrar_sala` com `user_id`, o aluno sem academia (role `aluno`) recebe o `license_id` da sala. Nunca troca quem já tem academia.
+- **Níveis de acesso:** `gestorAuth` aceita `coordenador` e `financeiro`.
+  - Financeiro: só `GET` em stats, relatório, alunos, config e leaderboard.
+  - Coordenador: tudo, menos alterar bikes e o ranking da TV.
+  - `professorAuth` passa a aceitar `coordenador`.
+- **Rotas novas:**
+
+  | Rota | Método |
+  |---|---|
+  | `/gestor/config/ranking` | `GET` / `PUT` |
+  | `/gestor/emails` | `GET` / `PUT` |
+  | `/gestor/emails/teste` | `POST` |
+  | `/gestor/equipe` | `GET` / `POST` |
+  | `/gestor/equipe/:id/papel` | `PUT` |
+  | `/user/senha` | `PUT` |
+- **Rotas alteradas:**
+  - `POST /admin/licencas`: aceita endereço e `gestor_nome`/`gestor_email`. Cria o login do gestor com senha provisória (ou promove a conta existente) e manda o e-mail de boas-vindas. O mínimo de 10 bikes continua.
+  - `GET /admin/licencas`: traz `ginasio_build`, `ginasio_visto`, `ultima_aula`, `gestor_nome`.
+  - `GET /gestor/stats`: traz `ativos_30d`, `visitas_7d`, `novos_30d`, `sumidos`, `aulas_grade`, `top_semana`.
+  - `GET /gestor/alunos`: traz idade, sexo, nascimento, `aulas_30d`.
+  - `GET /gestor/config`: traz `nome`.
+  - `/user/me` e `PUT /user/profile`: aceitam `nascimento` (a idade é calculada a partir dele).
+- **Versão do Ginásio:** `displayAuth` grava o cabeçalho `X-PR-Build` em `licenca_computadores.build`. `/display/ativar` aceita `build`. `/display/ativar` e `/display/licenca` devolvem `ranking_cfg`.
+- **E-mails automáticos:**
+  - Tipos: boas-vindas, resumo da aula, novo FTP, sumido há 14 dias, aniversário, relatório mensal.
+  - A rotina diária roda às 10h de Brasília. O relatório mensal sai no dia 1º.
+  - Configuração por licença em `licencas.emails_cfg`. `email_log` impede repetir o mesmo e-mail.
+- **Banco (migração automática):**
+  - `licencas.ranking_cfg` e `licencas.emails_cfg` (JSONB);
+  - `licenca_computadores.build`;
+  - `users.nascimento` e `users.foto_url`;
+  - tabela `email_log`.
+
+**O que mudou — Ginásio BUILD 26/09e**
+- A tela de Ranking (B) monta as colunas e a ordem pela configuração da licença.
+  - Colunas: zona, rpm, ftp, watts, kcal, **fc** (nova), wpp.
+  - Ordem: wpp, kcal, watts, ftp.
+  - O subtítulo mostra a ordem.
+- Envia `X-PR-Build` nas chamadas `/display/*` e `build` na ativação. `/display/licenca` passa a ser consultado a cada 15 min (antes 6 h).
+- `criar_sala` leva o token do display.
+
+**O que mudou — app 26/09e**
+- `/aluno#construtor` abre direto o Construtor para professor, coordenador, gestor e admin. É o botão "Criar aula" do Portal.
+
+**Por quê**
+- Pedidos do Mario para o Portal:
+  - voltar da licença;
+  - criar licença;
+  - menu e perfil por papel;
+  - lista de alunos com lupa;
+  - campos do ranking por licença;
+  - e-mails automáticos;
+  - níveis de acesso;
+  - Criar aula visível.
+
+**Como confirmar**
+- Entrar em `index.html` com o super admin. A lista de licenças mostra a coluna "Ginásio (TV)", e "+ Nova licença" cria a licença com o gestor.
+- "Entrar →" leva ao painel com a barra azul. "Voltar ao meu painel" volta para a lista.
+- Em Ranking na TV, desligue RPM, ligue FC e ordene por Kcal. Salve e reabra o Ginásio: o Console mostra `ranking da TV: zona, ftp, watts, kcal, wpp, fc — ordem por kcal`.
+- Depois de uma aula feita pelo app, o Início do gestor mostra "Aulas concluídas (7 dias)" acima de zero.
+- Testado localmente com PostgreSQL 16:
+  - 34 verificações de API (papéis, licença, ranking, e-mails, Ginásio, aluno ligado, histórico);
+  - envio real com Resend simulado (boas-vindas, teste, resumo, novo FTP uma só vez);
+  - telas em 1440×900 sem erro de página.
+
+**Cuidados**
+- **E-mail:** nada é enviado enquanto o Railway não tiver `RESEND_API_KEY` (mais simples) ou `SMTP_HOST`/`SMTP_PORT`/`SMTP_USER`/`SMTP_PASS`. O SMTP também precisa do pacote `nodemailer` (`npm i nodemailer`). Também:
+  - `EMAIL_FROM` define o remetente;
+  - `PORTAL_URL` define o link dos botões.
+
+  Sem nada disso, o Portal avisa "e-mail não configurado", e a senha provisória aparece na tela para ser passada à mão.
+- Publicar o **servidor antes** do Portal: as páginas novas chamam rotas novas.
+- O Ginásio 26/09d continua funcionando com o servidor novo, mas sem o ranking do Portal e sem informar a versão.
+
+---
+
 ## 2026-09-26 · servidor 26/09d
 
 **O que mudou**
