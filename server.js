@@ -805,11 +805,8 @@ app.get('/ping', async (req, res) => {
   }
   res.json({
     status: 'ok',
-    version: '2.3-debug',
+    version: '2.3',
     db: dbOk,
-    db_pool: !!db,
-    db_url_set: !!process.env.DATABASE_URL,
-    db_url_preview: process.env.DATABASE_URL ? process.env.DATABASE_URL.substring(0,35)+'...' : 'NOT SET',
     ts: Date.now()
   });
 });

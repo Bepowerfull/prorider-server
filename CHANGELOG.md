@@ -33,6 +33,23 @@ Componentes: `servidor` · `app` · `ginasio` · `portal` · `banco`.
 
 ---
 
+## 2026-09-29 · servidor · 26/09g
+
+**O que mudou**
+- `GET /ping` não devolve mais `db_url_preview`, `db_url_set` nem `db_pool`. Fica `status`, `version` (`2.3`, sem `-debug`), `db` e `ts`.
+
+**Por quê**
+- `db_url_preview` mostrava os 35 primeiros caracteres da `DATABASE_URL`, com parte da senha do Postgres, num endereço público.
+
+**Como confirmar**
+- `GET /ping` responde `{"status":"ok","version":"2.3","db":true,"ts":…}`.
+
+**Cuidados**
+- Nenhuma tela lia esses campos.
+- A senha do Postgres esteve parcialmente exposta: trocá-la no Railway e atualizar a `DATABASE_URL`.
+
+---
+
 ## 2026-09-29 · servidor · 26/09f
 
 **O que mudou**
