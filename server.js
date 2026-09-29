@@ -1949,6 +1949,7 @@ app.put('/admin/licencas/:id', adminAuth, async (req, res) => {
        plano=$5, max_alunos=$6, max_profs=$7, valor_mensal=$8, vencimento=$9,
        status=$10, obs=$11, max_bikes=COALESCE($12, max_bikes),
        logradouro=$13, numero=$14, bairro=$15, cep=$16, cidade_lic=$17, estado=$18, pais=$19,
+       cidade=COALESCE($17, cidade),
        updated_at=NOW() WHERE id=$20 RETURNING *`,
       [nome, contato_nome, contato_email, contato_tel, plano, max_alunos, max_profs,
        valor_mensal, vencimento, status, obs, _mb.valor,
@@ -3388,11 +3389,11 @@ app.get('/agenda/cidades', async (req, res) => {
   if (!db) return res.status(503).json({ error: 'Banco indisponível' });
   try {
     const r = await db.query(`
-      SELECT DISTINCT l.codigo, l.nome, l.nome_fantasia, l.cidade
+      SELECT DISTINCT l.codigo, l.nome, l.nome_fantasia, COALESCE(NULLIF(l.cidade,''), l.cidade_lic) AS cidade
       FROM licencas l
       JOIN aulas_agenda a ON a.license_id=l.codigo
-      WHERE l.status='ativa' AND a.ativa=TRUE AND l.cidade IS NOT NULL
-      ORDER BY l.cidade, l.nome
+      WHERE l.status='ativa' AND a.ativa=TRUE AND COALESCE(NULLIF(l.cidade,''), l.cidade_lic) IS NOT NULL
+      ORDER BY 4, l.nome
     `);
     res.json(r.rows);
   } catch(e) { res.status(500).json({ error: e.message }); }
@@ -3403,7 +3404,7 @@ app.get('/agenda/grade/:license_id', async (req, res) => {
   if (!db) return res.status(503).json({ error: 'Banco indisponível' });
   try {
     const [lic, aulas] = await Promise.all([
-      db.query('SELECT codigo, nome, nome_fantasia, cidade, max_bikes, bikes_disponiveis FROM licencas WHERE codigo=$1 AND status=$2',
+      db.query('SELECT codigo, nome, nome_fantasia, COALESCE(NULLIF(cidade,\'\'), cidade_lic) AS cidade, max_bikes, bikes_disponiveis FROM licencas WHERE codigo=$1 AND status=$2',
         [req.params.license_id, 'ativa']),
       db.query(`
         SELECT a.*,

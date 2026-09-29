@@ -33,11 +33,20 @@ Componentes: `servidor` · `app` · `ginasio` · `portal` · `banco`.
 
 ---
 
-## 2026-09-22 · servidor · a750387, 4409582, 1263390, 9d4528d
-- PUT /admin/users/:id, PUT /admin/licencas/:id address fields
-- trancadas: Set, prof_remover_aluno/trocar_bikes/trancar_bike WS cases
-- GET /agenda/aula-ativa/:license_id
-- JWT_SECRET obrigatório — throw; valor fixo no Railway em 23/09
+## 2026-09-29 · servidor · 26/09f
+
+**O que mudou**
+- `/agenda/cidades` e `/agenda/grade/:id` usam a cidade do endereço (`cidade_lic`) quando `cidade` está vazia.
+- `PUT /admin/licencas/:id` passa a gravar `cidade` junto com `cidade_lic`.
+
+**Por quê**
+- O Portal grava a cidade em `cidade_lic`, mas a busca de academias do app ("Buscar academia", na Agenda) exigia `cidade`. Uma licença com endereço preenchido pelo Portal e grade pronta não aparecia na busca.
+
+**Como confirmar**
+- Com a cidade preenchida no Portal, uma aula na grade e a licença com status `ativa`, a academia aparece no app em Agenda → Buscar academia.
+
+**Cuidados**
+- Nenhum. Só leitura e uma coluna a mais no `UPDATE`.
 
 ---
 
