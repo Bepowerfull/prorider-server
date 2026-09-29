@@ -33,6 +33,30 @@ Componentes: `servidor` · `app` · `ginasio` · `portal` · `banco`.
 
 ---
 
+## 2026-09-29 · servidor · 26/09h
+
+**O que mudou**
+- As rotas de setup passam a exigir a variável de ambiente `SETUP_KEY` (12 caracteres ou mais). A comparação é feita em tempo constante. Sem a variável, as rotas respondem 404:
+  - `POST /admin/criar-admin`
+  - `POST /admin/setup-promote`
+  - `POST /setup/bootstrap`
+  - `POST /setup/sessao-teste`
+
+**Por quê**
+- As chaves tinham valor padrão escrito no código (`prorider_setup_2026` / `prorider-setup-2026`). Quem lesse o código podia:
+  - criar um admin;
+  - promover qualquer conta a `super_admin`;
+  - trocar a senha de qualquer e-mail (`criar-admin` faz `ON CONFLICT ... SET password_hash`).
+
+**Como confirmar**
+- Sem `SETUP_KEY`: `POST /admin/setup-promote` com a chave antiga devolve 404.
+- Com `SETUP_KEY`: a chave certa funciona; a antiga devolve 404.
+
+**Cuidados**
+- Nenhuma tela usa estas rotas. Se um dia precisar do setup, defina `SETUP_KEY` no Railway, use e apague a variável depois.
+
+---
+
 ## 2026-09-29 · servidor · 26/09g
 
 **O que mudou**

@@ -101,6 +101,18 @@ function calcPoints(aulaData) {
   return pts;
 }
 
+
+// 26/09h — ROTAS DE SETUP SÓ COM SETUP_KEY NO AMBIENTE. Antes a chave tinha
+// um valor padrão escrito no código ('prorider_setup_2026' /
+// 'prorider-setup-2026'): quem lesse o código podia criar um admin, virar
+// super_admin ou trocar a senha de qualquer e-mail. Agora, sem a variável
+// SETUP_KEY no Railway, estas rotas respondem 404; com ela, exigem o valor.
+function setupKeyOk(valor) {
+  const k = process.env.SETUP_KEY;
+  if (!k || k.length < 12) return false;
+  const a = Buffer.from(String(valor || '')), b = Buffer.from(k);
+  return a.length === b.length && crypto.timingSafeEqual(a, b);
+}
 function shortId() {
   return crypto.randomBytes(10).toString('hex'); // 20 chars
 }
@@ -747,7 +759,7 @@ runMigrations();
 app.post('/setup/bootstrap', async (req, res) => {
   if (!db) return res.status(503).json({ error: 'Banco indisponível' });
   const { secret } = req.body;
-  if (secret !== 'prorider-setup-2026') return res.status(403).json({ error: 'Forbidden' });
+  if (!setupKeyOk(secret)) return res.status(404).json({ error: 'Não encontrado' });
   try {
     // Verificar se já existe super_admin
     const existing = await db.query("SELECT id, email FROM users WHERE role='super_admin' LIMIT 1");
@@ -781,7 +793,7 @@ app.post('/setup/bootstrap', async (req, res) => {
 app.post('/setup/sessao-teste', async (req, res) => {
   if (!db) return res.status(503).json({ error: 'Banco indisponível' });
   const { secret } = req.body;
-  if (secret !== 'prorider-setup-2026') return res.status(403).json({ error: 'Forbidden' });
+  if (!setupKeyOk(secret)) return res.status(404).json({ error: 'Não encontrado' });
   try {
     // Encerrar sessão anterior se existir
     await db.query(
@@ -807,6 +819,8 @@ app.get('/ping', async (req, res) => {
     status: 'ok',
     version: '2.3',
     db: dbOk,
+    // 26/09g (dev): db_url_preview, db_url_set e db_pool removidos — a
+    // prévia expunha o começo da DATABASE_URL (com parte da senha) em rota pública.
     ts: Date.now()
   });
 });
@@ -2013,9 +2027,7 @@ app.put('/admin/alunos/:id', adminAuth, async (req, res) => {
 // ── Criar conta admin (só via servidor, sem rota pública) ──
 app.post('/admin/criar-admin', async (req, res) => {
   // Rota protegida por secret key de setup
-  if (req.headers['x-setup-key'] !== (process.env.SETUP_KEY || 'prorider_setup_2026')) {
-    return res.status(403).json({ error: 'Chave inválida' });
-  }
+  if (!setupKeyOk(req.headers['x-setup-key'])) return res.status(404).json({ error: 'Não encontrado' });
   const { email, password, name } = req.body;
   if (!email || !password) return res.status(400).json({ error: 'email e password obrigatórios' });
   try {
@@ -2031,8 +2043,7 @@ app.post('/admin/criar-admin', async (req, res) => {
 
 // Promover user por email via setup key (uso único para setup inicial)
 app.post('/admin/setup-promote', async (req, res) => {
-  if (req.headers['x-setup-key'] !== (process.env.SETUP_KEY || 'prorider_setup_2026'))
-    return res.status(403).json({ error: 'Chave inválida' });
+  if (!setupKeyOk(req.headers['x-setup-key'])) return res.status(404).json({ error: 'Não encontrado' });
   const { email, role } = req.body;
   const allowed = ['professor', 'admin', 'super_admin', 'aluno', 'admin_licenca'];
   if (!email || !role || !allowed.includes(role)) return res.status(400).json({ error: 'email e role obrigatórios' });
