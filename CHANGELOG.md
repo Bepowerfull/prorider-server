@@ -41,6 +41,53 @@ Componentes: `servidor` · `app` · `ginasio` · `portal` · `banco`.
 
 ---
 
+## 2026-09-30 · ginasio · 30/09b — gráfico ~25% maior
+
+**O que mudou**
+- `_pg2Encaixar`: o gráfico pode subir `PG2_SOBE = 32` px (do desenho 1920×1080) acima do topo dos círculos. Só o nome do segmento e os rótulos das zonas passam dessa linha; os cartões continuam na faixa dos círculos.
+- Em 1920×1080, os cartões vão de k 0,61 para **0,77** (+26%). Com o RT (caixas escondidas), vão de 0,80 para **1,00**: o gráfico desce e fica 30% maior que o normal, e a regra continua valendo.
+- Medido: 14,7% da altura em 1920×1080, 14,3% em 1280×720 (escala do Windows 150%) e 15,8% em 4K.
+
+**Por quê**
+- O Mario viu o 30/09a e pediu o gráfico um pouco maior.
+
+**Como confirmar**
+- BUILD 30/09b. Na aula, o bloco mais alto encosta perto do topo dos círculos. Com o RT, as caixas somem e o gráfico desce e cresce.
+
+---
+
+## 2026-09-30 · ginasio · 30/09a — gráfico no tamanho certo, imersão em tela cheia, regra do SELECT
+
+**O que mudou**
+- **Gráfico 2 (cartões) no tamanho do projeto em qualquer TV.**
+  - As alturas eram em `vh` (`clamp(58px, X vh, 235px)`) e o `hMax` do `_pg2Encaixar` usava `window.innerHeight`. Por cima disso, `_scaleApp` aplica `body.style.zoom = min(W/1920, H/1080)`, e o gráfico era escalado duas vezes.
+  - Numa janela de 1280×720 CSS (TV 1080p com escala do Windows em 150%), os cartões ocupavam 7,5% da altura da tela em vez de 11,8%. Em 4K sem escala, estouravam para cima (21,8%).
+  - Agora as alturas são px do desenho 1920×1080 (`h × 1080/100`), e o `hMax` é convertido para a mesma unidade das medidas da tela (`getBoundingClientRect` ÷ `offsetHeight`).
+  - Medido: 11,8% em 1920×1080, 11,3% em 1280×720 e 12,8% em 3840×2160. Em 1920×1080 nada muda.
+- **Tela de imersão (LB+RB 5 s) cobrindo a TV inteira.**
+  - O canvas ia dentro do `<body>` com zoom, e `100vw/100vh` eram reduzidos pelo zoom: em 1280×720 ficava 853×480, no canto de cima à esquerda.
+  - Agora vai no `<html>`, fora do zoom, e mede 1280×720.
+- **Regra do SELECT** (Mario), toda em `handleSelect()`:
+  - teste de FTP rodando: o 1º SELECT para na hora, sem pergunta, e mostra o resultado; o 2º fecha o resultado e volta ao gráfico principal (`ctrlSetScreen(0)`);
+  - desafio: igual. Antes, o resultado do desafio só fechava com START, e o SELECT perguntava se queria encerrar a aula;
+  - imersão: o SELECT sai e volta ao gráfico principal (B e LB+RB continuam saindo);
+  - nada disso ativo: o SELECT pergunta se quer encerrar a aula, como antes.
+  - O controle e o teclado (`q`) passam pela mesma função.
+
+**Por quê**
+- Teste do Mario na TV do Clube em 29/09: gráfico menor que o projetado, imersão só num canto, SELECT fora da regra combinada.
+
+**Como confirmar**
+- Tela inicial com **BUILD 30/09a**.
+- Na aula, o gráfico tem a mesma proporção em qualquer TV. LB+RB 5 s escurece a TV inteira, e o SELECT sai.
+- Teste de FTP: SELECT → resultado; SELECT → gráfico. Desafio: igual. Sem nada rodando: SELECT → "Encerrar aula?".
+
+**Cuidados**
+- O servidor, o Portal e o app não mudam.
+- Outras telas antigas ainda usam `vh` (tela de licença vencida e escolha de nuvem). São telas cheias e não tiveram queixa; ficam anotadas.
+
+---
+
 ## 2026-09-29 · servidor + portal + app · 29/09c — localização ("Perto de mim")
 
 **O que mudou**
