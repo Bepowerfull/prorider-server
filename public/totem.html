@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<title>ProRider — Totem</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow+Condensed:wght@600;700;900&family=Barlow:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+/* TOTEM (29/09a) — tablet na porta da sala. A pessoa só consegue reservar,
+   se cadastrar rápido ou entrar na aula aberta. Sem links para fora; volta
+   ao início sozinho depois de 60 s parado. */
+:root{--bg:#0b0b0e;--card:#18181e;--card2:#22222a;--bd:rgba(255,255,255,.09);--ac:#ea860c;--mu:rgba(255,255,255,.62);--grad:linear-gradient(135deg,#ffe033,#ea860c,#d62d2d);--green:#5db13d}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overflow:hidden;background:var(--bg);color:#fff;font-family:Barlow,sans-serif;user-select:none;-webkit-user-select:none;touch-action:manipulation}
+input{user-select:text;-webkit-user-select:text}
+#t{height:100%;display:flex;flex-direction:column;padding:26px 34px}
+.top{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}
+.brand{font-family:'Bebas Neue';font-size:40px;letter-spacing:4px;background:var(--grad);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+.acad{font-family:'Barlow Condensed';font-size:22px;color:var(--mu);font-weight:600;text-align:right}
+.body{flex:1;min-height:0;display:flex;flex-direction:column}
+.live{display:flex;align-items:center;gap:20px;padding:18px 24px;border-radius:20px;background:linear-gradient(135deg,rgba(93,177,61,.34),rgba(93,177,61,.1));border:1.5px solid rgba(93,177,61,.85);box-shadow:0 0 28px rgba(93,177,61,.3);margin-bottom:20px}
+.live .t{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:800;letter-spacing:1.5px;color:#9be37a}
+.live .t i{width:10px;height:10px;border-radius:50%;background:#7dff5a;box-shadow:0 0 10px #7dff5a;animation:p 1.4s infinite}@keyframes p{50%{opacity:.35}}
+.live b{display:block;font-family:'Barlow Condensed';font-size:32px;font-weight:900;line-height:1.1}
+.live small{font-size:16px;color:rgba(255,255,255,.75)}
+.btn{border:0;border-radius:16px;font-weight:800;font-family:inherit;display:inline-flex;align-items:center;justify-content:center;gap:10px;cursor:pointer;padding:20px 26px;font-size:20px;transition:transform .08s,filter .15s}
+.btn:active{transform:scale(.97)}
+.bp{background:var(--grad);color:#1b1b21}.bg{background:var(--card2);color:#fff;border:1px solid var(--bd)}.bv{background:var(--green);color:#08130a}
+.btn[disabled]{opacity:.4}
+.opts{display:grid;grid-template-columns:repeat(3,1fr);gap:22px;flex:1;min-height:0}
+.opt{border-radius:26px;padding:30px;display:flex;flex-direction:column;justify-content:flex-end;position:relative;overflow:hidden;cursor:pointer;background:var(--card);border:1px solid var(--bd);min-height:260px}
+.opt:active{transform:scale(.985)}
+.opt.pri{background:linear-gradient(150deg,#ea860c,#d62d2d);color:#1b1b21;border:0}
+.opt .ic{position:absolute;top:28px;left:30px;width:74px;height:74px}
+.opt h2{font-family:'Barlow Condensed';font-weight:900;font-size:44px;text-transform:uppercase;line-height:1}
+.opt p{font-size:18px;opacity:.85;margin-top:10px;line-height:1.35}
+.tt{font-family:'Barlow Condensed';font-weight:900;font-size:42px;text-transform:uppercase;line-height:1.05}
+.sub{color:var(--mu);font-size:19px;margin:8px 0 20px}
+.steps{display:flex;gap:10px;margin-bottom:22px}.steps span{flex:1;height:6px;border-radius:3px;background:rgba(255,255,255,.1)}.steps span.on{background:var(--ac)}
+label{display:block;font-size:13px;color:var(--mu);font-weight:800;letter-spacing:1.2px;text-transform:uppercase;margin:16px 0 8px}
+input.in{width:100%;background:var(--card2);border:1.5px solid var(--bd);border-radius:14px;padding:18px 20px;color:#fff;font-size:24px;font-family:inherit;outline:none}
+input.in:focus{border-color:var(--ac)}
+.row{display:flex;gap:14px;align-items:stretch}
+.nav{display:flex;gap:14px;margin-top:auto;padding-top:18px}
+.nav .btn{flex:1}.nav .btn.w2{flex:2}
+.chips{display:flex;gap:12px;flex-wrap:wrap}
+.chip{padding:16px 22px;border-radius:14px;background:var(--card2);border:1.5px solid var(--bd);font-size:19px;font-weight:700;cursor:pointer}
+.chip.on{border-color:var(--ac);background:rgba(234,134,12,.18)}
+.aulas{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px;overflow-y:auto;padding-bottom:6px}
+.aula{background:var(--card);border:1px solid var(--bd);border-radius:18px;padding:18px 20px;display:flex;align-items:center;gap:16px;border-left:5px solid var(--ac)}
+.aula .h{font-family:'Bebas Neue';font-size:46px;line-height:.9;min-width:98px}
+.aula .h small{display:block;font-family:Barlow;font-size:13px;color:var(--mu);font-weight:700;letter-spacing:1px;margin-top:4px}
+.aula .i{flex:1;min-width:0}.aula .i b{display:block;font-size:22px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.aula .i small{color:var(--mu);font-size:15px}
+.bikes{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:12px;overflow-y:auto}
+.bk{height:84px;border-radius:16px;background:var(--card2);border:1.5px solid var(--bd);display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue';font-size:38px;cursor:pointer}
+.bk.oc{opacity:.25;text-decoration:line-through;pointer-events:none}.bk.sel{background:var(--grad);color:#1b1b21;border-color:transparent}
+.foto{width:280px;height:280px;border-radius:24px;background:#131318;border:2px dashed rgba(255,255,255,.2);overflow:hidden;display:flex;align-items:center;justify-content:center;font-size:70px;position:relative}
+.foto video,.foto img{width:100%;height:100%;object-fit:cover;transform:scaleX(-1)}
+.ok{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
+.ok .big{font-size:110px;line-height:1}
+.msg{color:#ff8a8a;font-size:18px;margin-top:12px;min-height:24px}
+.cont{position:fixed;bottom:12px;right:18px;font-size:13px;color:rgba(255,255,255,.3)}
+@media(orientation:portrait){.opts{grid-template-columns:1fr;gap:16px}.opt{min-height:170px}.opt .ic{width:56px;height:56px}.opt h2{font-size:36px}.row.fx{flex-direction:column}.foto{width:220px;height:220px}}
+</style>
+</head>
+<body>
+<div id="t">
+  <div class="top"><div class="brand">PRORIDER</div><div class="acad"><span id="acad">—</span> · <span id="relogio">--:--</span></div></div>
+  <div class="body" id="corpo"><div class="ok"><div class="sub">Carregando…</div></div></div>
+</div>
+<div class="cont" id="cont"></div>
+<script>
+const SERVER = 'https://prorider-server-production-5784.up.railway.app';
+let TOKEN = (location.hash||'').replace('#','');
+try{ if(TOKEN) localStorage.setItem('pr_totem', TOKEN); else TOKEN = localStorage.getItem('pr_totem') || ''; }catch(e){}
+let INFO = null, S = {};   // S = estado do fluxo atual
+const $ = id => document.getElementById(id);
+function esc(t){ return String(t==null?'':t).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+async function api(p, body){
+  const r = await fetch(SERVER+'/totem/'+encodeURIComponent(TOKEN)+p, body ? {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)} : {});
+  let d={}; try{ d=await r.json(); }catch(e){}
+  if(!r.ok) throw new Error(d.error||('Erro '+r.status));
+  return d;
+}
+const ICS = {
+  cal:'<svg class="ic" viewBox="0 0 40 40" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><rect x="5" y="8" width="30" height="27" rx="4"/><path d="M5 16h30M13 4v7M27 4v7M12 23h4M20 23h4M12 29h4"/></svg>',
+  bolt:'<svg class="ic" viewBox="0 0 40 40"><path d="M25 2 L8 22 L18 22 L13 38 L32 15 L21 15 Z" fill="#ea860c"/></svg>',
+  bike:'<svg class="ic" viewBox="0 0 40 40" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="27" r="7"/><circle cx="31" cy="27" r="7"/><path d="M9 27l7-12h9l6 12M16 15l5 12M22 10h5"/></svg>'
+};
+// ── inatividade: volta ao início ──
+let _ult = Date.now();
+['pointerdown','keydown','input'].forEach(ev => document.addEventListener(ev, () => { _ult = Date.now(); }, true));
+setInterval(() => {
+  const d = new Date(); $('relogio').textContent = String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');
+  const parado = (Date.now()-_ult)/1000;
+  if (S.tela && S.tela!=='inicio' && parado > 60) inicio();
+  $('cont').textContent = (S.tela && S.tela!=='inicio' && parado > 45) ? 'Voltando ao início em '+Math.max(0,Math.round(60-parado))+' s' : '';
+}, 1000);
+async function carregar(){
+  if (!TOKEN){ $('corpo').innerHTML = '<div class="ok"><div class="big">🔒</div><div class="tt" style="margin-top:14px">Totem não configurado</div><div class="sub">Abra o link do totem gerado no Portal (menu Totem na porta).</div></div>'; return false; }
+  try { INFO = await api('/info'); $('acad').textContent = INFO.academia.nome; return true; }
+  catch(e){ $('corpo').innerHTML = '<div class="ok"><div class="big">⚠️</div><div class="tt" style="margin-top:14px">'+esc(e.message)+'</div></div>'; return false; }
+}
+function faixaAoVivo(){
+  const a = INFO && INFO.ao_vivo; if(!a) return '';
+  return '<div class="live"><div style="flex:1;min-width:0"><div class="t"><i></i>'+(a.iniciada?'AULA ACONTECENDO AGORA':'AULA ABERTA AGORA')+'</div><b>'+esc(a.nome_aula)+(a.professor?' com '+esc(a.professor):'')+'</b><small>'
+    +(a.livres!=null?a.livres+' bike'+(a.livres==1?'':'s')+' livre'+(a.livres==1?'':'s')+(a.bikes?' de '+a.bikes:''):'')+(a.pedalando?' · '+a.pedalando+' pedalando':'')+'</small></div>'
+    +'<button class="btn bv" onclick="fluxo(\'entrar\')">Entrar na aula →</button></div>';
+}
+// ── INÍCIO ──
+async function inicio(){
+  S = { tela:'inicio' }; parar_camera();
+  const ok = await carregar(); if(!ok) return;
+  $('corpo').innerHTML = faixaAoVivo()
+    + '<div class="opts">'
+    + '<div class="opt pri" onclick="fluxo(\'reservar\')">'+ICS.cal+'<h2>Reservar aula</h2><p>Com o seu e-mail. A reserva aparece no seu app.</p></div>'
+    + '<div class="opt" onclick="fluxo(\'cadastro\')">'+ICS.bolt+'<h2>Cadastro rápido</h2><p>Nome, FTP (ou 3 perguntas) e uma foto. 1 minuto.</p></div>'
+    + '<div class="opt" onclick="fluxo(\'semconta\')">'+ICS.bike+'<h2>Pedalar sem conta</h2><p>Só o nome. Seus números aparecem na TV.</p></div>'
+    + '</div>';
+}
+setInterval(() => { if (S.tela==='inicio') inicio(); }, 15000);
+function fluxo(tipo){ S = { tela:tipo, destino: tipo }; if(tipo==='entrar'||tipo==='reservar') telaEmail(); else telaNome(); }
+function steps(n,tot){ let h='<div class="steps">'; for(let i=1;i<=tot;i++) h+='<span'+(i<=n?' class="on"':'')+'></span>'; return h+'</div>'; }
+// ── e-mail (reservar / entrar com conta) ──
+function telaEmail(){
+  S.tela='email';
+  $('corpo').innerHTML = steps(1,3)+'<div class="tt">'+(S.destino==='entrar'?'Quem vai pedalar?':'Reservar aula')+'</div><div class="sub">Digite o e-mail da sua conta ProRider.</div>'
+    + '<label>E-mail</label><input class="in" id="em" type="email" inputmode="email" autocomplete="off" autocapitalize="none" placeholder="voce@email.com">'
+    + '<div class="msg" id="msg"></div>'
+    + (S.destino==='entrar' ? '<div style="margin-top:6px;color:var(--mu);font-size:17px">Não tem conta? <span style="color:var(--ac);font-weight:700;cursor:pointer" onclick="S.destino=\'entrar\';telaNome(true)">Cadastro rápido</span> ou <span style="color:var(--ac);font-weight:700;cursor:pointer" onclick="S.semconta=1;telaNome(true)">pedalar sem conta</span></div>':'')
+    + '<div class="nav"><button class="btn bg" onclick="inicio()">← Voltar</button><button class="btn bp w2" onclick="identificar()">Continuar</button></div>';
+  setTimeout(()=>{ try{$('em').focus();}catch(e){} },100);
+  $('em').addEventListener('keydown', e => { if(e.key==='Enter') identificar(); });
+}
+async function identificar(){
+  const email = $('em').value.trim();
+  try { S.user = await api('/identificar', { email }); }
+  catch(e){ $('msg').textContent = e.message; return; }
+  if (S.destino==='entrar') return telaBike();
+  telaAulas();
+}
+// ── lista de aulas para reservar ──
+function telaAulas(){
+  S.tela='aulas';
+  const aulas = (INFO.aulas||[]);
+  const hoje = new Date().getDay();
+  $('corpo').innerHTML = steps(2,3)+'<div class="tt">Olá, '+esc(S.user.primeiro||S.user.nome)+'!</div><div class="sub">Escolha a aula para reservar.</div>'
+    + (INFO.ao_vivo ? '<div class="live" style="margin-bottom:14px"><div style="flex:1"><div class="t"><i></i>AULA ABERTA AGORA</div><b>'+esc(INFO.ao_vivo.nome_aula)+'</b></div><button class="btn bv" onclick="S.destino=\'entrar\';telaBike()">Entrar agora →</button></div>' : '')
+    + (aulas.length ? '<div class="aulas">'+aulas.map((a,i)=>{
+        const livres = Math.max(0,(a.vagas_max||0)-(a.reservas||0));
+        return '<div class="aula"'+(a.cor?' style="border-left-color:'+esc(a.cor)+'"':'')+'><div class="h">'+esc(String(a.hora).slice(0,5))+'<small>'+(a.hoje?'HOJE':'AMANHÃ')+'</small></div><div class="i"><b>'+esc(a.nome)+'</b><small>'+esc(a.professor_nome||'')+' · '+(a.duracao_min||50)+' min · '+livres+' vaga'+(livres==1?'':'s')+'</small></div>'
+          +'<button class="btn '+(livres?'bp':'bg')+'" style="padding:14px 18px;font-size:17px" '+(livres?'':'disabled')+' onclick="reservar('+i+')">'+(livres?'Reservar':'Lotada')+'</button></div>'; }).join('')+'</div>'
+       : '<div class="sub">Nenhuma aula para hoje ou amanhã na grade.</div>')
+    + '<div class="msg" id="msg"></div><div class="nav"><button class="btn bg" onclick="inicio()">Sair</button></div>';
+}
+async function reservar(i){
+  const a = INFO.aulas[i];
+  try { await api('/reservar', { user_id: S.user.id, agenda_id: a.id, data_aula: a.data }); }
+  catch(e){ $('msg').textContent = e.message; return; }
+  sucesso('Reserva feita!', esc(a.nome)+' · '+(a.hoje?'hoje':'amanhã')+' às '+esc(String(a.hora).slice(0,5))+'<br>Ela já aparece no seu app ProRider.');
+}
+// ── cadastro rápido / sem conta ──
+function telaNome(vindoDoEmail){
+  S.tela='nome'; if(S.destino!=='entrar' && S.tela!=='entrar') {}
+  const semConta = S.destino==='semconta' || S.semconta;
+  S.dados = S.dados || {};
+  $('corpo').innerHTML = steps(1, semConta?3:4)+'<div class="tt">'+(semConta?'Pedalar sem conta':'Cadastro rápido')+'</div><div class="sub">'+(semConta?'Seu nome aparece na TV durante a aula.':'Crie sua conta em 1 minuto. Com e-mail, você vê tudo depois no app.')+'</div>'
+    + '<label>Nome</label><input class="in" id="nm" autocomplete="off" placeholder="Como quer aparecer na TV">'
+    + (semConta?'':'<label>E-mail</label><input class="in" id="em2" type="email" inputmode="email" autocomplete="off" autocapitalize="none" placeholder="voce@email.com">')
+    + '<label>Sexo (para os desafios da aula)</label><div class="chips"><span class="chip" data-g="F" onclick="sexo(this)">Feminino</span><span class="chip" data-g="M" onclick="sexo(this)">Masculino</span><span class="chip" data-g="" onclick="sexo(this)">Prefiro não dizer</span></div>'
+    + '<div class="msg" id="msg"></div>'
+    + '<div class="nav"><button class="btn bg" onclick="inicio()">Cancelar</button><button class="btn bp w2" onclick="nomeOk()">Continuar</button></div>';
+  setTimeout(()=>{ try{$('nm').focus();}catch(e){} },100);
+}
+function sexo(el){ document.querySelectorAll('.chip[data-g]').forEach(c=>c.classList.remove('on')); el.classList.add('on'); S.dados.genero = el.dataset.g || null; }
+function nomeOk(){
+  const nome = $('nm').value.trim(); if(nome.length<2){ $('msg').textContent='Digite o nome.'; return; }
+  S.dados.nome = nome; S.dados.email = $('em2') ? $('em2').value.trim() : '';
+  if (S.dados.email && !/@/.test(S.dados.email)){ $('msg').textContent='E-mail inválido (ou deixe em branco).'; return; }
+  telaFtp();
+}
+function telaFtp(){
+  S.tela='ftp';
+  $('corpo').innerHTML = steps(2,4)+'<div class="tt">Seu FTP</div><div class="sub">É a potência que você sustenta por 1 hora. Serve para calcular suas zonas na tela.</div>'
+    + '<div class="row fx"><div style="flex:1"><label>FTP em watts</label><input class="in" id="ftp" type="number" inputmode="numeric" placeholder="ex.: 180"></div></div>'
+    + '<div class="row fx" style="margin-top:18px"><button class="btn bg" style="flex:1" onclick="telaQuest()">Não sei → 3 perguntas rápidas</button><button class="btn bg" style="flex:1;color:var(--mu)" onclick="S.dados.ftp=0;S.dados.questionario=null;telaFoto()">Pular</button></div>'
+    + '<div class="msg" id="msg"></div><div class="nav"><button class="btn bg" onclick="telaNome()">← Voltar</button><button class="btn bp w2" onclick="ftpOk()">Continuar</button></div>';
+}
+function ftpOk(){ const f=parseInt($('ftp').value)||0; if(f && (f<50||f>500)){ $('msg').textContent='Use um valor entre 50 e 500 W.'; return; } S.dados.ftp=f; S.dados.questionario=null; telaFoto(); }
+function telaQuest(){
+  S.tela='quest'; S.q = { nivel:'intermediario', freq:'1', peso:'' };
+  const c=(k,v,t)=>'<span class="chip'+(S.q[k]===v?' on':'')+'" onclick="S.q.'+k+'=\''+v+'\';telaQuestUpd()">'+t+'</span>';
+  S._qc = c;
+  $('corpo').innerHTML = steps(2,4)+'<div class="tt">3 perguntas</div><div class="sub">A gente estima o seu FTP. O professor ajusta depois, se precisar.</div><div id="qz"></div>'
+    + '<div class="nav"><button class="btn bg" onclick="telaFtp()">← Voltar</button><button class="btn bp w2" onclick="questOk()">Continuar</button></div>';
+  telaQuestUpd();
+}
+function telaQuestUpd(){
+  const c=S._qc; const pesoAt = ($('qp') && $('qp').value) || S.q.peso;
+  $('qz').innerHTML = '<label>1. Seu peso (kg)</label><input class="in" id="qp" type="number" inputmode="decimal" placeholder="ex.: 72" value="'+esc(pesoAt)+'" style="max-width:260px">'
+    + '<label>2. Como você se considera no pedal?</label><div class="chips">'+c('nivel','iniciante','Iniciante')+c('nivel','intermediario','Intermediário')+c('nivel','avancado','Avançado')+c('nivel','atleta','Atleta')+'</div>'
+    + '<label>3. Quantas vezes pedala por semana?</label><div class="chips">'+c('freq','0','Quase nunca')+c('freq','1','1 a 2')+c('freq','2','3 a 4')+c('freq','3','5 ou mais')+'</div>';
+}
+function questOk(){ S.q.peso = $('qp').value; S.dados.questionario = { peso:S.q.peso||70, nivel:S.q.nivel, freq:S.q.freq }; S.dados.ftp=0; telaFoto(); }
+// ── foto (câmera do tablet) ──
+let _stream = null;
+function parar_camera(){ try{ if(_stream) _stream.getTracks().forEach(t=>t.stop()); }catch(e){} _stream=null; }
+async function telaFoto(){
+  S.tela='foto';
+  $('corpo').innerHTML = steps(3,4)+'<div class="tt">Uma foto para a TV?</div><div class="sub">Opcional. Aparece ao lado do seu nome no ranking.</div>'
+    + '<div class="row fx" style="align-items:center;gap:30px"><div class="foto" id="fbox">📷</div><div style="display:flex;flex-direction:column;gap:14px;min-width:260px"><button class="btn bp" id="fbtn" onclick="tirarFoto()">Tirar foto</button><button class="btn bg" onclick="S.dados.foto=null;concluirCadastro()">Pular</button></div></div>'
+    + '<div class="msg" id="msg"></div><div class="nav"><button class="btn bg" onclick="parar_camera();telaFtp()">← Voltar</button><button class="btn bp w2" onclick="concluirCadastro()">Continuar</button></div>';
+  try{
+    _stream = await navigator.mediaDevices.getUserMedia({ video:{ facingMode:'user', width:{ideal:640}, height:{ideal:640} }, audio:false });
+    const v=document.createElement('video'); v.autoplay=true; v.playsInline=true; v.muted=true; v.srcObject=_stream; $('fbox').innerHTML=''; $('fbox').appendChild(v);
+  }catch(e){ $('fbox').innerHTML='<div style="font-size:16px;color:var(--mu);padding:20px;text-align:center">Câmera indisponível.<br>Pode pular.</div>'; $('fbtn').disabled=true; }
+}
+function tirarFoto(){
+  const v=document.querySelector('#fbox video'); if(!v) return;
+  if (S.dados.foto){ S.dados.foto=null; telaFoto(); return; }   // tirar de novo
+  const c=document.createElement('canvas'); c.width=c.height=256; const x=c.getContext('2d');
+  const s=Math.min(v.videoWidth,v.videoHeight); x.translate(256,0); x.scale(-1,1);
+  x.drawImage(v,(v.videoWidth-s)/2,(v.videoHeight-s)/2,s,s,0,0,256,256);
+  S.dados.foto=c.toDataURL('image/jpeg',.82); parar_camera();
+  $('fbox').innerHTML='<img src="'+S.dados.foto+'" style="transform:none">'; $('fbtn').textContent='Tirar de novo'; $('fbtn').disabled=false;
+}
+async function concluirCadastro(){
+  parar_camera();
+  let r;
+  try { r = await api('/cadastro', { nome:S.dados.nome, email:(S.destino==='semconta'||S.semconta)?'':S.dados.email, ftp:S.dados.ftp, questionario:S.dados.questionario, genero:S.dados.genero, foto:S.dados.foto }); }
+  catch(e){ S.tela='foto'; $('corpo').innerHTML='<div class="ok"><div class="big">⚠️</div><div class="tt" style="margin-top:12px">'+esc(e.message)+'</div><div class="nav" style="width:100%"><button class="btn bg" onclick="inicio()">Início</button><button class="btn bp w2" onclick="telaNome()">Corrigir</button></div></div>'; return; }
+  if (r.convidado){ S.convidado = r; S.user = null; }
+  else S.user = { id:r.id, nome:r.nome, primeiro:r.primeiro, ftp:r.ftp };
+  if (INFO && INFO.ao_vivo) return telaBike();
+  if (S.user) { await carregar(); return telaAulas(); }
+  sucesso('Tudo certo, '+esc(r.nome.split(' ')[0])+'!', 'Nenhuma aula está aberta agora. Quando o professor abrir a aula, toque em <b>Pedalar sem conta</b> de novo.');
+}
+// ── escolher a bike e entrar na aula aberta ──
+async function telaBike(){
+  S.tela='bike'; await carregar();
+  const a = INFO.ao_vivo;
+  if (!a){ sucesso('Nenhuma aula aberta', 'Quando o professor abrir a aula na TV, a opção de entrar aparece aqui.', '⏳'); return; }
+  const lista = (a.bikes_lista && a.bikes_lista.length) ? a.bikes_lista : Array.from({length:a.bikes||0},(_,i)=>i+1);
+  const oc = (a.ocupadas||[]).map(Number);
+  const quem = S.user ? (S.user.primeiro||S.user.nome) : (S.convidado ? S.convidado.nome : '');
+  $('corpo').innerHTML = steps(4,4)+'<div class="tt">Escolha sua bike</div><div class="sub">'+(quem?'<b style="color:#fff">'+esc(quem)+'</b> · ':'')+esc(a.nome_aula)+'</div>'
+    + (lista.length ? '<div class="bikes">'+lista.map(n=>'<div class="bk'+(oc.includes(Number(n))?' oc':'')+'" data-b="'+n+'" onclick="selBike(this)">'+String(n).padStart(2,'0')+'</div>').join('')+'</div>'
+       : '<div class="sub">O Ginásio ainda não informou as bikes. Tente de novo em alguns segundos.</div>')
+    + '<div class="msg" id="msg"></div><div class="nav"><button class="btn bg" onclick="inicio()">Cancelar</button><button class="btn bp w2" id="bkOk" disabled onclick="entrar()">Escolha uma bike</button></div>';
+}
+function selBike(el){ document.querySelectorAll('.bk').forEach(b=>b.classList.remove('sel')); el.classList.add('sel'); S.bike=parseInt(el.dataset.b); $('bkOk').disabled=false; $('bkOk').textContent='Confirmar bike '+String(S.bike).padStart(2,'0'); }
+async function entrar(){
+  const body = { bike:S.bike };
+  if (S.user) body.user_id = S.user.id;
+  else if (S.convidado) Object.assign(body, { nome:S.convidado.nome, ftp:S.convidado.ftp, foto:S.convidado.foto, genero:S.convidado.genero });
+  try { const r = await api('/entrar', body); sucesso('Boa aula, '+esc(String(r.nome).split(' ')[0])+'!', 'Suba na <b>bike '+String(r.bike).padStart(2,'0')+'</b>. Seu nome já está na TV.', '🚴'); }
+  catch(e){ $('msg').textContent = e.message; if(/ocupada/i.test(e.message)) setTimeout(telaBike,1200); }
+}
+function sucesso(t, sub, ic){
+  S.tela='ok';
+  $('corpo').innerHTML = '<div class="ok"><div class="big">'+(ic||'✅')+'</div><div class="tt" style="margin-top:16px">'+t+'</div><div class="sub" style="font-size:22px;max-width:760px">'+sub+'</div><button class="btn bp" style="margin-top:22px;min-width:280px" onclick="inicio()">Concluir</button></div>';
+  setTimeout(()=>{ if(S.tela==='ok') inicio(); }, 9000);
+}
+// bloqueios de quiosque: sem menu de contexto, sem arrastar, sem voltar
+document.addEventListener('contextmenu', e => e.preventDefault());
+history.pushState(null,'',location.href); window.addEventListener('popstate', () => { history.pushState(null,'',location.href); inicio(); });
+inicio();
+</script>
+</body>
+</html>

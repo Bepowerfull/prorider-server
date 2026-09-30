@@ -242,23 +242,218 @@ button{font-family:inherit}
   .pr-grid2{grid-template-columns:1fr}
   .pr-imp{height:auto;padding:8px 12px;flex-wrap:wrap}
 }
+
+/* ══ ENTRADA DO SITE / PORTAL (29/09a) — arte aprovada pelo Mario ══ */
+#loginScreen.lp{position:fixed;inset:0;z-index:500;display:block;overflow-y:auto;overflow-x:hidden;background:#060608;color:#fff;font-family:'Barlow','Inter',sans-serif}
+.lp *{box-sizing:border-box}
+.lp-stage{position:relative;min-height:100vh;min-height:100dvh;width:100%;overflow:hidden;padding-bottom:120px}
+.lp-foto{position:absolute;top:0;left:43%;width:42%;height:calc(100% - 110px);background:url(img/entrada-ciclista.jpg) center 20%/cover no-repeat;
+  -webkit-mask-image:linear-gradient(90deg,transparent 0,#000 22%,#000 72%,transparent 100%);mask-image:linear-gradient(90deg,transparent 0,#000 22%,#000 72%,transparent 100%)}
+.lp-foto:after{content:'';position:absolute;inset:0;background:linear-gradient(0deg,#060608 0,transparent 30%),linear-gradient(180deg,rgba(6,6,8,.5) 0,transparent 18%)}
+.lp-glow{position:absolute;inset:0;pointer-events:none;background:radial-gradient(ellipse at 62% 35%,rgba(234,134,12,.20),transparent 55%),radial-gradient(ellipse at 8% 0%,rgba(214,45,45,.14),transparent 45%)}
+.lp-top{position:relative;z-index:3;display:flex;align-items:flex-start;justify-content:space-between;padding:26px 4.5vw 0}
+.lp-logo{line-height:1;cursor:default;user-select:none}
+.lp-logo b{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-style:italic;font-size:44px;letter-spacing:.5px}
+.lp-logo b i{font-style:italic;background:linear-gradient(95deg,#ffe033,#ea860c 55%,#d62d2d);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+.lp-logo small{display:block;font-size:11.5px;letter-spacing:6px;color:rgba(255,255,255,.85);margin-top:4px;font-weight:600}
+.lp-logo small:after{content:'';display:block;height:2px;width:70%;margin-top:7px;background:linear-gradient(90deg,transparent,#ffe033,#ea860c,#d62d2d,transparent)}
+.lp-nav{display:flex;gap:44px;font-size:13px;font-weight:700;letter-spacing:3px;color:rgba(255,255,255,.72);padding-top:10px}
+.lp-nav span:first-child{color:#fff;border-bottom:3px solid;border-image:linear-gradient(90deg,#ffe033,#d62d2d) 1;padding-bottom:9px}
+.lp-main{position:relative;z-index:3;display:grid;grid-template-columns:minmax(0,1fr) 380px;gap:40px;padding:10px 4.5vw 0;align-items:start}
+.lp-head{max-width:720px}
+.lp-brush{font-family:'Permanent Marker',cursive;line-height:.9;margin-top:min(22px,1.8vh);transform:rotate(-5deg);transform-origin:left center;text-transform:uppercase}
+.lp-brush .l1{font-size:clamp(52px,min(7.4vw,10.2vh),118px);color:#fff;filter:drop-shadow(0 6px 24px rgba(0,0,0,.55))}
+.lp-brush .l1 em{font-style:normal;background:linear-gradient(95deg,#fff04a,#ffc21a 55%,#f5a623);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+.lp-brush .l2{font-size:clamp(60px,min(8.6vw,12vh),138px);margin-left:-.06em;background:linear-gradient(95deg,#ff6a2b 0%,#e63a1f 45%,#ffb020 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;filter:drop-shadow(0 6px 22px rgba(234,90,12,.35))}
+.lp-swash{height:12px;width:min(560px,80%);margin:10px 0 0 22px;border-radius:12px;background:linear-gradient(90deg,#d62d2d 0,#ea860c 45%,#ffe033 85%,transparent);transform:rotate(-5deg) skewX(-25deg);opacity:.95}
+.lp-sub{text-align:right;max-width:560px;margin-top:min(26px,2.4vh);font-size:15px;font-weight:600;letter-spacing:2.5px;line-height:1.75;color:rgba(255,255,255,.85);text-transform:uppercase}
+.lp-feats{display:grid;grid-template-columns:repeat(4,1fr);margin-top:min(26px,2.4vh);max-width:640px}
+.lp-feat{padding:4px 18px;border-left:1px solid rgba(255,255,255,.14);font-size:13px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;line-height:1.35}
+.lp-feat:first-child{border-left:0;padding-left:0}
+.lp-feat svg{width:34px;height:34px;display:block;margin-bottom:10px}
+.lp-video{display:flex;align-items:center;gap:22px;margin-top:min(26px,2.4vh);max-width:660px;border-radius:16px;padding:16px 20px;cursor:pointer;
+  background:linear-gradient(90deg,rgba(10,10,14,.92) 40%,rgba(10,10,14,.35));border:1.5px solid transparent;position:relative;overflow:hidden;
+  box-shadow:0 0 0 1.5px rgba(234,134,12,.8),0 14px 40px rgba(0,0,0,.45)}
+.lp-video .pl{width:64px;height:64px;border-radius:50%;border:2.5px solid #fff;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.lp-video .pl:after{content:'';margin-left:6px;border-left:20px solid #fff;border-top:12px solid transparent;border-bottom:12px solid transparent}
+.lp-video small{display:block;font-size:12px;letter-spacing:2.5px;color:rgba(255,255,255,.7);font-weight:600}
+.lp-video b{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:26px;letter-spacing:.5px}
+.lp-video b span{color:#ea860c;margin-left:10px}
+.lp-video .tv{margin-left:auto;width:230px;height:84px;border-radius:8px;background:linear-gradient(180deg,#5b8ad8,#a9c7ee 45%,#6f8a5a 46%,#2d3a2a);position:relative;overflow:hidden;opacity:.9}
+.lp-video .tv i{position:absolute;bottom:0;width:14px;border-radius:2px 2px 0 0}
+.lp-login{position:relative;margin-top:min(92px,8vh);background:rgba(12,12,16,.66);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,.13);border-radius:22px;padding:30px 30px 24px;box-shadow:0 30px 80px rgba(0,0,0,.55)}
+.lp-login .lp-logo{text-align:center;margin-bottom:26px}
+.lp-login .lp-logo b{font-size:36px}
+.lp-login .lp-logo small{font-size:9.5px;letter-spacing:5px}
+.lp-login .lp-logo small:after{margin:6px auto 0}
+.lp-login h2{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:30px;text-transform:uppercase;letter-spacing:.3px}
+.lp-login p{color:rgba(255,255,255,.72);font-size:13.5px;margin:4px 0 14px;line-height:1.45}
+.lp-login label{display:block;font-size:11px;letter-spacing:1.5px;text-transform:uppercase;font-weight:700;color:rgba(255,255,255,.75);margin:14px 0 7px}
+.lp-login input{width:100%;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.14);border-radius:12px;padding:14px 16px;color:#fff;font-size:15px;outline:none;font-family:inherit}
+.lp-login input:focus{border-color:#ea860c;background:rgba(255,255,255,.1)}
+.lp-login .lp-go{width:100%;margin-top:22px;padding:16px;border:0;border-radius:12px;cursor:pointer;background:linear-gradient(90deg,#ffe033,#ea860c 55%,#d62d2d);color:#1b1b21;font-weight:800;font-size:15px;letter-spacing:2px;font-family:inherit;transition:filter .15s,transform .1s}
+.lp-login .lp-go:hover{filter:brightness(1.08)}.lp-login .lp-go:active{transform:scale(.99)}
+.lp-login .lp-links{display:flex;justify-content:space-between;margin-top:16px;font-size:13px;color:rgba(255,255,255,.7)}
+.lp-login .lp-links a{color:#ea860c;text-decoration:none;cursor:pointer}
+.lp-login .lp-links span{cursor:pointer}
+.lp-login .lp-err{display:none;color:#ff8080;font-size:13px;margin-top:12px;text-align:center}
+.lp-login .lp-dica{display:none;font-size:12.5px;color:rgba(255,255,255,.7);margin-top:10px;line-height:1.5}
+.lp-live{display:inline-flex;align-items:center;gap:8px;font-size:12.5px;font-weight:700;color:#8fe06a;background:rgba(93,177,61,.12);border:1px solid rgba(93,177,61,.4);padding:7px 13px;border-radius:20px;margin-top:min(16px,1.6vh);letter-spacing:.3px}
+.lp-live i{width:8px;height:8px;border-radius:50%;background:#7dff5a;box-shadow:0 0 10px #7dff5a;animation:lpPulse 1.6s infinite}
+.lp-live.off{color:rgba(255,255,255,.6);background:rgba(255,255,255,.05);border-color:rgba(255,255,255,.12)}.lp-live.off i{background:#888;box-shadow:none;animation:none}
+@keyframes lpPulse{50%{opacity:.35}}
+.lp-kpis{position:relative;z-index:3;display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:14px;padding:min(30px,2.6vh) 4.5vw 0}
+.lp-k{display:flex;align-items:center;gap:14px;background:rgba(14,14,18,.8);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.1);border-radius:14px;padding:14px 16px;min-width:0}
+.lp-k svg{width:38px;height:38px;flex-shrink:0}
+.lp-k small{display:block;font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:rgba(255,255,255,.72);font-weight:700;white-space:nowrap}
+.lp-k .v{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:34px;line-height:1.05;white-space:nowrap}
+.lp-k .d{font-size:12px;color:#7fd35b;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lp-zonas{position:absolute;left:0;right:0;bottom:0;height:110px;z-index:2}
+.lp-zonas svg{width:100%;height:100%;display:block}
+.lp-zlab{position:absolute;left:0;right:0;bottom:0;height:78px;display:grid;grid-template-columns:16.2% 16.3% 13.5% 14.8% 12.6% 15%;z-index:3;text-align:center;pointer-events:none}
+.lp-zlab div{padding-top:22px}
+.lp-zlab b{display:block;font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:25px;line-height:1}
+.lp-zlab small{font-size:11px;letter-spacing:2px;font-weight:700;color:rgba(255,255,255,.85)}
+.lp-modal{position:fixed;inset:0;z-index:600;background:rgba(0,0,0,.85);display:none;align-items:center;justify-content:center;padding:20px}
+.lp-modal.open{display:flex}
+.lp-modal .box{width:min(960px,100%);aspect-ratio:16/9;background:#000;border-radius:14px;overflow:hidden;position:relative}
+.lp-modal .box iframe{width:100%;height:100%;border:0}
+.lp-modal .x{position:absolute;top:-44px;right:0;color:#fff;font-size:30px;cursor:pointer;background:none;border:0}
+.lp-modal .emb{display:flex;align-items:center;justify-content:center;height:100%;color:rgba(255,255,255,.75);font-size:18px;text-align:center;padding:30px;line-height:1.6}
+@media(min-width:1181px) and (max-height:960px){.lp-video{padding:11px 18px}.lp-video .pl{width:52px;height:52px}.lp-video .tv{height:66px}.lp-feat svg{width:28px;height:28px;margin-bottom:6px}.lp-k{padding:10px 14px}.lp-k .v{font-size:30px}.lp-login{padding:24px 26px 20px}.lp-login .lp-logo{margin-bottom:14px}.lp-login label{margin:10px 0 6px}.lp-login input{padding:12px 14px}.lp-login .lp-go{margin-top:16px;padding:14px}.lp-stage{padding-bottom:100px}.lp-zonas{height:96px}.lp-zlab{height:70px}.lp-zlab div{padding-top:18px}}
+@media(max-width:1180px){
+  .lp-main{grid-template-columns:1fr}
+  .lp-login{margin-top:26px;max-width:460px}
+  .lp-foto{left:auto;right:0;width:70%;opacity:.45}
+  .lp-kpis{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .lp-sub{text-align:left}
+}
+@media(max-width:700px){
+  .lp-nav{display:none}
+  .lp-top{padding:18px 18px 0}
+  .lp-logo b{font-size:34px}
+  .lp-main{padding:0 18px;display:flex;flex-direction:column;gap:0}
+  .lp-head{display:contents}
+  .lp-brush{order:1}.lp-login{order:2;margin-top:22px}.lp-sub{order:3;margin-top:22px}.lp-live{order:4;align-self:flex-start}.lp-feats{order:5}.lp-video{order:6}
+  .lp-sub{font-size:13px;letter-spacing:1.5px}
+  .lp-login .lp-logo{display:none}
+  .lpm .lp-sub{display:none}
+  .lpm .lp-foto{opacity:.18}
+  .lp-brush{margin-top:14px}
+  .lp-feats{grid-template-columns:repeat(2,1fr);row-gap:16px}
+  .lp-feat:nth-child(3){border-left:0;padding-left:0}
+  .lp-video .tv{display:none}
+  .lp-kpis{grid-template-columns:repeat(2,minmax(0,1fr));padding:22px 18px 0;gap:10px}
+  .lp-k{padding:12px}.lp-k svg{width:30px;height:30px}.lp-k .v{font-size:28px}
+  .lp-zlab small{display:none}.lp-zlab b{font-size:18px}
+  .lp-foto{width:100%;opacity:.3}
+}
+
+/* ══ ENTRADA IDÊNTICA À ARTE (29/09b) ══
+   A arte do marketing é o fundo; por cima, nos mesmos lugares, só o que
+   precisa ser vivo: campos do login, botão, links, vídeo e os 6 números.
+   Em tela deitada (computador/TV/tablet) mostra a arte inteira; no celular
+   em pé, a versão empilhada (.lpm). */
+.lpx{display:none;position:fixed;inset:0;overflow:hidden;background:#060607}
+.lpx-fill{position:absolute;inset:-40px;background:url(img/entrada-arte.jpg) center/cover;filter:blur(34px) brightness(.45);transform:scale(1.08)}
+.lpx-art{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);--u:1px}
+.lpx-art>img{position:absolute;inset:0;width:100%;height:100%;display:block;user-select:none;-webkit-user-drag:none;pointer-events:none}
+.lpx-o{position:absolute;box-sizing:border-box}
+.lpx-in{background:#1b1a1e;border:1px solid rgba(255,255,255,.13);border-radius:calc(var(--u)*10);color:#fff;font-family:'Barlow','Inter',sans-serif;font-size:calc(var(--u)*15.5);padding:0 calc(var(--u)*18);outline:none}
+.lpx-in::placeholder{color:rgba(255,255,255,.85)}
+.lpx-in:focus{border-color:#ea860c;background:#201f24}
+.lpx-hit{background:transparent;border:0;cursor:pointer;padding:0;border-radius:calc(var(--u)*10)}
+.lpx-hit:focus-visible{outline:2px solid #ffe033}
+.lpx-hit.bt:hover{background:rgba(255,255,255,.07)}
+.lpx-err{display:none;color:#ff8a8a;font-size:calc(var(--u)*13);text-align:center;font-family:'Barlow',sans-serif;background:rgba(10,10,12,.85);border-radius:calc(var(--u)*8);padding:calc(var(--u)*6)}
+.lpx-dica{display:none;font-size:calc(var(--u)*12);line-height:1.45;color:rgba(255,255,255,.85);background:rgba(10,10,12,.92);border:1px solid rgba(255,255,255,.12);border-radius:calc(var(--u)*10);padding:calc(var(--u)*10);font-family:'Barlow',sans-serif}
+.lpx-k{background:#080808;display:flex;flex-direction:column;justify-content:flex-start;padding-top:calc(var(--u)*1)}
+.lpx-k b{font-family:'Barlow Condensed',sans-serif;font-weight:800;color:#fff;font-size:calc(var(--u)*33);line-height:1;letter-spacing:-.2px;white-space:nowrap}
+.lpx-k small{font-family:'Barlow',sans-serif;font-weight:500;color:#58d23a;font-size:calc(var(--u)*13.2);margin-top:calc(var(--u)*5);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+@media (min-width:900px) and (min-aspect-ratio:6/5){
+  .lpx{display:block}
+  #loginScreen.lp{overflow:hidden}
+  #loginScreen.lp .lpm{display:none}
+}
 </style>
+<link href="https://fonts.googleapis.com/css2?family=Permanent+Marker&family=Barlow:wght@400;500;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
 
-<!-- LOGIN -->
-<div id="loginScreen">
-  <div class="login-box">
-    <div class="login-logo">
-      <div class="bolt">⚡</div>
-      <div class="brand">PRORIDER</div>
-      <div class="sub">Painel da Academia</div>
-    </div>
-    <div class="fg"><label>E-mail</label><input type="email" id="lEmail" placeholder="gestor@academia.com"></div>
-    <div class="fg"><label>Senha</label><input type="password" id="lPass" placeholder="••••••••"></div>
-    <button class="login-btn" onclick="doLogin()">ENTRAR</button>
-    <div class="login-err" id="lErr"></div>
+<!-- ENTRADA (29/09b): idêntica à arte do marketing -->
+<div id="loginScreen" class="lp">
+<div class="lpx" id="lpx"><div class="lpx-fill"></div>
+  <div class="lpx-art" id="lpxArt"><img src="img/entrada-arte.jpg" alt="ProRider — Ride with purpose" draggable="false">
+    <input class="lpx-o lpx-in" style="left:77.112%;top:43.548%;width:18.916%;height:5.040%" type="email" id="lEmail" placeholder="voce@academia.com" autocomplete="username">
+    <input class="lpx-o lpx-in" style="left:77.112%;top:52.117%;width:18.916%;height:5.040%" type="password" id="lPass" placeholder="••••••••" autocomplete="current-password">
+    <button type="button" class="lpx-o lpx-hit bt login-btn" style="left:77.112%;top:59.173%;width:18.916%;height:5.040%" onclick="doLogin()" aria-label="Entrar"></button>
+    <button type="button" class="lpx-o lpx-hit" style="left:76.923%;top:65.323%;width:8.953%;height:3.226%" onclick="var d=document.getElementById('lpDica');d.style.display=d.style.display==='block'?'none':'block'" aria-label="Esqueci a senha"></button>
+    <a class="lpx-o lpx-hit" style="left:89.029%;top:65.323%;width:7.188%;height:3.226%" href="/aluno" aria-label="Sou aluno: abrir o app"></a>
+    <button type="button" class="lpx-o lpx-hit" style="left:2.774%;top:62.903%;width:41.488%;height:12.500%" onclick="lpVideo()" aria-label="Assista ao vídeo"></button>
+    <div class="lpx-o lpx-err login-err" id="lErr" style="left:77.112%;top:70.968%;width:18.916%;height:4.032%;height:auto"></div>
+    <div class="lpx-o lpx-dica" id="lpDica" style="left:75.662%;top:70.968%;width:21.942%;height:9.073%;height:auto">Peça ao gestor da sua academia uma senha nova (Portal → Alunos ou Equipe). Gestor: fale com o suporte ProRider.</div>
+    <div class="lpx-o lpx-k" style="left:9.836%;top:80.343%;width:8.575%;height:5.645%"><b data-lp="atl">—</b><small data-lpd="atl">&nbsp;</small></div><div class="lpx-o lpx-k" style="left:24.968%;top:80.343%;width:8.575%;height:5.645%"><b data-lp="km">—</b><small data-lpd="km">&nbsp;</small></div><div class="lpx-o lpx-k" style="left:40.101%;top:80.343%;width:9.079%;height:5.645%"><b data-lp="kcal">—</b><small data-lpd="kcal">&nbsp;</small></div><div class="lpx-o lpx-k" style="left:55.612%;top:80.343%;width:9.332%;height:5.645%"><b data-lp="aulas">—</b><small data-lpd="aulas">&nbsp;</small></div><div class="lpx-o lpx-k" style="left:71.627%;top:80.343%;width:8.827%;height:5.645%"><b data-lp="horas">—</b><small data-lpd="horas">&nbsp;</small></div><div class="lpx-o lpx-k" style="left:87.201%;top:80.343%;width:8.197%;height:5.645%"><b data-lp="wpp">—</b><small data-lpd="wpp">&nbsp;</small></div>
   </div>
+</div>
+
+ <div class="lp-stage lpm">
+  <div class="lp-foto"></div><div class="lp-glow"></div>
+  <div class="lp-top">
+    <img src="img/entrada-logo.jpg" alt="PRO RIDER — Cycling Performance" style="height:50px;display:block;-webkit-mask-image:radial-gradient(ellipse 60% 65% at 50% 50%,#000 70%,transparent 100%);mask-image:radial-gradient(ellipse 60% 65% at 50% 50%,#000 70%,transparent 100%)">
+    <nav class="lp-nav"><span>PERFORMANCE</span><span>SAÚDE</span><span>ENERGIA</span><span>COMUNIDADE</span></nav>
+  </div>
+  <div class="lp-main">
+    <div class="lp-head">
+      <img class="lp-brush" src="img/entrada-titulo.jpg" alt="Ride with purpose" style="transform:none;width:100%;max-width:640px;display:block;margin-top:6px;-webkit-mask-image:radial-gradient(ellipse 75% 70% at 50% 50%,#000 60%,transparent 100%);mask-image:radial-gradient(ellipse 75% 70% at 50% 50%,#000 60%,transparent 100%)">
+      <div class="lp-sub">Potência, zonas e ranking ao vivo<br>na TV da academia e no celular de cada aluno.</div>
+      <div class="lp-live off" data-lp="live"><i></i><span>Conectando…</span></div>
+      <div class="lp-feats">
+        <div class="lp-feat"><svg viewBox="0 0 40 40"><defs><linearGradient id="lpg11" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#d62d2d"/><stop offset=".6" stop-color="#ea860c"/><stop offset="1" stop-color="#ffe033"/></linearGradient></defs><rect x="4" y="22" width="7" height="14" rx="1.5" fill="url(#lpg11)"/><rect x="15" y="14" width="7" height="22" rx="1.5" fill="url(#lpg11)"/><rect x="26" y="5" width="7" height="31" rx="1.5" fill="url(#lpg11)"/></svg>Treinos<br>em tempo real</div>
+        <div class="lp-feat"><svg viewBox="0 0 40 40"><defs><linearGradient id="lpg12" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#d62d2d"/><stop offset=".6" stop-color="#ea860c"/><stop offset="1" stop-color="#ffe033"/></linearGradient></defs><circle cx="20" cy="12" r="6" fill="url(#lpg12)"/><path d="M9 33c0-7 5-11 11-11s11 4 11 11z" fill="url(#lpg12)"/><circle cx="8" cy="15" r="4.5" fill="url(#lpg12)" opacity=".8"/><path d="M0 32c0-5 3-8 8-8 2 0 3 .4 4 1-2 2-3.5 4.5-3.8 7z" fill="url(#lpg12)" opacity=".8"/><circle cx="32" cy="15" r="4.5" fill="url(#lpg12)" opacity=".8"/><path d="M40 32c0-5-3-8-8-8-2 0-3 .4-4 1 2 2 3.5 4.5 3.8 7z" fill="url(#lpg12)" opacity=".8"/></svg>Ranking<br>ao vivo</div>
+        <div class="lp-feat"><svg viewBox="0 0 40 40"><defs><linearGradient id="lpg13" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#d62d2d"/><stop offset=".6" stop-color="#ea860c"/><stop offset="1" stop-color="#ffe033"/></linearGradient></defs><path d="M20 3c2 7 10 11 10 20a10 10 0 0 1-20 0c0-5 3-8 5-10 0 4 2 6 4 6-2-6 1-12 1-16z" fill="url(#lpg13)"/></svg>Zonas de<br>potência</div>
+        <div class="lp-feat"><svg viewBox="0 0 40 40"><defs><linearGradient id="lpg14" x1="0" y1="1" x2="1" y2="0"><stop offset="0" stop-color="#d62d2d"/><stop offset=".6" stop-color="#ea860c"/><stop offset="1" stop-color="#ffe033"/></linearGradient></defs><path d="M3 30 L14 19 L21 25 L33 12" fill="none" stroke="url(#lpg14)" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/><path d="M26 10 L36 9 L35 19" fill="none" stroke="url(#lpg14)" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/><rect x="3" y="33" width="34" height="3" rx="1.5" fill="url(#lpg14)" opacity=".5"/></svg>Evolução<br>contínua</div>
+      </div>
+      <div class="lp-video" onclick="lpVideo()">
+        <div class="pl"></div>
+        <div><small>CONHEÇA O SISTEMA</small><b>ASSISTA AO VÍDEO<span>›</span></b></div>
+        <div class="tv"><i style="left:14px;height:22px;background:#295fe8"></i><i style="left:32px;height:34px;background:#5db13d"></i><i style="left:50px;height:46px;background:#d7c414"></i><i style="left:68px;height:30px;background:#ea860c"></i><i style="left:86px;height:56px;background:#d62d2d"></i><i style="left:104px;height:26px;background:#5db13d"></i></div>
+      </div>
+    </div>
+    <div class="lp-login">
+      <div class="lp-logo"><b>PRO <i>RIDER</i></b><small>CYCLING PERFORMANCE</small></div>
+      <h2>Entrar no Portal</h2>
+      <p>Gestores, coordenadores, financeiro e administração.</p>
+      <label for="lEmail_m">E-mail</label>
+      <input type="email" id="lEmail_m" placeholder="voce@academia.com" autocomplete="username">
+      <label for="lPass_m">Senha</label>
+      <input type="password" id="lPass_m" placeholder="••••••••" autocomplete="current-password">
+      <button type="button" onclick="lpLoginMob()" class="lp-go">ENTRAR</button>
+      <div class="lp-err " id="lErr_m"></div>
+      <div class="lp-links"><span onclick="document.getElementById('lpDicaM').style.display='block'">Esqueci a senha</span><a href="/aluno">Sou aluno → app</a></div>
+      <div class="lp-dica" id="lpDicaM">Peça ao gestor da sua academia para gerar uma senha nova (Portal → Alunos ou Equipe). Gestor: fale com o suporte ProRider.</div>
+    </div>
+  </div>
+  <div class="lp-kpis">
+    <div class="lp-k"><svg viewBox="0 0 40 40"><defs><linearGradient id="lpg15" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#d62d2d"/><stop offset=".6" stop-color="#ea860c"/><stop offset="1" stop-color="#ffe033"/></linearGradient></defs><circle cx="20" cy="12" r="6" fill="url(#lpg15)"/><path d="M9 33c0-7 5-11 11-11s11 4 11 11z" fill="url(#lpg15)"/><circle cx="8" cy="15" r="4.5" fill="url(#lpg15)" opacity=".8"/><path d="M0 32c0-5 3-8 8-8 2 0 3 .4 4 1-2 2-3.5 4.5-3.8 7z" fill="url(#lpg15)" opacity=".8"/><circle cx="32" cy="15" r="4.5" fill="url(#lpg15)" opacity=".8"/><path d="M40 32c0-5-3-8-8-8-2 0-3 .4-4 1 2 2 3.5 4.5 3.8 7z" fill="url(#lpg15)" opacity=".8"/></svg><div><small>Atletas</small><div class="v" data-lp="atl">—</div><div class="d" data-lpd="atl">&nbsp;</div></div></div>
+    <div class="lp-k"><svg viewBox="0 0 40 40"><path d="M14 4 L4 36 M26 4 L36 36" stroke="#fff" stroke-width="3" stroke-linecap="round"/><path d="M20 6v5M20 16v6M20 27v8" stroke="#fff" stroke-width="3" stroke-linecap="round"/></svg><div><small>Km pedalados</small><div class="v" data-lp="km">—</div><div class="d" data-lpd="km">&nbsp;</div></div></div>
+    <div class="lp-k"><svg viewBox="0 0 40 40"><defs><linearGradient id="lpg17" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#d62d2d"/><stop offset=".6" stop-color="#ea860c"/><stop offset="1" stop-color="#ffe033"/></linearGradient></defs><path d="M20 3c2 7 10 11 10 20a10 10 0 0 1-20 0c0-5 3-8 5-10 0 4 2 6 4 6-2-6 1-12 1-16z" fill="url(#lpg17)"/></svg><div><small>Kcal gastas</small><div class="v" data-lp="kcal">—</div><div class="d" data-lpd="kcal">&nbsp;</div></div></div>
+    <div class="lp-k"><svg viewBox="0 0 40 40"><defs><linearGradient id="lpg18" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#ea860c"/><stop offset="1" stop-color="#ffe033"/></linearGradient></defs><path d="M11 4h18v9a9 9 0 0 1-18 0z" fill="url(#lpg18)"/><path d="M11 7H4c0 7 4 10 8 10M29 7h7c0 7-4 10-8 10" fill="none" stroke="url(#lpg18)" stroke-width="3"/><rect x="18" y="21" width="4" height="8" fill="url(#lpg18)"/><rect x="11" y="29" width="18" height="6" rx="1.5" fill="url(#lpg18)"/></svg><div><small>Aulas realizadas</small><div class="v" data-lp="aulas">—</div><div class="d" data-lpd="aulas">&nbsp;</div></div></div>
+    <div class="lp-k"><svg viewBox="0 0 40 40"><defs><linearGradient id="lpg19" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#d62d2d"/><stop offset=".6" stop-color="#ea860c"/><stop offset="1" stop-color="#ffe033"/></linearGradient></defs><rect x="4" y="22" width="7" height="14" rx="1.5" fill="url(#lpg19)"/><rect x="15" y="14" width="7" height="22" rx="1.5" fill="url(#lpg19)"/><rect x="26" y="5" width="7" height="31" rx="1.5" fill="url(#lpg19)"/></svg><div><small>Horas pedaladas</small><div class="v" data-lp="horas">—</div><div class="d">de treino</div></div></div>
+    <div class="lp-k"><svg viewBox="0 0 40 40"><defs><linearGradient id="lpg20" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffe033"/><stop offset=".6" stop-color="#ea860c"/><stop offset="1" stop-color="#d62d2d"/></linearGradient></defs><path d="M25 2 L8 22 L18 22 L13 38 L32 15 L21 15 Z" fill="url(#lpg20)"/></svg><div><small>WPP total</small><div class="v" data-lp="wpp">—</div><div class="d">pontos de esforço</div></div></div>
+  </div>
+  <div class="lp-zonas"><svg viewBox="0 0 1440 110" preserveAspectRatio="none">
+    <defs><linearGradient id="lpzf" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".45"/></linearGradient></defs>
+    <path d="M0 42 C80 34 160 40 233 36 L233 110 L0 110Z" fill="#6b6b75"/><path d="M0 42 C80 34 160 40 233 36" stroke="#d9d9df" stroke-width="3" fill="none"/>
+    <path d="M233 36 C300 26 380 20 468 26 L468 110 L233 110Z" fill="#1c45b8"/><path d="M233 36 C300 26 380 20 468 26" stroke="#4d86ff" stroke-width="3" fill="none"/>
+    <path d="M468 26 C530 16 600 12 663 18 L663 110 L468 110Z" fill="#2f7a1f"/><path d="M468 26 C530 16 600 12 663 18" stroke="#5db13d" stroke-width="3" fill="none"/>
+    <path d="M663 18 C730 4 810 2 876 14 L876 110 L663 110Z" fill="#9c8a0b"/><path d="M663 18 C730 4 810 2 876 14" stroke="#ffe033" stroke-width="3" fill="none"/>
+    <path d="M876 14 C940 20 1000 22 1057 26 L1057 110 L876 110Z" fill="#a3170f"/><path d="M876 14 C940 20 1000 22 1057 26" stroke="#ff4a2b" stroke-width="3" fill="none"/>
+    <path d="M1057 26 C1140 22 1220 30 1273 40 C1330 50 1390 64 1440 70 L1440 110 L1057 110Z" fill="#7e0c0c"/><path d="M1057 26 C1140 22 1220 30 1273 40 C1330 50 1390 64 1440 70" stroke="#ff2d2d" stroke-width="3" fill="none"/>
+    <rect width="1440" height="110" fill="url(#lpzf)"/></svg></div>
+  <div class="lp-zlab"><div><b>Z1</b><small>RECUPERAÇÃO</small></div><div><b>Z2</b><small>RESISTÊNCIA</small></div><div><b>Z3</b><small>RITMO</small></div><div><b>Z4</b><small>LIMIAR</small></div><div><b>Z5</b><small>VO2</small></div><div><b>Z6</b><small>ANAERÓBICO</small></div></div>
+ </div>
+ <div class="lp-modal" id="lpModal" onclick="if(event.target===this)this.classList.remove('open')"><div class="box"><button class="x" onclick="document.getElementById('lpModal').classList.remove('open')">✕</button><div id="lpModalIn"></div></div></div>
+
 </div>
 
 <!-- APP -->
@@ -331,6 +526,55 @@ button{font-family:inherit}
     </div>
   </div>
 
+
+  <!-- PÁGINA NO SITE (29/09a) -->
+  <div class="page content" id="page-pagina">
+    <div class="pr-hd"><div><h1>Página no site</h1><p>Números, grade e ranking da academia para colocar no site dela — atualiza sozinha</p></div>
+      <a class="pr-btn pr-bp" id="pgAbrir" href="#" target="_blank">Abrir a página ↗</a></div>
+    <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.5fr);gap:22px" class="pr-dash2">
+      <div>
+        <div class="pr-card" style="margin-bottom:14px"><h3>O que aparece</h3><div id="pgCfg"></div>
+          <div class="pr-tg">Cor da academia <input type="color" id="pgCor" onchange="pgSalvar()" style="width:54px;height:32px;border:0;background:none;cursor:pointer"></div>
+          <div class="pr-tg" style="margin:0">Ranking do mês por
+            <select id="pgRk" onchange="pgSalvar()" style="background:var(--card);border:1px solid var(--border);color:#fff;border-radius:8px;padding:6px 10px;font-family:inherit"><option value="aulas">Aulas</option><option value="kcal">Kcal</option><option value="pontos">Pontos</option></select></div>
+        </div>
+        <div class="pr-card"><h3>Link e código para o site</h3>
+          <div class="pr-fg"><label>Link direto</label><input id="pgLink" readonly onclick="this.select()"></div>
+          <div class="pr-fg" style="margin-top:12px"><label>Código para colar no site (iframe)</label><textarea id="pgEmbed" readonly onclick="this.select()" style="background:var(--card2);border:1px solid var(--border);border-radius:9px;padding:10px 12px;color:#fff;font-family:monospace;font-size:12px;min-height:84px;resize:vertical"></textarea></div>
+          <div style="display:flex;gap:10px;margin-top:12px"><button class="pr-btn pr-bg pr-bs" onclick="copiar('pgLink')">Copiar link</button><button class="pr-btn pr-bg pr-bs" onclick="copiar('pgEmbed')">Copiar código</button></div>
+          <div class="pr-note" style="margin-top:10px">Quem cuida do site da academia cola o código onde quiser que a página apareça. Só aparece o primeiro nome e a inicial do sobrenome dos alunos.</div>
+        </div>
+      </div>
+      <div class="pr-card" style="padding:0;overflow:hidden"><iframe id="pgPrev" style="width:100%;height:760px;border:0;background:#0b0b0e"></iframe></div>
+    </div>
+  </div>
+
+  <!-- TOTEM NA PORTA (29/09a) -->
+  <div class="page content" id="page-totem">
+    <div class="pr-hd"><div><h1>Totem na porta</h1><p>Um tablet na porta da sala para reservar, se cadastrar e entrar na aula sem celular</p></div>
+      <a class="pr-btn pr-bp" id="ttAbrir" href="#" target="_blank">Abrir o totem ↗</a></div>
+    <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:22px" class="pr-dash2">
+      <div class="pr-card"><h3>Link do totem desta academia</h3>
+        <div style="display:flex;gap:18px;align-items:center;flex-wrap:wrap">
+          <div style="background:#fff;padding:10px;border-radius:12px"><img id="ttQr" width="170" height="170" alt="QR do totem"></div>
+          <div style="flex:1;min-width:220px">
+            <div class="pr-fg"><label>Link</label><input id="ttLink" readonly onclick="this.select()"></div>
+            <div style="display:flex;gap:10px;margin-top:12px;flex-wrap:wrap"><button class="pr-btn pr-bg pr-bs" onclick="copiar('ttLink')">Copiar link</button><button class="pr-btn pr-bg pr-bs" id="ttNovo" onclick="ttNovo()">Trocar código</button></div>
+            <div class="pr-note" style="margin-top:10px">Escaneie o QR com o tablet para abrir. "Trocar código" desliga o link antigo na hora (use se o tablet sumir).</div>
+          </div>
+        </div>
+      </div>
+      <div class="pr-card"><h3>Como deixar o tablet preso no totem</h3>
+        <div class="pr-note" style="font-size:13.5px;line-height:1.7">
+          <b style="color:#fff">1.</b> Abra o link no tablet e toque em <b style="color:#fff">Adicionar à tela de início</b> (abre em tela cheia).<br>
+          <b style="color:#fff">2. iPad:</b> Ajustes → Acessibilidade → <b style="color:#fff">Acesso Guiado</b> → ligar. Abra o totem e toque 3× no botão lateral.<br>
+          <b style="color:#fff">3. Android:</b> Configurações → Segurança → <b style="color:#fff">Fixar app</b> (ou "Fixação de tela"). Abra o totem e fixe.<br>
+          <b style="color:#fff">4.</b> Deixe o tablet na tomada, com a tela sempre ligada (Brilho → nunca bloquear).<br><br>
+          O totem mostra só: <b style="color:#fff">reservar pelo e-mail</b>, <b style="color:#fff">cadastro rápido com foto</b>, <b style="color:#fff">pedalar sem conta</b> e, quando o professor abre a aula na TV, <b style="color:#5db13d">entrar na aula</b> escolhendo a bike. Parado 60 s, volta ao início.
+        </div>
+      </div>
+    </div>
+  </div>
   <!-- CRIAR AULA (26/09e) -->
   <div class="page content" id="page-criar">
     <div class="pr-hd"><div><h1>Criar aula</h1><p>Tudo o que a academia precisa para montar e rodar uma aula</p></div></div>
@@ -902,6 +1146,56 @@ button{font-family:inherit}
 
 <script>
 const SERVER = 'https://prorider-server-production-5784.up.railway.app';
+
+// ── Entrada (29/09b): arte exata + números ao vivo ──
+var PR_VIDEO_URL = '';
+var PR_ART_W = 1586, PR_ART_H = 992;
+function lpxEncaixa(){
+  var a=document.getElementById('lpxArt'); if(!a) return;
+  var k=Math.min(window.innerWidth/PR_ART_W, window.innerHeight/PR_ART_H);
+  a.style.width=Math.round(PR_ART_W*k)+'px'; a.style.height=Math.round(PR_ART_H*k)+'px';
+  a.style.setProperty('--u', k+'px');
+}
+window.addEventListener('resize', lpxEncaixa); setTimeout(lpxEncaixa, 0);
+function lpFmt(n){ n=Number(n)||0; if(n>=1e6) return (n/1e6).toFixed(n>=1e7?0:1).replace('.',',')+' mi'; if(n>=1e5) return Math.round(n/1e3).toLocaleString('pt-BR')+' mil'; return Math.round(n).toLocaleString('pt-BR'); }
+function lpConta(key, alvo){
+  document.querySelectorAll('[data-lp="'+key+'"]').forEach(function(el){
+    var ini=Number(el.dataset.v||0), t0=performance.now(), dur=1200; el.dataset.v=alvo;
+    (function tick(t){ var k=Math.min(1,(t-t0)/dur); k=1-Math.pow(1-k,3); el.textContent=lpFmt(ini+(alvo-ini)*k); if(k<1) requestAnimationFrame(tick); })(t0);
+  });
+}
+function lpD(key, txt){ document.querySelectorAll('[data-lpd="'+key+'"]').forEach(function(el){ el.textContent=txt; }); }
+async function lpStats(){
+  var ls=document.getElementById('loginScreen'); if(!ls || ls.style.display==='none') return;
+  try{
+    var r=await fetch(SERVER+'/public/stats'); if(!r.ok) return; var s=await r.json();
+    lpConta('atl', s.atletas); lpConta('km', s.km); lpConta('kcal', s.kcal); lpConta('aulas', s.aulas); lpConta('horas', s.horas); lpConta('wpp', s.wpp_total);
+    lpD('atl', s.novos_7d ? '+'+s.novos_7d+' esta semana' : 'cadastrados');
+    var voltas=s.km/40075, rio=s.km/430;
+    lpD('km', voltas>=0.1 ? '+'+voltas.toFixed(1).replace('.',',')+' volta'+(voltas>=2?'s':'')+' na Terra' : (rio>=1 ? '≈ '+rio.toFixed(0)+'× São Paulo–Rio' : 'e contando'));
+    lpD('kcal', s.kcal_hoje ? '+'+lpFmt(s.kcal_hoje)+' hoje' : 'desde o início');
+    lpD('aulas', s.aulas_hoje ? '+'+s.aulas_hoje+' hoje' : 'desde o início');
+    lpD('horas', 'de treino');
+    lpD('wpp', 'pontos de esforço');
+    document.querySelectorAll('[data-lp="live"]').forEach(function(lv){ var av=s.ao_vivo||{};
+      if(av.aulas>0||av.bikes>0){ lv.classList.remove('off'); lv.querySelector('span').textContent='AO VIVO · '+av.aulas+' aula'+(av.aulas==1?'':'s')+' agora · '+av.bikes+' bike'+(av.bikes==1?'':'s')+' pedalando'; }
+      else { lv.classList.add('off'); lv.querySelector('span').textContent='Sistema online · nenhuma aula neste momento'; } });
+  }catch(e){}
+}
+// celular: os campos da versão empilhada alimentam os campos principais
+function lpSync(){ ['lEmail','lPass'].forEach(function(id){ var m=document.getElementById(id+'_m'), p=document.getElementById(id); if(m&&p) p.value=m.value; }); }
+function lpLoginMob(){ lpSync(); doLogin(); var e=document.getElementById('lErr'), em=document.getElementById('lErr_m'); if(e&&em){ setTimeout(function(){ em.textContent=e.textContent; em.style.display=e.style.display; },900); } }
+document.addEventListener('input', function(ev){ if(ev.target && /_m$/.test(ev.target.id||'')) lpSync(); }, true);
+function lpVideo(){
+  var m=document.getElementById('lpModal'), box=document.getElementById('lpModalIn');
+  var u=String(PR_VIDEO_URL||''), id=(u.match(/(?:youtu\.be\/|v=|embed\/)([\w-]{11})/)||[])[1];
+  box.innerHTML = id ? '<iframe src="https://www.youtube.com/embed/'+id+'?autoplay=1&rel=0" allow="autoplay; encrypted-media; fullscreen" allowfullscreen></iframe>'
+                     : '<div class="emb">🎬 O vídeo de apresentação do ProRider chega em breve.</div>';
+  m.classList.add('open');
+}
+function lpLogoToque(){}
+setTimeout(lpStats, 300); setInterval(lpStats, 30000);
+
 // Impersonação usa sessionStorage (não polui localStorage; some ao fechar a aba)
 var _impSession = sessionStorage.getItem('pr_imp_token') ? {
   token: sessionStorage.getItem('pr_imp_token'),
@@ -936,6 +1230,8 @@ const PR_NAV = [
     ['relatorio','📊','Relatórios',[]],
     ['emails','✉','E-mails automáticos',['gestor','coordenador','admin','super_admin']],
     ['qrcodes','🔲','QR das bikes',['gestor','coordenador','admin','super_admin']],
+    ['totem','📲','Totem na porta',['gestor','coordenador','admin','super_admin']],
+    ['pagina','🌐','Página no site',['gestor','coordenador','admin','super_admin']],
     ['financeiro','💳','Financeiro',['gestor','financeiro','admin','super_admin']],
   ]],
   ['Conta', [
@@ -1269,6 +1565,41 @@ async function emTeste(){
   catch(e) { toast('⚠ ' + e.message); }
 }
 
+// ── Página no site (29/09a) ──
+const PG_INFO = [['numeros','Números da academia','atletas, km, kcal, aulas, bikes'],['aovivo','Aula ao vivo','faixa "Aula agora" quando tem aula'],['grade','Grade da semana','com o botão Reservar pelo app'],['ranking','Ranking do mês','os 10 primeiros, com brasão'],['fotos','Fotos dos alunos','no ranking (sem foto aparecem as iniciais)']];
+let pgCfg = {};
+async function loadPagina(){
+  try {
+    const d = await api('/gestor/pagina'); pgCfg = d.cfg || {};
+    const pode = ['gestor','admin','super_admin'].includes(prPapel());
+    document.getElementById('pgCfg').innerHTML = PG_INFO.map(([k,n,dd]) => `<div class="pr-tg"><span>${n}<small>${dd}</small></span><button class="pr-sw${pgCfg[k]?'':' off'}" ${pode?`onclick="pgAlt('${k}')"`:'disabled'}></button></div>`).join('');
+    document.getElementById('pgCor').value = pgCfg.cor || '#ea860c'; document.getElementById('pgCor').disabled = !pode;
+    document.getElementById('pgRk').value = pgCfg.ranking_por || 'aulas'; document.getElementById('pgRk').disabled = !pode;
+    document.getElementById('pgLink').value = d.url;
+    document.getElementById('pgEmbed').value = '<iframe src="' + d.url + '" style="width:100%;height:900px;border:0;border-radius:12px" loading="lazy" title="Ciclismo indoor ProRider"></iframe>';
+    document.getElementById('pgAbrir').href = d.url;
+    const pr = document.getElementById('pgPrev'); pr.src = 'academia-publica.html?c=' + encodeURIComponent(d.codigo) + '&t=' + Date.now();
+  } catch(e) { toast('⚠ ' + e.message); }
+}
+function pgAlt(k){ pgCfg[k] = !pgCfg[k]; pgSalvar(); }
+async function pgSalvar(){
+  pgCfg.cor = document.getElementById('pgCor').value; pgCfg.ranking_por = document.getElementById('pgRk').value;
+  try { await apiSend('PUT', '/gestor/pagina', pgCfg); toast('✓ Página atualizada'); loadPagina(); } catch(e) { toast('⚠ ' + e.message); }
+}
+function copiar(id){ const el = document.getElementById(id); el.select(); try { navigator.clipboard.writeText(el.value); } catch(e) { document.execCommand('copy'); } toast('✓ Copiado'); }
+// ── Totem (29/09a) ──
+async function loadTotem(novo){
+  try {
+    const d = await api('/gestor/totem' + (novo ? '?novo=1' : ''));
+    if (d.error) throw new Error(d.error);
+    document.getElementById('ttLink').value = d.url;
+    document.getElementById('ttAbrir').href = d.url;
+    document.getElementById('ttQr').src = _qrImgUrl(d.url, 340);
+    document.getElementById('ttNovo').style.display = ['gestor','admin','super_admin'].includes(prPapel()) ? '' : 'none';
+  } catch(e) { toast('⚠ ' + e.message); }
+}
+function ttNovo(){ if (confirm('Trocar o código do totem? O link antigo para de funcionar na hora.')) loadTotem(true); }
+
 // ── Navegação (26/09e) ──
 function showTab(t) {
   if (!prPode(t)) t = 'dashboard';
@@ -1290,6 +1621,8 @@ function showTab(t) {
   if (t === 'rankingtv') loadRankingTv();
   if (t === 'perfil') loadPerfil();
   if (t === 'emails') loadEmails();
+  if (t === 'pagina') loadPagina();
+  if (t === 'totem') loadTotem();
 }
 function voltarAoAdmin(){
   sessionStorage.removeItem('pr_imp_token');
@@ -2108,8 +2441,10 @@ init();
 // ══════════════════════════════════════════════════════════════
 
 function _qrImgUrl(text, size) {
-  return 'https://chart.googleapis.com/chart?cht=qr&chs=' + size + 'x' + size
-    + '&chl=' + encodeURIComponent(text) + '&choe=UTF-8&chld=M|1';
+  // 29/09a: o gerador de QR do Google (chart.googleapis.com) foi desligado —
+  // as imagens vinham quebradas. Troca para api.qrserver.com.
+  return 'https://api.qrserver.com/v1/create-qr-code/?size=' + size + 'x' + size
+    + '&margin=6&ecc=M&data=' + encodeURIComponent(text);
 }
 
 function _qrPortaHtml(payload, size) {

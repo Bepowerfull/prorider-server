@@ -24,7 +24,7 @@ const DB_URL     = process.env.DATABASE_URL;
 const path = require('path');
 const app = express();
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '1mb' }));  // 29/09a: foto do totem (~50–250 KB)
 app.use(express.static(path.join(__dirname, 'public')));
 
 // ══ PostgreSQL ════════════════════════════════════════════════
@@ -79,16 +79,24 @@ function requireRole(...roles) {
   };
 }
 
+// 29/09b — BRASÕES. Escada do Mario: três brasões antes do Bronze
+// (Aquecimento, Cadência, Pelotão), Bronze a partir de 600 e o topo
+// alcançável em ~1 ano (Mestre) a ~1,5 ano (Lenda) com 3 aulas por semana. A mesma tabela está em
+// public/brasoes.js (desenho) — mudar as duas juntas.
+const NIVEIS = [
+  ['aquecimento', 0], ['cadencia', 200], ['pelotao', 400],
+  ['bronze1', 600], ['bronze2', 900], ['bronze3', 1200],
+  ['prata1', 1600], ['prata2', 2100], ['prata3', 2700],
+  ['ouro1', 3400], ['ouro2', 4300], ['ouro3', 5300],
+  ['platina1', 6500], ['platina2', 8000], ['platina3', 9700],
+  ['diamante1', 11800], ['diamante2', 14300], ['diamante3', 17200],
+  ['mestre', 25000], ['lenda', 35000],
+];
 function calcLevel(points) {
-  if (points >= 80000) return 'godmode';
-  if (points >= 40000) return 'legend';
-  if (points >= 20000) return 'champion';
-  if (points >= 10000) return 'master';
-  if (points >= 5000)  return 'elite';
-  if (points >= 2000)  return 'avancado';
-  if (points >= 800)   return 'intermediario';
-  if (points >= 300)   return 'basico';
-  return 'iniciante';
+  const p = parseInt(points) || 0;
+  let k = 'aquecimento';
+  for (const [key, min] of NIVEIS) if (p >= min) k = key;
+  return k;
 }
 
 function calcPoints(aulaData) {
@@ -214,14 +222,15 @@ async function _userLic(uid) {
 }
 async function emailBoasVindas({ userId, email, nome, academia, licId, senhaTemp, papel }) {
   if (licId) { const c = await emailsCfgDe(licId); if (!c.boas_vindas) return false; }
-  const gestor = papel && papel !== 'aluno';
+  const gestor = papel && papel !== 'aluno' && papel !== 'aluno_totem';
   const corpo = gestor
     ? `<p>Olá, <b>${_esc(nome || '')}</b>! A licença <b>${_esc(academia || '')}</b> está pronta no ProRider.</p>
        <p>Entre no Portal com:</p>
        <p style="background:#0b0b0e;border-radius:8px;padding:12px 14px">E-mail: <b>${_esc(email)}</b>${senhaTemp ? `<br>Senha provisória: <b>${_esc(senhaTemp)}</b>` : ''}</p>
        <p>No Portal você monta a agenda, acompanha os alunos, escolhe o que aparece no ranking da TV e muito mais.${senhaTemp ? ' Troque a senha no primeiro acesso.' : ''}</p>`
     : `<p>Olá, <b>${_esc(nome || '')}</b>! Seja bem-vindo(a) ao ProRider${academia ? ` da <b>${_esc(academia)}</b>` : ''}.</p>
-       <p>Na aula, escaneie o QR da bike com o app e acompanhe potência, zonas e calorias em tempo real. Depois de cada aula você recebe o seu resumo.</p>`;
+       <p>Na aula, escaneie o QR da bike com o app e acompanhe potência, zonas e calorias em tempo real. Depois de cada aula você recebe o seu resumo.</p>
+       ${senhaTemp ? `<p style="background:#0b0b0e;border-radius:8px;padding:12px 14px">Seu acesso ao app: <b>${_esc(email)}</b><br>Senha provisória: <b>${_esc(senhaTemp)}</b></p>` : ''}`;
   return emailUmaVez('boas_vindas', 'u' + (userId || email), userId, email,
     gestor ? `Sua licença ProRider está pronta — ${academia || ''}` : `Bem-vindo(a) ao ProRider${academia ? ' — ' + academia : ''}`,
     emailLayout(gestor ? 'Bem-vindo ao Portal ProRider' : 'Bem-vindo(a)!', corpo,
@@ -743,6 +752,17 @@ async function runMigrations() {
       WHERE NOT EXISTS (SELECT 1 FROM aula_historico ah WHERE ah.user_id=ac.user_id AND ah.data_aula=ac.completed_at)
     `);
     log('Migração portal 26/09e OK');
+    // 29/09a: brasões novos — recalcula o nível de todo mundo pelos pontos
+    {
+      const casos = NIVEIS.slice().reverse().map(([k, min]) => `WHEN COALESCE(points,0) >= ${min} THEN '${k}'`).join(' ');
+      await db.query(`UPDATE users SET level = CASE ${casos} ELSE 'aquecimento' END WHERE level IS DISTINCT FROM (CASE ${casos} ELSE 'aquecimento' END)`);
+    }
+    await db.query(`
+      ALTER TABLE licencas
+        ADD COLUMN IF NOT EXISTS pagina_cfg  JSONB,
+        ADD COLUMN IF NOT EXISTS totem_token TEXT
+    `);
+    log('Migração 29/09a (brasões, página pública, totem) OK');
 
   } catch(e) {
     log('Migração ERRO: ' + e.message);
@@ -1493,7 +1513,8 @@ wss.on('connection', (ws) => {
         if (msg.display_token) {
           try { const _dp = jwt.verify(msg.display_token, JWT_SECRET); if (_dp && _dp.license_id) salas[codigo].licenca = _dp.license_id; } catch (e) {}
         }
-        const _lista = [...salas[codigo].alunos.entries()].map(([n, aws]) => ({ nome: n, bike: aws._bikeNum || null }));
+        const _lista = [...salas[codigo].alunos.entries()].map(([n, aws]) => ({ nome: n, bike: aws._bikeNum || null }))
+          .concat([...(salas[codigo].totem || new Map()).entries()].map(([n, t]) => ({ nome: n, bike: t.bike, totem: true })));
         ws.send(JSON.stringify({ tipo: 'sala_criada', codigo, retomada: !!existente, alunos: _lista }));
         break;
       }
@@ -1576,7 +1597,7 @@ wss.on('connection', (ws) => {
         ws._salaCode = codigo; ws._tipo = 'aluno'; ws._nome = nome; ws._bike = bike || null; ws._bikeNum = bike ? Number(bike) : null;
         log(`Aluno entrou: ${nome} na sala ${codigo}`);
         if (sala.professor && sala.professor.readyState === WebSocket.OPEN) {
-          sala.professor.send(JSON.stringify({ tipo: 'aluno_conectou', nome, bike: bike || null, foto: msg.foto || null, ftpBase: (msg.ftpBase != null ? msg.ftpBase : null), genero: ((msg.genero === 'F' || msg.genero === 'M') ? msg.genero : null), horario: new Date().toLocaleTimeString('pt-BR') })); // 26/09b: genero para o desafio Homens x Mulheres
+          sala.professor.send(JSON.stringify({ tipo: 'aluno_conectou', nome, bike: bike || null, foto: msg.foto || null, ftpBase: (msg.ftpBase != null ? msg.ftpBase : null), genero: ((msg.genero === 'F' || msg.genero === 'M') ? msg.genero : null), nivel: (typeof msg.nivel === 'string' ? msg.nivel.slice(0, 20) : null), horario: new Date().toLocaleTimeString('pt-BR') })); // 29/09a: nivel = brasão // 26/09b: genero para o desafio Homens x Mulheres
         }
         ws.send(JSON.stringify({ tipo: 'conectado', codigo, nome }));
         ws.send(JSON.stringify({ tipo: 'entrou_sala', codigo, nome }));
@@ -1607,6 +1628,12 @@ wss.on('connection', (ws) => {
         const sala = salas[salaCode];
         const info = { tipo: 'sala_info', numBikes: msg.numBikes || 0, bikes: msg.bikes || [], ocupadas: msg.ocupadas || [], ocupantes: (msg.ocupantes && typeof msg.ocupantes === 'object') ? msg.ocupantes : {}, trancadas: [...(sala.trancadas || [])] }; // 26/09b: ocupantes = {bike: nome}
         sala.lastSalaInfo = info; // cache: novo observador recebe o mapa na hora
+        // 29/09a: nome/professor da aula escolhida na pré-aula (faixa verde do app e totem)
+        // Nova pré-aula depois de uma aula encerrada (mesma sala): volta a
+        // valer como aula aberta para a faixa verde e o totem.
+        if (msg.aula && typeof msg.aula === 'object' && sala.estado.encerrada && Date.now() - (sala.fimEm || 0) > 60000) sala.estado.encerrada = false;
+        if (msg.aula && typeof msg.aula === 'object')
+          sala.preAula = { nome: String(msg.aula.nome || '').slice(0, 80), professor: String(msg.aula.professor || '').slice(0, 80), duracao_min: parseInt(msg.aula.duracao_min) || null, desde: sala.preAula ? sala.preAula.desde : Date.now() };
         const data = JSON.stringify(info);
         for (const [, aws] of sala.alunos) { if (aws.readyState === WebSocket.OPEN) aws.send(data); }
         for (const ows of sala.observadores) { if (ows.readyState === WebSocket.OPEN) ows.send(data); }
@@ -1780,6 +1807,7 @@ wss.on('connection', (ws) => {
         if (!salaCode || !salas[salaCode]) return;
         salas[salaCode].estado.iniciada = false;
         salas[salaCode].estado.encerrada = true;   // 26/09d: quem (re)entrar depois recebe o fim
+        salas[salaCode].fimEm = Date.now(); salas[salaCode].totem = new Map(); salas[salaCode].preAula = null; // 29/09a
         log(`Aula encerrada na sala ${salaCode}`);
         broadcastAlunos(salaCode, { tipo: 'fim_aula' });
         break;
@@ -2314,7 +2342,8 @@ app.get('/display/licenca', displayAuth, async (req, res) => {
     const l = r.rows[0];
     res.json({ codigo: l.codigo, nome: l.nome, max_bikes: parseInt(l.max_bikes)||0,
                bikes_disponiveis: parseInt(l.bikes_disponiveis)||0, teto: _tetoDe(l),
-               ranking_cfg: rankCfgLimpa(l.ranking_cfg || RANK_PADRAO) });  // 26/09e
+               ranking_cfg: rankCfgLimpa(l.ranking_cfg || RANK_PADRAO),  // 26/09e
+               numeros: await numerosAcademia(l.codigo) });              // 29/09a: km e kcal na tela de espera
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
@@ -2354,14 +2383,17 @@ app.get('/display/agenda', displayAuth, async (req, res) => {
     const nowBR = new Date(new Date().toLocaleString('en-US', {timeZone:'America/Sao_Paulo'}));
     const diaN  = nowBR.getDay();
     const r = await db.query(
-      `SELECT a.*, p.name AS professor_nome
+      `SELECT a.*, COALESCE(p.name, a.professor_nome) AS professor_nome,
+         (SELECT COUNT(*)::int FROM aulas_reservas r WHERE r.agenda_id=a.id AND r.data_aula=$3::date AND r.status<>'cancelado') AS reservas_hoje
        FROM aulas_agenda a
        LEFT JOIN users p ON p.id = a.professor_id
        WHERE a.license_id=$1 AND a.dia_semana=$2 AND a.ativa=true
        ORDER BY a.hora`,
-      [licId, diaN]
+      [licId, diaN, nowBR.getFullYear() + '-' + String(nowBR.getMonth() + 1).padStart(2, '0') + '-' + String(nowBR.getDate()).padStart(2, '0')]
     );
-    res.json(r.rows);
+    // 29/09a: nunca mostra mais vagas que as bikes da licença
+    const teto = await tetoLicenca(licId);
+    res.json(r.rows.map(a => Object.assign(a, { vagas_max: _capVagas(a.vagas_max, teto) })));
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
@@ -3370,26 +3402,325 @@ app.get('/professor/licencas', authMiddleware, async (req, res) => {
 
 // Aula ativa agora numa licença — sem autenticação (mesma info do QR na parede)
 app.get('/agenda/aula-ativa/:license_id', async (req, res) => {
-  const licenseId = req.params.license_id;
-  // Procurar nas salas em memória se há uma sala ativa para essa licença
+  // 29/09a: a sala do Ginásio sabe a academia (token do display no
+  // criar_sala). Aula ativa = Ginásio conectado com a sala aberta: da
+  // pré-aula (tela do QR) até o fim. Vale também para aula fora da grade.
+  const r = aulaAtivaDe(req.params.license_id);
+  if (r) return res.json(r);
+  // legado: sessões criadas pelo Portal (sessoes_ao_vivo)
   for (const [codigo, sala] of Object.entries(salas)) {
-    if (sala.professor && sala.professor.readyState === WebSocket.OPEN) {
-      // Tentar associar ao license_id via banco
-      if (db) {
-        try {
-          const r = await db.query(
-            "SELECT sv.token, sv.nome_aula, u.name as professor FROM sessoes_ao_vivo sv LEFT JOIN users u ON u.id=sv.professor_id WHERE sv.token=$1 AND sv.status IN ('ativa','em_andamento') AND sv.license_id=$2 LIMIT 1",
-            [codigo, licenseId]
-          );
-          if (r.rows.length) {
-            const row = r.rows[0];
-            return res.json({ ativa: true, codigo: row.token, nome_aula: row.nome_aula || sala.estado.nomeAula || '', professor: row.professor || '', desde: sala._criadaEm || null });
-          }
-        } catch(e) { /* segue */ }
-      }
+    if (sala.professor && sala.professor.readyState === WebSocket.OPEN && db) {
+      try {
+        const q = await db.query("SELECT sv.token, sv.nome_aula, u.name as professor FROM sessoes_ao_vivo sv LEFT JOIN users u ON u.id=sv.professor_id WHERE sv.token=$1 AND sv.status IN ('ativa','em_andamento') AND sv.license_id=$2 LIMIT 1", [codigo, req.params.license_id]);
+        if (q.rows.length) return res.json({ ativa: true, codigo: q.rows[0].token, nome_aula: q.rows[0].nome_aula || sala.estado.nomeAula || '', professor: q.rows[0].professor || '' });
+      } catch (e) {}
     }
   }
   res.json({ ativa: false });
+});
+function aulaAtivaDe(licId) {
+  for (const [codigo, sala] of Object.entries(salas)) {
+    if (!sala.licenca || String(sala.licenca) !== String(licId)) continue;
+    if (!sala.professor || sala.professor.readyState !== WebSocket.OPEN) continue;
+    if (sala.estado && sala.estado.encerrada) continue;
+    const info = sala.lastSalaInfo || {};
+    const pedalando = [...sala.alunos.values()].filter(w => w.readyState === WebSocket.OPEN).length + (sala.totem ? sala.totem.size : 0);
+    const num = parseInt(info.numBikes) || 0;
+    const ocupadas = (info.ocupadas || []).length;
+    const pre = sala.preAula || {};
+    return {
+      ativa: true, codigo,
+      nome_aula: (sala.estado && sala.estado.nomeAula) || pre.nome || 'Aula ao vivo',
+      professor: pre.professor || '', duracao_min: pre.duracao_min || null,
+      iniciada: !!(sala.estado && sala.estado.iniciada),
+      desde: pre.desde || null,
+      pedalando, bikes: num, livres: num ? Math.max(0, num - ocupadas) : null,
+      bikes_lista: info.bikes || [], ocupadas: info.ocupadas || []
+    };
+  }
+  return null;
+}
+
+// ══════════════════════════════════════════════════════════════
+// 29/09a — NÚMEROS PÚBLICOS, PÁGINA DA ACADEMIA E TOTEM
+// ══════════════════════════════════════════════════════════════
+// Km: o banco guarda potência média e duração, não distância. A distância
+// é estimada pela potência (modelo de ciclismo em plano, CdA·ρ ≈ 0,5 · v³):
+// v (m/s) = (P / 0,25)^(1/3). 200 W ≈ 33 km/h.
+const SQL_KM = `COALESCE(SUM( (ah.dur_seg/3600.0) * 3.6 * POWER(GREATEST(COALESCE(ah.avg_watts,0),0)/0.25, 1.0/3) ),0)`;
+let _pubStatsCache = null, _pubStatsEm = 0;
+app.get('/public/stats', async (req, res) => {
+  res.setHeader('Cache-Control', 'public, max-age=20');
+  if (!db) return res.status(503).json({ error: 'Banco indisponível' });
+  try {
+    if (!_pubStatsCache || Date.now() - _pubStatsEm > 30000) {
+      const hojeBR = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
+      const hoje = hojeBR.getFullYear() + '-' + String(hojeBR.getMonth() + 1).padStart(2, '0') + '-' + String(hojeBR.getDate()).padStart(2, '0');
+      const [u, a, h] = await Promise.all([
+        db.query(`SELECT COUNT(*)::int AS atletas,
+                         COUNT(*) FILTER (WHERE created_at > NOW()-INTERVAL '7 days')::int AS novos_7d,
+                         COALESCE(SUM(points),0)::bigint AS wpp_total FROM users`),
+        db.query(`SELECT COUNT(*)::int AS aulas, COALESCE(SUM(kcal),0)::bigint AS kcal,
+                         COALESCE(SUM(dur_seg),0)::bigint AS seg, ${SQL_KM} AS km,
+                         COUNT(*) FILTER (WHERE data_aula >= $1::date)::int AS aulas_hoje,
+                         COALESCE(SUM(kcal) FILTER (WHERE data_aula >= $1::date),0)::bigint AS kcal_hoje
+                  FROM aula_historico ah`, [hoje]),
+        db.query(`SELECT COALESCE(SUM(dur_seg),0)::bigint AS seg_mes_passado FROM aula_historico WHERE data_aula BETWEEN NOW()-INTERVAL '60 days' AND NOW()-INTERVAL '30 days'`),
+      ]);
+      const x = Object.assign({}, u.rows[0], a.rows[0]);
+      _pubStatsCache = {
+        atletas: x.atletas, novos_7d: x.novos_7d, wpp_total: Number(x.wpp_total),
+        aulas: x.aulas, aulas_hoje: x.aulas_hoje, kcal: Number(x.kcal), kcal_hoje: Number(x.kcal_hoje),
+        horas: Math.round(Number(x.seg) / 3600), km: Math.round(Number(x.km)),
+      };
+      _pubStatsEm = Date.now();
+    }
+    // ao vivo: sempre na hora (memória)
+    let aulas = 0, bikes = 0;
+    for (const sala of Object.values(salas)) {
+      if (!sala.professor || sala.professor.readyState !== WebSocket.OPEN) continue;
+      const n = [...sala.alunos.values()].filter(w => w.readyState === WebSocket.OPEN).length + (sala.totem ? sala.totem.size : 0);
+      if (sala.estado && sala.estado.iniciada && !sala.estado.encerrada) aulas++;
+      bikes += n;
+    }
+    res.json(Object.assign({}, _pubStatsCache, { ao_vivo: { aulas, bikes } }));
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+async function numerosAcademia(lic) {
+  if (!db || !lic) return null;
+  try {
+    const r = await db.query(`SELECT COUNT(*)::int AS aulas, COALESCE(SUM(ah.kcal),0)::bigint AS kcal, ${SQL_KM} AS km,
+        COUNT(DISTINCT ah.user_id)::int AS atletas_com_aula
+      FROM aula_historico ah JOIN users u ON u.id=ah.user_id WHERE u.license_id=$1`, [lic]);
+    const t = await db.query(`SELECT COUNT(*)::int AS atletas FROM users WHERE license_id=$1 AND role='aluno'`, [lic]);
+    const x = r.rows[0];
+    return { aulas: x.aulas, kcal: Number(x.kcal), km: Math.round(Number(x.km)), atletas: t.rows[0].atletas };
+  } catch (e) { return null; }
+}
+
+// ── Página pública da academia (para o site dela) ────────────
+const PAGINA_PADRAO = { numeros: true, grade: true, ranking: true, fotos: true, aovivo: true, cor: '#ea860c', ranking_por: 'aulas' };
+function paginaCfgLimpa(c) {
+  c = c || {};
+  const o = {};
+  ['numeros', 'grade', 'ranking', 'fotos', 'aovivo'].forEach(k => { o[k] = c[k] === undefined ? PAGINA_PADRAO[k] : !!c[k]; });
+  o.cor = /^#[0-9a-f]{6}$/i.test(c.cor || '') ? c.cor : PAGINA_PADRAO.cor;
+  o.ranking_por = ['aulas', 'kcal', 'pontos'].includes(c.ranking_por) ? c.ranking_por : 'aulas';
+  return o;
+}
+app.get('/public/academia/:codigo', async (req, res) => {
+  res.setHeader('Cache-Control', 'public, max-age=20');
+  if (!db) return res.status(503).json({ error: 'Banco indisponível' });
+  try {
+    const l = await db.query(`SELECT codigo, nome, nome_fantasia, COALESCE(NULLIF(cidade,''), cidade_lic) AS cidade, estado,
+        logradouro, numero, bairro, max_bikes, bikes_disponiveis, pagina_cfg FROM licencas WHERE UPPER(codigo)=UPPER($1) AND status='ativa'`, [req.params.codigo]);
+    if (!l.rows.length) return res.status(404).json({ error: 'Academia não encontrada' });
+    const L = l.rows[0], cfg = paginaCfgLimpa(L.pagina_cfg), teto = _tetoDe(L);
+    const out = { academia: { codigo: L.codigo, nome: L.nome_fantasia || L.nome, cidade: L.cidade, estado: L.estado,
+      endereco: [L.logradouro, L.numero].filter(Boolean).join(', ') + (L.bairro ? ' — ' + L.bairro : ''), bikes: teto }, cfg };
+    if (cfg.numeros) out.numeros = await numerosAcademia(L.codigo);
+    if (cfg.grade) {
+      const g = await db.query(`SELECT a.id, a.nome, COALESCE(p.name, a.professor_nome) AS professor_nome, a.dia_semana, a.hora, a.duracao_min, a.vagas_max, a.cor
+        FROM aulas_agenda a LEFT JOIN users p ON p.id=a.professor_id WHERE a.license_id=$1 AND a.ativa=TRUE ORDER BY a.dia_semana, a.hora`, [L.codigo]);
+      out.grade = g.rows.map(a => Object.assign(a, { vagas_max: _capVagas(a.vagas_max, teto) }));
+    }
+    if (cfg.ranking) {
+      const ord = cfg.ranking_por === 'kcal' ? 'kcal DESC' : cfg.ranking_por === 'pontos' ? 'u.points DESC' : 'aulas DESC, kcal DESC';
+      const rk = await db.query(`SELECT u.name, u.points, u.level, ${cfg.fotos ? 'u.foto_url' : 'NULL AS foto_url'},
+          COUNT(ah.id)::int AS aulas, COALESCE(SUM(ah.kcal),0)::int AS kcal
+        FROM users u JOIN aula_historico ah ON ah.user_id=u.id
+        WHERE u.license_id=$1 AND ah.data_aula >= date_trunc('month', NOW() AT TIME ZONE 'America/Sao_Paulo')
+        GROUP BY u.id ORDER BY ${ord} LIMIT 10`, [L.codigo]);
+      // só o primeiro nome + inicial: página pública
+      out.ranking = rk.rows.map(r => ({ nome: _nomeCurto(r.name), aulas: r.aulas, kcal: r.kcal, pontos: r.points, nivel: calcLevel(r.points), foto: r.foto_url || null }));
+    }
+    if (cfg.aovivo) { const a = aulaAtivaDe(L.codigo); out.ao_vivo = a ? { nome_aula: a.nome_aula, professor: a.professor, pedalando: a.pedalando, iniciada: a.iniciada } : null; }
+    res.json(out);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+function _nomeCurto(n) { const p = String(n || '').trim().split(/\s+/); return p.length > 1 ? p[0] + ' ' + p[p.length - 1][0] + '.' : (p[0] || 'Atleta'); }
+app.get('/gestor/pagina', gestorAuth, async (req, res) => {
+  try {
+    const r = await db.query('SELECT pagina_cfg, codigo FROM licencas WHERE codigo=$1', [req.user.license_id]);
+    if (!r.rows.length) return res.status(404).json({ error: 'Licença não encontrada' });
+    res.json({ cfg: paginaCfgLimpa(r.rows[0].pagina_cfg), codigo: r.rows[0].codigo, url: PORTAL_URL + '/academia-publica.html?c=' + encodeURIComponent(r.rows[0].codigo) });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+app.put('/gestor/pagina', gestorAuth, async (req, res) => {
+  if (!['gestor', 'admin', 'super_admin'].includes(req.user.role) && !req.user.impersonated_by) return res.status(403).json({ error: 'Só o gestor altera a página.' });
+  try {
+    const cfg = paginaCfgLimpa(req.body);
+    await db.query('UPDATE licencas SET pagina_cfg=$1, updated_at=NOW() WHERE codigo=$2', [JSON.stringify(cfg), req.user.license_id]);
+    res.json({ ok: true, cfg });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ── Totem (tablet na porta da sala) ──────────────────────────
+// O gestor gera no Portal um link com um código secreto da licença. O
+// tablet abre esse link e fica preso nele. O código pode ser trocado a
+// qualquer momento (o link antigo para de funcionar).
+async function totemLic(token) {
+  if (!db || !token || String(token).length < 16) return null;
+  const r = await db.query("SELECT codigo, nome, nome_fantasia, max_bikes, bikes_disponiveis FROM licencas WHERE totem_token=$1 AND status='ativa'", [String(token)]);
+  return r.rows[0] || null;
+}
+app.get('/gestor/totem', gestorAuth, async (req, res) => {
+  try {
+    let r = await db.query('SELECT totem_token FROM licencas WHERE codigo=$1', [req.user.license_id]);
+    if (!r.rows.length) return res.status(404).json({ error: 'Licença não encontrada' });
+    let t = r.rows[0].totem_token;
+    if (!t || req.query.novo === '1') {
+      if (req.query.novo === '1' && !['gestor', 'admin', 'super_admin'].includes(req.user.role) && !req.user.impersonated_by) return res.status(403).json({ error: 'Só o gestor troca o código.' });
+      t = crypto.randomBytes(12).toString('hex');
+      await db.query('UPDATE licencas SET totem_token=$1 WHERE codigo=$2', [t, req.user.license_id]);
+    }
+    res.json({ token: t, url: PORTAL_URL + '/totem.html#' + t });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+function _hojeBR() {
+  const d = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
+  return { d, iso: d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0') };
+}
+app.get('/totem/:t/info', async (req, res) => {
+  try {
+    const L = await totemLic(req.params.t); if (!L) return res.status(404).json({ error: 'Totem desativado. Peça ao gestor um link novo.' });
+    const teto = _tetoDe(L), { d, iso } = _hojeBR();
+    // hoje e amanhã
+    const dias = [d.getDay(), (d.getDay() + 1) % 7];
+    const g = await db.query(`SELECT a.id, a.nome, COALESCE(p.name, a.professor_nome) AS professor_nome, a.dia_semana, a.hora, a.duracao_min, a.vagas_max, a.cor,
+        (SELECT COUNT(*)::int FROM aulas_reservas r WHERE r.agenda_id=a.id AND r.status<>'cancelado'
+           AND r.data_aula = ($2::date + ((a.dia_semana - EXTRACT(DOW FROM $2::date)::int + 7) % 7) * INTERVAL '1 day')::date) AS reservas
+      FROM aulas_agenda a LEFT JOIN users p ON p.id=a.professor_id
+      WHERE a.license_id=$1 AND a.ativa=TRUE AND a.dia_semana = ANY($3::int[]) ORDER BY ((a.dia_semana - $4 + 7) % 7), a.hora`, [L.codigo, iso, dias, d.getDay()]);
+    const agoraMin = d.getHours() * 60 + d.getMinutes();
+    const aulas = g.rows.map(a => {
+      const [hh, mm] = String(a.hora).split(':').map(Number);
+      const off = (a.dia_semana - d.getDay() + 7) % 7;
+      const data = new Date(d.getTime() + off * 864e5);
+      return Object.assign(a, { vagas_max: _capVagas(a.vagas_max, teto), data: data.getFullYear() + '-' + String(data.getMonth() + 1).padStart(2, '0') + '-' + String(data.getDate()).padStart(2, '0'), hoje: off === 0 });
+    }).filter(a => !a.hoje || (parseInt(String(a.hora).slice(0, 2)) * 60 + parseInt(String(a.hora).slice(3, 5)) + (a.duracao_min || 50)) > agoraMin);
+    res.json({ academia: { nome: L.nome_fantasia || L.nome, bikes: teto }, aulas, ao_vivo: aulaAtivaDe(L.codigo) });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+// Identifica pelo e-mail (sem senha: o totem fica dentro da academia).
+// Devolve só o primeiro nome, o FTP e se tem foto — nada além disso.
+app.post('/totem/:t/identificar', async (req, res) => {
+  try {
+    const L = await totemLic(req.params.t); if (!L) return res.status(404).json({ error: 'Totem desativado.' });
+    const email = String((req.body || {}).email || '').trim().toLowerCase();
+    if (!/@/.test(email)) return res.status(400).json({ error: 'E-mail inválido' });
+    const r = await db.query('SELECT id, name, ftp, foto_url, license_id, role, sexo, points FROM users WHERE email=$1', [email]);
+    if (!r.rows.length) return res.status(404).json({ error: 'Não achamos este e-mail. Faça o cadastro rápido.' });
+    const u = r.rows[0];
+    if (!u.license_id && u.role === 'aluno') await db.query('UPDATE users SET license_id=$1 WHERE id=$2', [L.codigo, u.id]);
+    res.json({ id: u.id, nome: u.name, primeiro: String(u.name || '').split(' ')[0], ftp: u.ftp || 130, tem_foto: !!u.foto_url, genero: u.sexo || null, nivel: calcLevel(u.points) });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+// FTP estimado pelo questionário rápido (3 perguntas): nível × peso.
+function ftpQuestionario(q) {
+  const peso = Math.min(160, Math.max(35, parseFloat(q.peso) || 70));
+  const nivel = { iniciante: 1.6, intermediario: 2.2, avancado: 2.9, atleta: 3.5 }[q.nivel] || 2.0;
+  const freq = { '0': 0.92, '1': 1.0, '2': 1.05, '3': 1.1 }[String(q.freq)] || 1.0;
+  return Math.round(peso * nivel * freq / 5) * 5;
+}
+app.post('/totem/:t/cadastro', async (req, res) => {
+  try {
+    const L = await totemLic(req.params.t); if (!L) return res.status(404).json({ error: 'Totem desativado.' });
+    const b = req.body || {};
+    const nome = String(b.nome || '').trim().slice(0, 60);
+    if (nome.length < 2) return res.status(400).json({ error: 'Digite o nome' });
+    let ftp = parseInt(b.ftp) || 0;
+    if (!ftp && b.questionario) ftp = ftpQuestionario(b.questionario);
+    if (!ftp) ftp = 130;
+    ftp = Math.min(500, Math.max(50, ftp));
+    let foto = null;
+    if (b.foto && /^data:image\/(jpeg|png|webp);base64,/.test(b.foto) && b.foto.length < 300000) foto = b.foto;
+    const genero = (b.genero === 'F' || b.genero === 'M') ? b.genero : null;
+    const email = String(b.email || '').trim().toLowerCase();
+    if (!email) {
+      // sem conta: vale só para esta aula
+      return res.json({ convidado: true, nome, ftp, foto, genero });
+    }
+    if (!/@/.test(email)) return res.status(400).json({ error: 'E-mail inválido' });
+    const ex = await db.query('SELECT id FROM users WHERE email=$1', [email]);
+    if (ex.rows.length) return res.status(409).json({ error: 'Este e-mail já tem conta. Use "Reservar com e-mail".' });
+    const senhaTemp = 'PR-' + crypto.randomBytes(4).toString('hex');
+    const ins = await db.query(`INSERT INTO users (email, name, password_hash, role, license_id, ftp, sexo, foto_url, peso)
+      VALUES ($1,$2,$3,'aluno',$4,$5,$6,$7,$8) RETURNING id`,
+      [email, nome, await bcrypt.hash(senhaTemp, 10), L.codigo, ftp, genero, foto, b.questionario && parseFloat(b.questionario.peso) || 70]);
+    emailBoasVindas({ userId: ins.rows[0].id, email, nome, academia: L.nome_fantasia || L.nome, licId: L.codigo, senhaTemp, papel: 'aluno_totem' }).catch(() => {});
+    res.json({ id: ins.rows[0].id, nome, primeiro: nome.split(' ')[0], ftp, genero, nivel: 'aquecimento', conta_criada: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+app.post('/totem/:t/foto', async (req, res) => {
+  try {
+    const L = await totemLic(req.params.t); if (!L) return res.status(404).json({ error: 'Totem desativado.' });
+    const { user_id, foto } = req.body || {};
+    if (!foto || !/^data:image\/(jpeg|png|webp);base64,/.test(foto) || foto.length > 300000) return res.status(400).json({ error: 'Foto inválida' });
+    await db.query('UPDATE users SET foto_url=$1 WHERE id=$2 AND license_id=$3', [foto, parseInt(user_id), L.codigo]);
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+// Núcleo da reserva, igual ao /aluno/reservar (vagas, janela, teto de bikes)
+async function reservarAula(userId, agenda_id, data_aula) {
+  const aula = await db.query('SELECT vagas_max, hora, janela_reserva, nome, license_id FROM aulas_agenda WHERE id=$1 AND ativa=TRUE', [agenda_id]);
+  if (!aula.rows.length) return [404, { error: 'Aula não encontrada' }];
+  const A = aula.rows[0];
+  if (A.janela_reserva !== null && A.janela_reserva !== undefined) {
+    const inicio = new Date(String(data_aula) + 'T' + String(A.hora));
+    if (new Date() < new Date(inicio.getTime() - A.janela_reserva * 3600 * 1000)) return [425, { error: 'A reserva desta aula ainda não abriu.' }];
+  }
+  const conf = await db.query("SELECT COUNT(*) FROM aulas_reservas WHERE agenda_id=$1 AND data_aula=$2 AND status<>'cancelado'", [agenda_id, data_aula]);
+  const teto = await tetoLicenca(A.license_id);
+  if (parseInt(conf.rows[0].count) >= _capVagas(A.vagas_max, teto)) return [409, { error: 'Aula lotada' }];
+  const r = await db.query(`INSERT INTO aulas_reservas (agenda_id, user_id, data_aula) VALUES ($1,$2,$3)
+    ON CONFLICT (agenda_id, user_id, data_aula) DO UPDATE SET status='reservado' RETURNING *`, [agenda_id, userId, data_aula]);
+  return [200, Object.assign(r.rows[0], { aula_nome: A.nome, hora: A.hora })];
+}
+app.post('/totem/:t/reservar', async (req, res) => {
+  try {
+    const L = await totemLic(req.params.t); if (!L) return res.status(404).json({ error: 'Totem desativado.' });
+    const { user_id, agenda_id, data_aula } = req.body || {};
+    const ok = await db.query('SELECT 1 FROM aulas_agenda WHERE id=$1 AND license_id=$2', [parseInt(agenda_id), L.codigo]);
+    if (!ok.rows.length) return res.status(404).json({ error: 'Aula não encontrada' });
+    const [st, body] = await reservarAula(parseInt(user_id), parseInt(agenda_id), data_aula);
+    res.status(st).json(body);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+// Entrar na aula aberta agora, numa bike, sem celular: o Ginásio passa a
+// mostrar o nome (e a foto) na bike escolhida e calcula tudo pelo FTP dado.
+app.post('/totem/:t/entrar', async (req, res) => {
+  try {
+    const L = await totemLic(req.params.t); if (!L) return res.status(404).json({ error: 'Totem desativado.' });
+    const b = req.body || {};
+    const at = aulaAtivaDe(L.codigo);
+    if (!at) return res.status(409).json({ error: 'Nenhuma aula aberta agora.' });
+    const sala = salas[at.codigo];
+    const bike = parseInt(b.bike);
+    if (!bike || (at.bikes && (bike < 1 || bike > at.bikes))) return res.status(400).json({ error: 'Escolha uma bike válida.' });
+    if ((at.ocupadas || []).map(Number).includes(bike)) return res.status(409).json({ error: 'Esta bike já está ocupada.' });
+    if (sala.trancadas && sala.trancadas.has(bike)) return res.status(409).json({ error: 'Esta bike está em manutenção.' });
+    let nome = String(b.nome || '').trim().slice(0, 40), ftp = parseInt(b.ftp) || 130, foto = b.foto || null, genero = b.genero || null, nivel = null;
+    if (b.user_id) {
+      const u = await db.query('SELECT name, ftp, foto_url, sexo, points FROM users WHERE id=$1', [parseInt(b.user_id)]);
+      if (u.rows.length) { nome = u.rows[0].name; ftp = u.rows[0].ftp || ftp; foto = u.rows[0].foto_url || foto; genero = u.rows[0].sexo || genero; nivel = calcLevel(u.rows[0].points); }
+    }
+    if (!nome) return res.status(400).json({ error: 'Falta o nome' });
+    if (sala.alunos.has(nome) || (sala.totem && sala.totem.has(nome))) nome = nome + ' (' + bike + ')';
+    if (!sala.totem) sala.totem = new Map();
+    sala.totem.set(nome, { bike, ftp, user_id: b.user_id || null, em: Date.now() });
+    if (sala.professor && sala.professor.readyState === WebSocket.OPEN)
+      sala.professor.send(JSON.stringify({ tipo: 'aluno_conectou', nome, bike, foto: (foto && foto.length < 300000) ? foto : null, ftpBase: ftp,
+        genero: (genero === 'F' || genero === 'M') ? genero : null, nivel, totem: true, horario: new Date().toLocaleTimeString('pt-BR') }));
+    if (b.user_id && db) {
+      const { iso } = _hojeBR();
+      db.query(`UPDATE aulas_reservas r SET status='presente', bike_numero=$1 FROM aulas_agenda a
+        WHERE r.agenda_id=a.id AND a.license_id=$2 AND r.user_id=$3 AND r.data_aula=$4 AND r.status='reservado'`, [bike, L.codigo, parseInt(b.user_id), iso]).catch(() => {});
+    }
+    log(`Totem: ${nome} entrou na bike ${bike} (sala ${at.codigo})`);
+    res.json({ ok: true, nome, bike, aula: at.nome_aula });
+  } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
 // Buscar academias por cidade

@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ciclismo indoor — ProRider</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow+Condensed:wght@600;700;900&family=Barlow:wght@400;500;600;700&family=Permanent+Marker&display=swap" rel="stylesheet">
+<script src="brasoes.js"></script>
+<style>
+/* Página pública da academia (29/09a) — pensada para ir dentro do site da
+   academia (iframe) ou aberta direto pelo link. Atualiza sozinha. */
+:root{--ac:#ea860c;--bg:#0b0b0e;--card:#16161b;--card2:#1f1f26;--bd:rgba(255,255,255,.09);--mu:rgba(255,255,255,.6)}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Barlow,sans-serif;background:var(--bg);color:#fff;min-height:100vh}
+.wrap{max-width:1280px;margin:0 auto;padding:28px 24px 34px}
+.hd{display:flex;align-items:center;gap:18px;flex-wrap:wrap;margin-bottom:22px}
+.logo{width:68px;height:68px;border-radius:18px;background:linear-gradient(135deg,var(--ac),#d62d2d);display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue';font-size:28px;color:#1b1b21;flex-shrink:0}
+.hd h1{font-family:'Barlow Condensed';font-weight:900;font-size:36px;text-transform:uppercase;line-height:1}
+.hd p{color:var(--mu);font-size:14px;margin-top:4px}
+.live{margin-left:auto;display:inline-flex;align-items:center;gap:8px;font-size:13px;font-weight:700;color:#8fe06a;background:rgba(93,177,61,.12);border:1px solid rgba(93,177,61,.45);padding:8px 14px;border-radius:20px}
+.live i{width:9px;height:9px;border-radius:50%;background:#7dff5a;box-shadow:0 0 10px #7dff5a;animation:p 1.5s infinite}@keyframes p{50%{opacity:.35}}
+.kp{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px;margin-bottom:18px}
+.k{background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:14px 16px}
+.k small{font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--mu);font-weight:700}
+.k b{display:block;font-family:'Bebas Neue';font-size:40px;line-height:1.05}
+.cols{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(0,1fr);gap:16px}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:16px;padding:18px}
+.card h3{font-family:'Barlow Condensed';font-weight:700;font-size:21px;text-transform:uppercase;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;gap:10px}
+.cta{font-family:Barlow;font-size:12px;font-weight:800;text-transform:none;background:linear-gradient(135deg,var(--ac),#d62d2d);color:#1b1b21;border-radius:8px;padding:6px 11px;text-decoration:none}
+.wk{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:8px}
+.wk .dy{font-size:12px;color:var(--mu);font-weight:800;letter-spacing:1px;margin-bottom:6px;text-transform:uppercase}
+.wk .dy.hoje{color:var(--ac)}
+.cl{background:var(--card2);border-radius:9px;padding:8px 9px;margin-bottom:7px;border-left:3px solid var(--ac);font-size:12px}
+.cl b{display:block;font-size:15px;font-family:'Barlow Condensed';font-weight:700}
+.cl span{display:block;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cl small{color:var(--mu);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block}
+.rk{display:flex;align-items:center;gap:12px;padding:9px 0;border-bottom:1px solid var(--bd)}
+.rk:last-child{border-bottom:0}
+.rk .ps{font-family:'Bebas Neue';font-size:30px;width:28px;color:#ffe033;text-align:center}
+.rk .ps.n{color:var(--mu)}
+.av{width:46px;height:46px;border-radius:50%;background:linear-gradient(135deg,#ffe033,var(--ac),#d62d2d);display:flex;align-items:center;justify-content:center;font-weight:800;color:#1b1b21;font-size:16px;flex-shrink:0;overflow:hidden}
+.av img{width:100%;height:100%;object-fit:cover}
+.rk .nm{flex:1;min-width:0}.rk .nm b{display:block;font-size:16px}.rk .nm small{color:var(--mu);font-size:12px}
+.vazio{color:var(--mu);font-size:14px;padding:18px 4px;text-align:center}
+.ft{display:flex;justify-content:space-between;align-items:center;margin-top:18px;color:var(--mu);font-size:12.5px;gap:12px;flex-wrap:wrap}
+.brand{font-family:'Bebas Neue';letter-spacing:4px;font-size:22px;background:linear-gradient(135deg,#ffe033,#ea860c,#d62d2d);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;text-decoration:none}
+.erro{padding:80px 20px;text-align:center;color:var(--mu)}
+@media(max-width:900px){.cols{grid-template-columns:1fr}.kp{grid-template-columns:repeat(3,minmax(0,1fr))}.wk{grid-template-columns:repeat(2,minmax(0,1fr))}.live{margin-left:0}}
+@media(max-width:480px){.kp{grid-template-columns:repeat(2,minmax(0,1fr))}.hd h1{font-size:28px}}
+</style>
+</head>
+<body>
+<div class="wrap" id="app"><div class="erro">Carregando…</div></div>
+<script>
+const SERVER = 'https://prorider-server-production-5784.up.railway.app';
+const COD = new URLSearchParams(location.search).get('c') || '';
+const DIAS = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+function esc(t){ return String(t==null?'':t).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function fmt(n){ n=Number(n)||0; if(n>=1e6) return (n/1e6).toFixed(1).replace('.',',')+' mi'; if(n>=1e5) return Math.round(n/1e3).toLocaleString('pt-BR')+' mil'; return Math.round(n).toLocaleString('pt-BR'); }
+function ini(n){ return String(n||'?').split(/\s+/).filter(Boolean).slice(0,2).map(w=>w[0]).join('').toUpperCase(); }
+async function carregar(){
+  const app=document.getElementById('app');
+  if(!COD){ app.innerHTML='<div class="erro">Link sem o código da academia.</div>'; return; }
+  let d;
+  try{ const r=await fetch(SERVER+'/public/academia/'+encodeURIComponent(COD)); d=await r.json(); if(!r.ok) throw new Error(d.error||'Erro'); }
+  catch(e){ app.innerHTML='<div class="erro">'+esc(e.message||'Não foi possível carregar.')+'</div>'; return; }
+  const A=d.academia, cfg=d.cfg||{};
+  document.documentElement.style.setProperty('--ac', cfg.cor||'#ea860c');
+  document.title = A.nome+' — Ciclismo indoor ProRider';
+  const hoje=new Date().getDay();
+  let h='<div class="hd"><div class="logo">'+esc(ini(A.nome))+'</div><div><h1>'+esc(A.nome)+'</h1><p>Ciclismo indoor com ProRider'+(A.endereco?' · '+esc(A.endereco):'')+(A.cidade?' — '+esc(A.cidade):'')+'</p></div>';
+  if(d.ao_vivo) h+='<div class="live"><i></i>'+(d.ao_vivo.iniciada?'Aula agora':'Aula abrindo')+': '+esc(d.ao_vivo.nome_aula)+(d.ao_vivo.pedalando?' · '+d.ao_vivo.pedalando+' pedalando':'')+'</div>';
+  h+='</div>';
+  if(d.numeros) h+='<div class="kp">'
+    +'<div class="k"><small>Atletas</small><b>'+fmt(d.numeros.atletas)+'</b></div>'
+    +'<div class="k"><small>Km pedalados</small><b>'+fmt(d.numeros.km)+'</b></div>'
+    +'<div class="k"><small>Kcal gastas</small><b>'+fmt(d.numeros.kcal)+'</b></div>'
+    +'<div class="k"><small>Aulas</small><b>'+fmt(d.numeros.aulas)+'</b></div>'
+    +'<div class="k"><small>Bikes</small><b>'+fmt(A.bikes)+'</b></div></div>';
+  const blocos=[];
+  if(d.grade){
+    const by={}; d.grade.forEach(a=>{ (by[a.dia_semana]=by[a.dia_semana]||[]).push(a); });
+    const ordem=[1,2,3,4,5,6,0].filter(x=>by[x]);
+    blocos.push('<div class="card"><h3>Grade da semana <a class="cta" href="'+SERVER+'/aluno" target="_blank" rel="noopener">Reservar pelo app</a></h3>'
+      +(ordem.length?'<div class="wk" style="grid-template-columns:repeat('+Math.max(2,ordem.length)+',minmax(0,1fr))">'+ordem.map(x=>'<div><div class="dy'+(x===hoje?' hoje':'')+'">'+DIAS[x]+(x===hoje?' · hoje':'')+'</div>'
+        +by[x].map(a=>'<div class="cl"'+(a.cor?' style="border-left-color:'+esc(a.cor)+'"':'')+'><b>'+esc(String(a.hora).slice(0,5))+'</b><span>'+esc(a.nome)+'</span><small>'+esc(a.professor_nome||'')+(a.duracao_min?' · '+a.duracao_min+' min':'')+'</small></div>').join('')+'</div>').join('')+'</div>'
+       :'<div class="vazio">A grade ainda não foi publicada.</div>')+'</div>');
+  }
+  if(d.ranking){
+    const mes=new Date().toLocaleDateString('pt-BR',{month:'long'});
+    const por={aulas:'por aulas',kcal:'por kcal',pontos:'por pontos'}[cfg.ranking_por]||'';
+    blocos.push('<div class="card"><h3>Ranking de '+esc(mes)+' <span style="font-family:Barlow;font-size:12px;color:var(--mu);text-transform:none;font-weight:600">'+por+'</span></h3>'
+      +(d.ranking.length?d.ranking.map((r,i)=>'<div class="rk"><span class="ps'+(i>2?' n':'')+'">'+(i+1)+'</span><div class="av">'+(r.foto?'<img src="'+esc(r.foto)+'" alt="">':esc(ini(r.nome)))+'</div>'
+        +'<div class="nm"><b>'+esc(r.nome)+'</b><small>'+r.aulas+' aula'+(r.aulas==1?'':'s')+' · '+fmt(r.kcal)+' kcal</small></div>'
+        +(window.prBrasaoSVG && r.nivel && r.nivel!=='iniciante'&&r.nivel!=='aquecimento'?'<span title="'+esc(prNivel(r.nivel).nome)+'">'+prBrasaoSVG(r.nivel,34)+'</span>':'')+'</div>').join('')
+       :'<div class="vazio">O ranking do mês começa com a primeira aula.</div>')+'</div>');
+  }
+  if(blocos.length) h+='<div class="cols" style="'+(blocos.length===1?'grid-template-columns:1fr':'')+'">'+blocos.join('')+'</div>';
+  h+='<div class="ft"><span>Atualiza sozinho a cada minuto.</span><a class="brand" href="'+SERVER+'/" target="_blank" rel="noopener">PRORIDER</a></div>';
+  app.innerHTML=h;
+}
+carregar(); setInterval(carregar, 60000);
+</script>
+</body>
+</html>

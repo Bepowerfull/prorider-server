@@ -335,6 +335,7 @@ input[type=file]{display:none}
   button, .btn, [onclick] { cursor: pointer; -webkit-appearance: none; }
   input { -webkit-appearance: none; border-radius: 0; }
 </style>
+<script src="/brasoes.js"></script>
 </head>
 <body>
 
@@ -2344,7 +2345,7 @@ function selectBike(num){
   // Já estava observando (socket aberto) → vira participante de verdade na bike escolhida
   if(wsConn && wsConn.readyState===1){
     _entrarNome=nomeVal; _entrarCodigo=lastCode;
-    wsConn.send(JSON.stringify({tipo:'entrar_sala',codigo:lastCode,nome:nomeVal,genero:_prSexoAluno(),bike:num,
+    wsConn.send(JSON.stringify({tipo:'entrar_sala',codigo:lastCode,nome:nomeVal,genero:_prSexoAluno(),nivel:_prNivelAluno(),bike:num,
       foto:(localStorage.getItem('pr_foto')||null),
       ftpBase:(function(){ try{ var f=parseInt(_ftpDoAluno(),10)||0; return f>0?f:null; }catch(e){ return null; } })()}));
   } else {
@@ -2425,7 +2426,7 @@ function connectQR(code){
         var _meuFtp = 0;
         try{ _meuFtp = parseInt(_ftpDoAluno(),10) || 0; }catch(e){}
         _entrarNome=nomeVal; _entrarCodigo=code;
-        wsConn.send(JSON.stringify({tipo:'entrar_sala',codigo:code,nome:nomeVal,genero:_prSexoAluno(),bike:_bikeSelNum,
+        wsConn.send(JSON.stringify({tipo:'entrar_sala',codigo:code,nome:nomeVal,genero:_prSexoAluno(),nivel:_prNivelAluno(),bike:_bikeSelNum,
           foto:(localStorage.getItem('pr_foto')||null),
           ftpBase:(_meuFtp>0?_meuFtp:null)}));
       } else {
@@ -4142,6 +4143,7 @@ async function abrirGradeAcademia(licId) {
     const d = await r.json();
     document.getElementById('agNomeAcad').textContent = d.academia?.nome_fantasia || d.academia?.nome || licId;
     document.getElementById('agCidadeAcad').textContent = d.academia?.cidade || '';
+    window._agAulasCache = d.aulas || [];
     renderGradeAluno(d.aulas || []);
     aulaAtivaVerificar(licId);
   } catch(e) {
@@ -4158,29 +4160,49 @@ async function aulaAtivaVerificar(licId){
   var box=document.getElementById('agAulaAtiva');
   if(!box){
     box=document.createElement('div'); box.id='agAulaAtiva';
-    box.style.cssText='display:none;margin:0 0 14px;';
+    box.style.cssText='display:none;margin:0 0 16px;';
     var g=document.getElementById('agGrade');
     if(g && g.parentNode) g.parentNode.insertBefore(box,g); else alvo.appendChild(box);
   }
-  box.style.display='none';
+  // 29/09a: faixa VERDE, bem chamativa, atualizada a cada 15 s enquanto a
+  // grade desta academia estiver aberta. Aparece da pré-aula (tela do QR no
+  // Ginásio) até o fim — inclusive aula que não está na grade.
+  clearTimeout(window._agAtivaT);
+  window._agAtivaT=setTimeout(function(){ if(_agAcadSelecionada===licId && document.getElementById('agGradeWrap').style.display!=='none') aulaAtivaVerificar(licId); },15000);
   try{
     var r=await fetch(SERVER_HTTP+'/agenda/aula-ativa/'+encodeURIComponent(licId));
-    if(!r.ok) return;
+    if(!r.ok){ box.style.display='none'; return; }
     var d=await r.json();
-    if(!d || !d.ativa || !d.codigo) return;
-    box.innerHTML='<div onclick="aulaAtivaEntrar(\''+String(d.codigo).replace(/[^A-Za-z0-9-]/g,'')+'\')" '
-      +'style="cursor:pointer;display:flex;align-items:center;gap:12px;padding:15px 16px;border-radius:16px;'
-      +'background:linear-gradient(135deg,rgba(234,134,12,.26),rgba(214,45,45,.16));border:1px solid rgba(234,134,12,.45);">'
-      +'<span style="width:10px;height:10px;border-radius:50%;background:#3ddc84;box-shadow:0 0 10px #3ddc84;flex:none;"></span>'
-      +'<span style="min-width:0;text-align:left;">'
-        +'<span style="display:block;font-size:14px;font-weight:900;letter-spacing:.4px;">ENTRAR NA AULA DE AGORA</span>'
-        +'<span style="display:block;font-size:11.5px;color:rgba(255,255,255,.62);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'
-          +_salaEsc(d.nome_aula||'Aula ao vivo')+(d.professor?(' · '+_salaEsc(d.professor)):'')+'</span>'
-      +'</span>'
-      +'<span style="margin-left:auto;font-size:20px;color:rgba(234,134,12,.8);flex:none;">&#8250;</span>'
+    if(!d || !d.ativa || !d.codigo){ box.style.display='none'; return; }
+    var cod=String(d.codigo).replace(/[^A-Za-z0-9-]/g,'');
+    var foraGrade=!aulaAtivaNaGrade(d);
+    var det=[]; if(d.professor) det.push(_salaEsc(d.professor));
+    if(d.pedalando) det.push(d.pedalando+' pedalando'); if(d.livres!=null) det.push(d.livres+' bike'+(d.livres==1?'':'s')+' livre'+(d.livres==1?'':'s'));
+    var titulo=_salaEsc(d.nome_aula||'Aula ao vivo');
+    if(foraGrade && d.desde){ var hd=new Date(d.desde); titulo+=' · aberta às '+String(hd.getHours()).padStart(2,'0')+':'+String(hd.getMinutes()).padStart(2,'0'); }
+    box.innerHTML='<div onclick="aulaAtivaEntrar(\''+cod+'\')" style="cursor:pointer;border-radius:18px;padding:16px;'
+      +'background:linear-gradient(135deg,rgba(93,177,61,.36),rgba(93,177,61,.12));border:1.5px solid rgba(93,177,61,.85);box-shadow:0 0 26px rgba(93,177,61,.35);">'
+      +'<div style="display:flex;align-items:center;gap:8px;font-size:11.5px;font-weight:800;letter-spacing:1.5px;color:#9be37a;">'
+        +'<span style="width:9px;height:9px;border-radius:50%;background:#7dff5a;box-shadow:0 0 10px #7dff5a;animation:agPulse 1.4s infinite;"></span>'
+        +(d.iniciada?'AO VIVO AGORA':'AULA ABERTA — ENTRE JÁ')+(foraGrade?' · FORA DA GRADE':'')+'</div>'
+      +'<div style="font-family:\'Barlow Condensed\',sans-serif;font-size:25px;font-weight:900;margin-top:6px;line-height:1.05;">'+titulo+'</div>'
+      +(det.length?'<div style="font-size:12.5px;color:rgba(255,255,255,.72);margin-top:3px;">'+det.join(' · ')+'</div>':'')
+      +'<div style="margin-top:12px;background:#5db13d;color:#08130a;border-radius:12px;padding:13px;text-align:center;font-weight:800;font-size:16px;">Entrar na aula &#8594;</div>'
       +'</div>';
+    if(!document.getElementById('agPulseCss')){ var st=document.createElement('style'); st.id='agPulseCss'; st.textContent='@keyframes agPulse{50%{opacity:.35}}'; document.head.appendChild(st); }
     box.style.display='block';
   }catch(e){}
+}
+// A aula aberta bate com alguma aula da grade de hoje (±15 min do horário)?
+function aulaAtivaNaGrade(d){
+  try{
+    var agora=new Date(), hoje=agora.getDay(), min=agora.getHours()*60+agora.getMinutes();
+    return (window._agAulasCache||[]).some(function(a){
+      if(a.dia_semana!==hoje) return false;
+      var p=String(a.hora||'').split(':'), h=parseInt(p[0])*60+parseInt(p[1]||0);
+      return min>=h-15 && min<=h+(parseInt(a.duracao_min)||60);
+    });
+  }catch(e){ return true; }
 }
 function aulaAtivaEntrar(codigo){
   // connectQR e o mesmo caminho de quem digita o codigo a mao: valida,
@@ -4207,22 +4229,37 @@ function renderGradeAluno(aulas) {
   }
   // calcular próxima data para cada dia_semana
   const hoje = new Date(); hoje.setHours(0,0,0,0);
-  function proxData(dia) {
+  // 29/09a: aula de HOJE que ainda não acabou fica hoje (antes pulava para a semana seguinte)
+  const _agAgora = new Date(), _agMin = _agAgora.getHours()*60 + _agAgora.getMinutes();
+  function proxData(dia, aula) {
     const d = new Date(hoje);
-    const diff = (dia - d.getDay() + 7) % 7 || 7;
+    let diff = (dia - d.getDay() + 7) % 7;
+    if (diff === 0) {
+      const p = String((aula && aula.hora) || '00:00').split(':');
+      const fim = parseInt(p[0])*60 + parseInt(p[1]||0) + (parseInt(aula && aula.duracao_min) || 50);
+      if (fim <= _agMin) diff = 7;
+    }
     d.setDate(d.getDate() + diff);
     return d;
   }
   const byDay = {};
   aulas.forEach(a => { const d = a.dia_semana; if(!byDay[d]) byDay[d]=[]; byDay[d].push(a); });
   const order = [1,2,3,4,5,6,0];
-  el.innerHTML = order.filter(d => byDay[d]).map(d => {
-    const prox = proxData(d);
-    const dateStr = prox.toISOString().split('T')[0];
+  // hoje primeiro, depois os próximos dias
+  const _hojeDow = new Date().getDay();
+  const ordem2 = [0,1,2,3,4,5,6].map(k => (_hojeDow + k) % 7);
+  const _isoLocal = dt => dt.getFullYear() + '-' + String(dt.getMonth()+1).padStart(2,'0') + '-' + String(dt.getDate()).padStart(2,'0');
+  el.innerHTML = ordem2.filter(d => byDay[d]).map(d => {
+    // hoje: só as aulas que ainda não acabaram (as que já passaram voltam na semana que vem)
+    const aulasDia = d === _hojeDow ? byDay[d].filter(a => proxData(d, a).getDate() === new Date().getDate()) : byDay[d];
+    if (!aulasDia.length) return '';
+    const prox = proxData(d, aulasDia[0]);
+    const dateStr = _isoLocal(prox);   // 29/09a: data local (toISOString virava o dia depois das 21h)
     const dataBR = prox.toLocaleDateString('pt-BR',{day:'2-digit',month:'short'});
+    const rotulo = d === _hojeDow ? 'Hoje' : DIAS_FULL_AG[d];
     return `<div style="margin-bottom:18px;">
-      <div style="font-size:11px;font-weight:700;letter-spacing:2px;color:rgba(255,255,255,.3);text-transform:uppercase;margin-bottom:8px;">${DIAS_FULL_AG[d]} · ${dataBR}</div>
-      ${byDay[d].map(a => {
+      <div style="font-size:11px;font-weight:700;letter-spacing:2px;color:${d === _hojeDow ? '#ea860c' : 'rgba(255,255,255,.3)'};text-transform:uppercase;margin-bottom:8px;">${rotulo} · ${dataBR}</div>
+      ${aulasDia.map(a => {
         const vagas = parseInt(a.vagas_max||20);
         const res = parseInt(a.reservas||0);
         const livres = vagas - res;
@@ -5800,7 +5837,7 @@ function _ftpAvisarSala(){
       var nomeVal=_entrarNome; if(!nomeVal) return;
       var _cod=_entrarCodigo||lastCode; if(!_cod) return;
       window._ftpReenvio=Date.now();
-      wsConn.send(JSON.stringify({tipo:'entrar_sala',codigo:_cod,nome:nomeVal,genero:_prSexoAluno(),bike:_bikeSelNum,
+      wsConn.send(JSON.stringify({tipo:'entrar_sala',codigo:_cod,nome:nomeVal,genero:_prSexoAluno(),nivel:_prNivelAluno(),bike:_bikeSelNum,
         foto:(localStorage.getItem('pr_foto')||null), ftpBase:f}));
       console.log('[ProRider] FTP '+f+'W enviado a sala (bike '+_bikeSelNum+').');
     }catch(e){ console.warn('[ProRider] nao consegui enviar o FTP a sala:', e&&e.message); }
@@ -6480,6 +6517,28 @@ async function parearConfirmar(){
 // roxo muda: sai "Treino do Treinador", entra "Construtor de treino".
 // Existia uma tela separada (sProfHome) com Agenda + Build Workout, mas
 // nenhuma rota a abria: estava orfa. Fica abandonada em favor deste desenho.
+// 29/09a: brasão do aluno (vai para a TV ao lado do nome)
+// Subiu de brasão: comemoração na tela (toque fecha)
+function _prSubiuBrasao(n){
+  try{
+    var o=document.createElement('div');
+    o.style.cssText='position:fixed;inset:0;z-index:9999;background:radial-gradient(ellipse at 50% 40%,'+n.cor+'44,rgba(0,0,0,.92) 65%);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;opacity:0;transition:opacity .35s;padding:24px;';
+    o.innerHTML='<div style="font-size:13px;font-weight:800;letter-spacing:3px;color:rgba(255,255,255,.7)">NOVO BRASÃO</div>'
+      +'<div style="margin:14px 0 6px;transform:scale(.6);transition:transform .6s cubic-bezier(.2,1.6,.4,1)" id="_prSubB">'+prBrasaoSVG(n,170)+'</div>'
+      +'<div style="font-family:\'Barlow Condensed\',sans-serif;font-weight:900;font-size:44px;color:'+n.cor+';text-transform:uppercase;line-height:1">'+n.nome+'</div>'
+      +'<div style="font-size:14px;color:rgba(255,255,255,.7);margin-top:10px">Você subiu de nível! Toque para continuar</div>';
+    o.onclick=function(){ o.style.opacity='0'; setTimeout(function(){ o.remove(); },350); };
+    document.body.appendChild(o);
+    requestAnimationFrame(function(){ o.style.opacity='1'; var b=document.getElementById('_prSubB'); if(b) b.style.transform='scale(1)'; });
+    try{ if(navigator.vibrate) navigator.vibrate([80,60,160]); }catch(e){}
+    setTimeout(function(){ if(o.parentNode) o.onclick(); },8000);
+  }catch(e){}
+}
+function _prNivelAluno(){
+  try{ var p=(typeof prUser!=='undefined'&&prUser)?prUser:null; if(!p) return null;
+    if(window.prNivel && p.points!=null) return prNivel(parseInt(p.points)||0).key;
+    return p.level||null; }catch(e){ return null; }
+}
 function homeProfAtualizar(){
   // O card roxo continua SEMPRE Treino do Treinador — o professor tambem
   // pedala, e pode querer abrir um treino que recebeu do coach dele. Troca-lo
@@ -6979,9 +7038,17 @@ function updateProfileUI(){
     _profRefreshAvatar();
     var pts=prUser.points||0;
     var li=lvlIndex(pts);
-    var lv=document.getElementById('profLevel'); if(lv) lv.textContent=LVL_NAMES[li]||'Iniciante';
-    var pp=document.getElementById('profPts'); if(pp) pp.textContent=pts+' pts';
-    var bar=document.getElementById('profLevelBar'); if(bar) bar.style.width=lvlPct(pts)+'%';
+    var lv=document.getElementById('profLevel');
+    var pp=document.getElementById('profPts'); if(pp) pp.textContent=pts.toLocaleString('pt-BR')+' pts';
+    var bar=document.getElementById('profLevelBar');
+    if(window.prProgresso){   // 29/09a: brasão
+      var pg=prProgresso(pts);
+      if(lv){ lv.innerHTML='<span style="display:inline-flex;align-items:center;gap:6px;color:'+pg.atual.cor+'">'+prBrasaoSVG(pg.atual,22,true)+pg.atual.nome+'</span>'; }
+      if(bar){ bar.style.width=pg.pct+'%'; bar.style.background='linear-gradient(90deg,'+pg.atual.cor+','+(pg.prox?pg.prox.cor:pg.atual.cor)+')'; }
+    } else {
+      if(lv) lv.textContent=LVL_NAMES[li]||'Iniciante';
+      if(bar) bar.style.width=lvlPct(pts)+'%';
+    }
     // Dados pessoais — preencher com dados do servidor
     var pn=document.getElementById('profNome');  if(pn&&prUser.name)  pn.textContent=prUser.name;
     var pe=document.getElementById('profEmail'); if(pe&&prUser.email) pe.textContent=prUser.email;
@@ -7087,14 +7154,24 @@ function showSummaryScreen(pontosGanhos, totalPontos, nivel){
   var zPred='z2';
   for(var i=0;i<zOrder.length;i++){ if(zoneTime[zOrder[i]]>0){zPred=zOrder[i];break;} }
   el=document.getElementById('sumZona'); if(el){ el.textContent=zPred.toUpperCase(); el.style.color=zC[zPred]||'#ea860c'; }
-  // Nível
+  // Nível — 29/09a: brasões novos
   var pts=totalPontos||0;
-  var li=lvlIndex(pts);
-  el=document.getElementById('sumLevel'); if(el) el.textContent=LVL_NAMES[li]||'Iniciante';
-  el=document.getElementById('sumNextLevel'); if(el) el.textContent=LVL_THRESHOLDS[li+1]?'próx: '+LVL_THRESHOLDS[li+1]+' pts':'';
-  el=document.getElementById('sumTotalPts'); if(el) el.textContent=pts+' pts total';
-  el=document.getElementById('sumLevelBar');
-  if(el){ el.style.width='0%'; setTimeout(function(){ el.style.width=lvlPct(pts)+'%'; },300); }
+  var ptsAntes=Math.max(0,pts-(parseInt(pontosGanhos)||0));
+  if(window.prProgresso){
+    var pg=prProgresso(pts), antes=prNivel(ptsAntes);
+    el=document.getElementById('sumLevel'); if(el) el.innerHTML='<span style="display:inline-flex;align-items:center;gap:8px;color:'+pg.atual.cor+'">'+prBrasaoSVG(pg.atual,26,true)+pg.atual.nome+'</span>';
+    el=document.getElementById('sumNextLevel'); if(el) el.textContent=pg.prox?(pg.prox.nome+' em '+pg.faltam.toLocaleString('pt-BR')+' pts'):'nível máximo';
+    el=document.getElementById('sumLevelBar');
+    if(el){ el.style.background='linear-gradient(90deg,'+pg.atual.cor+','+(pg.prox?pg.prox.cor:pg.atual.cor)+')'; el.style.width='0%'; setTimeout(function(){ el.style.width=pg.pct+'%'; },300); }
+    if(pg.atual.idx>antes.idx) setTimeout(function(){ _prSubiuBrasao(pg.atual); },900);
+  } else {
+    var li=lvlIndex(pts);
+    el=document.getElementById('sumLevel'); if(el) el.textContent=LVL_NAMES[li]||'Iniciante';
+    el=document.getElementById('sumNextLevel'); if(el) el.textContent=LVL_THRESHOLDS[li+1]?'próx: '+LVL_THRESHOLDS[li+1]+' pts':'';
+    el=document.getElementById('sumLevelBar');
+    if(el){ el.style.width='0%'; setTimeout(function(){ el.style.width=lvlPct(pts)+'%'; },300); }
+  }
+  el=document.getElementById('sumTotalPts'); if(el) el.textContent=pts.toLocaleString('pt-BR')+' pts total';
   // Atualiza prUser
   if(prUser){ prUser.points=pts; prUser.level=nivel||prUser.level; updateProfileUI(); }
   go('sSummary');
@@ -7741,7 +7818,7 @@ function _tentarConexaoWS(wsUrl, token, dadosSessao){
       // 23/09c: este era o TERCEIRO ponto que manda entrar_sala (entrada pela
       // reserva/sessao) e tambem ia sem o FTP — o Ginasio ficava com 150.
       var _ftpS=0; try{ _ftpS=parseInt(_ftpDoAluno(),10)||0; }catch(e){}
-      ws.send(JSON.stringify({tipo:'entrar_sala', codigo:token, nome:nomeVal, genero:_prSexoAluno(), bike:dadosSessao.bike_num||null,
+      ws.send(JSON.stringify({tipo:'entrar_sala', codigo:token, nome:nomeVal, genero:_prSexoAluno(),nivel:_prNivelAluno(), bike:dadosSessao.bike_num||null,
         foto:(localStorage.getItem('pr_foto')||null), ftpBase:(_ftpS>0?_ftpS:null)}));
       _entrarNome=nomeVal; _entrarCodigo=token;
       if(dadosSessao.bike_num) _bikeSelNum=parseInt(dadosSessao.bike_num); // casa o relay com a bike da sessão
@@ -7901,7 +7978,7 @@ setInterval(function(){
     if(!cod || !nm) return;
     window._vigiaTs=Date.now();
     var f=0; try{ f=parseInt(_ftpDoAluno(),10)||0; }catch(e){}
-    wsConn.send(JSON.stringify({tipo:'entrar_sala',codigo:cod,nome:nm,genero:_prSexoAluno(),bike:(_bikeSelNum||null),
+    wsConn.send(JSON.stringify({tipo:'entrar_sala',codigo:cod,nome:nm,genero:_prSexoAluno(),nivel:_prNivelAluno(),bike:(_bikeSelNum||null),
       foto:(localStorage.getItem('pr_foto')||null),ftpBase:(f>0?f:null)}));
     window._ftpReenvio=Date.now(); // a resposta nao deve navegar de tela
     console.log('[ProRider] sem noticias da aula ha '+Math.round((Date.now()-window._ultUpdateAula)/1000)+' s — entrando de novo na sala.');
@@ -8303,7 +8380,7 @@ updateProfileUI = function() {
          + ' fill="none" stroke="'+col(fm)+'" stroke-width="30" stroke-linecap="'+cap+'"/>';
     }
     g.innerHTML=out;
-    try{ console.log('%c[ProRider Aluno] BUILD 26/09e — Criar aula do Portal abre direto o Construtor (/aluno#construtor) + FC da cinta do celular vai para o Ginasio; Avg. HR = media da aula; aula termina quando a sala some + resultado do teste de FTP da aula no celular (1 min; automatico grava, senao pergunta) + home do professor: sai o Build Workout antigo (com senha), fica Agenda + Treino do Treinador + Construtor de Treino + voltar para a propria bike depois de reabrir o app + relogio do bloco anda sem bike transmitindo + vigia: reentra na sala se a aula parar de chegar + resultado do desafio no celular (10 s, toque fecha) + sexo enviado na entrada da sala (desafio Homens x Mulheres) + aluno sem nome nao entra mais como "-" na sala + leitor do app aceita o QR de Minhas Aulas do Ginasio + aula anterior nao fica mais grudada (fim da aula fecha o socket em qualquer tela; QR de outra sala troca de sala) + gauge com FTP e BLOCO simetricos + marcha e FC na aula da academia + %FTP com o FTP da gaveta na hora + FTP da gaveta vai para a sala na hora + FTP tambem na entrada pela reserva + Revisar o treino mostra a aula do Ginasio + caloria por watt (kJ/eficiencia) + basal Mifflin-St Jeor no cadastro + historico gravado no aparelho + FTP na gaveta + card 1080x1920 reposicionado + 6 protocolos de FTP + TSS + teste de 3 min + fator do teste de 5 min corrigido (era 1,05) + explicacao de FTP em cada teste + gaveta esconde pela propria altura + importacao de treino do TrainingPeaks (grade 2x2 na tela inicial + construtor) com tela de conferencia (botoes acima da navegacao) + corrigido: aula aberta por objeto agora e a que roda + botao Revisar o treino na gaveta + FTP e peso persistem no aparelho + gauge reequilibrado + textos do Brasil + codigo de sala normalizado (QR do navegador deixava a sala inexistente) + faixa de voltar corrigida + reconexao nao trava mais + sala encerrada limpa o codigo guardado + VISTA DA SALA + card comprido de Construtor para professor + fim da corrida no login','color:#ea860c;font-weight:700;'); }catch(e){}
+    try{ console.log('%c[ProRider Aluno] BUILD 29/09a — faixa verde da aula ao vivo na academia + aulas de hoje na grade + brasões novos (subiu de nível) + Criar aula do Portal abre direto o Construtor (/aluno#construtor) + FC da cinta do celular vai para o Ginasio; Avg. HR = media da aula; aula termina quando a sala some + resultado do teste de FTP da aula no celular (1 min; automatico grava, senao pergunta) + home do professor: sai o Build Workout antigo (com senha), fica Agenda + Treino do Treinador + Construtor de Treino + voltar para a propria bike depois de reabrir o app + relogio do bloco anda sem bike transmitindo + vigia: reentra na sala se a aula parar de chegar + resultado do desafio no celular (10 s, toque fecha) + sexo enviado na entrada da sala (desafio Homens x Mulheres) + aluno sem nome nao entra mais como "-" na sala + leitor do app aceita o QR de Minhas Aulas do Ginasio + aula anterior nao fica mais grudada (fim da aula fecha o socket em qualquer tela; QR de outra sala troca de sala) + gauge com FTP e BLOCO simetricos + marcha e FC na aula da academia + %FTP com o FTP da gaveta na hora + FTP da gaveta vai para a sala na hora + FTP tambem na entrada pela reserva + Revisar o treino mostra a aula do Ginasio + caloria por watt (kJ/eficiencia) + basal Mifflin-St Jeor no cadastro + historico gravado no aparelho + FTP na gaveta + card 1080x1920 reposicionado + 6 protocolos de FTP + TSS + teste de 3 min + fator do teste de 5 min corrigido (era 1,05) + explicacao de FTP em cada teste + gaveta esconde pela propria altura + importacao de treino do TrainingPeaks (grade 2x2 na tela inicial + construtor) com tela de conferencia (botoes acima da navegacao) + corrigido: aula aberta por objeto agora e a que roda + botao Revisar o treino na gaveta + FTP e peso persistem no aparelho + gauge reequilibrado + textos do Brasil + codigo de sala normalizado (QR do navegador deixava a sala inexistente) + faixa de voltar corrigida + reconexao nao trava mais + sala encerrada limpa o codigo guardado + VISTA DA SALA + card comprido de Construtor para professor + fim da corrida no login','color:#ea860c;font-weight:700;'); }catch(e){}
   }
   if(document.readyState!=='loading') buildGaugeArc();
   else document.addEventListener('DOMContentLoaded', buildGaugeArc);

@@ -33,6 +33,117 @@ Componentes: `servidor` · `app` · `ginasio` · `portal` · `banco`.
 
 ---
 
+## 2026-09-22 · servidor · a750387, 4409582, 1263390, 9d4528d
+- PUT /admin/users/:id, PUT /admin/licencas/:id address fields
+- trancadas: Set, prof_remover_aluno/trocar_bikes/trancar_bike WS cases
+- GET /agenda/aula-ativa/:license_id
+- JWT_SECRET obrigatório — throw; valor fixo no Railway em 23/09
+
+## 2026-09-29 · servidor + portal + ginasio · 29/09b (substitui a 29/09a, que não foi publicada)
+
+**O que mudou**
+- **Entrada do site idêntica à arte do marketing.** A arte aprovada (`img/entrada-arte.jpg`, 1586×992) é o fundo. Por cima, nos mesmos lugares, ficam só as partes vivas:
+  - campos de e-mail e senha, botão Entrar, "Esqueci a senha" e "Sou aluno → app";
+  - o card do vídeo;
+  - os 6 números ao vivo, com as linhas verdes embaixo.
+
+  A arte escala inteira na tela (sem cortar); sobra lateral é preenchida com a própria arte desfocada.
+  - Celular em pé (ou tela estreita): versão empilhada, usando o logo e o título recortados da arte (`img/entrada-logo.jpg`, `img/entrada-titulo.jpg`).
+- **Brasões — escada nova, pedida pelo Mario:**
+  - 3 brasões antes do Bronze: **Aquecimento** (0), **Cadência** (200) e **Pelotão** (400);
+  - Bronze começa em **600**: I 600 · II 900 · III 1.200;
+  - Prata 1.600 · 2.100 · 2.700;
+  - Ouro 3.400 · 4.300 · 5.300;
+  - Platina 6.500 · 8.000 · 9.700;
+  - Diamante 11.800 · 14.300 · 17.200;
+  - Mestre **25.000** (~1 ano com 3 aulas/semana) e Lenda **35.000** (~1,5 ano).
+
+  Servidor (`NIVEIS`), `brasoes.js` e a migração (recalcula todo mundo) usam a mesma tabela.
+  - Chaves antigas continuam valendo: `iniciante` → `aquecimento`.
+  - O brasão de Aquecimento não aparece ao lado do nome na TV nem na página pública.
+- Ginásio BUILD 29/09b: `brasoes.js` novo e a regra do Aquecimento.
+
+**Por quê**
+- O Mario pediu a tela de entrada igual à arte do marketing, sem diferença.
+- Bronze com 2 aulas era rápido demais, e o topo precisava ser alcançável em 1 a 1,5 ano.
+
+**Como confirmar**
+- A raiz do site, num computador, fica igual à arte, com os números mudando.
+- Num usuário com 900 pontos, `level` = `bronze2`.
+
+---
+
+## 2026-09-29 · servidor + portal + ginasio + app · 29/09a
+
+**O que mudou — Portal / site (`public/`)**
+- **Tela de entrada nova** em `index.html` (raiz do site) e `academia.html`, na arte aprovada pelo Mario:
+  - "Ride with Purpose" em pincel e a foto do ciclista (`img/entrada-ciclista.jpg`);
+  - login flutuante, 4 recursos, card "Assista ao vídeo" (link em `PR_VIDEO_URL`, vazio = "em breve") e a faixa de zonas Z1–Z6;
+  - **6 contadores ao vivo** vindos de `/public/stats`, atualizados a cada 30 s: atletas, km, kcal, aulas, horas e WPP total;
+  - no celular, o login sobe logo depois do título.
+- **Página no site** (menu nova no painel da academia): a página pública `academia-publica.html?c=CÓDIGO`, com link e código de iframe.
+  - Mostra números, grade da semana, ranking do mês com brasão e foto, e "Aula agora".
+  - O gestor liga e desliga cada parte, escolhe a cor e a ordem do ranking.
+  - Só aparece o primeiro nome e a inicial do sobrenome.
+- **Totem na porta** (menu nova): link secreto por licença para `totem.html` (tablet), com QR e "Trocar código".
+  - O totem faz: reservar pelo e-mail, cadastro rápido (nome, e-mail opcional, sexo, FTP ou 3 perguntas ou pular, foto pela câmera), pedalar sem conta e **entrar na aula aberta escolhendo a bike**.
+  - Volta ao início sozinho em 60 s e bloqueia o botão voltar e o menu.
+- **Brasões:** `brasoes.js` desenha os 7 brasões, com degraus I–III do Bronze ao Diamante. O portal do aluno (`aluno.html`) usa os brasões novos.
+- **QR das bikes:** as imagens vinham quebradas (o gerador do Google foi desligado); agora usa `api.qrserver.com`.
+
+**O que mudou — servidor**
+- **Brasões:** `calcLevel` segue a escada nova (300 · 600 · 900 · 1.200 · 1.700 · 2.200 · 3.000 … 45.000) e a migração recalcula o nível de todo mundo. `aluno_conectou` leva `nivel` para o Ginásio.
+- **Aula ativa pela sala do Ginásio:** `/agenda/aula-ativa/:lic` usa `sala.licenca`. Vale da pré-aula ao fim, inclusive aula fora da grade.
+  - Devolve nome, professor, pedalando, bikes livres e a lista de bikes.
+  - O `sala_info` aceita `aula {nome, professor, duracao_min}`.
+  - Nova pré-aula na mesma sala, 60 s depois de um `fim_aula`, reabre a sala.
+- **Rotas novas:**
+  - `GET /public/stats` (cache de 30 s; o "ao vivo" é na hora);
+  - `GET /public/academia/:codigo`;
+  - `GET/PUT /gestor/pagina`;
+  - `GET /gestor/totem` (`?novo=1` troca o código);
+  - `GET /totem/:t/info`;
+  - `POST /totem/:t/identificar`, `/cadastro`, `/foto`, `/reservar` e `/entrar`.
+- **Totem na sala:** `POST /totem/:t/entrar` manda `aluno_conectou {totem:true, bike, ftpBase, foto, genero}` ao Ginásio e guarda o aluno em `sala.totem`.
+  - `sala_criada` inclui esses alunos, para não perderem a bike numa reconexão.
+  - Quem tinha reserva vira `presente`, com a bike anotada.
+- **Km:** o banco não guarda distância. Ela é estimada pela potência média e pela duração: v = (P/0,25)^(1/3), ≈ 33 km/h a 200 W.
+- **Ajustes:**
+  - `/display/agenda` traz o professor pelo nome digitado (antes vinha vazio sem `professor_id`), `reservas_hoje` e as vagas limitadas pelas bikes;
+  - `/display/licenca` traz os `numeros` do clube;
+  - `express.json` com limite de 1 MB, por causa da foto do totem;
+  - o e-mail de boas-vindas do totem leva a senha provisória.
+- **Banco (automático):** colunas `licencas.pagina_cfg` e `licencas.totem_token`; recálculo de `users.level`.
+
+**O que mudou — Ginásio BUILD 29/09a**
+- A tela de espera mostra as aulas do dia em cartões grandes, com destaque, contagem regressiva, rodapé com as aulas feitas e km/kcal do clube.
+- Brasão ao lado do nome no Ranking. `brasoes.js` na pasta.
+- `sala_info` leva a aula aberta (nome da pré-aula e professor da grade).
+
+**O que mudou — app BUILD 29/09a**
+- Faixa **verde** "Entrar na aula" na academia (Agenda → buscar academia), atualizada a cada 15 s, com o selo "fora da grade".
+- A grade mostra as aulas de **hoje** que ainda não acabaram. Antes, elas pulavam para a semana seguinte, e a data da reserva virava o dia seguinte depois das 21h (UTC).
+- Brasão no perfil e no resumo da aula; tela de comemoração ao subir de brasão. O app manda `nivel` ao entrar na sala.
+
+**Por quê**
+- Tudo aprovado pelo Mario em 29/09: entrada do site na arte dele, faixa verde, aulas na TV, brasões, página da academia e totem.
+
+**Como confirmar**
+- Local, com PostgreSQL 16:
+  - 30 verificações de API (brasões, stats, aula ativa, página, totem completo: reservar, cadastrar, entrar, reconexão, fim, troca de código);
+  - telas do totem, da página pública, do painel, do app e do Ginásio renderizadas sem erro de página.
+- Em produção:
+  - a raiz do site mostra "RIDE WITH PURPOSE" com números;
+  - com o Ginásio na pré-aula, o app mostra a faixa verde na academia.
+
+**Cuidados**
+- Publicar o **servidor antes** do Portal e do app.
+- Criar `public/img/`.
+- `PR_VIDEO_URL`, nas duas páginas de entrada, fica vazio até o Mario mandar o link do vídeo.
+- Quem pedala pelo totem **sem app** ainda não tem a aula gravada no histórico (está em PENDENTES.md).
+
+---
+
 ## 2026-09-29 · servidor · 26/09h
 
 **O que mudou**
@@ -57,20 +168,13 @@ Componentes: `servidor` · `app` · `ginasio` · `portal` · `banco`.
 
 ---
 
-## 2026-09-29 · servidor · 26/09g
+## 2026-09-29 · servidor · 26/09g (feito pelo desenvolvedor, commit 0a6ff29)
 
 **O que mudou**
-- `GET /ping` não devolve mais `db_url_preview`, `db_url_set` nem `db_pool`. Fica `status`, `version` (`2.3`, sem `-debug`), `db` e `ts`.
+- `GET /ping` sem `db_url_preview`, `db_url_set` e `db_pool`. Versão "2.3" (antes "2.3-debug").
 
 **Por quê**
-- `db_url_preview` mostrava os 35 primeiros caracteres da `DATABASE_URL`, com parte da senha do Postgres, num endereço público.
-
-**Como confirmar**
-- `GET /ping` responde `{"status":"ok","version":"2.3","db":true,"ts":…}`.
-
-**Cuidados**
-- Nenhuma tela lia esses campos.
-- A senha do Postgres esteve parcialmente exposta: trocá-la no Railway e atualizar a `DATABASE_URL`.
+- A prévia expunha o começo da `DATABASE_URL`, com parte da senha do Postgres, numa rota pública.
 
 ---
 
