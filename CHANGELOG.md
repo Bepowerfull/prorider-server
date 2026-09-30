@@ -33,11 +33,107 @@ Componentes: `servidor` · `app` · `ginasio` · `portal` · `banco`.
 
 ---
 
-## 2026-09-22 · servidor · a750387, 4409582, 1263390, 9d4528d
-- PUT /admin/users/:id, PUT /admin/licencas/:id address fields
-- trancadas: Set, prof_remover_aluno/trocar_bikes/trancar_bike WS cases
-- GET /agenda/aula-ativa/:license_id
-- JWT_SECRET obrigatório — throw; valor fixo no Railway em 23/09
+## 2026-10-01 · ginasio · 01/10d — tela de espera opção 2 (logo no centro, aulas passando embaixo)
+
+**O que mudou**
+- Tela de espera da TV (`telas-pv.js` seção 10, `_gymGradeRender`; bloco idle do `style.css`):
+  - logo original sempre centralizado, PRO/RIDER em 190 px, brilho laranja atrás;
+  - com aula no dia: o logo sobe 70 px e as aulas de hoje passam numa faixa animada embaixo (CSS `@keyframes idleTick`, conteúdo duplicado, velocidade pela quantidade de aulas);
+  - academia e data no canto superior esquerdo, relógio no superior direito;
+  - sem aula: só o logo no centro.
+- Tela inicial: BUILD 01/10d.
+
+**Por quê**
+- O Mario escolheu a opção 2 entre as sugestões ("a 2 ficou sensacional"), com as aulas rodando.
+
+**Como confirmar**
+- TV parada com aulas no dia: a faixa de aulas anda sem parar e não pula quando a grade atualiza.
+- Sem aulas: logo centralizado sozinho.
+
+**Cuidados**
+- Só Ginásio (`telas-pv.js`, `style.css`, `script.js`, `LEIA-ME.txt`). Servidor e site iguais ao 01/10c.
+
+## 2026-10-01 · ginasio + site · 01/10c — tela de espera original e logo original em todo lugar
+
+**O que mudou**
+- **Tela de espera:** volta a ser a original (fundo quadriculado, raio, PRO branco, RIDER em degradê, linha e "cycling performance").
+  - Com aula no dia, a grade de hoje fica **flutuando à direita, no mesmo fundo**, sem painel e sem faixa de outra cor.
+  - O logo desliza um pouco para a esquerda (classe `com-grade` no `#idleScreen`).
+  - O layout de cartões grandes da 29/09a e o da 01/10b saíram.
+- **Logo:** `logo-prorider.png` (em `gin/` e em `public/img/`) agora é o **logo original**: o raio, PRO RIDER e "cycling performance", desenhado com a mesma fonte e as mesmas cores da tela de espera, em PNG transparente.
+  - Todas as telas usam esse arquivo, então a troca vale em todo lugar: TV, Portal, Construtor, app, totem, página pública e e-mails.
+  - O arquivo antigo (a arte recortada) saiu do pacote.
+
+**Por quê**
+- O Mario identificou que o logo original é o da tela de espera antiga, e que a grade deve flutuar sobre o mesmo fundo.
+
+**Como confirmar**
+- Tela inicial: BUILD 01/10c.
+- Com aula na grade de hoje, deixar a TV parada: logo original à esquerda e grade flutuando à direita.
+- No Portal, o logo do menu lateral é o raio com PRO RIDER.
+
+---
+
+## 2026-10-01 · ginasio · 01/10b — tela de espera com símbolo, logo e grade na lateral
+
+**O que mudou**
+- A tela de espera com aulas no dia deixou de ser só os cartões grandes das aulas.
+  - **No meio:** o símbolo (raio) com o logo original colorido embaixo, o nome da academia e a data; embaixo, km e kcal do clube.
+  - **Na lateral direita:** a grade de hoje (horário, aula, professor, reservas). A aula ao vivo aparece em verde e a próxima em laranja, com "COMEÇA EM N MIN". As aulas já feitas ficam apagadas.
+- O raio voltou também na tela de espera sem aula (símbolo + logo).
+- A nova versão de `_gymGradeRender` fica em `telas-pv.js`.
+
+**Por quê**
+- Pedido do Mario: a tela principal é o símbolo com o nome, e a grade fica ao lado.
+
+**Como confirmar**
+- Tela inicial: BUILD 01/10b.
+- Com aula na grade de hoje, deixar a TV parada até a tela de espera: logo no meio e grade à direita.
+
+---
+
+## 2026-10-01 · servidor + portal + ginasio + app · 01/10a — Campeonatos (Tour, Giro, Vuelta e Mundial)
+
+**O que mudou**
+- **Servidor.** Quatro tabelas novas, criadas sozinhas no arranque: `campeonatos`, `campeonato_etapas`, `campeonato_resultados` e `camisas_conquistadas`. O log mostra `Migração 01/10a (campeonatos) OK`.
+  - **Pontos por etapa, pelo WPP:** 25, 20, 16, 13, 11, 10, 9, 8, 7, 6; do 11º em diante, 1 ponto. A etapa rainha vale em dobro. Quem falta fica com 0. A classificação é refeita depois de cada etapa, com a seta de quem subiu ou desceu.
+  - **Camisas:** líder, pontos (sprint), montanha e estreante (cadastro com até 90 dias antes do início; se ninguém for novo, vale quem está no primeiro campeonato). Cada pessoa veste só uma camisa: se o líder também for o melhor sprinter, a camisa de pontos passa para o próximo, como no Tour.
+  - **Cores por tipo:**
+    - Tour: amarela, verde, bolinhas vermelhas e branca;
+    - Giro: rosa, ciclamino, azzurra e bianca;
+    - Vuelta: vermelha, verde, bolinhas azuis e branca;
+    - Mundial: só a arco-íris, que fica com o campeão no final.
+  - **Fim do campeonato:** na última etapa (ou em "Encerrar"), as camisas ficam gravadas em `camisas_conquistadas`. A pessoa leva a camisa para sempre: aparece no app e na TV de qualquer academia (mensagem `aluno_camisa` quando entra na sala).
+  - **Rotas novas:**
+    - Portal: `GET/POST /gestor/campeonatos`, `GET/PUT/DELETE /gestor/campeonatos/:id`, `POST /gestor/campeonatos/:id/encerrar` e `GET /gestor/campeonatos-grade?inicio&fim` (as aulas da grade no período);
+    - TV: `GET /display/campeonato/hoje` e `POST /display/campeonato/resultado`;
+    - leitura pública: `GET /campeonato/:id/classificacao`, sem `user_id`;
+    - app: `GET /user/campeonatos` e `GET /user/camisas`.
+  - `entrar_sala` passa a guardar o `user_id` na conexão, para ligar o resultado à conta. Nomes "Bike N" e alunos demo não entram no campeonato.
+- **Portal.** Menu novo **Campeonatos**:
+  - escolha do tipo (Tour, Giro, Vuelta, Mundial), nome e período;
+  - as aulas da grade no período, com marcar etapa e tipo (plano, montanha, sprint, contra-relógio, rainha x2);
+  - tabela de pontos, camisas com quem veste agora e a classificação geral;
+  - Encerrar e Apagar.
+  - Depois da primeira etapa, o tipo não muda, e uma etapa feita nunca some.
+- **Ginásio (BUILD 01/10a).**
+  - Na tela do QR, a TV descobre se a aula é etapa e mostra "🏁 Etapa N de M".
+  - Durante a aula, soma sprint e montanha bloco a bloco. Por enquanto a detecção é automática (Z6/Z7 curtos = sprint; Z4+ de 2 min ou mais em pé = montanha); o Construtor ainda não tem campo para marcar o bloco.
+  - No fim, manda o resultado e mostra a **classificação do campeonato** como 3ª tela (depois de AULA CONCLUÍDA e do RANKING), com as camisas, fotos e setas.
+  - A camisa aparece ao lado do nome na grade de bikes e no ranking do fim.
+- **App.**
+  - No início, o cartão do campeonato: posição, seta, pontos, camisa que veste e próxima etapa.
+  - No perfil, **Minhas camisas** com as camisas conquistadas.
+  - Logo original também no início.
+
+**Como confirmar**
+- Portal → Campeonatos → Giro → marcar uma aula de hoje → Salvar.
+- Na TV, abrir a aula no horário: aparece "Etapa 1 de N". Fim da aula → B (ranking) → qualquer botão → classificação do campeonato.
+- Encerrar pelo Portal → o app do vencedor mostra a camisa em Minhas camisas.
+
+**Cuidados**
+- A etapa é reconhecida pelo **horário**: a aula precisa ser aberta de 1 h antes a 3 h depois do horário marcado.
+- Aluno sem conta (sem `user_id`) entra na classificação pelo nome, mas não leva camisa para a conta nem conta como estreante.
 
 ---
 

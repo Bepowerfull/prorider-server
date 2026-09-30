@@ -387,6 +387,35 @@ button{font-family:inherit}
   #loginScreen.lp{overflow:hidden}
   #loginScreen.lp .lpm{display:none}
 }
+
+/* 01/10a: Campeonatos */
+.cp-g{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:16px}
+@media(max-width:1100px){.cp-g{grid-template-columns:1fr}}
+.cp-lista{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+.cp-lista button{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:8px 12px;color:#fff;font-weight:700;font-size:13px;cursor:pointer;display:flex;align-items:center;gap:8px}
+.cp-lista button.on{border-color:var(--accent);background:rgba(234,134,12,.12)}
+.cp-lista small{color:var(--muted);font-weight:600}
+.cp-tipos{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px}
+.cp-tipos button{background:var(--card2);border:1.5px solid transparent;border-radius:12px;padding:10px 8px;color:#fff;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:4px;font-weight:700;font-size:14px}
+.cp-tipos button small{color:var(--muted);font-weight:600;font-size:11.5px}
+.cp-tipos button.on{border-color:var(--accent);background:rgba(234,134,12,.12)}
+.cp-tipos button:disabled{opacity:.4;cursor:not-allowed}
+.cp-3{display:grid;grid-template-columns:2fr 1fr 1fr;gap:10px}
+@media(max-width:700px){.cp-3{grid-template-columns:1fr}.cp-tipos{grid-template-columns:1fr 1fr}}
+.cp-pill{display:inline-flex;padding:3px 9px;border-radius:7px;font-size:12px;font-weight:800;background:rgba(234,134,12,.15);color:#ffb45a;margin-left:auto}
+.cp-et{display:grid;grid-template-columns:28px 58px minmax(0,1fr) 150px 86px;align-items:center;gap:10px;padding:8px 10px;border-radius:10px;background:var(--card2);margin-bottom:6px}
+.cp-et.off{opacity:.55}
+.cp-et input[type=checkbox]{width:20px;height:20px;accent-color:#ea860c;cursor:pointer}
+.cp-et select{background:#1b1b21;border:1px solid var(--border);border-radius:8px;padding:6px 8px;color:#fff;font-size:13px}
+.cp-et .st{font-size:11.5px;font-weight:800;border-radius:7px;padding:3px 8px;text-align:center}
+@media(max-width:700px){.cp-et{grid-template-columns:28px 50px minmax(0,1fr)}.cp-et select,.cp-et .st{grid-column:3}}
+.cp-pts{display:grid;grid-template-columns:repeat(10,1fr);gap:5px;margin-top:8px}
+.cp-pts div{background:var(--card2);border-radius:8px;text-align:center;padding:6px 0;font-size:11px;color:var(--muted);font-weight:700}
+.cp-pts b{display:block;font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:20px;color:#ffe033}
+.cp-cam{display:grid;grid-template-columns:48px 1fr;gap:10px;align-items:center;padding:9px 0;border-bottom:1px solid var(--border)}
+.cp-tb{width:100%;border-collapse:collapse}
+.cp-tb td,.cp-tb th{padding:8px 6px;text-align:left;font-size:14px;border-bottom:1px solid var(--border)}
+.cp-tb th{font-size:11px;letter-spacing:1.3px;color:var(--muted);text-transform:uppercase}
 </style>
 <link href="https://fonts.googleapis.com/css2?family=Permanent+Marker&family=Barlow:wght@400;500;600;700&display=swap" rel="stylesheet">
 </head>
@@ -738,6 +767,40 @@ button{font-family:inherit}
       </div>
       <div id="qrBikesGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:16px">
         <div style="color:var(--muted);font-size:13px;padding:20px">Carregando...</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CAMPEONATOS (01/10a) -->
+  <div class="page content" id="page-campeonatos">
+    <div class="pr-hd"><div><h1>Campeonatos</h1><p>Junte aulas da grade em etapas e vista as camisas de quem lidera</p></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="pr-btn pr-bg" onclick="cpNovo()">＋ Novo campeonato</button><button class="pr-btn pr-bp" id="cpSalvarBtn" onclick="cpSalvar()">Salvar</button></div></div>
+    <div id="cpLista" class="cp-lista"></div>
+    <div class="cp-g">
+      <div style="display:flex;flex-direction:column;gap:14px;min-width:0">
+        <div class="pr-card">
+          <h3 style="margin-bottom:12px">Que campeonato?</h3>
+          <div class="cp-tipos" id="cpTipos"></div>
+          <div class="cp-3">
+            <div class="pr-fg"><label>Nome</label><input id="cpNome" placeholder="Ex.: Giro do Clube · Outubro" oninput="cpEd.nome=this.value"></div>
+            <div class="pr-fg"><label>Começa</label><input type="date" id="cpIni" onchange="cpEd.inicio=this.value;cpCarregarGrade()"></div>
+            <div class="pr-fg"><label>Termina</label><input type="date" id="cpFim" onchange="cpEd.fim=this.value;cpCarregarGrade()"></div>
+          </div>
+        </div>
+        <div class="pr-card">
+          <h3>Etapas <small style="color:var(--muted);font-weight:500;text-transform:none;font-family:Barlow,sans-serif">marque as aulas da grade que valem</small> <span class="cp-pill" id="cpNEtapas">0 etapas</span></h3>
+          <div id="cpEtapas" style="margin-top:10px"><div class="pr-empty">Escolha as datas de começo e fim.</div></div>
+        </div>
+        <div class="pr-card">
+          <h3>Pontos por posição na etapa <small style="color:var(--muted);font-weight:500;text-transform:none;font-family:Barlow,sans-serif">como no Tour · pelo WPP da aula</small></h3>
+          <div class="cp-pts" id="cpPts"></div>
+          <div style="color:var(--muted);font-size:13px;margin-top:8px">Do 11º em diante: <b style="color:#fff">1 ponto</b> por completar a etapa · faltou = 0 · etapa rainha 👑 vale em dobro · a classificação é refeita depois de cada etapa</div>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:14px;min-width:0">
+        <div class="pr-card"><h3>Camisas</h3><div id="cpCamisas"></div></div>
+        <div class="pr-card" style="flex:1"><h3>Classificação geral <small id="cpClSub" style="color:var(--muted);font-weight:500;text-transform:none;font-family:Barlow,sans-serif"></small></h3><div id="cpCl"><div class="pr-empty">A classificação aparece depois da primeira etapa.</div></div>
+          <div id="cpAcoes" style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px"></div></div>
       </div>
     </div>
   </div>
@@ -1201,6 +1264,7 @@ const PR_NAV = [
     ['dashboard','◉','Início',[]],
     ['grade','📅','Agenda da semana',['gestor','coordenador','admin','super_admin']],
     ['criar','🎛','Construtor de aulas',['gestor','coordenador','professor','admin','super_admin']],
+    ['campeonatos','🏁','Campeonatos',['gestor','coordenador','admin','super_admin']],
   ]],
   ['Pessoas', [
     ['alunos','👥','Alunos',[]],
@@ -1697,9 +1761,130 @@ function showTab(t) {
   if (t === 'rankingtv') loadRankingTv();
   if (t === 'perfil') loadPerfil();
   if (t === 'emails') loadEmails();
+  if (t === 'campeonatos') loadCampeonatos();
   if (t === 'pagina') loadPagina();
   if (t === 'totem') loadTotem();
 }
+// ══ 01/10a — CAMPEONATOS ═══════════════════════════════════════════
+const CP_PONTOS=[25,20,16,13,11,10,9,8,7,6];
+const CP_TIPOS_UI=[['tour','Tour de France','camisa amarela','#ffd400'],['giro',"Giro d'Italia",'maglia rosa','#f59ec4'],['vuelta','La Vuelta','camisa vermelha','#d62d2d'],['mundial','Mundial','arco-íris do campeão','arcoiris']];
+const CP_ETAPA_UI=[['plano','Plano'],['montanha','Montanha ⛰'],['sprint','Sprint ⚡'],['contrarrelogio','Contra-relógio ⏱'],['rainha','Etapa rainha 👑 (x2)']];
+let cpLista=[], cpTipos={}, cpAtual=null, cpEd={nome:'',tipo:'tour',inicio:'',fim:''}, cpGrade=[], cpSel={}, cpCl=null;
+function prCamisaSVG(cor,w){
+  var id='cj'+Math.random().toString(36).slice(2,8), defs='', fill=cor||'#888';
+  if(cor==='bol-vermelha'||cor==='bol-azul'){ var dc=cor==='bol-azul'?'#2f6bff':'#d62d2d'; defs='<pattern id="'+id+'" width="9" height="9" patternUnits="userSpaceOnUse"><rect width="9" height="9" fill="#fff"/><circle cx="4.5" cy="4.5" r="2.4" fill="'+dc+'"/></pattern>'; fill='url(#'+id+')'; }
+  else if(cor==='arcoiris'){ var f=[[0,'#fff'],[.36,'#fff'],[.36,'#2f6bff'],[.44,'#2f6bff'],[.44,'#d62d2d'],[.52,'#d62d2d'],[.52,'#111'],[.6,'#111'],[.6,'#ffd400'],[.68,'#ffd400'],[.68,'#1fb34a'],[.76,'#1fb34a'],[.76,'#fff'],[1,'#fff']];
+    defs='<linearGradient id="'+id+'" x1="0" y1="0" x2="0" y2="1">'+f.map(function(x){return '<stop offset="'+x[0]+'" stop-color="'+x[1]+'"/>';}).join('')+'</linearGradient>'; fill='url(#'+id+')'; }
+  return '<svg width="'+w+'" height="'+Math.round(w*.875)+'" viewBox="0 0 64 56" style="flex-shrink:0;vertical-align:middle"><defs>'+defs+'</defs><path d="M20 4 L8 10 L2 24 L12 28 L14 22 L14 52 L50 52 L50 22 L52 28 L62 24 L56 10 L44 4 Q32 14 20 4 Z" fill="'+fill+'" stroke="rgba(0,0,0,.35)" stroke-width="1.5"/></svg>';
+}
+function cpEsc(s){ return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function cpDataBR(iso){ const p=String(iso||'').split('-'); return p.length===3?p[2]+'/'+p[1]:iso; }
+const CP_DIAS=['dom','seg','ter','qua','qui','sex','sáb'];
+function cpDia(iso){ const d=new Date(iso+'T12:00:00'); return isNaN(d)?'':CP_DIAS[d.getDay()]; }
+function cpChave(e){ return String(e.data)+'|'+(e.agenda_id||'')+'|'+String(e.hora||'').slice(0,5); }
+function cpHoje(){ const d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+async function loadCampeonatos(){
+  try{
+    const d=await api('/gestor/campeonatos'); cpLista=d.campeonatos||[]; cpTipos=d.tipos||{};
+    cpRenderLista();
+    const ativo=cpLista.find(c=>c.status==='ativo');
+    if(cpAtual==null && ativo) await cpAbrir(ativo.id); else if(cpAtual==null) cpNovo(); else await cpAbrir(cpAtual);
+  }catch(e){ toast('Não consegui carregar os campeonatos: '+e.message); }
+}
+function cpRenderLista(){
+  const el=document.getElementById('cpLista'); if(!el) return;
+  el.innerHTML=cpLista.map(c=>{ const t=CP_TIPOS_UI.find(x=>x[0]===c.tipo)||CP_TIPOS_UI[0];
+    return '<button class="'+(c.id===cpAtual?'on':'')+'" onclick="cpAbrir('+c.id+')">'+prCamisaSVG(t[3],22)+cpEsc(c.nome)+' <small>'+(c.status==='ativo'?(c.n_feitas+'/'+c.n_etapas+' etapas'):'encerrado')+'</small></button>'; }).join('')
+    +(cpAtual==null?'<button class="on">＋ Novo</button>':'');
+}
+function cpNovo(){
+  cpAtual=null; cpCl=null; cpSel={};
+  const h=cpHoje(), f=new Date(); f.setDate(f.getDate()+27);
+  cpEd={nome:'',tipo:'tour',inicio:h,fim:f.getFullYear()+'-'+String(f.getMonth()+1).padStart(2,'0')+'-'+String(f.getDate()).padStart(2,'0')};
+  cpRenderLista(); cpRenderEd(); cpCarregarGrade(); cpRenderCl();
+}
+async function cpAbrir(id){
+  try{
+    const d=await api('/gestor/campeonatos/'+id); if(d.error) throw new Error(d.error);
+    cpAtual=id; cpCl=d; cpEd={nome:d.campeonato.nome,tipo:d.campeonato.tipo,inicio:d.campeonato.inicio||'',fim:d.campeonato.fim||''};
+    cpSel={}; (d.etapas||[]).forEach(e=>{ cpSel[cpChave(e)]={tipo_etapa:e.tipo_etapa,nome:e.nome,feita:e.feita,n:e.n,data:e.data,hora:e.hora,agenda_id:e.agenda_id}; });
+    cpRenderLista(); cpRenderEd(); await cpCarregarGrade(); cpRenderCl();
+  }catch(e){ toast('Não consegui abrir: '+e.message); }
+}
+function cpTemFeita(){ return Object.values(cpSel).some(x=>x.feita); }
+function cpRenderEd(){
+  const bloqueado=cpTemFeita();
+  document.getElementById('cpTipos').innerHTML=CP_TIPOS_UI.map(t=>'<button class="'+(cpEd.tipo===t[0]?'on':'')+'" '+(bloqueado&&cpEd.tipo!==t[0]?'disabled title="O tipo não muda depois da primeira etapa"':'')+' onclick="cpEd.tipo=\''+t[0]+'\';cpRenderEd();cpRenderCl()">'+prCamisaSVG(t[3],40)+t[1]+'<small>'+t[2]+'</small></button>').join('');
+  document.getElementById('cpNome').value=cpEd.nome||'';
+  document.getElementById('cpIni').value=cpEd.inicio||''; document.getElementById('cpFim').value=cpEd.fim||'';
+  document.getElementById('cpPts').innerHTML=CP_PONTOS.map((p,i)=>'<div>'+(i+1)+'º<b>'+p+'</b></div>').join('');
+}
+async function cpCarregarGrade(){
+  const el=document.getElementById('cpEtapas');
+  if(!cpEd.inicio||!cpEd.fim){ el.innerHTML='<div class="pr-empty">Escolha as datas de começo e fim.</div>'; return; }
+  try{
+    const d=await api('/gestor/campeonatos-grade?inicio='+cpEd.inicio+'&fim='+cpEd.fim);
+    if(d.error) throw new Error(d.error);
+    cpGrade=d.aulas||[];
+  }catch(e){ el.innerHTML='<div class="pr-empty">'+cpEsc(e.message)+'</div>'; return; }
+  cpRenderEtapas();
+}
+function cpRenderEtapas(){
+  const el=document.getElementById('cpEtapas');
+  // aulas da grade + etapas já gravadas que não estão mais na grade (ex.: aula apagada)
+  const lista=cpGrade.map(a=>({...a})); const ks=new Set(lista.map(cpChave));
+  Object.keys(cpSel).forEach(k=>{ if(!ks.has(k)){ const s=cpSel[k]; lista.push({data:s.data,hora:s.hora,agenda_id:s.agenda_id,nome:s.nome,professor:''}); } });
+  lista.sort((a,b)=>(a.data+a.hora).localeCompare(b.data+b.hora));
+  if(!lista.length){ el.innerHTML='<div class="pr-empty">Nenhuma aula na grade nesse período. Cadastre as aulas na Agenda da semana.</div>'; }
+  else el.innerHTML=lista.map((a,i)=>{ const k=cpChave(a), s=cpSel[k], on=!!s;
+    const st=s&&s.feita?'<span class="st" style="background:rgba(93,177,61,.15);color:#8fe06a">✓ feita</span>':(on?'<span class="st" style="background:rgba(234,134,12,.15);color:#ffb45a">agendada</span>':'<span class="st" style="background:rgba(255,255,255,.06);color:var(--muted)">não vale</span>');
+    return '<div class="cp-et'+(on?'':' off')+'"><input type="checkbox" '+(on?'checked':'')+' '+(s&&s.feita?'disabled':'')+' onchange="cpMarcar(\''+k+'\',this.checked)">'
+      +'<b>'+cpDataBR(a.data)+'</b><div style="min-width:0"><b style="font-size:14.5px">'+cpEsc(a.nome||'Aula')+'</b><div style="color:var(--muted);font-size:12px">'+cpDia(a.data)+' '+cpEsc(String(a.hora||'').slice(0,5))+(a.professor?' · '+cpEsc(a.professor):'')+'</div></div>'
+      +(on?'<select onchange="cpSel[\''+k+'\'].tipo_etapa=this.value" '+(s.feita?'disabled':'')+'>'+CP_ETAPA_UI.map(t=>'<option value="'+t[0]+'"'+(s.tipo_etapa===t[0]?' selected':'')+'>'+t[1]+'</option>').join('')+'</select>':'<span></span>')+st+'</div>';
+  }).join('');
+  window._cpListaEtapas=lista;
+  const n=Object.keys(cpSel).length; document.getElementById('cpNEtapas').textContent=n+(n===1?' etapa':' etapas');
+}
+function cpMarcar(k,on){
+  const a=(window._cpListaEtapas||[]).find(x=>cpChave(x)===k); if(!a) return;
+  if(on) cpSel[k]={tipo_etapa:'plano',nome:a.nome,data:a.data,hora:a.hora,agenda_id:a.agenda_id};
+  else if(cpSel[k]&&!cpSel[k].feita) delete cpSel[k];
+  cpRenderEtapas();
+}
+function cpRenderCl(){
+  const tp=cpTipos[cpEd.tipo]||{}, cam=(cpCl&&cpCl.campeonato&&cpCl.campeonato.tipo===cpEd.tipo)?cpCl.camisas:{};
+  const txt={lider:'Líder da classificação geral',pontos:'Melhor sprinter · blocos de sprint e desafios de potência (%FTP)',montanha:'Rei da montanha · blocos de montanha (%FTP sustentado)',jovem:'Melhor estreante · cadastro com até 90 dias no início do campeonato'};
+  if(cpEd.tipo==='mundial') txt.lider='Fica com o campeão, para sempre. Aparece ao lado do nome dele em qualquer academia';
+  document.getElementById('cpCamisas').innerHTML=['lider','pontos','montanha','jovem'].filter(k=>tp[k]).map(k=>{ const d=tp[k], h=cam&&cam[k];
+    return '<div class="cp-cam">'+prCamisaSVG(d.cor,46)+'<div><b style="font-size:15px">'+cpEsc(d.rotulo)+'</b> <span style="color:var(--muted);font-size:13px">· '+txt[k]+'</span><div style="font-size:13px;margin-top:2px">'+(h?'veste agora: <b style="color:#ffb45a">'+cpEsc(h.nome)+'</b>':'<span style="color:var(--muted)">ainda sem dono</span>')+'</div></div></div>'; }).join('')
+    +'<div style="color:var(--muted);font-size:12.5px;margin-top:10px">No fim do campeonato as camisas ficam gravadas na conta de quem venceu e aparecem no app e na TV de qualquer academia.</div>';
+  const cl=document.getElementById('cpCl'), sub=document.getElementById('cpClSub'), ac=document.getElementById('cpAcoes');
+  if(!cpCl||!cpCl.classificacao||!cpCl.classificacao.length){ cl.innerHTML='<div class="pr-empty">A classificação aparece depois da primeira etapa.</div>'; sub.textContent=''; }
+  else { sub.textContent=cpCl.campeonato.status==='encerrado'?'final · encerrado':'depois da etapa '+cpCl.feitas+' de '+cpCl.total_etapas;
+    cl.innerHTML='<table class="cp-tb"><tr><th>#</th><th>Aluno</th><th>Etapas</th><th style="text-align:right">Pontos</th></tr>'+cpCl.classificacao.slice(0,30).map(a=>'<tr><td><b>'+a.pos+'º</b></td><td><span style="display:flex;align-items:center;gap:8px">'+(a.camisa?prCamisaSVG(a.camisa.cor,22):'<span style="width:22px"></span>')+cpEsc(a.nome)+(a.delta>0?' <span style="color:#8fe06a;font-weight:800">▲'+a.delta+'</span>':a.delta<0?' <span style="color:#ff6b6b;font-weight:800">▼'+(-a.delta)+'</span>':'')+'</span></td><td>'+a.etapas+'</td><td style="text-align:right;font-family:Barlow Condensed,sans-serif;font-weight:900;font-size:18px;color:#ffe033">'+a.pontos+'</td></tr>').join('')+'</table>'; }
+  ac.innerHTML=cpAtual==null?'':((cpCl&&cpCl.campeonato.status==='ativo'?'<button class="pr-btn pr-bg" onclick="cpEncerrar()">🏁 Encerrar e entregar as camisas</button>':'')+'<button class="pr-btn pr-bg" onclick="cpApagar()">Apagar</button>');
+}
+async function cpSalvar(){
+  const etapas=Object.values(cpSel).map(s=>({data:s.data,hora:s.hora,agenda_id:s.agenda_id,nome:s.nome,tipo_etapa:s.tipo_etapa}));
+  if(!String(cpEd.nome||'').trim()){ toast('Dê um nome ao campeonato.'); return; }
+  if(!etapas.length){ toast('Marque pelo menos uma aula como etapa.'); return; }
+  const b=document.getElementById('cpSalvarBtn'); b.disabled=true;
+  try{
+    const body={nome:cpEd.nome,tipo:cpEd.tipo,inicio:cpEd.inicio,fim:cpEd.fim,etapas};
+    if(cpAtual==null){ const r=await apiSend('POST','/gestor/campeonatos',body); cpAtual=r.id; }
+    else await apiSend('PUT','/gestor/campeonatos/'+cpAtual,body);
+    toast('✓ Campeonato salvo'); await loadCampeonatos();
+  }catch(e){ toast(e.message); } finally { b.disabled=false; }
+}
+async function cpEncerrar(){
+  if(!confirm('Encerrar o campeonato agora? As camisas ficam gravadas com quem está vestindo.')) return;
+  try{ await apiSend('POST','/gestor/campeonatos/'+cpAtual+'/encerrar'); toast('🏁 Campeonato encerrado'); await loadCampeonatos(); }catch(e){ toast(e.message); }
+}
+async function cpApagar(){
+  if(!confirm('Apagar este campeonato e todos os resultados? As camisas já entregues continuam com quem ganhou.')) return;
+  try{ await apiSend('DELETE','/gestor/campeonatos/'+cpAtual); cpAtual=null; toast('Campeonato apagado'); await loadCampeonatos(); }catch(e){ toast(e.message); }
+}
+
 function voltarAoAdmin(){
   sessionStorage.removeItem('pr_imp_token');
   sessionStorage.removeItem('pr_imp_user');

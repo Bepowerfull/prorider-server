@@ -395,28 +395,12 @@ input[type=file]{display:none}
     <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:260px;height:260px;border-radius:50%;background:radial-gradient(circle,rgba(234,134,12,.12) 0%,transparent 70%);pointer-events:none;animation:spGlow 3s ease-in-out infinite alternate;"></div>
     <!-- Logo vertical centralizado igual ao splash -->
     <div style="position:relative;z-index:2;display:flex;flex-direction:column;align-items:center;gap:0;">
-      <!-- Raio -->
-      <svg width="54" height="65" viewBox="0 0 44 56" fill="none">
-        <defs>
-          <linearGradient id="hBoltG2" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stop-color="#ffe033"/>
-            <stop offset="45%" stop-color="#ea860c"/>
-            <stop offset="100%" stop-color="#d62d2d"/>
-          </linearGradient>
-        </defs>
-        <path d="M30 4 L10 30 L20 30 L14 52 L34 26 L24 26Z" fill="url(#hBoltG2)"/>
-      </svg>
-      <!-- PRO RIDER empilhado -->
-      <div style="font-family:'Bebas Neue',sans-serif;font-size:56px;letter-spacing:5px;line-height:.88;text-align:center;margin-top:4px;">
-        <span style="color:#fff;display:block;">PRO</span>
-        <span style="background:linear-gradient(90deg,#ffe033,#ea860c,#d62d2d);-webkit-background-clip:text;-webkit-text-fill-color:transparent;display:block;">RIDER</span>
-      </div>
-      <!-- barra + tagline -->
-      <div style="height:2px;width:150px;background:linear-gradient(90deg,#ffe033,#ea860c,#d62d2d);border-radius:1px;margin-top:6px;"></div>
-      <div style="font-size:10px;font-weight:700;letter-spacing:5px;color:rgba(255,255,255,.28);text-transform:uppercase;margin-top:5px;">cycling performance</div>
+      <!-- 01/10a: logo original (imagem) -->
+      <img src="/img/logo-prorider.png" alt="ProRider" style="width:230px;display:block;filter:drop-shadow(0 0 20px rgba(234,134,12,.25));">
     </div>
   </div>
 
+  <div id="homeCamp" style="display:none;margin:0 16px 14px;"></div>
   <!-- Botoes principais 2x2 -->
   <div style="padding:0 16px 4px;display:flex;gap:10px;">
 
@@ -1496,6 +1480,7 @@ input[type=file]{display:none}
     <button onclick="go('sLogin')" style="width:100%;padding:14px;border-radius:14px;border:none;background:linear-gradient(135deg,#ea860c,#d62d2d);font-family:'Barlow Condensed',sans-serif;font-size:17px;font-weight:900;letter-spacing:2px;color:#fff;cursor:pointer;">⚡ FAZER LOGIN / CRIAR CONTA</button>
   </div>
 
+  <div id="profCamisas" style="display:none;margin:0 16px 10px;"></div>
   <!-- Histórico -->
   <div class="prof-sec">
     <div class="prof-sec-title">Histórico recente</div>
@@ -4386,6 +4371,7 @@ function goTab(id,tabId){
   if(id==='sActivity') buildActivity();
   if(id==='sProfile') profLoadLocalFields();
   if(id==='sHome') navCenterAtualizar(); // reaplica layout por role ao entrar no início
+  if(id==='sHome'||id==='sProfile') appCampCarregar();   // 01/10a: campeonato e camisas
 }
 
 function showToast(txt,color){
@@ -8429,7 +8415,7 @@ updateProfileUI = function() {
          + ' fill="none" stroke="'+col(fm)+'" stroke-width="30" stroke-linecap="'+cap+'"/>';
     }
     g.innerHTML=out;
-    try{ console.log('%c[ProRider Aluno] BUILD 30/09e — Construtor do celular = o mesmo Construtor online do computador (mesmas funções, mesma conta) + Perto de mim na lupinha (GPS do celular, distância até a academia, aula ao vivo no topo) + faixa verde da aula ao vivo na academia + aulas de hoje na grade + brasões novos (subiu de nível) + Criar aula do Portal abre direto o Construtor (/aluno#construtor) + FC da cinta do celular vai para o Ginasio; Avg. HR = media da aula; aula termina quando a sala some + resultado do teste de FTP da aula no celular (1 min; automatico grava, senao pergunta) + home do professor: sai o Build Workout antigo (com senha), fica Agenda + Treino do Treinador + Construtor de Treino + voltar para a propria bike depois de reabrir o app + relogio do bloco anda sem bike transmitindo + vigia: reentra na sala se a aula parar de chegar + resultado do desafio no celular (10 s, toque fecha) + sexo enviado na entrada da sala (desafio Homens x Mulheres) + aluno sem nome nao entra mais como "-" na sala + leitor do app aceita o QR de Minhas Aulas do Ginasio + aula anterior nao fica mais grudada (fim da aula fecha o socket em qualquer tela; QR de outra sala troca de sala) + gauge com FTP e BLOCO simetricos + marcha e FC na aula da academia + %FTP com o FTP da gaveta na hora + FTP da gaveta vai para a sala na hora + FTP tambem na entrada pela reserva + Revisar o treino mostra a aula do Ginasio + caloria por watt (kJ/eficiencia) + basal Mifflin-St Jeor no cadastro + historico gravado no aparelho + FTP na gaveta + card 1080x1920 reposicionado + 6 protocolos de FTP + TSS + teste de 3 min + fator do teste de 5 min corrigido (era 1,05) + explicacao de FTP em cada teste + gaveta esconde pela propria altura + importacao de treino do TrainingPeaks (grade 2x2 na tela inicial + construtor) com tela de conferencia (botoes acima da navegacao) + corrigido: aula aberta por objeto agora e a que roda + botao Revisar o treino na gaveta + FTP e peso persistem no aparelho + gauge reequilibrado + textos do Brasil + codigo de sala normalizado (QR do navegador deixava a sala inexistente) + faixa de voltar corrigida + reconexao nao trava mais + sala encerrada limpa o codigo guardado + VISTA DA SALA + card comprido de Construtor para professor + fim da corrida no login','color:#ea860c;font-weight:700;'); }catch(e){}
+    try{ console.log('%c[ProRider Aluno] BUILD 01/10a — campeonato no app (posição, camisas, próxima etapa) + camisas conquistadas no perfil + logo original no início + 30/09e: Construtor do celular = o mesmo Construtor online do computador (mesmas funções, mesma conta) + Perto de mim na lupinha (GPS do celular, distância até a academia, aula ao vivo no topo) + faixa verde da aula ao vivo na academia + aulas de hoje na grade + brasões novos (subiu de nível) + Criar aula do Portal abre direto o Construtor (/aluno#construtor) + FC da cinta do celular vai para o Ginasio; Avg. HR = media da aula; aula termina quando a sala some + resultado do teste de FTP da aula no celular (1 min; automatico grava, senao pergunta) + home do professor: sai o Build Workout antigo (com senha), fica Agenda + Treino do Treinador + Construtor de Treino + voltar para a propria bike depois de reabrir o app + relogio do bloco anda sem bike transmitindo + vigia: reentra na sala se a aula parar de chegar + resultado do desafio no celular (10 s, toque fecha) + sexo enviado na entrada da sala (desafio Homens x Mulheres) + aluno sem nome nao entra mais como "-" na sala + leitor do app aceita o QR de Minhas Aulas do Ginasio + aula anterior nao fica mais grudada (fim da aula fecha o socket em qualquer tela; QR de outra sala troca de sala) + gauge com FTP e BLOCO simetricos + marcha e FC na aula da academia + %FTP com o FTP da gaveta na hora + FTP da gaveta vai para a sala na hora + FTP tambem na entrada pela reserva + Revisar o treino mostra a aula do Ginasio + caloria por watt (kJ/eficiencia) + basal Mifflin-St Jeor no cadastro + historico gravado no aparelho + FTP na gaveta + card 1080x1920 reposicionado + 6 protocolos de FTP + TSS + teste de 3 min + fator do teste de 5 min corrigido (era 1,05) + explicacao de FTP em cada teste + gaveta esconde pela propria altura + importacao de treino do TrainingPeaks (grade 2x2 na tela inicial + construtor) com tela de conferencia (botoes acima da navegacao) + corrigido: aula aberta por objeto agora e a que roda + botao Revisar o treino na gaveta + FTP e peso persistem no aparelho + gauge reequilibrado + textos do Brasil + codigo de sala normalizado (QR do navegador deixava a sala inexistente) + faixa de voltar corrigida + reconexao nao trava mais + sala encerrada limpa o codigo guardado + VISTA DA SALA + card comprido de Construtor para professor + fim da corrida no login','color:#ea860c;font-weight:700;'); }catch(e){}
   }
   if(document.readyState!=='loading') buildGaugeArc();
   else document.addEventListener('DOMContentLoaded', buildGaugeArc);
@@ -8472,6 +8458,56 @@ updateProfileUI = function() {
   if(document.readyState!=='loading') _prVoltarInit();
   else document.addEventListener('DOMContentLoaded', _prVoltarInit);
 })();
+
+// ══ 01/10a — CAMPEONATO E CAMISAS NO APP ═══════════════════════════
+function prCamisaSVG(cor,w){
+  var id='cj'+Math.random().toString(36).slice(2,8), defs='', fill=cor||'#888';
+  if(cor==='bol-vermelha'||cor==='bol-azul'){ var dc=cor==='bol-azul'?'#2f6bff':'#d62d2d'; defs='<pattern id="'+id+'" width="9" height="9" patternUnits="userSpaceOnUse"><rect width="9" height="9" fill="#fff"/><circle cx="4.5" cy="4.5" r="2.4" fill="'+dc+'"/></pattern>'; fill='url(#'+id+')'; }
+  else if(cor==='arcoiris'){ var f=[[0,'#fff'],[.36,'#fff'],[.36,'#2f6bff'],[.44,'#2f6bff'],[.44,'#d62d2d'],[.52,'#d62d2d'],[.52,'#111'],[.6,'#111'],[.6,'#ffd400'],[.68,'#ffd400'],[.68,'#1fb34a'],[.76,'#1fb34a'],[.76,'#fff'],[1,'#fff']];
+    defs='<linearGradient id="'+id+'" x1="0" y1="0" x2="0" y2="1">'+f.map(function(x){return '<stop offset="'+x[0]+'" stop-color="'+x[1]+'"/>';}).join('')+'</linearGradient>'; fill='url(#'+id+')'; }
+  return '<svg width="'+w+'" height="'+Math.round(w*.875)+'" viewBox="0 0 64 56" style="flex-shrink:0;vertical-align:middle"><defs>'+defs+'</defs><path d="M20 4 L8 10 L2 24 L12 28 L14 22 L14 52 L50 52 L50 22 L52 28 L62 24 L56 10 L44 4 Q32 14 20 4 Z" fill="'+fill+'" stroke="rgba(0,0,0,.35)" stroke-width="1.5"/></svg>';
+}
+function _acEsc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];}); }
+function _acData(iso){ var p=String(iso||'').split('-'); return p.length===3?p[2]+'/'+p[1]:''; }
+var _acUlt=0;
+async function appCampCarregar(){
+  var tok=''; try{ tok=localStorage.getItem('pr_token')||''; }catch(e){}
+  var hc=document.getElementById('homeCamp'), pc=document.getElementById('profCamisas');
+  if(!tok){ if(hc) hc.style.display='none'; if(pc) pc.style.display='none'; return; }
+  if(Date.now()-_acUlt<20000) return; _acUlt=Date.now();
+  var base=(typeof SERVER_HTTP!=='undefined'&&SERVER_HTTP)?SERVER_HTTP:'';
+  try{
+    var r1=await fetch(base+'/user/campeonatos',{headers:{'Authorization':'Bearer '+tok}}), r2=await fetch(base+'/user/camisas',{headers:{'Authorization':'Bearer '+tok}});
+    var cs=r1.ok?await r1.json():{campeonatos:[]}, cm=r2.ok?await r2.json():{conquistadas:[]};
+    // início: campeonato ativo (posição, camisas, próxima etapa) ou a camisa conquistada
+    var h='';
+    (cs.campeonatos||[]).slice(0,1).forEach(function(c){
+      var eu=c.eu, lid=(c.tipo_def&&c.tipo_def.lider)||{};
+      var cor=eu&&eu.camisa?eu.camisa.cor:(lid.cor||'#ffd400');
+      h+='<div style="background:linear-gradient(135deg,rgba(255,212,0,.12),rgba(255,255,255,.03) 60%);border:1px solid rgba(255,212,0,.35);border-radius:16px;padding:14px;">'
+        +'<div style="font-size:10px;font-weight:700;letter-spacing:2.5px;color:rgba(255,255,255,.45);text-transform:uppercase;">🏁 '+_acEsc(c.campeonato.tipo_nome)+' · etapa '+c.feitas+' de '+c.total_etapas+'</div>'
+        +'<div style="font-family:\'Bebas Neue\',sans-serif;font-size:26px;letter-spacing:1px;color:#fff;line-height:1.1;margin-top:2px;">'+_acEsc(c.campeonato.nome)+'</div>'
+        +'<div style="display:flex;align-items:center;gap:12px;margin-top:10px;">'+prCamisaSVG(cor,54)
+        +'<div>'+(eu?('<div style="font-family:\'Bebas Neue\',sans-serif;font-size:34px;color:#fff;line-height:1;">'+eu.pos+'º'+(eu.delta>0?' <span style="font-size:16px;color:#8fe06a">▲'+eu.delta+'</span>':eu.delta<0?' <span style="font-size:16px;color:#ff6b6b">▼'+(-eu.delta)+'</span>':'')+'</div><div style="font-size:12px;color:rgba(255,255,255,.55);">'+eu.pontos+' pontos · '+eu.etapas+(eu.etapas===1?' etapa':' etapas')+(eu.camisa?' · você veste a '+_acEsc(String(eu.camisa.rotulo||'').toLowerCase())+'!':'')+'</div>')
+          :'<div style="font-size:13px;color:rgba(255,255,255,.7);">Você ainda não pedalou uma etapa.<br>Cada aula vale pontos e camisas.</div>')+'</div></div>'
+        +(c.proxima?'<div style="margin-top:10px;font-size:12.5px;color:rgba(255,255,255,.6);">Próxima etapa: <b style="color:#fff">'+_acData(c.proxima.data)+' · '+_acEsc(String(c.proxima.hora||'').slice(0,5))+'</b>'+(c.proxima.tipo_etapa==='rainha'?' · 👑 vale em dobro':c.proxima.tipo_etapa==='montanha'?' · ⛰ montanha':c.proxima.tipo_etapa==='sprint'?' · ⚡ sprint':'')+'</div>':'')
+        +'</div>';
+    });
+    if(!h && cm.destaque){ var d=cm.destaque;
+      h='<div style="display:flex;align-items:center;gap:12px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:16px;padding:12px 14px;">'+prCamisaSVG(d.cor,46)
+        +'<div><div style="font-size:10px;font-weight:700;letter-spacing:2.5px;color:rgba(255,255,255,.45);text-transform:uppercase;">'+(d.k==='arco-iris'?'Campeão mundial':'Camisa conquistada')+'</div><div style="font-size:15px;font-weight:700;color:#fff;">'+_acEsc(d.rotulo)+'</div><div style="font-size:12px;color:rgba(255,255,255,.5);">'+_acEsc(d.campeonato||'')+'</div></div></div>'; }
+    if(hc){ hc.innerHTML=h; hc.style.display=h?'block':'none'; }
+    // perfil: minhas camisas
+    var lst=cm.conquistadas||[];
+    if(pc){
+      if(!lst.length){ pc.style.display='none'; }
+      else { pc.style.display='block';
+        pc.innerHTML='<div style="font-size:11px;font-weight:700;letter-spacing:2px;color:rgba(255,255,255,.4);text-transform:uppercase;margin:6px 2px 8px;">Minhas camisas</div><div style="display:flex;gap:10px;overflow-x:auto;padding-bottom:4px;">'
+          +lst.map(function(c){ return '<div style="flex-shrink:0;width:112px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:14px;padding:10px;text-align:center;">'+prCamisaSVG(c.cor,50)+'<div style="font-size:12px;font-weight:700;color:#fff;margin-top:4px;line-height:1.2;">'+_acEsc(c.rotulo)+'</div><div style="font-size:10.5px;color:rgba(255,255,255,.45);margin-top:2px;line-height:1.2;">'+_acEsc(c.campeonato_nome)+'</div></div>'; }).join('')+'</div>'; }
+    }
+  }catch(e){ console.warn('[ProRider] campeonato no app:', e&&e.message); }
+}
+setTimeout(function(){ try{ appCampCarregar(); }catch(e){} }, 2500);
 </script>
 </body>
 </html><!-- QR Scan screen -->

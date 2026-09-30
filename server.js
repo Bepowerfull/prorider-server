@@ -796,6 +796,7 @@ async function runMigrations() {
     // 29/09c: localização da academia ("Perto de mim" no app)
     await db.query(`ALTER TABLE licencas ADD COLUMN IF NOT EXISTS geo_fonte TEXT, ADD COLUMN IF NOT EXISTS geo_em TIMESTAMPTZ`);
     log('Migração 29/09c (localização) OK');
+    await campMigrar().catch(e => log('Migração 01/10a (campeonatos) ERRO: ' + e.message));
     setTimeout(() => geoPreencherFaltando().catch(e => log('geo backfill: ' + e.message)), 15000);
 
   } catch(e) {
@@ -1629,6 +1630,11 @@ wss.on('connection', (ws) => {
         }
         sala.observadores.delete(ws); // se estava só observando o mapa, agora é participante
         ws._salaCode = codigo; ws._tipo = 'aluno'; ws._nome = nome; ws._bike = bike || null; ws._bikeNum = bike ? Number(bike) : null;
+        ws._userId = user_id ? (parseInt(user_id, 10) || null) : null;   // 01/10a: campeonato liga o resultado à conta
+        // 01/10a: camisa do aluno (a que veste no campeonato ou a que conquistou) vai para a TV
+        if (ws._userId && db) campCamisaDestaque(ws._userId).then(cm => {
+          if (cm && sala.professor && sala.professor.readyState === WebSocket.OPEN) sala.professor.send(JSON.stringify({ tipo: 'aluno_camisa', nome, camisa: cm }));
+        }).catch(() => {});
         log(`Aluno entrou: ${nome} na sala ${codigo}`);
         if (sala.professor && sala.professor.readyState === WebSocket.OPEN) {
           sala.professor.send(JSON.stringify({ tipo: 'aluno_conectou', nome, bike: bike || null, foto: msg.foto || null, ftpBase: (msg.ftpBase != null ? msg.ftpBase : null), genero: ((msg.genero === 'F' || msg.genero === 'M') ? msg.genero : null), nivel: (typeof msg.nivel === 'string' ? msg.nivel.slice(0, 20) : null), horario: new Date().toLocaleTimeString('pt-BR') })); // 29/09a: nivel = brasão // 26/09b: genero para o desafio Homens x Mulheres
@@ -5164,6 +5170,358 @@ app.get('/ginasio/treinos/:id', profSessionAuth, async (req, res) => {
 });
 
 // ── Start ──────────────────────────────────────────────────────
+
+// ══════════════════════════════════════════════════════════════
+// 01/10a — CAMPEONATOS (Tour de France, Giro d'Italia, La Vuelta e Mundial)
+// ──────────────────────────────────────────────────────────────
+// O gestor cria o campeonato no Portal e marca aulas da grade como ETAPAS.
+// No fim de cada etapa o Ginásio manda o resultado da sala e o servidor:
+//   1) grava a posição de cada aluno pelo WPP e os pontos (25, 20, 16, 13,
+//      11, 10, 9, 8, 7, 6; do 11º em diante 1 ponto; etapa rainha vale x2);
+//   2) refaz a classificação inteira (quem faltou ganha 0 naquela etapa);
+//   3) redistribui as camisas (líder, pontos, montanha, estreante);
+//   4) na última etapa, encerra e grava as camisas CONQUISTADAS, que o
+//      aluno leva para sempre (aparecem no app e na TV de qualquer academia).
+// Mundial: só uma camisa, a arco-íris, que fica com o campeão no final.
+// ══════════════════════════════════════════════════════════════
+const CAMP_PONTOS = [25, 20, 16, 13, 11, 10, 9, 8, 7, 6];
+const CAMP_TIPOS = {
+  tour:    { nome: 'Tour de France', lider: { k: 'amarela', cor: '#ffd400', rotulo: 'Camisa amarela' },
+             pontos: { k: 'verde', cor: '#1fb34a', rotulo: 'Camisa verde' }, montanha: { k: 'bolinhas', cor: 'bol-vermelha', rotulo: 'Camisa de bolinhas' },
+             jovem: { k: 'branca', cor: '#f4f4f4', rotulo: 'Camisa branca' } },
+  giro:    { nome: "Giro d'Italia", lider: { k: 'rosa', cor: '#f59ec4', rotulo: 'Maglia rosa' },
+             pontos: { k: 'ciclamino', cor: '#b0307a', rotulo: 'Maglia ciclamino' }, montanha: { k: 'azzurra', cor: '#2f8cff', rotulo: 'Maglia azzurra' },
+             jovem: { k: 'bianca', cor: '#f4f4f4', rotulo: 'Maglia bianca' } },
+  vuelta:  { nome: 'La Vuelta', lider: { k: 'roja', cor: '#d62d2d', rotulo: 'Camisa vermelha' },
+             pontos: { k: 'verde', cor: '#1fb34a', rotulo: 'Camisa verde' }, montanha: { k: 'bolinhas-azuis', cor: 'bol-azul', rotulo: 'Camisa de bolinhas azuis' },
+             jovem: { k: 'branca', cor: '#f4f4f4', rotulo: 'Camisa branca' } },
+  mundial: { nome: 'Mundial', lider: { k: 'arco-iris', cor: 'arcoiris', rotulo: 'Camisa arco-íris de campeão mundial' } }
+};
+const CAMP_ETAPA_TIPOS = ['plano', 'montanha', 'sprint', 'contrarrelogio', 'rainha'];
+const CAMP_ESTREANTE_DIAS = 90;
+
+async function campMigrar() {
+  if (!db) return;
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS campeonatos (
+      id SERIAL PRIMARY KEY, license_id TEXT NOT NULL, nome TEXT NOT NULL,
+      tipo TEXT NOT NULL DEFAULT 'tour', inicio DATE, fim DATE,
+      status TEXT NOT NULL DEFAULT 'ativo', criado_em TIMESTAMPTZ DEFAULT NOW(), encerrado_em TIMESTAMPTZ
+    );
+    CREATE TABLE IF NOT EXISTS campeonato_etapas (
+      id SERIAL PRIMARY KEY, campeonato_id INTEGER REFERENCES campeonatos(id) ON DELETE CASCADE,
+      ordem INTEGER, data DATE NOT NULL, hora TIME, agenda_id INTEGER, nome TEXT,
+      tipo_etapa TEXT DEFAULT 'plano', feita BOOLEAN DEFAULT FALSE, feita_em TIMESTAMPTZ
+    );
+    CREATE TABLE IF NOT EXISTS campeonato_resultados (
+      id SERIAL PRIMARY KEY, etapa_id INTEGER REFERENCES campeonato_etapas(id) ON DELETE CASCADE,
+      campeonato_id INTEGER, user_id INTEGER, nome TEXT NOT NULL, foto TEXT,
+      posicao INTEGER, wpp NUMERIC(8,2) DEFAULT 0, pontos INTEGER DEFAULT 0,
+      pts_sprint INTEGER DEFAULT 0, pts_montanha INTEGER DEFAULT 0,
+      UNIQUE (etapa_id, nome)
+    );
+    CREATE TABLE IF NOT EXISTS camisas_conquistadas (
+      id SERIAL PRIMARY KEY, user_id INTEGER, nome TEXT, camisa TEXT NOT NULL, cor TEXT, rotulo TEXT,
+      campeonato_id INTEGER, campeonato_nome TEXT, tipo_campeonato TEXT, license_id TEXT, academia TEXT,
+      conquistada_em TIMESTAMPTZ DEFAULT NOW(), UNIQUE (campeonato_id, camisa)
+    );
+    CREATE INDEX IF NOT EXISTS camp_lic_idx ON campeonatos (license_id, status);
+    CREATE INDEX IF NOT EXISTS camp_res_camp_idx ON campeonato_resultados (campeonato_id);
+    CREATE INDEX IF NOT EXISTS camisas_user_idx ON camisas_conquistadas (user_id);
+  `);
+  log('Migração 01/10a (campeonatos) OK');
+}
+
+function campChave(r) { return r.user_id ? 'u' + r.user_id : 'n:' + String(r.nome || '').trim().toLowerCase(); }
+
+// Soma as etapas; ateEtapa = só até aquela etapa (para calcular quem subiu/desceu)
+function campSomar(resultados, etapasValidas) {
+  const m = new Map();
+  for (const r of resultados) {
+    if (etapasValidas && !etapasValidas.has(r.etapa_id)) continue;
+    const k = campChave(r);
+    const a = m.get(k) || { chave: k, nome: r.nome, user_id: r.user_id || null, foto: r.foto || null, pontos: 0, sprint: 0, montanha: 0, etapas: 0, vitorias: 0, wpp: 0 };
+    a.pontos += r.pontos || 0; a.sprint += r.pts_sprint || 0; a.montanha += r.pts_montanha || 0;
+    a.etapas += 1; if (r.posicao === 1) a.vitorias += 1; a.wpp += Number(r.wpp) || 0;
+    if (r.foto) a.foto = r.foto; if (r.user_id) a.user_id = r.user_id;
+    m.set(k, a);
+  }
+  return [...m.values()].sort((x, y) => (y.pontos - x.pontos) || (y.vitorias - x.vitorias) || (y.wpp - x.wpp));
+}
+
+async function campClassificacao(campId) {
+  const c = (await db.query("SELECT *, to_char(inicio,'YYYY-MM-DD') AS inicio_s, to_char(fim,'YYYY-MM-DD') AS fim_s FROM campeonatos WHERE id=$1", [campId])).rows[0];
+  if (!c) return null;
+  const tipo = CAMP_TIPOS[c.tipo] || CAMP_TIPOS.tour;
+  const etapas = (await db.query("SELECT *, to_char(data,'YYYY-MM-DD') AS data_s, to_char(hora,'HH24:MI') AS hora_s FROM campeonato_etapas WHERE campeonato_id=$1 ORDER BY data, hora NULLS LAST, id", [campId])).rows;
+  const res = (await db.query('SELECT * FROM campeonato_resultados WHERE campeonato_id=$1', [campId])).rows;
+  const feitas = etapas.filter(e => e.feita).sort((a, b) => new Date(a.feita_em) - new Date(b.feita_em));
+  const cls = campSomar(res);
+  // subiu/desceu: posição antes da última etapa feita
+  const antes = new Map();
+  if (feitas.length > 1) {
+    const val = new Set(feitas.slice(0, -1).map(e => e.id));
+    campSomar(res, val).forEach((a, i) => antes.set(a.chave, i + 1));
+  }
+  cls.forEach((a, i) => { a.pos = i + 1; a.delta = antes.has(a.chave) ? antes.get(a.chave) - a.pos : null; a.camisa = null; });
+  // estreantes: cadastro com até 90 dias no início do campeonato
+  const estreantes = new Set();
+  const uids = cls.filter(a => a.user_id).map(a => a.user_id);
+  if (uids.length && tipo.jovem) {
+    const ini = c.inicio || c.criado_em;
+    const u = await db.query(`SELECT id FROM users WHERE id = ANY($1::int[]) AND created_at >= ($2::date - INTERVAL '${CAMP_ESTREANTE_DIAS} days')`, [uids, ini]);
+    u.rows.forEach(r => estreantes.add(r.id));
+    if (!estreantes.size) { // ninguém novo: vale o primeiro campeonato da pessoa
+      const p = await db.query('SELECT DISTINCT user_id FROM campeonato_resultados WHERE user_id = ANY($1::int[]) AND campeonato_id <> $2', [uids, campId]);
+      const ja = new Set(p.rows.map(r => r.user_id));
+      uids.forEach(id => { if (!ja.has(id)) estreantes.add(id); });
+    }
+  }
+  // camisas: cada um veste só uma (a mais importante); a outra passa para o próximo
+  const camisas = {}; const vestindo = new Set();
+  const dar = (cat, lista) => {
+    const def = tipo[cat]; if (!def) return;
+    const q = lista.find(a => !vestindo.has(a.chave));
+    if (!q) return;
+    vestindo.add(q.chave); q.camisa = { cat, k: def.k, cor: def.cor, rotulo: def.rotulo };
+    camisas[cat] = { ...def, nome: q.nome, foto: q.foto, user_id: q.user_id, pontos: cat === 'pontos' ? q.sprint : cat === 'montanha' ? q.montanha : q.pontos };
+  };
+  if (cls.length && feitas.length) {
+    if (c.tipo === 'mundial') {
+      if (c.status === 'encerrado') dar('lider', cls);
+    } else {
+      dar('lider', cls);
+      dar('pontos', cls.filter(a => a.sprint > 0).sort((x, y) => y.sprint - x.sprint || x.pos - y.pos));
+      dar('montanha', cls.filter(a => a.montanha > 0).sort((x, y) => y.montanha - x.montanha || x.pos - y.pos));
+      dar('jovem', cls.filter(a => a.user_id && estreantes.has(a.user_id)));
+    }
+  }
+  return {
+    campeonato: { id: c.id, nome: c.nome, tipo: c.tipo, tipo_nome: tipo.nome, inicio: c.inicio_s, fim: c.fim_s, status: c.status, license_id: c.license_id },
+    tipo_def: tipo,
+    etapas: etapas.map((e, i) => ({ id: e.id, n: i + 1, data: e.data_s, hora: e.hora_s, nome: e.nome, tipo_etapa: e.tipo_etapa, feita: e.feita, agenda_id: e.agenda_id })),
+    feitas: feitas.length, total_etapas: etapas.length,
+    classificacao: cls.map(a => ({ pos: a.pos, nome: a.nome, user_id: a.user_id, foto: a.foto, pontos: a.pontos, sprint: a.sprint, montanha: a.montanha, etapas: a.etapas, vitorias: a.vitorias, delta: a.delta, camisa: a.camisa, estreante: !!(a.user_id && estreantes.has(a.user_id)) })),
+    camisas
+  };
+}
+
+async function campEncerrar(campId) {
+  const cl = await (async () => { await db.query("UPDATE campeonatos SET status='encerrado', encerrado_em=COALESCE(encerrado_em,NOW()) WHERE id=$1", [campId]); return campClassificacao(campId); })();
+  if (!cl) return null;
+  const lic = await db.query('SELECT nome, nome_fantasia FROM licencas WHERE codigo=$1', [cl.campeonato.license_id]);
+  const acad = lic.rows[0] ? (lic.rows[0].nome_fantasia || lic.rows[0].nome) : '';
+  for (const cat of Object.keys(cl.camisas)) {
+    const h = cl.camisas[cat];
+    await db.query(`INSERT INTO camisas_conquistadas (user_id, nome, camisa, cor, rotulo, campeonato_id, campeonato_nome, tipo_campeonato, license_id, academia)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) ON CONFLICT (campeonato_id, camisa) DO NOTHING`,
+      [h.user_id || null, h.nome, h.k, h.cor, h.rotulo, cl.campeonato.id, cl.campeonato.nome, cl.campeonato.tipo, cl.campeonato.license_id, acad]);
+  }
+  log(`Campeonato ${campId} encerrado — camisas gravadas: ${Object.keys(cl.camisas).join(', ') || 'nenhuma'}`);
+  return cl;
+}
+
+// Camisa que a pessoa mostra: a que veste num campeonato ativo > campeão mundial > última conquistada
+async function campCamisaDestaque(userId) {
+  if (!db || !userId) return null;
+  const ativos = await db.query(`SELECT DISTINCT c.id FROM campeonatos c JOIN campeonato_resultados r ON r.campeonato_id=c.id WHERE r.user_id=$1 AND c.status='ativo'`, [userId]);
+  for (const row of ativos.rows) {
+    const cl = await campClassificacao(row.id);
+    const eu = cl && cl.classificacao.find(a => a.user_id === userId && a.camisa);
+    if (eu) return { ...eu.camisa, agora: true, campeonato: cl.campeonato.nome };
+  }
+  const q = await db.query(`SELECT camisa AS k, cor, rotulo, campeonato_nome AS campeonato, conquistada_em FROM camisas_conquistadas WHERE user_id=$1
+                            ORDER BY (camisa='arco-iris') DESC, conquistada_em DESC LIMIT 1`, [userId]);
+  return q.rows[0] ? { ...q.rows[0], agora: false } : null;
+}
+
+// ── Portal (gestor) ─────────────────────────────────────────────
+app.get('/gestor/campeonatos', gestorAuth, async (req, res) => {
+  if (!db) return res.status(503).json({ error: 'Banco indisponível' });
+  try {
+    const r = await db.query(`SELECT c.*, to_char(c.inicio,'YYYY-MM-DD') AS inicio_s, to_char(c.fim,'YYYY-MM-DD') AS fim_s, (SELECT COUNT(*) FROM campeonato_etapas e WHERE e.campeonato_id=c.id)::int AS n_etapas,
+      (SELECT COUNT(*) FROM campeonato_etapas e WHERE e.campeonato_id=c.id AND e.feita)::int AS n_feitas
+      FROM campeonatos c WHERE c.license_id=$1 ORDER BY (c.status='ativo') DESC, c.inicio DESC NULLS LAST, c.id DESC`, [req.user.license_id]);
+    res.json({ campeonatos: r.rows, tipos: CAMP_TIPOS, pontos: CAMP_PONTOS });
+  } catch (e) { log('campeonatos list: ' + e.message); res.status(500).json({ error: 'Erro interno' }); }
+});
+// datas da grade dentro do período (para marcar as etapas)
+app.get('/gestor/campeonatos-grade', gestorAuth, async (req, res) => {
+  if (!db) return res.status(503).json({ error: 'Banco indisponível' });
+  try {
+    const ini = new Date(String(req.query.inicio || '') + 'T12:00:00'), fim = new Date(String(req.query.fim || '') + 'T12:00:00');
+    if (isNaN(ini) || isNaN(fim) || fim < ini) return res.status(400).json({ error: 'Período inválido' });
+    if ((fim - ini) / 864e5 > 120) return res.status(400).json({ error: 'Período máximo: 120 dias' });
+    const g = await db.query(`SELECT a.id, a.nome, a.dia_semana, to_char(a.hora,'HH24:MI') AS hora, a.duracao_min, COALESCE(p.name, a.professor_nome) AS professor
+      FROM aulas_agenda a LEFT JOIN users p ON p.id=a.professor_id WHERE a.license_id=$1 AND a.ativa=TRUE ORDER BY a.hora`, [req.user.license_id]);
+    const out = [];
+    for (let d = new Date(ini); d <= fim; d.setDate(d.getDate() + 1)) {
+      const dia = d.getDay(), iso = d.toISOString().slice(0, 10);
+      g.rows.filter(a => a.dia_semana === dia).forEach(a => out.push({ data: iso, hora: a.hora, agenda_id: a.id, nome: a.nome, professor: a.professor, duracao_min: a.duracao_min }));
+    }
+    res.json({ aulas: out });
+  } catch (e) { log('campeonatos grade: ' + e.message); res.status(500).json({ error: 'Erro interno' }); }
+});
+function campLimparEtapas(lista) {
+  return (Array.isArray(lista) ? lista : []).slice(0, 60).map(e => ({
+    data: /^\d{4}-\d{2}-\d{2}$/.test(String(e.data)) ? e.data : null,
+    hora: /^\d{2}:\d{2}/.test(String(e.hora || '')) ? String(e.hora).slice(0, 5) : null,
+    agenda_id: parseInt(e.agenda_id, 10) || null,
+    nome: String(e.nome || '').slice(0, 80),
+    tipo_etapa: CAMP_ETAPA_TIPOS.includes(e.tipo_etapa) ? e.tipo_etapa : 'plano'
+  })).filter(e => e.data);
+}
+app.post('/gestor/campeonatos', gestorAuth, async (req, res) => {
+  if (!db) return res.status(503).json({ error: 'Banco indisponível' });
+  const b = req.body || {};
+  const nome = String(b.nome || '').trim().slice(0, 80);
+  if (!nome) return res.status(400).json({ error: 'Dê um nome ao campeonato.' });
+  const tipo = CAMP_TIPOS[b.tipo] ? b.tipo : 'tour';
+  const etapas = campLimparEtapas(b.etapas);
+  if (!etapas.length) return res.status(400).json({ error: 'Marque pelo menos uma aula da grade como etapa.' });
+  try {
+    const c = await db.query('INSERT INTO campeonatos (license_id, nome, tipo, inicio, fim) VALUES ($1,$2,$3,$4,$5) RETURNING id',
+      [req.user.license_id, nome, tipo, b.inicio || etapas[0].data, b.fim || etapas[etapas.length - 1].data]);
+    const id = c.rows[0].id;
+    for (let i = 0; i < etapas.length; i++) { const e = etapas[i];
+      await db.query('INSERT INTO campeonato_etapas (campeonato_id, ordem, data, hora, agenda_id, nome, tipo_etapa) VALUES ($1,$2,$3,$4,$5,$6,$7)', [id, i + 1, e.data, e.hora, e.agenda_id, e.nome, e.tipo_etapa]); }
+    res.json({ ok: true, id });
+  } catch (e) { log('campeonatos criar: ' + e.message); res.status(500).json({ error: 'Erro interno' }); }
+});
+async function campDoGestor(req, res) {
+  const c = await db.query('SELECT * FROM campeonatos WHERE id=$1 AND license_id=$2', [parseInt(req.params.id, 10) || 0, req.user.license_id]);
+  if (!c.rows.length) { res.status(404).json({ error: 'Campeonato não encontrado' }); return null; }
+  return c.rows[0];
+}
+app.get('/gestor/campeonatos/:id', gestorAuth, async (req, res) => {
+  if (!db) return res.status(503).json({ error: 'Banco indisponível' });
+  try { const c = await campDoGestor(req, res); if (!c) return; res.json(await campClassificacao(c.id)); }
+  catch (e) { log('campeonato ver: ' + e.message); res.status(500).json({ error: 'Erro interno' }); }
+});
+app.put('/gestor/campeonatos/:id', gestorAuth, async (req, res) => {
+  if (!db) return res.status(503).json({ error: 'Banco indisponível' });
+  try {
+    const c = await campDoGestor(req, res); if (!c) return;
+    const b = req.body || {};
+    const nome = String(b.nome || c.nome).trim().slice(0, 80);
+    const feitas = (await db.query('SELECT COUNT(*)::int n FROM campeonato_etapas WHERE campeonato_id=$1 AND feita', [c.id])).rows[0].n;
+    const tipo = (feitas === 0 && CAMP_TIPOS[b.tipo]) ? b.tipo : c.tipo;   // depois da 1ª etapa o tipo não muda
+    await db.query('UPDATE campeonatos SET nome=$1, tipo=$2, inicio=COALESCE($3,inicio), fim=COALESCE($4,fim) WHERE id=$5', [nome, tipo, b.inicio || null, b.fim || null, c.id]);
+    if (Array.isArray(b.etapas)) {
+      const novas = campLimparEtapas(b.etapas);
+      const velhas = (await db.query("SELECT *, to_char(data,'YYYY-MM-DD') AS data_s, to_char(hora,'HH24:MI') AS hora_s FROM campeonato_etapas WHERE campeonato_id=$1", [c.id])).rows;
+      const chave = e => String(e.data).slice(0, 10) + '|' + (e.agenda_id || '') + '|' + String(e.hora || '').slice(0, 5);
+      const mapaNovas = new Map(novas.map(e => [chave(e), e]));
+      for (const v of velhas) {
+        const vk = chave({ data: v.data_s, agenda_id: v.agenda_id, hora: v.hora_s });
+        if (mapaNovas.has(vk)) { const n = mapaNovas.get(vk); await db.query('UPDATE campeonato_etapas SET tipo_etapa=$1, nome=$2 WHERE id=$3', [n.tipo_etapa, n.nome || v.nome, v.id]); mapaNovas.delete(vk); }
+        else if (!v.feita) await db.query('DELETE FROM campeonato_etapas WHERE id=$1', [v.id]);   // etapa feita nunca some
+      }
+      for (const e of mapaNovas.values())
+        await db.query('INSERT INTO campeonato_etapas (campeonato_id, data, hora, agenda_id, nome, tipo_etapa) VALUES ($1,$2,$3,$4,$5,$6)', [c.id, e.data, e.hora, e.agenda_id, e.nome, e.tipo_etapa]);
+    }
+    res.json(await campClassificacao(c.id));
+  } catch (e) { log('campeonato editar: ' + e.message); res.status(500).json({ error: 'Erro interno' }); }
+});
+app.post('/gestor/campeonatos/:id/encerrar', gestorAuth, async (req, res) => {
+  if (!db) return res.status(503).json({ error: 'Banco indisponível' });
+  try { const c = await campDoGestor(req, res); if (!c) return; res.json(await campEncerrar(c.id)); }
+  catch (e) { log('campeonato encerrar: ' + e.message); res.status(500).json({ error: 'Erro interno' }); }
+});
+app.delete('/gestor/campeonatos/:id', gestorAuth, async (req, res) => {
+  if (!db) return res.status(503).json({ error: 'Banco indisponível' });
+  try { const c = await campDoGestor(req, res); if (!c) return;
+    await db.query('DELETE FROM campeonatos WHERE id=$1', [c.id]); await db.query('DELETE FROM campeonato_resultados WHERE campeonato_id=$1', [c.id]);
+    res.json({ ok: true }); }
+  catch (e) { log('campeonato apagar: ' + e.message); res.status(500).json({ error: 'Erro interno' }); }
+});
+
+// ── Ginásio (TV) ────────────────────────────────────────────────
+// Etapa de hoje: a aula mais perto do horário atual (de 1 h antes a 3 h depois)
+app.get('/display/campeonato/hoje', displayAuth, async (req, res) => {
+  if (!db) return res.status(503).json({ error: 'Banco indisponível' });
+  try {
+    const r = await db.query(`
+      SELECT e.id AS etapa_id, e.campeonato_id, e.nome AS etapa_nome, e.tipo_etapa, to_char(e.hora,'HH24:MI') AS hora, e.feita,
+             ABS(EXTRACT(EPOCH FROM ((NOW() AT TIME ZONE 'America/Sao_Paulo')::time - COALESCE(e.hora, (NOW() AT TIME ZONE 'America/Sao_Paulo')::time)))) AS dist
+      FROM campeonato_etapas e JOIN campeonatos c ON c.id=e.campeonato_id
+      WHERE c.license_id=$1 AND c.status='ativo' AND e.data=(NOW() AT TIME ZONE 'America/Sao_Paulo')::date
+        AND (e.hora IS NULL OR ((NOW() AT TIME ZONE 'America/Sao_Paulo')::time BETWEEN e.hora - INTERVAL '60 minutes' AND e.hora + INTERVAL '180 minutes'))
+      ORDER BY e.feita ASC, dist ASC LIMIT 1`, [req.user.license_id]);
+    if (!r.rows.length) return res.json({ etapa: null });
+    const e = r.rows[0];
+    const cl = await campClassificacao(e.campeonato_id);
+    const n = cl.etapas.find(x => x.id === e.etapa_id);
+    res.json({ etapa: { id: e.etapa_id, n: n ? n.n : null, nome: e.etapa_nome, tipo_etapa: e.tipo_etapa, hora: e.hora, feita: e.feita }, ...cl });
+  } catch (e) { log('campeonato hoje: ' + e.message); res.status(500).json({ error: 'Erro interno' }); }
+});
+// Resultado da etapa (fim da aula). Pode ser reenviado: substitui o anterior.
+app.post('/display/campeonato/resultado', displayAuth, async (req, res) => {
+  if (!db) return res.status(503).json({ error: 'Banco indisponível' });
+  try {
+    const b = req.body || {};
+    const et = await db.query(`SELECT e.*, c.license_id, c.status FROM campeonato_etapas e JOIN campeonatos c ON c.id=e.campeonato_id WHERE e.id=$1`, [parseInt(b.etapa_id, 10) || 0]);
+    const e = et.rows[0];
+    if (!e || e.license_id !== req.user.license_id) return res.status(404).json({ error: 'Etapa não encontrada' });
+    if (e.status !== 'ativo') return res.status(409).json({ error: 'Campeonato já encerrado' });
+    const sala = salas[String(b.sala || '')];
+    const lista = (Array.isArray(b.resultados) ? b.resultados : []).slice(0, 200)
+      .map(r => ({ nome: String(r.nome || '').trim().slice(0, 60), wpp: Math.max(0, Number(r.wpp) || 0), sprint: Math.max(0, parseInt(r.sprint, 10) || 0), montanha: Math.max(0, parseInt(r.montanha, 10) || 0) }))
+      .filter(r => r.nome && !/^Bike \d+$/i.test(r.nome) && !/^demo\b/i.test(r.nome))
+      .sort((x, y) => y.wpp - x.wpp);
+    const mult = e.tipo_etapa === 'rainha' ? 2 : 1;
+    await db.query('DELETE FROM campeonato_resultados WHERE etapa_id=$1', [e.id]);
+    for (let i = 0; i < lista.length; i++) {
+      const r = lista[i];
+      let uid = null;
+      try { const w = sala && sala.alunos && sala.alunos.get(r.nome); if (w && w._userId) uid = parseInt(w._userId, 10) || null; } catch (_) {}
+      if (!uid) { const u = await db.query('SELECT id FROM users WHERE license_id=$1 AND LOWER(TRIM(name))=LOWER($2) LIMIT 2', [e.license_id, r.nome]); if (u.rows.length === 1) uid = u.rows[0].id; }
+      let foto = null; if (uid) { const f = await db.query('SELECT foto_url FROM users WHERE id=$1', [uid]); foto = (f.rows[0] || {}).foto_url || null; }
+      const pts = (i < CAMP_PONTOS.length ? CAMP_PONTOS[i] : 1) * mult;
+      await db.query(`INSERT INTO campeonato_resultados (etapa_id, campeonato_id, user_id, nome, foto, posicao, wpp, pontos, pts_sprint, pts_montanha)
+        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) ON CONFLICT (etapa_id, nome) DO NOTHING`, [e.id, e.campeonato_id, uid, r.nome, foto, i + 1, r.wpp.toFixed(2), pts, r.sprint, r.montanha]);
+    }
+    await db.query('UPDATE campeonato_etapas SET feita=TRUE, feita_em=COALESCE(feita_em,NOW()) WHERE id=$1', [e.id]);
+    const falta = (await db.query('SELECT COUNT(*)::int n FROM campeonato_etapas WHERE campeonato_id=$1 AND NOT feita', [e.campeonato_id])).rows[0].n;
+    const cl = falta === 0 ? await campEncerrar(e.campeonato_id) : await campClassificacao(e.campeonato_id);
+    const n = cl.etapas.find(x => x.id === e.id);
+    log(`Campeonato ${e.campeonato_id}: etapa ${e.id} com ${lista.length} aluno(s)${falta === 0 ? ' — ÚLTIMA ETAPA, campeonato encerrado' : ''}`);
+    res.json({ ok: true, etapa: { id: e.id, n: n ? n.n : null, nome: e.nome, tipo_etapa: e.tipo_etapa }, ...cl });
+  } catch (err) { log('campeonato resultado: ' + err.message); res.status(500).json({ error: 'Erro interno' }); }
+});
+
+// ── Leitura pública (app, página pública) ─────────────────────────
+app.get('/campeonato/:id/classificacao', async (req, res) => {
+  if (!db) return res.status(503).json({ error: 'Banco indisponível' });
+  try { const cl = await campClassificacao(parseInt(req.params.id, 10) || 0); if (!cl) return res.status(404).json({ error: 'Campeonato não encontrado' });
+    cl.classificacao.forEach(a => { delete a.user_id; }); Object.values(cl.camisas).forEach(h => { delete h.user_id; }); res.json(cl); }
+  catch (e) { log('campeonato público: ' + e.message); res.status(500).json({ error: 'Erro interno' }); }
+});
+// ── App: meus campeonatos e minhas camisas ─────────────────────────
+app.get('/user/campeonatos', authMiddleware, async (req, res) => {
+  if (!db) return res.status(503).json({ error: 'Banco indisponível' });
+  try {
+    const u = (await db.query('SELECT license_id FROM users WHERE id=$1', [req.user.id])).rows[0] || {};
+    const ids = await db.query(`SELECT id FROM campeonatos WHERE status='ativo' AND (license_id=$1 OR id IN (SELECT campeonato_id FROM campeonato_resultados WHERE user_id=$2)) ORDER BY inicio NULLS LAST LIMIT 5`, [u.license_id || '', req.user.id]);
+    const out = [];
+    for (const r of ids.rows) {
+      const cl = await campClassificacao(r.id);
+      const eu = cl.classificacao.find(a => a.user_id === req.user.id) || null;
+      const _br = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' })); const hoje = _br.getFullYear() + '-' + String(_br.getMonth() + 1).padStart(2, '0') + '-' + String(_br.getDate()).padStart(2, '0');
+      const prox = cl.etapas.find(e => !e.feita && String(e.data) >= hoje) || null;
+      out.push({ campeonato: cl.campeonato, tipo_def: cl.tipo_def, feitas: cl.feitas, total_etapas: cl.total_etapas, eu, camisas: cl.camisas, proxima: prox, top: cl.classificacao.slice(0, 10).map(a => ({ pos: a.pos, nome: a.nome, pontos: a.pontos, camisa: a.camisa, foto: a.foto })) });
+    }
+    res.json({ campeonatos: out });
+  } catch (e) { log('user campeonatos: ' + e.message); res.status(500).json({ error: 'Erro interno' }); }
+});
+app.get('/user/camisas', authMiddleware, async (req, res) => {
+  if (!db) return res.status(503).json({ error: 'Banco indisponível' });
+  try {
+    const q = await db.query('SELECT camisa AS k, cor, rotulo, campeonato_nome, tipo_campeonato, academia, conquistada_em FROM camisas_conquistadas WHERE user_id=$1 ORDER BY conquistada_em DESC', [req.user.id]);
+    res.json({ destaque: await campCamisaDestaque(req.user.id), conquistadas: q.rows });
+  } catch (e) { log('user camisas: ' + e.message); res.status(500).json({ error: 'Erro interno' }); }
+});
+
 server.listen(PORT, () => {
   log(`ProRider Server v2.0 rodando na porta ${PORT}`);
   log(`HTTP + WebSocket ativos`);

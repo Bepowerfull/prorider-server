@@ -55,7 +55,7 @@ Pedido do Mario em 29/09. Depende dos brasões e da gravação dos resultados po
 - Portal: criar, editar e encerrar o campeonato, e ver os resultados por etapa.
 
 **Regra de pontos (Mario, 30/09):** a classificação é a soma das etapas em que o aluno pedalou; etapa que ele faltou vale 0 (não trava o campeonato). Depois de CADA etapa o sistema recalcula a classificação inteira e redistribui as camisas: quem voltou numa etapa posterior soma só o que fez e pode recuperar ou perder a camisa.
-**Status 30/09:** só desenhado; nada construído ainda.
+**Status 01/10a:** FEITO (Portal, servidor, TV e app), com Tour, Giro, Vuelta e Mundial. Falta: marcar bloco de sprint/montanha no Construtor (hoje é automático), camisa nos cartões da aula ao vivo, classificação na página pública e na tela de espera.
 
 **O que precisa antes:**
 1. Guardar os resultados por bloco de cada aula no servidor (hoje só vai o resumo da aula).
