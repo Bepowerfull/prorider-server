@@ -232,6 +232,7 @@ button{font-family:inherit}
 .pr-chk{display:flex;align-items:center;gap:9px;font-size:13px;color:var(--muted);cursor:pointer}
 .pr-chk input{width:18px;height:18px;accent-color:var(--accent)}
 @media(max-width:900px){
+  .pr-dash2{grid-template-columns:1fr!important}
   .pr-shell{flex-direction:column}
   .pr-sb{width:auto;height:auto;position:static;flex-direction:row;flex-wrap:wrap;gap:4px;padding:10px}
   .pr-imp + .pr-shell .pr-sb{height:auto}
@@ -480,10 +481,10 @@ button{font-family:inherit}
   <!-- DASHBOARD (26/09e) -->
   <div class="page active content" id="page-dashboard">
     <div class="pr-hero">
-      <div><h2>Criar nova aula</h2><p>Monte blocos, zonas e desafios automáticos no Construtor. A aula aparece no Ginásio e no app dos alunos.</p></div>
+      <div><h2>Construtor de aulas</h2><p>Monte blocos, zonas, desafios automáticos e a trilha no computador. A aula aparece no Ginásio em Minhas aulas.</p></div>
       <div style="display:flex;gap:10px;flex-wrap:wrap">
         <button class="pr-btn pr-bg" onclick="openNovaAula()">📅 Agendar na grade</button>
-        <button class="pr-btn pr-bp" onclick="abrirConstrutor()">⚡ Criar aula</button>
+        <a class="pr-btn pr-bp" href="studio.html" target="_blank">🎛 Abrir o Construtor</a>
       </div>
     </div>
     <div class="pr-kp">
@@ -587,12 +588,31 @@ button{font-family:inherit}
   </div>
   <!-- CRIAR AULA (26/09e) -->
   <div class="page content" id="page-criar">
-    <div class="pr-hd"><div><h1>Criar aula</h1><p>Tudo o que a academia precisa para montar e rodar uma aula</p></div></div>
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px">
-      <div class="pr-card" style="border-color:rgba(234,134,12,.45)"><h3>⚡ Construtor de treino</h3><p class="pr-note" style="margin-bottom:14px">Blocos, zonas de FTP, cadência, posição e desafio automático no fim do bloco. O treino salvo aparece no Ginásio em "Minhas aulas".</p><button class="pr-btn pr-bp" onclick="abrirConstrutor()">Abrir o Construtor</button></div>
-      <div class="pr-card"><h3>📅 Agendar na grade</h3><p class="pr-note" style="margin-bottom:14px">Dia, horário, professor e vagas. A grade aparece no app para reserva e no Ginásio da sala.</p><button class="pr-btn pr-bg" onclick="openNovaAula()">+ Nova aula na grade</button></div>
-      <div class="pr-card"><h3>📡 Aula ao vivo agora</h3><p class="pr-note" style="margin-bottom:14px">Abre uma sessão com QR para os alunos entrarem pelo app sem reserva.</p><button class="pr-btn pr-bg" onclick="iniciarSessaoAoVivo()">Iniciar sessão</button></div>
-      <div class="pr-card"><h3>🎛 Studio Builder</h3><p class="pr-note" style="margin-bottom:14px">O construtor antigo, com música. Continua disponível para quem já usa.</p><a class="pr-btn pr-bg" href="studio.html" target="_blank">Abrir Studio Builder</a></div>
+    <div class="pr-hd"><div><h1>Construtor de aulas</h1><p>Monte a aula no computador, com calma, em casa ou na academia</p></div>
+      <a class="pr-btn pr-bp" href="studio.html" target="_blank">🎛 Abrir o Construtor ↗</a></div>
+    <div class="pr-card pr-dash2" style="border-color:rgba(234,134,12,.45);display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:26px;align-items:center" id="ctCard">
+      <div>
+        <h3 style="font-size:26px">🎛 Construtor de aulas online</h3>
+        <ul style="list-style:none;display:flex;flex-direction:column;gap:10px;font-size:14.5px;color:rgba(255,255,255,.82);line-height:1.45">
+          <li>⚡ Blocos com zona, faixa de %FTP, cadência, posição e observação para o professor.</li>
+          <li>🪢 Desafio automático no fim do bloco (cabo de guerra, kcal, potência, distância).</li>
+          <li>📈 A aula inteira num gráfico só, no tamanho do tempo de cada bloco.</li>
+          <li>🎵 A música no mesmo tempo do gráfico, para casar as viradas com a trilha.</li>
+          <li>☁ <b>Salvar na minha conta</b>: a aula aparece no Ginásio em <b>Minhas aulas</b>. Ou <b>Baixar para pendrive</b>.</li>
+        </ul>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:18px">
+          <a class="pr-btn pr-bp" href="studio.html" target="_blank">Abrir o Construtor ↗</a>
+          <button class="pr-btn pr-bg" onclick="copiarLinkConstrutor()">🔗 Copiar o link para o professor</button>
+        </div>
+      </div>
+      <div style="background:var(--card2);border:1px solid var(--border);border-radius:12px;padding:16px">
+        <div style="font-size:11px;letter-spacing:1.5px;color:var(--muted);text-transform:uppercase;font-weight:700;margin-bottom:10px">Como a aula chega na TV</div>
+        <ol style="padding-left:18px;display:flex;flex-direction:column;gap:8px;font-size:13.5px;color:rgba(255,255,255,.78);line-height:1.45">
+          <li>O professor monta a aula no Construtor e toca <b>Salvar na minha conta</b> (entra com o login do app).</li>
+          <li>No Ginásio, ele toca <b>Minhas aulas</b> e lê o QR com o app: as aulas dele aparecem na TV.</li>
+          <li>Sem internet na academia: <b>Baixar para pendrive</b> e colocar na pasta <b>prorider/</b>.</li>
+        </ol>
+      </div>
     </div>
   </div>
 
@@ -1224,14 +1244,14 @@ var allAlunos = [];
 // PORTAL 26/09e — menu lateral por papel, perfil, alunos com lupa,
 // ranking na TV, equipe e e-mails
 // ══════════════════════════════════════════════════════════════
-const PORTAL_ROLES = ['gestor','coordenador','financeiro','admin','super_admin'];
+const PORTAL_ROLES = ['gestor','coordenador','financeiro','professor','admin','super_admin'];
 const ROLE_NOME = {aluno:'Aluno',professor:'Professor',coordenador:'Coordenador',financeiro:'Financeiro',gestor:'Gestor',admin:'Admin',super_admin:'Super Admin'};
 // [id, ícone, nome, papéis que veem (vazio = todos do Portal)]
 const PR_NAV = [
   ['Operação', [
     ['dashboard','◉','Início',[]],
     ['grade','📅','Agenda da semana',['gestor','coordenador','admin','super_admin']],
-    ['criar','⚡','Criar aula',['gestor','coordenador','admin','super_admin']],
+    ['criar','🎛','Construtor de aulas',['gestor','coordenador','professor','admin','super_admin']],
   ]],
   ['Pessoas', [
     ['alunos','👥','Alunos',[]],
@@ -1252,8 +1272,12 @@ const PR_NAV = [
   ]],
 ];
 function prPapel(){ return (user && user.impersonated_by) ? 'gestor' : String((user && user.role) || ''); }
+// 30/09c: professor entra no Portal so para o Construtor de aulas (e o perfil)
+const PROF_ABAS = ['criar','perfil'];
+function prInicial(){ return prPapel()==='professor' ? 'criar' : 'dashboard'; }
 function prPode(tab){
   const r = prPapel();
+  if (r === 'professor') return PROF_ABAS.includes(tab);
   for (const [, itens] of PR_NAV) for (const it of itens) if (it[0] === tab) return !it[3].length || it[3].includes(r);
   return true;
 }
@@ -1284,8 +1308,12 @@ async function apiSend(method, path, body){
   return d;
 }
 function abrirConstrutor(){
-  // o Construtor mora no app (/aluno). O mesmo login do Portal vale lá.
-  window.open(SERVER + '/aluno#construtor', '_blank');
+  // 30/09c: o Construtor de aulas e o online (studio.html), no computador.
+  window.open('studio.html', '_blank');
+}
+function copiarLinkConstrutor(){
+  const url = new URL('studio.html', location.href).href;
+  try { navigator.clipboard.writeText(url); toast('✓ Link copiado: ' + url); } catch(e) { prompt('Link do Construtor:', url); }
 }
 
 // ── Dashboard ──
@@ -1642,7 +1670,7 @@ function ttNovo(){ if (confirm('Trocar o código do totem? O link antigo para de
 
 // ── Navegação (26/09e) ──
 function showTab(t) {
-  if (!prPode(t)) t = 'dashboard';
+  if (!prPode(t)) t = prInicial();
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.pr-it').forEach(b => b.classList.remove('on'));
   const pg = document.getElementById('page-' + t); if (pg) pg.classList.add('active');
@@ -1680,13 +1708,13 @@ async function showApp() {
     document.getElementById('impNome').textContent = user.academia_nome || String(user.name||'').replace(/^⚡\s*/,'').replace(/\s*\(modo suporte\)$/,'') || user.license_id;
   }
   prMontarMenu(); prMontarMe();
-  // quem não cria aula (financeiro) não vê o destaque de Criar aula
+  // quem não monta aula (financeiro) não vê o destaque do Construtor
   document.querySelectorAll('#page-dashboard .pr-hero').forEach(h => h.style.display = prPode('criar') ? '' : 'none');
   const now = new Date();
   document.getElementById('repMes').value = now.getMonth() + 1;
   document.getElementById('repAno').value = now.getFullYear();
   const inicial = String(location.hash || '').replace('#','');
-  showTab(document.getElementById('page-' + inicial) ? inicial : 'dashboard');
+  showTab(document.getElementById('page-' + inicial) && prPode(inicial) ? inicial : prInicial());
   // nome da academia no menu (o token só traz o código)
   try { const c = await api('/gestor/config'); if (c && (c.nome_fantasia || c.nome)) { user.academia_nome = c.nome_fantasia || c.nome; document.getElementById('meLic').textContent = user.academia_nome; } } catch(e) {}
 }
@@ -1734,9 +1762,6 @@ async function doLogin() {
       window.location.href = 'index.html'; return;
     }
     if (d.user.role === 'aluno') { window.location.href = 'aluno.html'; return; }
-    if (d.user.role === 'professor') {
-      err.innerHTML = 'Professor usa o app ProRider: <a href="' + SERVER + '/aluno" style="color:var(--accent)">abrir o app</a>.'; err.style.display = 'block'; return;
-    }
     if (!PORTAL_ROLES.includes(d.user.role)) {
       err.textContent = 'Seu usuário não tem acesso ao Portal.'; err.style.display = 'block'; return;
     }

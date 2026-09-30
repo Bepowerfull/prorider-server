@@ -3,976 +3,754 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ProRider Studio Builder</title>
-<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow+Condensed:wght@400;700;900&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
+<title>Construtor de aulas — ProRider</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow+Condensed:wght@400;600;700;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
-*{ margin:0; padding:0; box-sizing:border-box; }
-body{ background:#080c14; color:#fff; font-family:'Barlow',sans-serif; min-height:100vh; }
-
-/* ── HEADER ── */
-header{
-  position:sticky; top:0;
-  padding:14px 26px;
-  display:flex; align-items:center; justify-content:space-between;
-  z-index:20;
-  background:rgba(5,8,16,0.97);
-  border-bottom:1px solid rgba(255,255,255,0.06);
-  backdrop-filter:blur(8px);
-}
-.header-logo{ display:flex; align-items:center; gap:12px; }
-.header-name{ font-family:'Bebas Neue',sans-serif; font-size:30px; letter-spacing:3px; line-height:1; }
-.header-pro{ color:#fff; }
-.header-rider{ background:linear-gradient(90deg,#ffe033,#ea860c,#d62d2d); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
-.header-bar{ height:2px; width:100%; background:linear-gradient(90deg,#ffe033,#ea860c,#d62d2d); border-radius:1px; box-shadow:0 0 6px rgba(234,134,12,.4); margin-top:1px; }
-.header-tagline{ font-family:'Barlow Condensed',sans-serif; font-size:9px; font-weight:700; letter-spacing:4px; color:rgba(255,255,255,.22); text-transform:uppercase; margin-top:2px; }
-.header-sub{ font-family:'Barlow Condensed',sans-serif; font-size:11px; font-weight:700; letter-spacing:3px; color:rgba(255,255,255,.2); text-transform:uppercase; background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.07); padding:4px 12px; border-radius:20px; }
-#classNameHeader{ font-family:'Barlow Condensed',sans-serif; font-size:14px; font-weight:700; letter-spacing:2px; color:rgba(255,255,255,.28); }
-.header-actions{ display:flex; align-items:center; gap:8px; }
-.btn-hdr{ font-family:'Barlow Condensed',sans-serif; font-weight:700; letter-spacing:1px; cursor:pointer; border-radius:8px; font-size:12px; padding:8px 16px; border:none; }
-.btn-hdr-primary{ background:linear-gradient(135deg,#2850d8,#1a38a8); color:#fff; }
-.btn-hdr-primary:hover{ opacity:.88; }
-.btn-hdr-ghost{ background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.1); color:rgba(255,255,255,.7); }
-.btn-hdr-ghost:hover{ background:rgba(255,255,255,.1); }
-.btn-hdr-usb{ background:rgba(234,134,12,.15); border:1px solid rgba(234,134,12,.3); color:#ea860c; }
-.btn-hdr-usb:hover{ background:rgba(234,134,12,.25); }
-
-/* ── MAIN ── */
-main{ padding:24px; display:grid; grid-template-columns:420px 1fr; gap:22px; }
-
-.builder, .timeline-section{
-  background:rgba(5,10,20,.9);
-  border:1px solid rgba(255,255,255,.07);
-  border-radius:14px; padding:22px;
-}
-.builder h2,.timeline-section h2{
-  font-family:'Barlow Condensed',sans-serif; font-size:18px; font-weight:700;
-  letter-spacing:2px; text-transform:uppercase; color:rgba(255,255,255,.55); margin-bottom:18px;
-}
-
-input[type="text"],input[type="number"],select,textarea{
-  width:100%; padding:13px 14px; margin-bottom:12px;
-  background:rgba(10,15,28,.85); color:#fff;
-  border:1px solid rgba(255,255,255,.09); border-radius:9px;
-  font-family:'Barlow',sans-serif; font-size:14px; transition:border-color .2s; outline:none;
-}
-input:focus,select:focus,textarea:focus{ border-color:rgba(41,95,232,.55); }
-select option{ background:#0d1420; }
-textarea{ height:80px; resize:none; }
-.form-grid{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; }
-.form-grid input,.form-grid select{ margin-bottom:0; }
-
-button{ border:none; border-radius:9px; cursor:pointer; color:#fff; font-family:'Barlow Condensed',sans-serif; font-weight:700; letter-spacing:1px; transition:opacity .2s,transform .12s; }
-button:active{ transform:scale(.97); }
-#addBlock{ width:100%; padding:14px; background:#2850d8; font-size:16px; margin-bottom:14px; margin-top:12px; }
-#addBlock:hover{ opacity:.85; }
-.btn-start{ width:100%; padding:15px; background:linear-gradient(135deg,#2850d8,#1a38a8); font-size:17px; margin-top:20px; box-shadow:0 4px 20px rgba(41,80,216,.35); }
-.btn-start:hover{ opacity:.88; }
-.save-row{ display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:6px; margin-top:16px; }
-.btn-secondary{ padding:10px 6px; font-size:11px; background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.1); }
-.btn-secondary:hover{ background:rgba(255,255,255,.11); }
-.btn-danger{ padding:10px 6px; font-size:11px; background:rgba(200,40,40,.18); border:1px solid rgba(200,40,40,.28); }
-.btn-danger:hover{ background:rgba(200,40,40,.3); }
-.workout-summary{ display:flex; gap:16px; margin-top:14px; padding:12px 14px; background:rgba(41,95,232,.1); border:1px solid rgba(41,95,232,.2); border-radius:9px; font-family:'Barlow Condensed',sans-serif; font-size:14px; font-weight:700; letter-spacing:1px; color:rgba(255,255,255,.65); }
-
-/* ── INTENSITY MODE ── */
-.intensity-mode-row{ margin-bottom:14px; }
-.mode-tabs{ display:flex; gap:6px; margin-top:8px; flex-wrap:wrap; }
-.mode-tab{ padding:7px 12px; font-size:12px; background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.08); border-radius:7px; color:rgba(255,255,255,.45); transition:all .2s; }
-.mode-tab.active{ background:rgba(234,134,12,.2); border-color:rgba(234,134,12,.45); color:#ea860c; }
-.mode-tab:hover:not(.active){ background:rgba(255,255,255,.09); }
-
-/* ── SEGMENTS ── */
-.segment-selector{ margin-bottom:14px; padding:14px; background:rgba(255,255,255,.03); border:1px solid rgba(255,255,255,.07); border-radius:10px; }
-.seg-label-row{ display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; }
-.seg-label{ font-family:'Barlow Condensed',sans-serif; font-size:11px; font-weight:700; letter-spacing:2px; text-transform:uppercase; color:rgba(255,255,255,.35); }
-.btn-add-seg{ padding:6px 12px; font-size:11px; background:rgba(41,95,232,.2); border:1px solid rgba(41,95,232,.35); }
-.seg-tabs{ display:flex; gap:6px; flex-wrap:wrap; margin-bottom:10px; }
-.seg-tab{ padding:8px 12px; font-size:12px; background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.08); border-radius:7px; color:rgba(255,255,255,.5); transition:all .2s; display:flex; align-items:center; gap:6px; }
-.seg-tab.active{ background:rgba(41,95,232,.25); border-color:rgba(41,95,232,.5); color:#fff; }
-.seg-tab:hover:not(.active){ background:rgba(255,255,255,.09); }
-.seg-type-badge{ font-size:9px; padding:2px 5px; border-radius:3px; background:rgba(255,255,255,.1); color:rgba(255,255,255,.45); font-weight:700; letter-spacing:1px; text-transform:uppercase; }
-.seg-tab.type-warmup   .seg-type-badge{ background:rgba(234,134,12,.2); color:#ea860c; }
-.seg-tab.type-main     .seg-type-badge{ background:rgba(41,95,232,.2); color:#295fe8; }
-.seg-tab.type-cooldown .seg-type-badge{ background:rgba(161,161,161,.2); color:#a1a1a1; }
-.seg-edit-row{ display:flex; gap:8px; }
-.seg-rename-input{ flex:1; padding:9px 12px; margin-bottom:0; font-size:13px; }
-.btn-rename{ padding:9px 16px; background:#2850d8; font-size:14px; }
-.btn-delete-seg{ padding:9px 12px; background:rgba(200,40,40,.2); border:1px solid rgba(200,40,40,.3); font-size:13px; }
-
-/* ── TIMELINE ── */
-.segment-timeline{ margin-bottom:16px; }
-.seg-timeline-header{ display:flex; align-items:center; justify-content:space-between; margin-bottom:6px; padding:0 4px; }
-.seg-timeline-label{ font-family:'Barlow Condensed',sans-serif; font-size:12px; font-weight:700; letter-spacing:2px; text-transform:uppercase; color:rgba(255,255,255,.35); }
-.seg-timeline-dur{ font-family:'Barlow Condensed',sans-serif; font-size:11px; color:rgba(255,255,255,.22); }
-.seg-blocks{ min-height:80px; display:flex; align-items:flex-end; gap:6px; padding:10px 10px 0; background:#060a10; border-radius:10px; overflow-x:auto; border:1px solid rgba(255,255,255,.05); }
-.block{ min-width:52px; border-radius:6px 6px 0 0; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; padding:6px 4px; font-family:'Barlow Condensed',sans-serif; font-size:11px; font-weight:700; text-align:center; position:relative; cursor:grab; transition:filter .15s,opacity .15s; }
-.block:hover{ filter:brightness(1.12); }
-.block.dragging{ opacity:.4; cursor:grabbing; }
-.block.drag-over{ outline:2px dashed rgba(255,255,255,.4); outline-offset:2px; }
-.block-actions{ position:absolute; top:-28px; left:50%; transform:translateX(-50%); display:none; gap:4px; padding-bottom:8px; z-index:10; }
-.block:hover .block-actions,.block-actions:hover{ display:flex; }
-.block-btn{ width:24px; height:24px; border-radius:5px; border:none; font-size:13px; font-weight:900; display:flex; align-items:center; justify-content:center; cursor:pointer; line-height:1; box-shadow:0 2px 8px rgba(0,0,0,.5); transition:transform .1s; }
-.block-btn:hover{ transform:scale(1.15); }
-.block-delete{ background:#c82828; color:#fff; }
-.block-duplicate{ background:#2850d8; color:#fff; }
-.z1,.zone1{ background:#a1a1a1; height:38px; }
-.z2,.zone2{ background:#295fe8; height:58px; }
-.z3,.zone3{ background:#5db13d; height:76px; }
-.z4,.zone4{ background:#d7c414; height:92px; }
-.z5,.zone5{ background:#ea860c; height:106px; }
-.z6,.zone6{ background:#d62d2d; height:118px; }
-.z7,.zone7{ background:#9b30ff; height:130px; }
-.block.standing::before{ content:""; position:absolute; top:-5px; left:0; width:100%; height:3px; background:#fff; border-radius:3px; }
-
-/* ── VÍDEO / MP3 ── */
-.video-builder-section{ margin-bottom:14px; padding:14px; background:rgba(255,255,255,.03); border:1px solid rgba(255,255,255,.07); border-radius:10px; }
-.vbs-header{ display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; }
-.vbs-title{ font-family:'Barlow Condensed',sans-serif; font-size:13px; font-weight:700; letter-spacing:1px; color:rgba(255,255,255,.55); }
-.vbs-dur{ font-family:'Barlow Condensed',sans-serif; font-size:12px; color:rgba(255,255,255,.35); }
-.video-source-toggle{ display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-bottom:12px; }
-.vsrc-btn{ padding:10px 8px; font-size:12px; font-weight:700; background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.08); border-radius:8px; color:rgba(255,255,255,.45); transition:all .2s; cursor:pointer; }
-.vsrc-btn.active{ background:rgba(41,95,232,.22); border-color:rgba(41,95,232,.5); color:#fff; }
-.vsrc-btn:hover:not(.active){ background:rgba(255,255,255,.09); }
-.btn-video-load{ display:block; width:100%; padding:11px; text-align:center; background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.1); border-radius:8px; cursor:pointer; font-family:'Barlow Condensed',sans-serif; font-size:14px; font-weight:700; letter-spacing:1px; color:rgba(255,255,255,.7); transition:background .2s; }
-.btn-video-load:hover{ background:rgba(255,255,255,.11); }
-#videoPreview{ width:100%; border-radius:8px; margin-top:10px; max-height:150px; object-fit:cover; background:#000; }
-.sync-block{ margin-top:10px; }
-.sync-row{ display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; }
-.sync-label{ font-family:'Barlow Condensed',sans-serif; font-size:12px; font-weight:700; letter-spacing:1px; color:rgba(255,255,255,.45); }
-.sync-time{ font-family:'Barlow Condensed',sans-serif; font-size:16px; font-weight:900; color:#fff; }
-.sync-slider{ width:100%; margin-bottom:12px; accent-color:#ea860c; height:4px; cursor:pointer; padding:0; border:none; background:transparent; margin-top:4px; }
-.sync-info{ background:rgba(41,95,232,.12); border:1px solid rgba(41,95,232,.25); border-radius:8px; padding:10px 14px; margin-bottom:10px; }
-.sync-info-row{ display:flex; justify-content:space-between; align-items:center; padding:3px 0; font-size:13px; color:rgba(255,255,255,.55); }
-.sync-info-row strong{ font-family:'Barlow Condensed',sans-serif; font-size:15px; color:#fff; font-weight:900; }
-.btn-preview-sync{ width:100%; padding:10px; margin-bottom:8px; background:rgba(41,95,232,.2); border:1px solid rgba(41,95,232,.35); font-size:13px; }
-.btn-preview-sync:hover{ background:rgba(41,95,232,.35); }
-.btn-remove-video{ width:100%; padding:10px; background:rgba(200,40,40,.15); border:1px solid rgba(200,40,40,.25); font-size:13px; }
-.camera-info{ padding:12px 14px; margin-bottom:10px; background:rgba(255,255,255,.03); border:1px solid rgba(255,255,255,.07); border-radius:8px; }
-.camera-info p{ font-size:13px; color:rgba(255,255,255,.45); line-height:1.6; margin-bottom:4px; }
-#cameraPreviewBuilder{ width:100%; border-radius:8px; margin-bottom:8px; max-height:150px; object-fit:cover; background:#000; }
-
-/* ── LIBRARY ── */
-#librarySection{ margin-top:14px; padding:12px 14px; background:rgba(255,255,255,.03); border:1px solid rgba(255,255,255,.07); border-radius:9px; }
-.library-header{ display:flex; justify-content:space-between; align-items:center; }
-.library-title{ font-family:'Barlow Condensed',sans-serif; font-size:13px; font-weight:700; letter-spacing:1px; color:rgba(255,255,255,.45); }
-.btn-lib-toggle{ padding:4px 10px; font-size:11px; background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.1); }
-.library-item{ display:flex; align-items:center; justify-content:space-between; padding:8px 10px; margin-top:8px; background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.06); border-radius:8px; }
-.lib-item-name{ font-family:'Barlow Condensed',sans-serif; font-size:14px; font-weight:700; color:rgba(255,255,255,.75); }
-.lib-item-info{ font-family:'Barlow Condensed',sans-serif; font-size:11px; color:rgba(255,255,255,.3); margin-top:2px; }
-.lib-item-actions{ display:flex; gap:6px; }
-.btn-lib-load{ padding:6px 12px; font-size:11px; background:rgba(41,95,232,.2); border:1px solid rgba(41,95,232,.3); }
-.btn-lib-del{ padding:6px 10px; font-size:11px; background:rgba(200,40,40,.15); border:1px solid rgba(200,40,40,.25); }
-.lib-empty{ font-family:'Barlow Condensed',sans-serif; font-size:12px; color:rgba(255,255,255,.2); padding:8px 0; text-align:center; }
-
-/* ── PENDRIVE INFO ── */
-.usb-banner{ margin-top:20px; padding:14px 18px; background:rgba(234,134,12,.08); border:1px solid rgba(234,134,12,.22); border-radius:10px; }
-.usb-banner h4{ font-family:'Barlow Condensed',sans-serif; font-size:12px; font-weight:700; letter-spacing:2px; text-transform:uppercase; color:#ea860c; margin-bottom:8px; }
-.usb-struct{ font-family:'Barlow Condensed',sans-serif; font-size:12px; line-height:1.9; color:rgba(255,255,255,.45); }
-.usb-struct .d{ color:#6b9eff; } .usb-struct .f{ color:#5db13d; }
-
-/* ── TOAST ── */
-#toast{ position:fixed; bottom:28px; left:50%; transform:translateX(-50%) translateY(20px); background:#11141f; border:1px solid rgba(255,255,255,.1); border-radius:10px; padding:10px 22px; font-family:'Barlow Condensed',sans-serif; font-size:14px; font-weight:700; letter-spacing:1px; opacity:0; transition:all .28s; z-index:9999; pointer-events:none; white-space:nowrap; }
-#toast.show{ opacity:1; transform:translateX(-50%) translateY(0); }
-
-/* Spotify */
-#spotifySection select{ margin-bottom:8px; }
+/* ProRider — CONSTRUTOR DE AULAS ONLINE (30/09c)
+   Mesmo visual do Portal. Monta a aula no computador, mostra o perfil inteiro
+   da aula numa linha so (sem rolar para o lado), a trilha de musica no mesmo
+   eixo de tempo e salva na conta (aparece no Ginasio em "Minhas aulas") ou
+   baixa o .json para o pendrive. Formato do arquivo = o do Ginasio (v1.1). */
+:root{--bg:#0b0b0e;--panel:#131317;--card:#1b1b21;--card2:#22222a;--border:rgba(255,255,255,.08);--accent:#ea860c;--accent2:#d62d2d;--blue:#295fe8;--green:#5db13d;--muted:rgba(255,255,255,.5);--dim:rgba(255,255,255,.28);--grad:linear-gradient(135deg,#ffe033,#ea860c,#d62d2d)}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:#fff;min-height:100vh;font-size:14px}
+button,input,select,textarea{font-family:inherit}
+/* topo */
+.tb{position:sticky;top:0;z-index:50;display:flex;align-items:center;gap:16px;padding:12px 24px;background:rgba(19,19,23,.96);backdrop-filter:blur(10px);border-bottom:1px solid var(--border)}
+.brand{font-family:'Bebas Neue',sans-serif;font-size:30px;letter-spacing:3px;background:var(--grad);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;line-height:1;text-decoration:none}
+.tb-t{display:flex;flex-direction:column;line-height:1.1}
+.tb-t small{font-size:10px;letter-spacing:2px;color:var(--muted);text-transform:uppercase;font-weight:700}
+.tb-t b{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:20px;text-transform:uppercase;letter-spacing:.5px}
+.tb-sp{flex:1}
+.tb-acts{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.btn{border:0;border-radius:10px;padding:10px 16px;font-weight:700;font-size:13.5px;display:inline-flex;align-items:center;gap:7px;cursor:pointer;transition:filter .15s,transform .1s;text-decoration:none;white-space:nowrap;color:#fff}
+.btn:hover{filter:brightness(1.12)}.btn:active{transform:scale(.98)}
+.bp{background:var(--grad);color:#1b1b21}
+.bg{background:var(--card2);border:1px solid var(--border)}
+.bs{padding:6px 11px;font-size:12px;border-radius:8px}
+.bd{background:rgba(214,45,45,.14);border:1px solid rgba(214,45,45,.35);color:#ff8a8a}
+.btn[disabled]{opacity:.45;cursor:not-allowed}
+.me{display:flex;align-items:center;gap:9px;padding:5px 10px 5px 5px;border-radius:22px;background:var(--card);border:1px solid var(--border);font-size:12.5px;cursor:pointer}
+.me i{width:28px;height:28px;border-radius:50%;background:var(--grad);display:flex;align-items:center;justify-content:center;font-style:normal;font-weight:800;color:#1b1b21;font-size:12px}
+/* corpo */
+.wrap{display:grid;grid-template-columns:380px minmax(0,1fr);gap:20px;padding:22px 24px 40px;max-width:1880px;margin:0 auto}
+.col{display:flex;flex-direction:column;gap:14px;min-width:0}
+.card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px 18px}
+.card h3{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:19px;text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;gap:10px}
+.card h3 small{font-family:'Inter',sans-serif;font-size:12px;font-weight:500;color:var(--muted);text-transform:none;letter-spacing:0}
+.lbl{display:block;font-size:10.5px;font-weight:700;letter-spacing:1.3px;color:var(--muted);text-transform:uppercase;margin-bottom:6px}
+.in{width:100%;background:var(--card2);border:1px solid var(--border);border-radius:9px;padding:10px 12px;color:#fff;font-size:14px;outline:none;transition:border-color .15s}
+.in:focus{border-color:var(--accent)}
+select.in{cursor:pointer}
+textarea.in{resize:vertical;min-height:58px}
+.row{display:grid;gap:10px}.r2{grid-template-columns:1fr 1fr}.r3{grid-template-columns:1fr 1fr 1fr}
+.fg{margin-bottom:12px}
+.note{font-size:12px;color:var(--muted);line-height:1.5}
+.nome{font-family:'Barlow Condensed',sans-serif;font-size:24px;font-weight:700;padding:10px 14px}
+/* segmentos */
+.chips{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:10px}
+.chip{border:1px solid var(--border);background:var(--card2);color:var(--muted);border-radius:20px;padding:7px 12px;font-size:12.5px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:7px}
+.chip i{width:8px;height:8px;border-radius:50%;display:inline-block}
+.chip.on{color:#fff;border-color:var(--accent);background:rgba(234,134,12,.14)}
+/* posição */
+.seg2{display:grid;grid-template-columns:1fr 1fr;background:var(--card2);border:1px solid var(--border);border-radius:9px;padding:3px}
+.seg2 button{border:0;background:none;color:var(--muted);padding:8px;border-radius:7px;font-weight:700;font-size:13px;cursor:pointer}
+.seg2 button.on{background:var(--grad);color:#1b1b21}
+.zsw{display:flex;gap:5px;margin-top:8px}
+.zsw b{flex:1;height:30px;border-radius:7px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:14px;color:rgba(0,0,0,.65);border:2px solid transparent;opacity:.55}
+.zsw b.on{opacity:1;border-color:#fff}
+.des{border:1px dashed rgba(234,134,12,.4);background:rgba(234,134,12,.05);border-radius:10px;padding:10px 12px;margin-bottom:12px}
+.des .lbl{color:rgba(234,134,12,.9)}
+.edit-bar{display:none;align-items:center;justify-content:space-between;gap:8px;background:rgba(41,95,232,.14);border:1px solid rgba(41,95,232,.45);border-radius:10px;padding:8px 10px;margin-bottom:12px;font-size:12.5px;color:#a9c1ff}
+/* KPIs */
+.kp{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px}
+.k{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:12px 16px}
+.k small{color:var(--muted);font-size:10.5px;letter-spacing:1px;text-transform:uppercase;font-weight:700}
+.k b{display:block;font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:34px;line-height:1.05}
+/* perfil da aula */
+.tl{position:relative;user-select:none}
+.tl-segs{position:relative;height:30px;margin-bottom:8px}
+.tl-seg{position:absolute;top:0;height:100%;border-bottom:2px solid;display:flex;align-items:flex-end;padding:0 6px 4px;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:13px;letter-spacing:1.5px;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tl-area{position:relative;height:300px;border-bottom:1.5px solid rgba(255,255,255,.35);background:repeating-linear-gradient(to top,rgba(255,255,255,.035) 0,rgba(255,255,255,.035) 1px,transparent 1px,transparent 60px)}
+.tl-ref{position:absolute;left:0;right:0;border-top:1px dashed rgba(255,255,255,.25);pointer-events:none}
+.tl-ref span{position:absolute;right:4px;top:-16px;font-size:10px;color:rgba(255,255,255,.4);font-weight:700;letter-spacing:.5px}
+.bk{position:absolute;bottom:0;border-radius:9px 9px 3px 3px;cursor:pointer;overflow:hidden;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;padding-bottom:7px;box-shadow:0 4px 12px rgba(0,0,0,.45);transition:filter .12s,outline-color .12s;outline:2px solid transparent;outline-offset:1px}
+.bk:hover{filter:brightness(1.15)}
+.bk.sel{outline-color:#fff;z-index:3}
+.bk.pe:before{content:'';position:absolute;left:0;right:0;top:0;height:6px;background:repeating-linear-gradient(90deg,#fff 0 6px,transparent 6px 10px);opacity:.85}
+.bk .t{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:15px;color:rgba(0,0,0,.72);line-height:1}
+.bk .r{font-size:10.5px;font-weight:700;color:rgba(0,0,0,.6);margin-top:2px}
+.bk .dz{position:absolute;top:10px;font-size:15px}
+.bk.drag{opacity:.4}
+.bk.alvo{outline-color:var(--accent)}
+.tl-ax{position:relative;height:22px}
+.tl-ax span{position:absolute;top:5px;transform:translateX(-50%);font-size:11px;color:var(--muted);font-weight:600}
+.tl-lin{position:absolute;top:0;bottom:0;width:0;border-left:1px dashed rgba(255,255,255,.18);pointer-events:none;z-index:4}
+.tl-play{position:absolute;top:0;bottom:0;width:2px;background:#fff;box-shadow:0 0 8px rgba(255,255,255,.7);pointer-events:none;z-index:6;display:none}
+.tip{position:fixed;z-index:100;background:#0f0f13;border:1px solid rgba(255,255,255,.14);border-radius:10px;padding:9px 12px;font-size:12px;line-height:1.5;pointer-events:none;display:none;max-width:260px;box-shadow:0 8px 24px rgba(0,0,0,.5)}
+.vazio{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:6px;color:var(--dim);font-size:14px;text-align:center}
+/* trilha */
+.mu-lane{position:relative;height:110px;margin-top:14px;border-radius:10px;background:rgba(255,255,255,.025);border:1px solid var(--border);overflow:hidden;cursor:pointer}
+.mu-lane canvas{position:absolute;inset:0;width:100%;height:100%}
+.mu-bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:12px}
+.mu-list{display:flex;flex-wrap:wrap;gap:7px;margin-top:10px}
+.mu-it{display:inline-flex;align-items:center;gap:6px;background:var(--card2);border:1px solid var(--border);border-radius:8px;padding:5px 6px 5px 10px;font-size:12px;max-width:100%}
+.mu-it span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:260px}
+.mu-it button{border:0;background:rgba(255,255,255,.06);color:#fff;border-radius:6px;width:22px;height:22px;cursor:pointer;font-size:11px}
+.clock{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:20px;min-width:118px}
+.aviso{font-size:12px;padding:6px 10px;border-radius:8px}
+.aviso.w{background:rgba(234,134,12,.12);color:#ffb45a}.aviso.ok{background:rgba(93,177,61,.12);color:#8fe06a}
+/* tabela */
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{font-size:10.5px;letter-spacing:1px;text-transform:uppercase;color:var(--muted);text-align:left;padding:8px;border-bottom:1px solid var(--border);font-weight:700}
+td{padding:7px 8px;border-bottom:1px solid rgba(255,255,255,.05);white-space:nowrap}
+tr.sel td{background:rgba(41,95,232,.12)}
+tr.segh td{font-family:'Barlow Condensed',sans-serif;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);padding-top:14px}
+td .zb{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:6px;vertical-align:-1px}
+.ic{border:0;background:var(--card2);color:#fff;border-radius:7px;width:28px;height:28px;cursor:pointer;margin-left:3px;font-size:12px}
+.ic:hover{background:#2c2c36}
+/* biblioteca */
+.lib{display:flex;flex-direction:column;gap:6px;max-height:260px;overflow:auto}
+.lib-it{display:flex;align-items:center;gap:8px;background:var(--card2);border-radius:9px;padding:8px 10px}
+.lib-it div{flex:1;min-width:0}.lib-it b{display:block;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.lib-it small{color:var(--muted);font-size:11.5px}
+/* modal login */
+.mo{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:200;display:none;align-items:center;justify-content:center;padding:16px}
+.mo.on{display:flex}
+.mo-box{width:100%;max-width:380px;background:var(--card);border:1px solid var(--border);border-radius:18px;padding:26px}
+.mo-box h2{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:28px;text-transform:uppercase;margin-bottom:4px}
+.err{display:none;color:#ff8a8a;font-size:13px;margin-bottom:10px}
+.toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%) translateY(20px);background:#16161b;border:1px solid rgba(234,134,12,.5);color:#fff;padding:11px 18px;border-radius:12px;font-size:13.5px;font-weight:600;opacity:0;transition:all .25s;z-index:300;pointer-events:none;max-width:90vw;text-align:center}
+.toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+@media(max-width:1200px){.kp{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:980px){.wrap{grid-template-columns:1fr}.tb{flex-wrap:wrap}.tl-area{height:220px}}
+@media(max-width:560px){.kp{grid-template-columns:repeat(2,minmax(0,1fr))}.wrap{padding:14px}.tb{padding:10px 14px}}
 </style>
 </head>
 <body>
 
-<header>
-  <div class="header-logo">
-    <svg width="22" height="27" viewBox="0 0 44 56" fill="none">
-      <defs><linearGradient id="hg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#ffe033"/><stop offset="50%" stop-color="#ea860c"/><stop offset="100%" stop-color="#d62d2d"/></linearGradient></defs>
-      <path d="M30 4 L10 30 L20 30 L14 52 L34 26 L24 26 Z" fill="url(#hg)"/>
-    </svg>
-    <div>
-      <div class="header-name"><span class="header-pro">PRO</span><span class="header-rider">RIDER</span></div>
-      <div class="header-bar"></div>
-      <div class="header-tagline">studio builder</div>
-    </div>
+<header class="tb">
+  <a class="brand" href="academia.html" title="Voltar ao Portal">PRORIDER</a>
+  <div class="tb-t"><small>Portal</small><b>Construtor de aulas</b></div>
+  <div class="tb-sp"></div>
+  <div class="tb-acts">
+    <button class="btn bg" onclick="novaAula()">＋ Nova</button>
+    <button class="btn bg" onclick="document.getElementById('fArq').click()">📂 Abrir arquivo</button>
+    <button class="btn bg" onclick="baixarJson()">⬇ Baixar para pendrive</button>
+    <button class="btn bp" onclick="salvarConta()">☁ Salvar na minha conta</button>
+    <div class="me" id="meBox" onclick="contaClique()"><i id="meIni">?</i><span id="meNome">Entrar</span></div>
   </div>
-  <span id="classNameHeader"></span>
-  <span class="header-sub" title="Salve esta página (Ctrl+S) para usar offline no seu computador">📥 Studio Builder · v1.0</span>
-  <div class="header-actions">
-    <button class="btn-hdr btn-hdr-ghost" onclick="document.getElementById('loadFileInput').click()">📂 Carregar JSON</button>
-    <button class="btn-hdr btn-hdr-usb" onclick="exportarPendrive()">💾 Exportar para Pendrive</button>
-    <button class="btn-hdr btn-hdr-primary" onclick="saveToLibrary()">✓ Salvar</button>
-  </div>
+  <input type="file" id="fArq" accept=".json,application/json" style="display:none">
 </header>
 
-<main>
-  <section class="builder">
-    <h2>Nova Aula</h2>
-    <input type="text" id="className" placeholder="Nome da aula">
+<div class="wrap">
+  <!-- ═══ COLUNA DA ESQUERDA: montar ═══ -->
+  <div class="col">
+    <div class="card">
+      <label class="lbl">Nome da aula</label>
+      <input class="in nome" id="nomeAula" placeholder="Ex.: Endurance de quinta" maxlength="80">
+    </div>
 
-    <!-- SEGMENTO -->
-    <div class="segment-selector">
-      <div class="seg-label-row">
-        <span class="seg-label">Segmento do bloco</span>
-        <button id="addSegmentBtn" class="btn-add-seg">+ Novo segmento</button>
-      </div>
-      <div class="seg-tabs" id="segTabs"></div>
-      <div class="seg-edit-row">
-        <input type="text" id="editSegName" placeholder="Renomear segmento selecionado" class="seg-rename-input">
-        <button id="applySegName" class="btn-rename">✓</button>
-        <button id="deleteSegBtn" class="btn-delete-seg" title="Remover segmento">🗑</button>
+    <div class="card">
+      <h3>Segmentos <small>onde o próximo bloco entra</small></h3>
+      <div class="chips" id="segChips"></div>
+      <div style="display:flex;gap:8px">
+        <input class="in" id="segNome" placeholder="Renomear o selecionado" style="flex:1">
+        <button class="btn bg bs" onclick="segRenomear()" title="Renomear">✓</button>
+        <button class="btn bg bs" onclick="segNovo()" title="Novo bloco principal">＋</button>
+        <button class="btn bd bs" onclick="segRemover()" title="Remover segmento">🗑</button>
       </div>
     </div>
 
-    <!-- MODO DE INTENSIDADE -->
-    <div class="intensity-mode-row">
-      <span class="seg-label">Modo de intensidade</span>
-      <div class="mode-tabs">
-        <button class="mode-tab active" data-mode="ftp">⚡ Potência (FTP)</button>
-        <button class="mode-tab" data-mode="hr">❤️ Freq. Cardíaca</button>
-        <button class="mode-tab" data-mode="pse">😊 Percepção (PSE)</button>
+    <div class="card" id="cardBloco">
+      <h3><span id="blTitulo">Novo bloco</span> <small id="blSeg"></small></h3>
+      <div class="edit-bar" id="editBar"><span id="editTxt">Editando</span><button class="btn bg bs" onclick="cancelarEdicao()">Cancelar</button></div>
+      <div class="row r2 fg">
+        <div><label class="lbl">Minutos</label><input class="in" id="bMin" type="number" min="0" max="180" placeholder="0"></div>
+        <div><label class="lbl">Segundos</label><input class="in" id="bSeg" type="number" min="0" max="59" step="5" placeholder="0"></div>
       </div>
-    </div>
-
-    <div class="form-grid">
-      <input type="number" id="duration"  placeholder="Tempo (min)" min="1">
-      <input type="number" id="rpmMin"    placeholder="RPM mín"     min="1">
-      <input type="number" id="rpmMax"    placeholder="RPM máx"     min="1">
-      <select id="intensity">
-        <option value="zone1">Zone 1 – Recovery</option>
-        <option value="zone2">Zone 2 – Endurance</option>
-        <option value="zone3">Zone 3 – Tempo</option>
-        <option value="zone4">Zone 4 – Threshold</option>
-        <option value="zone5">Zone 5 – VO2 Max</option>
-        <option value="zone6">Zone 6 – Anaerobic 🔥</option>
-        <option value="zone7">Zone 7 – Neuromuscular ⚡</option>
-      </select>
-      <select id="position">
-        <option value="Sentado">Sentado</option>
-        <option value="Em Pé">Em Pé</option>
-      </select>
-    </div>
-    <textarea id="notes" placeholder="Observações (opcional)"></textarea>
-    <button id="addBlock">+ Adicionar Bloco</button>
-
-    <!-- VÍDEO -->
-    <div class="video-builder-section">
-      <div class="vbs-header">
-        <span class="vbs-title">🎬 Vídeo de Fundo</span>
-        <span id="videoDurationLabel" class="vbs-dur"></span>
+      <div class="fg">
+        <label class="lbl">Zona</label>
+        <select class="in" id="bZona" onchange="zonaMudou()"></select>
+        <div class="zsw" id="zsw"></div>
       </div>
-      <div class="video-source-toggle">
-        <button class="vsrc-btn active" id="srcVideoBtn">📁 Arquivo de Vídeo</button>
-        <button class="vsrc-btn" id="srcCameraBtn">📷 Câmera Ao Vivo</button>
+      <div class="row r2 fg">
+        <div><label class="lbl">% FTP de</label><input class="in" id="bFtpMin" type="number" min="0" max="300"></div>
+        <div><label class="lbl">% FTP até</label><input class="in" id="bFtpMax" type="number" min="0" max="300"></div>
       </div>
-      <div id="panelVideo">
-        <label for="videoInputBuilder" class="btn-video-load">Carregar Vídeo</label>
-        <input type="file" id="videoInputBuilder" accept="video/*" style="display:none">
-        <div id="videoPreviewBox" style="display:none">
-          <video id="videoPreview" muted playsinline></video>
-          <div class="sync-block">
-            <div class="sync-row">
-              <span class="sync-label">Chegada = fim do Bloco Principal</span>
-              <span id="endPointDisplay" class="sync-time">--:--:--</span>
-            </div>
-            <input type="range" id="endPointSlider" min="0" max="100" step="0.1" value="100" class="sync-slider">
-            <div class="sync-info" id="syncInfo" style="display:none">
-              <div class="sync-info-row"><span>▶ Vídeo começa em</span><strong id="startPointDisplay">--:--:--</strong></div>
-              <div class="sync-info-row"><span>⏹ Fim do Bloco Principal</span><strong id="endPointFinal">--:--:--</strong></div>
-              <div class="sync-info-row"><span>⏱ Duração da aula</span><strong id="workoutDurDisplay">--</strong></div>
-            </div>
-            <button id="previewSyncBtn" class="btn-preview-sync">👁 Ver ponto de início</button>
-            <button id="removeVideoBuilder" class="btn-remove-video">Remover vídeo</button>
-          </div>
+      <div class="row r2 fg">
+        <div><label class="lbl">RPM de</label><input class="in" id="bRpmMin" type="number" min="30" max="160" value="80"></div>
+        <div><label class="lbl">RPM até</label><input class="in" id="bRpmMax" type="number" min="30" max="160" value="90"></div>
+      </div>
+      <div class="fg"><label class="lbl">Posição</label>
+        <div class="seg2" id="bPos"><button class="on" data-v="Sentado" onclick="posSet(this)">Sentado</button><button data-v="Em Pé" onclick="posSet(this)">Em pé</button></div></div>
+      <div class="des">
+        <label class="lbl">🪢 Desafio automático neste bloco</label>
+        <div class="row r2">
+          <select class="in" id="dTipo" onchange="desAtualizar()">
+            <option value="">Nenhum</option>
+            <option value="cabo">🪢 Cabo de guerra</option>
+            <option value="kcal">🔥 Gasto calórico</option>
+            <option value="potMedia">⚡ Potência média</option>
+            <option value="potMax">💥 Potência máxima</option>
+            <option value="dist">📏 Distância</option>
+          </select>
+          <select class="in" id="dModo" onchange="desAtualizar()">
+            <option value="equipes">Equipes (laranja × azul)</option>
+            <option value="mvsf">Homens × Mulheres</option>
+            <option value="geral">Todos × Todos</option>
+          </select>
         </div>
-      </div>
-      <div id="panelCamera" style="display:none">
-        <div class="camera-info"><p>A câmera será ativada ao iniciar a Live Class.</p><p>Prepare o cenário atrás de você — ele será o fundo da aula.</p></div>
-        <video id="cameraPreviewBuilder" autoplay muted playsinline style="display:none"></video>
-        <button id="testCameraBtn" class="btn-preview-sync">📷 Testar câmera</button>
-        <button id="stopCameraBtn" class="btn-remove-video" style="display:none">Parar preview</button>
-      </div>
-    </div>
-
-    <!-- MP3 -->
-    <div class="video-builder-section">
-      <div class="vbs-header">
-        <span class="vbs-title">🎵 Música da Aula (MP3)</span>
-        <span id="mp3DurationLabel" class="vbs-dur"></span>
-      </div>
-      <label for="mp3InputBuilder" class="btn-video-load">🎵 Carregar MP3</label>
-      <input type="file" id="mp3InputBuilder" accept="audio/mp3,audio/mpeg,.mp3" style="display:none">
-      <div id="mp3PreviewBox" style="display:none">
-        <audio id="audioPreview" controls style="width:100%;margin-top:10px;border-radius:8px;"></audio>
-        <div class="sync-block">
-          <div class="sync-row">
-            <span class="sync-label">Chegada musical = fim do Bloco Principal</span>
-            <span id="mp3EndPointDisplay" class="sync-time">--:--</span>
-          </div>
-          <input type="range" id="mp3EndPointSlider" min="0" max="100" step="0.1" value="100" class="sync-slider">
-          <div class="sync-info" id="mp3SyncInfo" style="display:none">
-            <div class="sync-info-row"><span>▶ Música começa em</span><strong id="mp3StartDisplay">--:--</strong></div>
-            <div class="sync-info-row"><span>🎵 Fim do Bloco Principal</span><strong id="mp3EndDisplay">--:--</strong></div>
-            <div class="sync-info-row"><span>⏱ Duração da aula</span><strong id="mp3DurDisplay">--</strong></div>
-          </div>
-          <button id="mp3PreviewBtn" class="btn-preview-sync">▶ Ouvir ponto de início</button>
-          <button id="removeMp3Btn" class="btn-remove-video">Remover MP3</button>
+        <div id="dTempo" style="display:none;margin-top:8px;align-items:center;gap:8px">
+          <span class="note">Últimos</span><input class="in" id="dSeg" type="number" min="5" step="5" style="width:80px"><span class="note">segundos do bloco</span>
         </div>
+        <div class="note" id="dDica" style="margin-top:6px"></div>
+      </div>
+      <div class="fg"><label class="lbl">Observação (aparece para o professor)</label><textarea class="in" id="bNota" placeholder="Opcional"></textarea></div>
+      <div style="display:flex;gap:8px">
+        <button class="btn bp" style="flex:1;justify-content:center" id="bOk" onclick="blocoOk()">＋ Adicionar bloco</button>
+        <button class="btn bd" id="bDel" style="display:none" onclick="blocoRemover(selIdx)">🗑</button>
       </div>
     </div>
 
-    <!-- SPOTIFY -->
-    <div class="video-builder-section" id="spotifySection">
-      <div class="vbs-header">
-        <div style="display:flex;align-items:center;gap:8px;">
-          <svg width="18" height="18" viewBox="0 0 24 24"><circle cx="12" cy="12" r="12" fill="#1DB954"/><path d="M17.9 10.9C14.7 9 9.35 8.8 6.3 9.75c-.5.15-1-.15-1.15-.6-.15-.5.15-1 .6-1.15 3.55-1.05 9.4-.85 13.1 1.35.45.25.6.85.35 1.3-.25.35-.85.5-1.3.25zm-.1 2.8c-.25.35-.7.5-1.05.25-2.7-1.65-6.8-2.15-9.95-1.15-.4.1-.85-.1-.95-.5-.1-.4.1-.85.5-.95 3.65-1.1 8.15-.55 11.25 1.35.3.15.45.65.2 1zm-1.2 2.75c-.2.3-.55.4-.85.2-2.35-1.45-5.3-1.75-8.8-.95-.35.1-.65-.15-.75-.45-.1-.35.15-.65.45-.75 3.8-.85 7.1-.5 9.7 1.1.35.15.4.55.25.85z" fill="white"/></svg>
-          <span class="vbs-title">Spotify (opcional)</span>
+    <div class="card">
+      <h3>Vídeo de fundo <small>opcional</small></h3>
+      <div class="note" style="margin-bottom:10px">Um arquivo que vai estar no pendrive (pasta <b>prorider/video</b>; o Ginásio acha pelo nome) ou um vídeo do YouTube.</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn bg bs" onclick="document.getElementById('fVid').click()">🎬 Arquivo de vídeo</button>
+        <button class="btn bg bs" onclick="ytPedir()">▶ Link do YouTube</button>
+      </div>
+      <div id="ytBox" style="display:none;margin-top:10px"><div style="display:flex;gap:8px"><input class="in" id="ytUrl" placeholder="Cole o link do YouTube" style="flex:1" onkeydown="if(event.key==='Enter')ytUsar()"><button class="btn bp bs" onclick="ytUsar()">OK</button></div></div>
+      <input type="file" id="fVid" accept="video/*" style="display:none">
+      <div id="vidInfo" style="margin-top:10px"></div>
+    </div>
+
+    <div class="card">
+      <h3>Aulas neste computador <small id="libN"></small></h3>
+      <div class="lib" id="lib"></div>
+    </div>
+  </div>
+
+  <!-- ═══ COLUNA DA DIREITA: a aula ═══ -->
+  <div class="col">
+    <div class="kp">
+      <div class="k"><small>Duração</small><b id="kDur">0:00</b></div>
+      <div class="k"><small>Blocos</small><b id="kBl">0</b></div>
+      <div class="k"><small>Intensidade média</small><b id="kIf">—</b></div>
+      <div class="k"><small>TSS da aula</small><b id="kTss">—</b></div>
+      <div class="k"><small>Desafios</small><b id="kDes">0</b></div>
+    </div>
+
+    <div class="card">
+      <h3>Perfil da aula <small>clique num bloco para editar · arraste para mudar a ordem</small></h3>
+      <div class="tl" id="tl">
+        <div class="tl-segs" id="tlSegs"></div>
+        <div class="tl-area" id="tlArea"></div>
+        <div class="tl-ax" id="tlAx"></div>
+        <div class="card" style="padding:0;border:0;background:none">
+          <div class="mu-lane" id="muLane" title="Clique para ouvir a partir daqui"><canvas id="muCv"></canvas>
+            <div class="vazio" id="muVazio" style="font-size:13px">🎵 Coloque as músicas da aula para ver a trilha no mesmo tempo do gráfico</div></div>
         </div>
-        <span id="spotifyStatus" class="vbs-dur"></span>
+        <div id="tlLinhas"></div>
+        <div class="tl-play" id="tlPlay"></div>
       </div>
-      <div id="spotifyNotConnected">
-        <div class="camera-info">
-          <p>Conecte sua conta Spotify. A música toca no seu dispositivo — o ProRider só controla a sincronização.</p>
-          <p>O som sai pela caixa de som do seu notebook ou celular normalmente.</p>
-        </div>
-        <button id="spotifyLoginBtn" class="btn-preview-sync" style="background:rgba(29,185,84,.2);border-color:rgba(29,185,84,.4);color:#1DB954;">
-          <svg width="14" height="14" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:6px;"><circle cx="12" cy="12" r="12" fill="#1DB954"/><path d="M17.9 10.9C14.7 9 9.35 8.8 6.3 9.75c-.5.15-1-.15-1.15-.6-.15-.5.15-1 .6-1.15 3.55-1.05 9.4-.85 13.1 1.35.45.25.6.85.35 1.3-.25.35-.85.5-1.3.25zm-.1 2.8c-.25.35-.7.5-1.05.25-2.7-1.65-6.8-2.15-9.95-1.15-.4.1-.85-.1-.95-.5-.1-.4.1-.85.5-.95 3.65-1.1 8.15-.55 11.25 1.35.3.15.45.65.2 1zm-1.2 2.75c-.2.3-.55.4-.85.2-2.35-1.45-5.3-1.75-8.8-.95-.35.1-.65-.15-.75-.45-.1-.35.15-.65.45-.75 3.8-.85 7.1-.5 9.7 1.1.35.15.4.55.25.85z" fill="white"/></svg>
-          Conectar com Spotify
-        </button>
+      <div class="mu-bar">
+        <button class="btn bg bs" id="muPlay" onclick="muTocar()">▶ Ouvir</button>
+        <span class="clock" id="muClock">0:00 / 0:00</span>
+        <button class="btn bg bs" onclick="document.getElementById('fMu').click()">🎵 Adicionar MP3</button>
+        <input type="file" id="fMu" accept="audio/*,.mp3,.m4a,.wav" multiple style="display:none">
+        <span id="muAviso"></span>
       </div>
-      <div id="spotifyConnected" style="display:none;">
-        <div id="spotifyUserInfo" style="display:flex;align-items:center;gap:10px;padding:8px 12px;background:rgba(29,185,84,.1);border:1px solid rgba(29,185,84,.2);border-radius:8px;margin-bottom:10px;">
-          <svg width="16" height="16" viewBox="0 0 24 24"><circle cx="12" cy="12" r="12" fill="#1DB954"/><path d="M17.9 10.9C14.7 9 9.35 8.8 6.3 9.75c-.5.15-1-.15-1.15-.6-.15-.5.15-1 .6-1.15 3.55-1.05 9.4-.85 13.1 1.35.45.25.6.85.35 1.3-.25.35-.85.5-1.3.25zm-.1 2.8c-.25.35-.7.5-1.05.25-2.7-1.65-6.8-2.15-9.95-1.15-.4.1-.85-.1-.95-.5-.1-.4.1-.85.5-.95 3.65-1.1 8.15-.55 11.25 1.35.3.15.45.65.2 1zm-1.2 2.75c-.2.3-.55.4-.85.2-2.35-1.45-5.3-1.75-8.8-.95-.35.1-.65-.15-.75-.45-.1-.35.15-.65.45-.75 3.8-.85 7.1-.5 9.7 1.1.35.15.4.55.25.85z" fill="white"/></svg>
-          <span id="spotifyUserName" style="font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;color:#1DB954;"></span>
-          <button id="spotifyLogoutBtn" style="margin-left:auto;padding:4px 10px;font-size:10px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:6px;color:rgba(255,255,255,.4);font-family:'Barlow Condensed',sans-serif;font-weight:700;letter-spacing:1px;cursor:pointer;">Sair</button>
-        </div>
-        <select id="spotifyPlaylistSelect"><option value="">Selecione uma playlist...</option></select>
-        <div id="spotifySelectedInfo" style="display:none;padding:8px 12px;background:rgba(29,185,84,.08);border:1px solid rgba(29,185,84,.15);border-radius:8px;font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;color:rgba(255,255,255,.5);margin-bottom:8px;"></div>
-        <div class="camera-info" style="margin-bottom:0;"><p>⚠️ A música toca no seu Spotify — no celular ou notebook onde você está logado. O ProRider sincroniza o tempo com a aula.</p></div>
+      <div class="mu-list" id="muList"></div>
+      <div class="row r2" style="margin-top:12px;align-items:end">
+        <div><label class="lbl">Playlist do Spotify, Deezer ou link (opcional)</label><input class="in" id="muLink" placeholder="Cole o link da playlist" onchange="rascunho()"></div>
+        <div class="note">Spotify e Deezer não deixam o navegador ler o áudio, então a trilha desenhada vale só para MP3. O link fica guardado na aula para o professor.</div>
       </div>
     </div>
 
-    <!-- SALVAR / PDF / LIMPAR -->
-    <div class="save-row">
-      <button id="saveWorkout" class="btn-secondary">💾 Salvar</button>
-      <button id="loadWorkout" class="btn-secondary">📂 Carregar</button>
-      <button id="exportPDF"   class="btn-secondary">📄 PDF</button>
-      <button id="clearWorkout" class="btn-danger">🗑 Limpar</button>
+    <div class="card">
+      <h3>Blocos <small id="tbInfo"></small></h3>
+      <div style="overflow-x:auto"><table id="tb"></table></div>
     </div>
-    <input type="file" id="loadFileInput" accept=".json" style="display:none">
+  </div>
+</div>
 
-    <div id="librarySection">
-      <div class="library-header">
-        <span class="library-title">📚 Minhas Aulas</span>
-        <button id="toggleLibrary" class="btn-lib-toggle">▾ ver</button>
-      </div>
-      <div id="libraryList" style="display:none"></div>
-    </div>
+<div class="tip" id="tip"></div>
+<div class="toast" id="toast"></div>
 
-    <div id="workoutSummary" class="workout-summary" style="display:none">
-      <span id="summaryTotal"></span>
-      <span id="summaryBlocks"></span>
-    </div>
-
-    <!-- PENDRIVE INSTRUCTIONS -->
-    <div class="usb-banner">
-      <h4>📁 Estrutura do Pendrive</h4>
-      <div class="usb-struct">
-        <span class="d">📁 prorider/</span><br>
-        &nbsp;&nbsp;<span class="d">📁 video/</span>&nbsp; ← coloque o arquivo de vídeo aqui<br>
-        &nbsp;&nbsp;<span class="d">📁 musicas/</span>&nbsp; ← coloque os MP3s aqui<br>
-        &nbsp;&nbsp;<span class="f">📄 nome-da-aula.json</span>&nbsp; ← exportado pelo Studio
-      </div>
-    </div>
-  </section>
-
-  <!-- TIMELINE -->
-  <section class="timeline-section">
-    <h2>Timeline da Aula</h2>
-    <div id="segmentTimelineContainer"></div>
-    <button id="startLive" class="btn-start" onclick="exportarPendrive()">💾 Exportar para Pendrive</button>
-  </section>
-</main>
-
-<div id="toast"></div>
+<div class="mo" id="moLogin" onclick="if(event.target===this)loginFechar()">
+  <div class="mo-box">
+    <h2>Entrar</h2>
+    <div class="note" style="margin-bottom:16px">Use a mesma conta do app ProRider. A aula salva na conta aparece no Ginásio em <b>Minhas aulas</b>.</div>
+    <div class="err" id="lgErr"></div>
+    <div class="fg"><label class="lbl">E-mail</label><input class="in" id="lgEmail" type="email" autocomplete="username"></div>
+    <div class="fg"><label class="lbl">Senha</label><input class="in" id="lgSenha" type="password" autocomplete="current-password" onkeydown="if(event.key==='Enter')loginEntrar()"></div>
+    <div style="display:flex;gap:8px;margin-top:6px"><button class="btn bg" onclick="loginFechar()">Cancelar</button><button class="btn bp" style="flex:1;justify-content:center" onclick="loginEntrar()">Entrar</button></div>
+  </div>
+</div>
 
 <script>
-// ══════════════════════════════════════════
-// ESTADO
-// ══════════════════════════════════════════
-let segments = [
-  { id:"warmup",   name:"Aquecimento",     type:"warmup"   },
-  { id:"main_1",   name:"Bloco Principal", type:"main"     },
-  { id:"cooldown", name:"Volta à Calma",   type:"cooldown" },
-];
-let activeSegmentId = "warmup";
-let mainCounter     = 1;
-let workout         = [];
-let intensityMode   = "ftp";
-let videoSource     = "video";
-let videoDuration   = 0;
-let videoEndPoint   = 0;
-let videoObjectUrl  = null;
-let cameraStream    = null;
-let mp3Duration     = 0;
-let mp3EndPoint     = 0;
-let mp3ObjectUrl    = null;
-let dragSrcBlock    = null;
-let spotifyPlaylistUri = null;
-let spotifyToken    = null;
+// ══════════════════════════════════════════════════════════════
+// BASE
+// ══════════════════════════════════════════════════════════════
+var SERVER = /^https?:/.test(location.protocol) ? location.origin : 'https://prorider-server-production-5784.up.railway.app';
+function ls(k,v){ try{ if(v===undefined) return localStorage.getItem(k); if(v===null) localStorage.removeItem(k); else localStorage.setItem(k,v); }catch(e){ return null; } }
+function $(id){ return document.getElementById(id); }
+function esc(t){ return String(t==null?'':t).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];}); }
+function mmss(s){ s=Math.max(0,Math.round(s)); var h=Math.floor(s/3600), m=Math.floor(s%3600/60), x=s%60; return (h?h+':'+String(m).padStart(2,'0'):m)+':'+String(x).padStart(2,'0'); }
+function toast(t,ms){ var e=$('toast'); e.textContent=t; e.classList.add('on'); clearTimeout(e._t); e._t=setTimeout(function(){e.classList.remove('on');},ms||2600); }
 
-// ── ZONAS ──────────────────────────────────
-const zoneInfo = {
-  zone1:{ name:"Zone 1 – Recovery",        color:"#a1a1a1", ftp:"< 60%",    ftpFull:"Abaixo de 60%",  fc:"< 60%",   pse:1  },
-  zone2:{ name:"Zone 2 – Endurance",       color:"#295fe8", ftp:"60–75%",   ftpFull:"60% a 75%",      fc:"60–70%",  pse:3  },
-  zone3:{ name:"Zone 3 – Tempo",           color:"#5db13d", ftp:"76–89%",   ftpFull:"76% a 89%",      fc:"71–80%",  pse:5  },
-  zone4:{ name:"Zone 4 – Threshold",       color:"#d7c414", ftp:"90–104%",  ftpFull:"90% a 104%",     fc:"81–90%",  pse:6  },
-  zone5:{ name:"Zone 5 – VO2 Max",         color:"#ea860c", ftp:"105–118%", ftpFull:"105% a 118%",    fc:"91–95%",  pse:7  },
-  zone6:{ name:"Zone 6 – Anaerobic 🔥",    color:"#d62d2d", ftp:"> 118%",   ftpFull:"Acima de 118%",  fc:"> 95%",   pse:9  },
-  zone7:{ name:"Zone 7 – Neuromuscular ⚡", color:"#9b30ff", ftp:"Máx",      ftpFull:"Potência Máxima", fc:"Máx",    pse:10 },
+// Zonas iguais às do Ginásio (cores e faixas de %FTP)
+var ZONAS={
+  z1:{n:'Zone 1 – Recovery',c:'#a1a1a1',f:[0,59]},
+  z2:{n:'Zone 2 – Endurance',c:'#295fe8',f:[60,75]},
+  z3:{n:'Zone 3 – Tempo',c:'#5db13d',f:[76,89]},
+  z4:{n:'Zone 4 – Threshold',c:'#d7c414',f:[90,104]},
+  z5:{n:'Zone 5 – VO2 Max',c:'#ea860c',f:[105,118]},
+  z6:{n:'Zone 6 – Anaerobic',c:'#d62d2d',f:[119,150]},
+  z7:{n:'Zone 7 – Neuromuscular',c:'#9b30ff',f:[151,200]}
 };
-function zi(key){
-  if(!key) return zoneInfo.zone1;
-  var k = /^z(\d)$/.test(key) ? 'zone'+key[1] : key;
-  return zoneInfo[k] || zoneInfo.zone1;
-}
-function segmentById(id){ return segments.find(s=>s.id===id); }
+var DES_ICO={cabo:'🪢',kcal:'🔥',potMedia:'⚡',potMax:'💥',dist:'📏'};
+var DES_NOME={cabo:'Cabo de guerra',kcal:'Gasto calórico',potMedia:'Potência média',potMax:'Potência máxima',dist:'Distância'};
+var MODO_NOME={equipes:'Equipes',mvsf:'Homens × Mulheres',geral:'Todos × Todos'};
+function zKey(v){ var m=String(v||'').match(/(\d)/); return m&&+m[1]>=1&&+m[1]<=7?'z'+m[1]:'z1'; }
+function Z(k){ return ZONAS[zKey(k)]; }
 
-// ══════════════════════════════════════════
-// INTENSITY MODE
-// ══════════════════════════════════════════
-document.querySelectorAll(".mode-tab").forEach(btn=>{
-  btn.addEventListener("click",()=>{
-    document.querySelectorAll(".mode-tab").forEach(b=>b.classList.remove("active"));
-    btn.classList.add("active");
-    intensityMode=btn.dataset.mode;
+// ══════════════════════════════════════════════════════════════
+// ESTADO
+// ══════════════════════════════════════════════════════════════
+var SEG_PADRAO=function(){ return [{id:'warmup',name:'Aquecimento',type:'warmup'},{id:'main_1',name:'Bloco principal',type:'main'},{id:'cooldown',name:'Volta à calma',type:'cooldown'}]; };
+var segments=SEG_PADRAO(), mainCounter=1, workout=[], segAtivo='warmup', selIdx=-1, posAtual='Sentado';
+var video=null;         // {arquivo, dur, chegada}
+var trilha=[];          // [{nome, dur, picos:Float32Array, url}]
+function segDe(id){ for(var i=0;i<segments.length;i++) if(segments[i].id===id) return segments[i]; return null; }
+function segCor(s){ return s.type==='warmup'?'#5db13d':s.type==='cooldown'?'#7fa3ff':'#ea860c'; }
+function durB(b){ return Math.max(1,Math.round(b.durationSec!=null?b.durationSec:(b.duration||1)*60)); }
+function totalSeg(){ return workout.reduce(function(a,b){return a+durB(b);},0); }
+function ftpMeio(b){ var lo=b.ftpMin!=null?+b.ftpMin:Z(b.intensity).f[0], hi=b.ftpMax!=null?+b.ftpMax:Z(b.intensity).f[1]; if(!lo) lo=Math.max(0,hi-15); return (lo+hi)/2; }
+// mantém os segmentos em ordem: aquecimento, principais, volta à calma
+function ordenar(){
+  var ord={}; segments.forEach(function(s,i){ ord[s.id]=i; });
+  workout=workout.map(function(b,i){return {b:b,i:i};}).sort(function(x,y){ return ((ord[x.b.segmentId]||0)-(ord[y.b.segmentId]||0)) || (x.i-y.i); }).map(function(x){return x.b;});
+}
+
+// ══════════════════════════════════════════════════════════════
+// FORMULÁRIO DO BLOCO
+// ══════════════════════════════════════════════════════════════
+(function(){
+  var s=$('bZona'), w=$('zsw');
+  Object.keys(ZONAS).forEach(function(k,i){
+    s.insertAdjacentHTML('beforeend','<option value="'+k+'">'+ZONAS[k].n+'</option>');
+    w.insertAdjacentHTML('beforeend','<b data-z="'+k+'" style="background:'+ZONAS[k].c+'" onclick="$(\'bZona\').value=\''+k+'\';zonaMudou()">Z'+(i+1)+'</b>');
   });
-});
-
-// ══════════════════════════════════════════
-// SEGMENTO TABS
-// ══════════════════════════════════════════
-function renderSegTabs(){
-  const c=document.getElementById("segTabs"); c.innerHTML="";
-  segments.forEach(seg=>{
-    const btn=document.createElement("button");
-    btn.className=`seg-tab type-${seg.type}${seg.id===activeSegmentId?" active":""}`;
-    btn.dataset.id=seg.id;
-    const badge=seg.type==="warmup"?"Aquec.":seg.type==="cooldown"?"Calma":"Principal";
-    btn.innerHTML=`<span>${seg.name}</span><span class="seg-type-badge">${badge}</span>`;
-    btn.addEventListener("click",()=>{ activeSegmentId=seg.id; renderSegTabs(); });
-    c.appendChild(btn);
-  });
-}
-document.getElementById("addSegmentBtn").addEventListener("click",()=>{
-  mainCounter++;
-  const id=`main_${mainCounter}`;
-  const ci=segments.findIndex(s=>s.type==="cooldown");
-  segments.splice(ci,0,{id,name:`Bloco Principal ${mainCounter}`,type:"main"});
-  activeSegmentId=id; renderSegTabs(); renderBuilderTimeline();
-});
-document.getElementById("applySegName").addEventListener("click",()=>{
-  const val=document.getElementById("editSegName").value.trim(); if(!val) return;
-  const seg=segments.find(s=>s.id===activeSegmentId); if(seg) seg.name=val;
-  document.getElementById("editSegName").value=""; renderSegTabs(); renderBuilderTimeline();
-});
-document.getElementById("deleteSegBtn").addEventListener("click",()=>{
-  const seg=segments.find(s=>s.id===activeSegmentId);
-  if(!seg||seg.type!=="main"){ alert("Só é possível remover segmentos do tipo Bloco Principal."); return; }
-  if(workout.some(b=>b.segmentId===activeSegmentId)){
-    if(!confirm(`Remover "${seg.name}" e todos os seus blocos?`)) return;
-    workout=workout.filter(b=>b.segmentId!==activeSegmentId);
-  }
-  segments=segments.filter(s=>s.id!==activeSegmentId);
-  activeSegmentId=segments[0].id;
-  renderSegTabs(); renderBuilderTimeline(); updateSummary(); updateSyncInfo();
-});
-
-// ══════════════════════════════════════════
-// ADICIONAR BLOCO
-// ══════════════════════════════════════════
-document.getElementById("addBlock").addEventListener("click",()=>{
-  const duration=document.getElementById("duration").value;
-  const rpmMin=document.getElementById("rpmMin").value;
-  const rpmMax=document.getElementById("rpmMax").value;
-  const intensity=document.getElementById("intensity").value;
-  const position=document.getElementById("position").value;
-  const notes=document.getElementById("notes").value;
-  if(!duration||!rpmMin||!rpmMax){ alert("Preencha Tempo, RPM mínimo e RPM máximo."); return; }
-  if(Number(rpmMin)>Number(rpmMax)){ alert("RPM mínimo não pode ser maior que o máximo."); return; }
-  const seg=segments.find(s=>s.id===activeSegmentId);
-  function zoneKey(v){ var m=String(v).match(/^zone(\d)$/i); return m?'z'+m[1]:v; }
-  const rawIntensity=(seg&&seg.type==="cooldown")?"zone1":intensity;
-  workout.push({
-    duration:Number(duration), rpmMin:Number(rpmMin), rpmMax:Number(rpmMax),
-    intensity:zoneKey(rawIntensity), position, notes, segmentId:activeSegmentId
-  });
-  renderBuilderTimeline(); updateSummary(); updateSyncInfo(); updateMp3SyncInfo();
-  document.getElementById("duration").value="";
-  document.getElementById("rpmMin").value="";
-  document.getElementById("rpmMax").value="";
-  document.getElementById("notes").value="";
-  toast("✓ Bloco adicionado");
-});
-
-// ══════════════════════════════════════════
-// TIMELINE BUILDER
-// ══════════════════════════════════════════
-function renderBuilderTimeline(){
-  const container=document.getElementById("segmentTimelineContainer"); container.innerHTML="";
-  segments.forEach(seg=>{
-    const segBlocks=workout.filter(b=>b.segmentId===seg.id);
-    const totalMin=segBlocks.reduce((a,b)=>a+b.duration,0);
-    const wrapper=document.createElement("div"); wrapper.className="segment-timeline";
-    const header=document.createElement("div"); header.className="seg-timeline-header";
-    header.innerHTML=`<span class="seg-timeline-label">${seg.name}</span><span class="seg-timeline-dur">${totalMin>0?totalMin+"min":""}</span>`;
-    wrapper.appendChild(header);
-    const row=document.createElement("div"); row.className="seg-blocks"; row.dataset.segId=seg.id;
-    if(!segBlocks.length){
-      row.innerHTML=`<span style="font-family:'Barlow Condensed',sans-serif;font-size:12px;color:rgba(255,255,255,.2);padding:8px;">Nenhum bloco</span>`;
-    } else {
-      segBlocks.forEach(block=>{
-        const gi=workout.indexOf(block);
-        const div=document.createElement("div");
-        div.classList.add("block",block.intensity);
-        if(block.position==="Em Pé") div.classList.add("standing");
-        div.draggable=true; div.dataset.gi=gi;
-        div.innerHTML=`${block.duration}m<br>${block.rpmMin}–${block.rpmMax}<div class="block-actions"><button class="block-btn block-duplicate" title="Duplicar">⧉</button><button class="block-btn block-delete" title="Remover">✕</button></div>`;
-        div.querySelector(".block-duplicate").addEventListener("click",e=>{ e.stopPropagation(); workout.splice(gi+1,0,{...workout[gi]}); renderBuilderTimeline(); updateSummary(); updateSyncInfo(); });
-        div.querySelector(".block-delete").addEventListener("click",e=>{ e.stopPropagation(); workout.splice(gi,1); renderBuilderTimeline(); updateSummary(); updateSyncInfo(); });
-        div.addEventListener("dragstart",e=>{ dragSrcBlock={gi,segId:seg.id}; div.classList.add("dragging"); e.dataTransfer.effectAllowed="move"; });
-        div.addEventListener("dragend",()=>{ div.classList.remove("dragging"); document.querySelectorAll(".drag-over").forEach(el=>el.classList.remove("drag-over")); dragSrcBlock=null; });
-        div.addEventListener("dragover",e=>{ e.preventDefault(); if(dragSrcBlock&&dragSrcBlock.segId===seg.id) div.classList.add("drag-over"); });
-        div.addEventListener("dragleave",()=>div.classList.remove("drag-over"));
-        div.addEventListener("drop",e=>{
-          e.preventDefault(); div.classList.remove("drag-over");
-          if(!dragSrcBlock||dragSrcBlock.gi===gi||dragSrcBlock.segId!==seg.id) return;
-          const moved=workout.splice(dragSrcBlock.gi,1)[0];
-          const newGi=workout.indexOf(block);
-          workout.splice(newGi,0,moved);
-          renderBuilderTimeline(); updateSummary();
-        });
-        row.appendChild(div);
-      });
-    }
-    wrapper.appendChild(row); container.appendChild(wrapper);
-  });
-  document.getElementById("classNameHeader").textContent=document.getElementById("className").value||"";
-}
-document.getElementById("className").addEventListener("input",()=>{
-  document.getElementById("classNameHeader").textContent=document.getElementById("className").value||"";
-});
-
-// ══════════════════════════════════════════
-// RESUMO
-// ══════════════════════════════════════════
-function updateSummary(){
-  const ws=document.getElementById("workoutSummary");
-  if(!workout.length){ ws.style.display="none"; return; }
-  const totalMin=workout.reduce((a,b)=>a+b.duration,0);
-  const h=Math.floor(totalMin/60),m=totalMin%60;
-  document.getElementById("summaryTotal").textContent=`⏱ ${h>0?h+"h "+m+"min":m+" min"}`;
-  document.getElementById("summaryBlocks").textContent=`📦 ${workout.length} blocos`;
-  ws.style.display="flex";
-}
-
-// ══════════════════════════════════════════
-// VÍDEO
-// ══════════════════════════════════════════
-function setVideoSource(src){
-  videoSource=src;
-  document.getElementById("srcVideoBtn").classList.toggle("active",src==="video");
-  document.getElementById("srcCameraBtn").classList.toggle("active",src==="camera");
-  document.getElementById("panelVideo").style.display  = src==="video"  ? "block":"none";
-  document.getElementById("panelCamera").style.display = src==="camera" ? "block":"none";
-  if(src!=="camera") stopCameraPreview();
-}
-document.getElementById("srcVideoBtn").addEventListener("click",()=>setVideoSource("video"));
-document.getElementById("srcCameraBtn").addEventListener("click",()=>setVideoSource("camera"));
-
-document.getElementById("testCameraBtn").addEventListener("click",async()=>{
-  try{
-    const stream=await navigator.mediaDevices.getUserMedia({video:true,audio:false});
-    const cp=document.getElementById("cameraPreviewBuilder");
-    cp.srcObject=stream; cp.style.display="block";
-    document.getElementById("stopCameraBtn").style.display="block";
-    document.getElementById("testCameraBtn").style.display="none";
-    cp._stream=stream;
-  }catch(e){ alert("Não foi possível acessar a câmera."); }
-});
-document.getElementById("stopCameraBtn").addEventListener("click",stopCameraPreview);
-function stopCameraPreview(){
-  const cp=document.getElementById("cameraPreviewBuilder");
-  if(cp._stream){ cp._stream.getTracks().forEach(t=>t.stop()); cp._stream=null; }
-  cp.srcObject=null; cp.style.display="none";
-  document.getElementById("stopCameraBtn").style.display="none";
-  document.getElementById("testCameraBtn").style.display="block";
-}
-
-document.getElementById("videoInputBuilder").addEventListener("change",()=>{
-  const file=document.getElementById("videoInputBuilder").files[0]; if(!file) return;
-  if(videoObjectUrl) URL.revokeObjectURL(videoObjectUrl);
-  videoObjectUrl=URL.createObjectURL(file);
-  const vp=document.getElementById("videoPreview");
-  vp.src=videoObjectUrl; document.getElementById("videoPreviewBox").style.display="block";
-  vp.onloadedmetadata=()=>{
-    videoDuration=vp.duration;
-    document.getElementById("videoDurationLabel").textContent="Duração: "+formatTimeFull(videoDuration);
-    const sl=document.getElementById("endPointSlider");
-    sl.max=videoDuration; sl.value=videoDuration;
-    videoEndPoint=videoDuration;
-    document.getElementById("endPointDisplay").textContent=formatTimeFull(videoDuration);
-    updateSyncInfo();
-  };
-});
-document.getElementById("endPointSlider").addEventListener("input",()=>{
-  videoEndPoint=parseFloat(document.getElementById("endPointSlider").value);
-  document.getElementById("endPointDisplay").textContent=formatTimeFull(videoEndPoint);
-  document.getElementById("videoPreview").currentTime=videoEndPoint; updateSyncInfo();
-});
-function calcVideoStartPoint(){
-  const wSec=workout.filter(b=>segmentById(b.segmentId)?.type==="warmup").reduce((a,b)=>a+b.duration*60,0);
-  const mSec=workout.filter(b=>segmentById(b.segmentId)?.type==="main").reduce((a,b)=>a+b.duration*60,0);
-  return videoEndPoint-wSec-mSec;
-}
-function updateSyncInfo(){
-  const si=document.getElementById("syncInfo");
-  if(!videoDuration||!workout.length){ si.style.display="none"; return; }
-  const sp=calcVideoStartPoint();
-  document.getElementById("workoutDurDisplay").textContent=formatTime(workout.reduce((a,b)=>a+b.duration*60,0))+" total";
-  document.getElementById("endPointFinal").textContent=formatTimeFull(videoEndPoint);
-  const spEl=document.getElementById("startPointDisplay");
-  if(sp<0){ spEl.textContent="⚠ Vídeo curto"; spEl.style.color="#d62d2d"; }
-  else { spEl.textContent=formatTimeFull(sp); spEl.style.color="#fff"; }
-  si.style.display="block";
-}
-document.getElementById("previewSyncBtn").addEventListener("click",()=>{
-  const sp=calcVideoStartPoint(); if(sp<0){ alert("Vídeo mais curto que Aquecimento + Blocos."); return; }
-  const vp=document.getElementById("videoPreview"); vp.currentTime=sp; vp.play(); setTimeout(()=>vp.pause(),4000);
-});
-document.getElementById("removeVideoBuilder").addEventListener("click",()=>{
-  const vp=document.getElementById("videoPreview");
-  vp.pause(); vp.removeAttribute("src"); vp.load();
-  document.getElementById("videoPreviewBox").style.display="none";
-  document.getElementById("videoDurationLabel").textContent="";
-  if(videoObjectUrl){ URL.revokeObjectURL(videoObjectUrl); videoObjectUrl=null; }
-  videoDuration=0; videoEndPoint=0; document.getElementById("videoInputBuilder").value="";
-  document.getElementById("syncInfo").style.display="none";
-});
-
-// ══════════════════════════════════════════
-// MP3
-// ══════════════════════════════════════════
-document.getElementById("mp3InputBuilder").addEventListener("change",()=>{
-  const file=document.getElementById("mp3InputBuilder").files[0]; if(!file) return;
-  if(mp3ObjectUrl) URL.revokeObjectURL(mp3ObjectUrl);
-  mp3ObjectUrl=URL.createObjectURL(file);
-  const ap=document.getElementById("audioPreview");
-  ap.src=mp3ObjectUrl; document.getElementById("mp3PreviewBox").style.display="block";
-  const tmp=new Audio(mp3ObjectUrl);
-  tmp.onloadedmetadata=()=>{
-    mp3Duration=tmp.duration;
-    document.getElementById("mp3DurationLabel").textContent="Duração: "+formatTime(Math.floor(mp3Duration));
-    const sl=document.getElementById("mp3EndPointSlider");
-    sl.max=mp3Duration; sl.value=mp3Duration;
-    mp3EndPoint=mp3Duration;
-    document.getElementById("mp3EndPointDisplay").textContent=formatTime(Math.floor(mp3Duration));
-    updateMp3SyncInfo();
-  };
-});
-document.getElementById("mp3EndPointSlider").addEventListener("input",()=>{
-  mp3EndPoint=parseFloat(document.getElementById("mp3EndPointSlider").value);
-  document.getElementById("mp3EndPointDisplay").textContent=formatTime(Math.floor(mp3EndPoint));
-  document.getElementById("audioPreview").currentTime=mp3EndPoint;
-  updateMp3SyncInfo();
-});
-function calcMp3StartPoint(){
-  const wSec=workout.filter(b=>segmentById(b.segmentId)?.type==="warmup").reduce((a,b)=>a+b.duration*60,0);
-  const mSec=workout.filter(b=>segmentById(b.segmentId)?.type==="main").reduce((a,b)=>a+b.duration*60,0);
-  return mp3EndPoint-wSec-mSec;
-}
-function updateMp3SyncInfo(){
-  const ms=document.getElementById("mp3SyncInfo");
-  if(!mp3Duration||!workout.length){ ms.style.display="none"; return; }
-  const sp=calcMp3StartPoint();
-  document.getElementById("mp3DurDisplay").textContent=formatTime(workout.reduce((a,b)=>a+b.duration*60,0))+" total";
-  document.getElementById("mp3EndDisplay").textContent=formatTime(Math.floor(mp3EndPoint));
-  const spEl=document.getElementById("mp3StartDisplay");
-  if(sp<0){ spEl.textContent="⚠ MP3 curto"; spEl.style.color="#d62d2d"; }
-  else { spEl.textContent=formatTime(Math.floor(sp)); spEl.style.color="#fff"; }
-  ms.style.display="block";
-}
-document.getElementById("mp3PreviewBtn").addEventListener("click",()=>{
-  const sp=calcMp3StartPoint(); if(sp<0){ alert("MP3 mais curto que Aquecimento + Blocos."); return; }
-  const ap=document.getElementById("audioPreview"); ap.currentTime=sp; ap.play(); setTimeout(()=>ap.pause(),5000);
-});
-document.getElementById("removeMp3Btn").addEventListener("click",()=>{
-  const ap=document.getElementById("audioPreview"); ap.pause(); ap.removeAttribute("src"); ap.load();
-  document.getElementById("mp3PreviewBox").style.display="none";
-  if(mp3ObjectUrl){ URL.revokeObjectURL(mp3ObjectUrl); mp3ObjectUrl=null; }
-  mp3Duration=0; mp3EndPoint=0; document.getElementById("mp3InputBuilder").value="";
-  document.getElementById("mp3SyncInfo").style.display="none";
-  document.getElementById("mp3DurationLabel").textContent="";
-});
-
-// ══════════════════════════════════════════
-// SPOTIFY
-// ══════════════════════════════════════════
-// OAuth PKCE flow
-const SP_CLIENT_ID = 'SEU_SPOTIFY_CLIENT_ID'; // gestor deve configurar
-const SP_REDIRECT  = window.location.href.split('?')[0];
-const SP_SCOPES    = 'user-read-playback-state user-modify-playback-state playlist-read-private';
-
-document.getElementById("spotifyLoginBtn").addEventListener("click", iniciarSpotifyLogin);
-document.getElementById("spotifyLogoutBtn").addEventListener("click", ()=>{
-  spotifyToken=null; spotifyPlaylistUri=null;
-  document.getElementById("spotifyConnected").style.display="none";
-  document.getElementById("spotifyNotConnected").style.display="block";
-  document.getElementById("spotifyStatus").textContent="";
-  localStorage.removeItem("sp_token");
-  localStorage.removeItem("sp_expires");
-});
-
-async function iniciarSpotifyLogin(){
-  // PKCE
-  const verifier = gerarVerifier();
-  const challenge = await gerarChallenge(verifier);
-  localStorage.setItem("sp_verifier", verifier);
-  const params = new URLSearchParams({
-    client_id: SP_CLIENT_ID, response_type:'code', redirect_uri:SP_REDIRECT,
-    scope: SP_SCOPES, code_challenge_method:'S256', code_challenge:challenge
-  });
-  window.location = 'https://accounts.spotify.com/authorize?'+params;
-}
-function gerarVerifier(){ const arr=new Uint8Array(64); crypto.getRandomValues(arr); return btoa(String.fromCharCode(...arr)).replace(/\+/g,'-').replace(/\//g,'_').replace(/=/g,''); }
-async function gerarChallenge(v){ const d=new TextEncoder().encode(v); const h=await crypto.subtle.digest('SHA-256',d); return btoa(String.fromCharCode(...new Uint8Array(h))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=/g,''); }
-
-async function trocarCodigoPorToken(code){
-  const verifier=localStorage.getItem("sp_verifier");
-  const r=await fetch('https://accounts.spotify.com/api/token',{
-    method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'},
-    body:new URLSearchParams({grant_type:'authorization_code',code,redirect_uri:SP_REDIRECT,client_id:SP_CLIENT_ID,code_verifier:verifier})
-  });
-  const d=await r.json();
-  if(d.access_token){ spotifyToken=d.access_token; localStorage.setItem("sp_token",d.access_token); localStorage.setItem("sp_expires",Date.now()+d.expires_in*1000); carregarSpotify(); }
-}
-
-async function carregarSpotify(){
-  if(!spotifyToken) return;
-  try {
-    const [me,playlists]=await Promise.all([
-      fetch('https://api.spotify.com/v1/me',{headers:{Authorization:'Bearer '+spotifyToken}}).then(r=>r.json()),
-      fetch('https://api.spotify.com/v1/me/playlists?limit=50',{headers:{Authorization:'Bearer '+spotifyToken}}).then(r=>r.json())
-    ]);
-    document.getElementById("spotifyUserName").textContent=me.display_name||me.id;
-    document.getElementById("spotifyNotConnected").style.display="none";
-    document.getElementById("spotifyConnected").style.display="block";
-    document.getElementById("spotifyStatus").textContent="Conectado";
-    const sel=document.getElementById("spotifyPlaylistSelect"); sel.innerHTML='<option value="">Selecione uma playlist...</option>';
-    (playlists.items||[]).forEach(pl=>{ const o=document.createElement("option"); o.value=pl.uri; o.textContent=pl.name; sel.appendChild(o); });
-  } catch(e){ console.error("Spotify error",e); }
-}
-
-document.getElementById("spotifyPlaylistSelect").addEventListener("change",function(){
-  spotifyPlaylistUri=this.value;
-  const txt=this.options[this.selectedIndex].text;
-  const box=document.getElementById("spotifySelectedInfo");
-  if(spotifyPlaylistUri){ box.style.display="block"; box.textContent="🎵 "+txt; }
-  else { box.style.display="none"; }
-});
-
-// Verifica se voltou do Spotify OAuth
-(async()=>{
-  const params=new URLSearchParams(window.location.search);
-  if(params.has("code")){
-    const code=params.get("code");
-    history.replaceState({},"",window.location.pathname);
-    await trocarCodigoPorToken(code);
-  } else {
-    const t=localStorage.getItem("sp_token");
-    const exp=localStorage.getItem("sp_expires");
-    if(t && exp && Date.now()<Number(exp)){ spotifyToken=t; carregarSpotify(); }
-  }
+  s.value='z2';
 })();
-
-// ══════════════════════════════════════════
-// SALVAR / CARREGAR / LIMPAR / PDF
-// ══════════════════════════════════════════
-function getLibrary(){ try{ return JSON.parse(localStorage.getItem("prb_lib")||"[]"); }catch(e){ return []; } }
-function saveLibrary(lib){ localStorage.setItem("prb_lib",JSON.stringify(lib)); }
-
-function saveToLibrary(){
-  if(!workout.length){ alert("Adicione blocos antes de salvar."); return; }
-  const entry = montarEntry();
-  const lib=getLibrary();
-  const idx=lib.findIndex(i=>(i.nome||i.name)===entry.nome);
-  if(idx>=0){ if(!confirm('Substituir "'+entry.nome+'"?')) return; lib[idx]=entry; } else lib.unshift(entry);
-  saveLibrary(lib);
-  const blob=new Blob([JSON.stringify(entry,null,2)],{type:'application/json'});
-  const url=URL.createObjectURL(blob);
-  const a=document.createElement('a'); a.href=url; a.download=slugify(entry.nome)+'.json'; a.click();
-  URL.revokeObjectURL(url);
-  toast("✓ Salvo e baixado: "+a.download);
-  renderLibrary();
+function zonaMudou(){
+  var k=$('bZona').value, z=ZONAS[k];
+  $('bFtpMin').value=z.f[0]; $('bFtpMax').value=z.f[1];
+  document.querySelectorAll('#zsw b').forEach(function(b){ b.classList.toggle('on',b.dataset.z===k); });
 }
-
-function exportarPendrive(){
-  if(!workout.length){ alert("Adicione blocos antes de exportar."); return; }
-  const nome=document.getElementById("className").value||"Aula sem nome";
-  if(!nome.trim()){ alert("Dê um nome à aula."); return; }
-  const entry=montarEntry();
-  const blob=new Blob([JSON.stringify(entry,null,2)],{type:'application/json'});
-  const url=URL.createObjectURL(blob);
-  const a=document.createElement('a'); a.href=url; a.download=slugify(nome)+'.json'; a.click();
-  URL.revokeObjectURL(url);
-  toast("💾 JSON exportado — coloque em prorider/ no pendrive");
+function posSet(btn){ posAtual=btn.dataset.v; document.querySelectorAll('#bPos button').forEach(function(b){ b.classList.toggle('on',b===btn); }); }
+function durForm(){ return (parseInt($('bMin').value,10)||0)*60+(parseInt($('bSeg').value,10)||0); }
+function desAtualizar(){
+  var t=$('dTipo').value, dur=durForm();
+  $('dTempo').style.display=t?'flex':'none';
+  if($('dModo').value==='geral' && t==='cabo') $('dModo').value='equipes';
+  var seg=parseInt($('dSeg').value,10); if(t && (!seg||seg>dur)) { $('dSeg').value=dur||60; seg=dur||60; }
+  $('dDica').textContent = t ? ('Começa sozinho '+mmss(seg)+' antes do fim do bloco e termina junto com ele'+(seg>=dur?' (o bloco inteiro)':'')+'.') : '';
 }
-
-function montarEntry(){
-  const name=document.getElementById("className").value||"Aula sem nome";
-  let videoEntry=null, musicaEntry=null;
-  if(videoSource==='camera'){
-    videoEntry={fonte:'camera',arquivo:null,syncOffset:0};
-  } else if(videoObjectUrl){
-    const vInput=document.getElementById('videoInputBuilder');
-    const vName=(vInput&&vInput.files[0])?vInput.files[0].name:'video.mp4';
-    videoEntry={fonte:'local',arquivo:vName,syncOffset:Math.max(0,Math.round(videoEndPoint))};
+['bMin','bSeg'].forEach(function(id){ $(id).addEventListener('input',desAtualizar); });
+function lerForm(){
+  var dur=durForm(); if(dur<5){ toast('⚠ Coloque o tempo do bloco (mínimo 5 segundos)'); return null; }
+  var rMin=parseInt($('bRpmMin').value,10)||80, rMax=parseInt($('bRpmMax').value,10)||90;
+  if(rMin>rMax){ var t=rMin; rMin=rMax; rMax=t; }
+  var fMin=parseInt($('bFtpMin').value,10), fMax=parseInt($('bFtpMax').value,10);
+  var z=$('bZona').value; if(isNaN(fMin)) fMin=ZONAS[z].f[0]; if(isNaN(fMax)) fMax=ZONAS[z].f[1]; if(fMin>fMax){ var u=fMin; fMin=fMax; fMax=u; }
+  var b={durationSec:dur, duration:dur/60, intensity:z, ftpMin:fMin, ftpMax:fMax, rpmMin:rMin, rpmMax:rMax, position:posAtual, notes:$('bNota').value.trim(), segmentId:segAtivo};
+  var dt=$('dTipo').value;
+  if(dt){ var ds=Math.max(5,Math.min(dur,parseInt($('dSeg').value,10)||dur)); var dm=$('dModo').value; if(dt==='cabo'&&dm==='geral') dm='equipes'; b.desafio={tipo:dt,modo:dm,seg:ds}; }
+  return b;
+}
+function preencherForm(b){
+  var d=durB(b); $('bMin').value=Math.floor(d/60); $('bSeg').value=d%60;
+  $('bZona').value=zKey(b.intensity); document.querySelectorAll('#zsw b').forEach(function(x){ x.classList.toggle('on',x.dataset.z===zKey(b.intensity)); });
+  $('bFtpMin').value=b.ftpMin!=null?b.ftpMin:Z(b.intensity).f[0]; $('bFtpMax').value=b.ftpMax!=null?b.ftpMax:Z(b.intensity).f[1];
+  $('bRpmMin').value=b.rpmMin||80; $('bRpmMax').value=b.rpmMax||90;
+  posSet(document.querySelector('#bPos button[data-v="'+(b.position==='Em Pé'?'Em Pé':'Sentado')+'"]'));
+  $('bNota').value=b.notes||'';
+  $('dTipo').value=b.desafio&&b.desafio.tipo||''; $('dModo').value=b.desafio&&b.desafio.modo||'equipes'; $('dSeg').value=b.desafio&&b.desafio.seg||'';
+  desAtualizar();
+}
+function blocoOk(){
+  var b=lerForm(); if(!b) return;
+  if(selIdx>=0 && workout[selIdx]){ b.segmentId=workout[selIdx].segmentId; workout[selIdx]=b; toast('✓ Bloco atualizado'); cancelarEdicao(); }
+  else {
+    // entra no fim do segmento ativo
+    var ult=-1; workout.forEach(function(x,i){ if(x.segmentId===segAtivo) ult=i; });
+    if(ult>=0) workout.splice(ult+1,0,b); else { workout.push(b); ordenar(); }
+    $('bNota').value=''; $('dTipo').value=''; desAtualizar();
+    toast('✓ Bloco adicionado em '+(segDe(segAtivo)||{}).name);
   }
-  if(spotifyPlaylistUri){
-    const sel=document.getElementById("spotifyPlaylistSelect");
-    const txt=sel.options[sel.selectedIndex]?.text||'Playlist';
-    musicaEntry={fonte:'spotify',spotifyUri:spotifyPlaylistUri,nomePlaylist:txt,arquivo:null,syncOffset:0};
-  } else if(mp3ObjectUrl){
-    const mInput=document.getElementById('mp3InputBuilder');
-    const mName=(mInput&&mInput.files[0])?mInput.files[0].name:'musica.mp3';
-    musicaEntry={fonte:'mp3',arquivo:mName,syncOffset:0};
-  }
-  const workoutNorm=workout.map(b=>({
-    duration:b.duration||1, rpmMin:b.rpmMin||80, rpmMax:b.rpmMax||90,
-    intensity:b.intensity||'z1', position:b.position||'Sentado',
-    notes:b.notes||'', segmentId:b.segmentId||'main_1'
-  }));
-  return {
-    versao:'1.0', gerado_por:'ProRider Studio Builder', gerado_em:new Date().toISOString(),
-    nome:name, savedAt:new Date().toISOString(),
-    duracaoTotal:workout.reduce((a,b)=>a+b.duration,0),
-    segments, mainCounter, workout:workoutNorm, blocks:workoutNorm,
-    video:videoEntry, musica:musicaEntry,
-    instrucoes_pendrive:{
-      estrutura:'Coloque este JSON em prorider/ no pendrive. Vídeos em prorider/video/ e MP3 em prorider/musicas/',
-      arquivo_json: slugify(name)+'.json'
-    }
-  };
+  tudo();
+}
+function editar(i){
+  if(i<0||!workout[i]) return;
+  selIdx=i; preencherForm(workout[i]);
+  $('blTitulo').textContent='Editar bloco '+(i+1); $('bOk').textContent='✓ Salvar alterações'; $('bDel').style.display='';
+  $('blSeg').textContent='em '+((segDe(workout[i].segmentId)||{}).name||'');
+  $('editBar').style.display='flex'; $('editTxt').textContent='Editando o bloco '+(i+1)+' · '+(segDe(workout[i].segmentId)||{}).name;
+  tudo(true);
+  if(window.innerWidth<980) $('cardBloco').scrollIntoView({behavior:'smooth'});
+}
+function cancelarEdicao(){
+  selIdx=-1; pintarSegs(); $('blTitulo').textContent='Novo bloco'; $('bOk').textContent='＋ Adicionar bloco'; $('bDel').style.display='none'; $('editBar').style.display='none';
+  $('bNota').value=''; $('dTipo').value=''; desAtualizar(); tudo(true);
+}
+function blocoRemover(i){ if(i<0||!workout[i]) return; workout.splice(i,1); if(selIdx===i) cancelarEdicao(); else if(selIdx>i) selIdx--; tudo(); toast('Bloco removido'); }
+function blocoDuplicar(i){ var c=JSON.parse(JSON.stringify(workout[i])); workout.splice(i+1,0,c); tudo(); }
+function blocoMover(i,d){ var j=i+d; if(!workout[j]||workout[j].segmentId!==workout[i].segmentId) return; var t=workout[i]; workout[i]=workout[j]; workout[j]=t; if(selIdx===i) selIdx=j; else if(selIdx===j) selIdx=i; tudo(); }
+
+// ══════════════════════════════════════════════════════════════
+// SEGMENTOS
+// ══════════════════════════════════════════════════════════════
+function pintarSegs(){
+  $('segChips').innerHTML=segments.map(function(s){
+    var n=workout.filter(function(b){return b.segmentId===s.id;}).length;
+    return '<button class="chip'+(s.id===segAtivo?' on':'')+'" onclick="segAtivo=\''+s.id+'\';pintarSegs()"><i style="background:'+segCor(s)+'"></i>'+esc(s.name)+(n?' · '+n:'')+'</button>';
+  }).join('');
+  var s=segDe(segAtivo); $('blSeg').textContent=s?'em '+s.name:'';
+}
+function segNovo(){ mainCounter++; var id='main_'+mainCounter; var ci=segments.findIndex(function(s){return s.type==='cooldown';}); segments.splice(ci<0?segments.length:ci,0,{id:id,name:'Bloco principal '+mainCounter,type:'main'}); segAtivo=id; tudo(); }
+function segRenomear(){ var v=$('segNome').value.trim(); if(!v) return; var s=segDe(segAtivo); if(s) s.name=v; $('segNome').value=''; tudo(); }
+function segRemover(){
+  var s=segDe(segAtivo); if(!s) return;
+  if(s.type!=='main' || segments.filter(function(x){return x.type==='main';}).length<2){ toast('⚠ Aquecimento, volta à calma e o único bloco principal não saem'); return; }
+  var n=workout.filter(function(b){return b.segmentId===s.id;}).length;
+  if(n && !confirm('Remover "'+s.name+'" e os '+n+' blocos dele?')) return;
+  workout=workout.filter(function(b){return b.segmentId!==s.id;}); segments=segments.filter(function(x){return x.id!==s.id;}); segAtivo=segments[0].id; cancelarEdicao(); tudo();
 }
 
-document.getElementById("saveWorkout").addEventListener("click", saveToLibrary);
-document.getElementById("loadWorkout").addEventListener("click",()=>document.getElementById("loadFileInput").click());
-document.getElementById("loadFileInput").addEventListener("change",()=>{
-  const file=document.getElementById("loadFileInput").files[0]; if(!file) return;
-  const reader=new FileReader();
-  reader.onload=e=>{
+// ══════════════════════════════════════════════════════════════
+// PERFIL DA AULA — tudo numa linha, proporcional ao tempo
+// ══════════════════════════════════════════════════════════════
+var _escala={tot:1,topo:150};
+function pintarPerfil(){
+  var area=$('tlArea'), segsEl=$('tlSegs'), ax=$('tlAx'), tot=totalSeg();
+  var topo=Math.max(130, Math.ceil(Math.max.apply(null,[0].concat(workout.map(function(b){return +b.ftpMax||0;})))/10)*10+10);
+  _escala={tot:Math.max(tot,60),topo:topo};
+  if(!workout.length){
+    area.innerHTML='<div class="vazio"><div style="font-size:30px">⚡</div>Monte a aula à esquerda: cada bloco aparece aqui, no tamanho do tempo dele.</div>';
+    segsEl.innerHTML=''; ax.innerHTML=''; $('tlLinhas').innerHTML=''; return;
+  }
+  var h='', t=0, H=area.clientHeight||300;
+  // linhas de referência (FTP 100% etc.)
+  [50,100,150].forEach(function(p){ if(p<topo) h+='<div class="tl-ref" style="bottom:'+(p/topo*100)+'%"><span>'+p+'% FTP</span></div>'; });
+  var linhas='';
+  workout.forEach(function(b,i){
+    var d=durB(b), x=t/_escala.tot*100, w=d/_escala.tot*100, z=Z(b.intensity);
+    var hh=Math.max(10, Math.min(100, ftpMeio(b)/topo*100));
+    var larguraPx=w/100*(area.clientWidth||1000);
+    var txt=larguraPx>=46?'<span class="t">'+mmss(d)+'</span>'+(larguraPx>=64?'<span class="r">'+b.rpmMin+'–'+b.rpmMax+'</span>':''):'';
+    var des=b.desafio&&b.desafio.tipo?'<span class="dz">'+(DES_ICO[b.desafio.tipo]||'🏆')+'</span>':'';
+    h+='<div class="bk'+(b.position==='Em Pé'?' pe':'')+(i===selIdx?' sel':'')+'" data-i="'+i+'" draggable="true" style="left:calc('+x+'% + 1px);width:calc('+w+'% - 2px);height:'+hh+'%;background:linear-gradient(180deg,'+z.c+','+z.c+'cc)">'+des+txt+'</div>';
+    t+=d;
+    if(i<workout.length-1) linhas+='<div class="tl-lin" style="left:'+(t/_escala.tot*100)+'%"></div>';
+  });
+  area.innerHTML=h;
+  // faixa dos segmentos
+  var sh='', t2=0;
+  segments.forEach(function(s){
+    var d=workout.filter(function(b){return b.segmentId===s.id;}).reduce(function(a,b){return a+durB(b);},0);
+    if(!d) return;
+    sh+='<div class="tl-seg" style="left:'+(t2/_escala.tot*100)+'%;width:calc('+(d/_escala.tot*100)+'% - 4px);color:'+segCor(s)+';border-color:'+segCor(s)+'">'+esc(s.name)+' · '+mmss(d)+'</div>';
+    t2+=d;
+  });
+  segsEl.innerHTML=sh;
+  // eixo de tempo
+  var passo=[60,120,300,600,900,1200].find(function(p){ return _escala.tot/p<=14; })||1800, a='';
+  for(var s2=0;s2<=_escala.tot+1;s2+=passo) a+='<span style="left:'+(s2/_escala.tot*100)+'%">'+Math.round(s2/60)+'′</span>';
+  ax.innerHTML=a;
+  $('tlLinhas').innerHTML=linhas;
+  ligarBlocos();
+}
+function ligarBlocos(){
+  var tip=$('tip'), origem=-1;
+  document.querySelectorAll('#tlArea .bk').forEach(function(el){
+    var i=+el.dataset.i, b=workout[i];
+    el.onclick=function(){ editar(i); };
+    el.onmousemove=function(e){
+      var z=Z(b.intensity), s=segDe(b.segmentId)||{};
+      tip.innerHTML='<b style="color:'+z.c+'">'+esc(z.n)+'</b><br>'+esc(s.name||'')+' · bloco '+(i+1)+'<br>⏱ '+mmss(durB(b))+' · '+(b.ftpMin?b.ftpMin+'–':'< ')+b.ftpMax+'% FTP<br>🚴 '+b.rpmMin+'–'+b.rpmMax+' rpm · '+esc(b.position)+
+        (b.desafio&&b.desafio.tipo?'<br>'+DES_ICO[b.desafio.tipo]+' '+DES_NOME[b.desafio.tipo]+' ('+MODO_NOME[b.desafio.modo]+') · últimos '+mmss(b.desafio.seg):'')+(b.notes?'<br><i style="color:#aaa">'+esc(b.notes)+'</i>':'');
+      tip.style.display='block'; tip.style.left=Math.min(window.innerWidth-270,e.clientX+14)+'px'; tip.style.top=(e.clientY+16)+'px';
+    };
+    el.onmouseleave=function(){ tip.style.display='none'; };
+    el.ondragstart=function(e){ origem=i; el.classList.add('drag'); tip.style.display='none'; try{ e.dataTransfer.setData('text/plain',String(i)); e.dataTransfer.effectAllowed='move'; }catch(x){} };
+    el.ondragend=function(){ el.classList.remove('drag'); document.querySelectorAll('.bk.alvo').forEach(function(x){x.classList.remove('alvo');}); };
+    el.ondragover=function(e){ e.preventDefault(); el.classList.add('alvo'); };
+    el.ondragleave=function(){ el.classList.remove('alvo'); };
+    el.ondrop=function(e){
+      e.preventDefault(); var de=origem>=0?origem:parseInt(e.dataTransfer.getData('text/plain'),10); if(isNaN(de)||de===i) return;
+      var r=el.getBoundingClientRect(), depois=e.clientX>r.left+r.width/2;
+      var mov=workout.splice(de,1)[0]; var alvo=workout.indexOf(b); mov.segmentId=b.segmentId;   // entra no segmento de onde caiu
+      workout.splice(alvo+(depois?1:0),0,mov); selIdx=-1; cancelarEdicao(); tudo();
+    };
+  });
+}
+window.addEventListener('resize',function(){ clearTimeout(window._rz); window._rz=setTimeout(function(){ pintarPerfil(); muDesenhar(); },120); });
+
+// ══════════════════════════════════════════════════════════════
+// RESUMO + TABELA
+// ══════════════════════════════════════════════════════════════
+function pintarResumo(){
+  var tot=totalSeg(), n=workout.length;
+  $('kDur').textContent=mmss(tot); $('kBl').textContent=n;
+  var sIf=0, tss=0; workout.forEach(function(b){ var f=ftpMeio(b)/100, d=durB(b); sIf+=f*d; tss+=d/3600*f*f*100; });
+  $('kIf').textContent=tot?Math.round(sIf/tot*100)+'%':'—'; $('kTss').textContent=tot?Math.round(tss):'—';
+  $('kDes').textContent=workout.filter(function(b){return b.desafio&&b.desafio.tipo;}).length;
+}
+function pintarTabela(){
+  var tb=$('tb');
+  if(!workout.length){ tb.innerHTML='<tr><td class="note" style="padding:14px 8px">Nenhum bloco ainda.</td></tr>'; $('tbInfo').textContent=''; return; }
+  var h='<tr><th>#</th><th>Tempo</th><th>Zona</th><th>% FTP</th><th>RPM</th><th>Posição</th><th>Desafio</th><th>Observação</th><th style="text-align:right">Ações</th></tr>', segAnt=null;
+  workout.forEach(function(b,i){
+    if(b.segmentId!==segAnt){ var s=segDe(b.segmentId)||{name:b.segmentId,type:'main'}; h+='<tr class="segh"><td colspan="9" style="color:'+segCor(s)+'">'+esc(s.name)+'</td></tr>'; segAnt=b.segmentId; }
+    var z=Z(b.intensity);
+    h+='<tr class="'+(i===selIdx?'sel':'')+'"><td>'+(i+1)+'</td><td><b>'+mmss(durB(b))+'</b></td><td><span class="zb" style="background:'+z.c+'"></span>'+esc(z.n.replace(/ –.*/,''))+'</td><td>'+(b.ftpMin?b.ftpMin+'–':'< ')+b.ftpMax+'%</td><td>'+b.rpmMin+'–'+b.rpmMax+'</td><td>'+esc(b.position)+'</td><td>'+(b.desafio&&b.desafio.tipo?DES_ICO[b.desafio.tipo]+' '+mmss(b.desafio.seg):'—')+'</td><td style="max-width:220px;overflow:hidden;text-overflow:ellipsis;color:var(--muted)">'+esc(b.notes||'')+'</td>'+
+      '<td style="text-align:right"><button class="ic" title="Subir" onclick="blocoMover('+i+',-1)">▲</button><button class="ic" title="Descer" onclick="blocoMover('+i+',1)">▼</button><button class="ic" title="Editar" onclick="editar('+i+')">✎</button><button class="ic" title="Duplicar" onclick="blocoDuplicar('+i+')">⧉</button><button class="ic" title="Remover" onclick="blocoRemover('+i+')">✕</button></td></tr>';
+  });
+  tb.innerHTML=h; $('tbInfo').textContent=workout.length+' blocos · '+mmss(totalSeg());
+}
+function tudo(semRascunho){ pintarSegs(); pintarPerfil(); pintarResumo(); pintarTabela(); muDesenhar(); pintarVideo(); if(!semRascunho) rascunho(); }
+
+// ══════════════════════════════════════════════════════════════
+// TRILHA SONORA (MP3) — no mesmo eixo de tempo do perfil
+// ══════════════════════════════════════════════════════════════
+var _ac=null, _tocando=null, _tAtual=0;
+$('fMu').addEventListener('change',async function(){
+  var fs=[].slice.call(this.files||[]); this.value='';
+  for(var i=0;i<fs.length;i++){
+    var f=fs[i]; toast('Lendo '+f.name+'…',6000);
     try{
-      const data=JSON.parse(e.target.result);
-      const blocos=data.workout||data.blocks;
-      if(!blocos||!Array.isArray(blocos)) throw new Error();
-      workout=blocos.map(b=>{ if(!b.segmentId) b.segmentId="main_1"; if(!b.intensity&&b.z) b.intensity=b.z; return b; });
-      if(data.segments) segments=data.segments;
-      if(data.mainCounter) mainCounter=data.mainCounter;
-      const nome=data.nome||data.name;
-      if(nome) document.getElementById("className").value=nome;
-      activeSegmentId=segments[0].id;
-      renderSegTabs(); renderBuilderTimeline(); updateSummary(); updateSyncInfo(); updateMp3SyncInfo();
-      if(data.video||data.musica){
-        var info=[];
-        if(data.video) info.push('Vídeo: '+data.video.fonte+(data.video.arquivo?' ('+data.video.arquivo+')':''));
-        if(data.musica) info.push('Música: '+data.musica.fonte+(data.musica.arquivo?' ('+data.musica.arquivo+')':data.musica.spotifyUri?' (Spotify)':''));
-        alert('Aula carregada.\n\n'+info.join('\n')+'\n\nColoque os arquivos de mídia nas pastas video/ e musicas/ do pendrive.');
+      _ac=_ac||new (window.AudioContext||window.webkitAudioContext)();
+      var buf=await _ac.decodeAudioData(await f.arrayBuffer());
+      var ch=buf.getChannelData(0), N=4000, passo=Math.max(1,Math.floor(ch.length/N)), p=new Float32Array(N);
+      for(var j=0;j<N;j++){ var m=0, ini=j*passo, fim=Math.min(ch.length,ini+passo); for(var k=ini;k<fim;k+=8){ var v=Math.abs(ch[k]); if(v>m) m=v; } p[j]=m; }
+      trilha.push({nome:f.name, dur:buf.duration, picos:p, url:URL.createObjectURL(f)});
+    }catch(e){ toast('⚠ Não consegui ler '+f.name); }
+  }
+  muLista(); muDesenhar(); rascunho(); if(fs.length) toast('✓ Trilha atualizada');
+});
+function muTotal(){ return trilha.reduce(function(a,t){return a+t.dur;},0); }
+function muLista(){
+  $('muList').innerHTML=trilha.map(function(t,i){ return '<div class="mu-it"><b style="color:var(--accent)">'+(i+1)+'</b><span title="'+esc(t.nome)+'">'+esc(t.nome)+'</span><small class="note">'+mmss(t.dur)+'</small><button onclick="muMover('+i+',-1)" title="Antes">◀</button><button onclick="muMover('+i+',1)" title="Depois">▶</button><button onclick="muTirar('+i+')" title="Tirar">✕</button></div>'; }).join('');
+  $('muVazio').style.display=trilha.length?'none':'flex';
+  var tot=totalSeg(), mu=muTotal(), av=$('muAviso');
+  if(!trilha.length||!tot) av.innerHTML='';
+  else if(mu<tot-5) av.innerHTML='<span class="aviso w">Faltam '+mmss(tot-mu)+' de música para cobrir a aula</span>';
+  else if(mu>tot+5) av.innerHTML='<span class="aviso w">A música passa '+mmss(mu-tot)+' do fim da aula</span>';
+  else av.innerHTML='<span class="aviso ok">✓ A música cobre a aula inteira</span>';
+  $('muClock').textContent=mmss(_tAtual)+' / '+mmss(Math.max(tot,mu));
+}
+function muMover(i,d){ var j=i+d; if(!trilha[j]) return; var t=trilha[i]; trilha[i]=trilha[j]; trilha[j]=t; muParar(); muLista(); muDesenhar(); rascunho(); }
+function muTirar(i){ muParar(); try{ URL.revokeObjectURL(trilha[i].url); }catch(e){} trilha.splice(i,1); muLista(); muDesenhar(); rascunho(); }
+function muDesenhar(){
+  var cv=$('muCv'), lane=$('muLane'), W=lane.clientWidth, H=lane.clientHeight, dpr=Math.min(2,window.devicePixelRatio||1);
+  cv.width=W*dpr; cv.height=H*dpr; var c=cv.getContext('2d'); c.setTransform(dpr,0,0,dpr,0,0); c.clearRect(0,0,W,H);
+  muLista();
+  if(!trilha.length) return;
+  var esc_=Math.max(totalSeg(),60), t0=0, cores=['#ffb45a','#7fa3ff','#8fe06a','#e39bff','#ffd84a','#ff8a8a'];
+  trilha.forEach(function(t,ti){
+    var x0=t0/esc_*W, x1=Math.min(W,(t0+t.dur)/esc_*W), cor=cores[ti%cores.length];
+    if(x0<W){
+      c.fillStyle='rgba(255,255,255,.035)'; c.fillRect(x0,0,x1-x0,H);
+      c.fillStyle=cor; var mid=H/2+8;
+      for(var x=Math.floor(x0);x<x1;x++){
+        var tt=(x/W*esc_-t0)/t.dur; if(tt<0||tt>1) continue;
+        var a=Math.floor(tt*(t.picos.length-1)), b=Math.min(t.picos.length-1,a+Math.ceil(t.picos.length/((t.dur/esc_)*W)+1)), m=0;
+        for(var k=a;k<=b;k++) if(t.picos[k]>m) m=t.picos[k];
+        var h=Math.max(1,m*(H-26)/2); c.globalAlpha=.85; c.fillRect(x,mid-h,1,h*2);
       }
-      toast("✓ Aula carregada");
-    }catch(e){ alert("Arquivo inválido ou corrompido."); }
-  };
-  reader.readAsText(file); document.getElementById("loadFileInput").value="";
-});
-
-document.getElementById("clearWorkout").addEventListener("click",()=>{
-  if(!workout.length) return;
-  if(!confirm("Limpar todos os blocos?")) return;
-  workout=[];
-  segments=[{id:"warmup",name:"Aquecimento",type:"warmup"},{id:"main_1",name:"Bloco Principal",type:"main"},{id:"cooldown",name:"Volta à Calma",type:"cooldown"}];
-  mainCounter=1; activeSegmentId="warmup";
-  renderSegTabs(); renderBuilderTimeline(); updateSummary();
-  document.getElementById("className").value="";
-  document.getElementById("syncInfo").style.display="none";
-  document.getElementById("mp3SyncInfo").style.display="none";
-});
-
-document.getElementById("toggleLibrary").addEventListener("click",()=>{
-  const list=document.getElementById("libraryList");
-  const open=list.style.display==="block";
-  list.style.display=open?"none":"block";
-  document.getElementById("toggleLibrary").textContent=open?"▾ ver":"▴ fechar";
-  if(!open) renderLibrary();
-});
-function renderLibrary(){
-  const list=document.getElementById("libraryList"); list.innerHTML="";
-  const lib=getLibrary();
-  if(!lib.length){ list.innerHTML=`<div class="lib-empty">Nenhuma aula salva ainda.</div>`; return; }
-  lib.forEach((item,i)=>{
-    const blocks=item.workout||item.blocks||[];
-    const totalMin=blocks.reduce((a,b)=>a+(b.duration||0),0);
-    const h=Math.floor(totalMin/60),m=totalMin%60;
-    const d=document.createElement("div"); d.className="library-item";
-    d.innerHTML=`<div><div class="lib-item-name">${item.nome||item.name||'—'}</div><div class="lib-item-info">${h>0?h+"h "+m+"min":m+"min"} · ${blocks.length} blocos · ${new Date(item.savedAt||0).toLocaleDateString("pt-BR")}</div></div><div class="lib-item-actions"><button class="btn-lib-load">Carregar</button><button class="btn-lib-del">🗑</button></div>`;
-    d.querySelector(".btn-lib-load").addEventListener("click",()=>{
-      workout=blocks.map(b=>{ if(!b.segmentId) b.segmentId="main_1"; return b; });
-      if(item.segments) segments=item.segments;
-      if(item.mainCounter) mainCounter=item.mainCounter;
-      document.getElementById("className").value=item.nome||item.name||"";
-      activeSegmentId=segments[0].id;
-      renderSegTabs(); renderBuilderTimeline(); updateSummary(); updateSyncInfo(); updateMp3SyncInfo();
-      document.getElementById("libraryList").style.display="none";
-      document.getElementById("toggleLibrary").textContent="▾ ver";
-    });
-    d.querySelector(".btn-lib-del").addEventListener("click",()=>{
-      if(!confirm(`Remover "${item.nome||item.name}"?`)) return;
-      const lib2=getLibrary(); lib2.splice(i,1); saveLibrary(lib2); renderLibrary();
-    });
-    list.appendChild(d);
+      c.globalAlpha=1; c.fillStyle='rgba(255,255,255,.85)'; c.font='600 11px Inter,sans-serif';
+      c.save(); c.beginPath(); c.rect(x0+4,0,Math.max(0,x1-x0-8),16); c.clip(); c.fillText((ti+1)+'. '+t.nome.replace(/\.[a-z0-9]+$/i,''),x0+6,12); c.restore();
+      c.fillStyle='rgba(255,255,255,.5)'; c.fillRect(x0,0,1,H);
+    }
+    t0+=t.dur;
   });
 }
+function muOnde(t){ var a=0; for(var i=0;i<trilha.length;i++){ if(t<a+trilha[i].dur) return {i:i,off:t-a}; a+=trilha[i].dur; } return null; }
+function muTocar(){ if(_tocando){ muParar(); return; } if(!trilha.length){ toast('Adicione um MP3 primeiro'); return; } muDe(_tAtual); }
+function muDe(t){
+  muParar(); var o=muOnde(t); if(!o){ _tAtual=0; o=muOnde(0); if(!o) return; }
+  var au=new Audio(trilha[o.i].url); au.currentTime=o.off; au.play().catch(function(){});
+  _tocando={au:au,i:o.i}; $('muPlay').textContent='❚❚ Pausar';
+  au.onended=function(){ var prox=o.i+1; if(trilha[prox]){ var a=0; for(var j=0;j<prox;j++) a+=trilha[j].dur; muDe(a+0.01); } else muParar(); };
+  (function anda(){ if(!_tocando||_tocando.au!==au) return; var a=0; for(var j=0;j<_tocando.i;j++) a+=trilha[j].dur; _tAtual=a+au.currentTime; muPlayhead(); requestAnimationFrame(anda); })();
+}
+function muParar(){ if(_tocando){ _tocando.au.pause(); _tocando=null; } $('muPlay').textContent='▶ Ouvir'; }
+function muPlayhead(){
+  var p=$('tlPlay'), esc_=Math.max(totalSeg(),60); p.style.display=_tAtual>0?'block':'none';
+  p.style.left=Math.min(100,_tAtual/esc_*100)+'%';
+  $('muClock').textContent=mmss(_tAtual)+' / '+mmss(Math.max(totalSeg(),muTotal()));
+}
+$('muLane').addEventListener('click',function(e){ if(!trilha.length) return; var r=this.getBoundingClientRect(); _tAtual=(e.clientX-r.left)/r.width*Math.max(totalSeg(),60); muPlayhead(); muDe(_tAtual); });
 
-// ══════════════════════════════════════════
-// PDF
-// ══════════════════════════════════════════
-document.getElementById("exportPDF").addEventListener("click",()=>{
-  if(!workout.length){ alert("Adicione blocos antes de exportar."); return; }
-  const name=document.getElementById("className").value||"Aula";
-  const totalMin=workout.reduce((a,b)=>a+b.duration,0);
-  const h=Math.floor(totalMin/60),m=totalMin%60;
-  let rows="";
-  segments.forEach(seg=>{
-    const sb=workout.filter(b=>b.segmentId===seg.id); if(!sb.length) return;
-    rows+=`<tr><td colspan="5" style="background:#1a2030;color:#7ba7ff;font-weight:700;letter-spacing:2px;text-transform:uppercase;padding:10px 12px;font-size:13px;">${seg.name}</td></tr>`;
-    sb.forEach((b,i)=>{ const z=zi(b.intensity); rows+=`<tr><td style="padding:8px 12px;font-size:13px;color:#aaa;">${i+1}</td><td style="padding:8px 12px;"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${z.color};margin-right:6px;"></span><span style="font-size:13px;color:#fff;">${z.name}</span></td><td style="padding:8px 12px;font-size:13px;color:#fff;">${b.duration} min</td><td style="padding:8px 12px;font-size:13px;color:#fff;">${b.rpmMin}–${b.rpmMax} RPM</td><td style="padding:8px 12px;font-size:13px;color:${z.color};">${z.ftp} FTP · ${b.position}</td></tr>`; });
-  });
-  const html=`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${name}</title>
-  <style>body{background:#080c14;color:#fff;font-family:Arial,sans-serif;padding:32px}h1{font-size:28px;margin-bottom:4px}p{color:#666;margin-bottom:24px}table{width:100%;border-collapse:collapse}tr:nth-child(even){background:rgba(255,255,255,0.03)}</style>
-  </head><body><h1>${name}</h1><p>${h>0?h+"h "+m+"min":m+" min"} · ${workout.length} blocos</p>
-  <table>${rows}</table><script>window.onload=()=>{window.print();setTimeout(()=>window.close(),500)}<\/script></body></html>`;
-  const w=window.open(); w.document.write(html); w.document.close();
+// ══════════════════════════════════════════════════════════════
+// VÍDEO
+// ══════════════════════════════════════════════════════════════
+$('fVid').addEventListener('change',function(){
+  var f=this.files[0]; this.value=''; if(!f) return;
+  var v=document.createElement('video'); v.preload='metadata'; v.src=URL.createObjectURL(f);
+  v.onloadedmetadata=function(){ video={arquivo:f.name,dur:v.duration,chegada:Math.round(v.duration)}; URL.revokeObjectURL(v.src); pintarVideo(); rascunho(); };
+  v.onerror=function(){ video={arquivo:f.name,dur:0,chegada:0}; pintarVideo(); rascunho(); };
 });
+function pintarVideo(){
+  var el=$('vidInfo'); if(!video){ el.innerHTML=''; return; }
+  var ws=workout.filter(function(b){ var s=segDe(b.segmentId); return s&&s.type!=='cooldown'; }).reduce(function(a,b){return a+durB(b);},0);
+  var ini=video.chegada-ws;
+  var cab = video.yt
+    ? '<div style="display:flex;gap:10px;align-items:center;margin-bottom:8px"><img src="https://img.youtube.com/vi/'+video.yt+'/mqdefault.jpg" alt="" style="width:112px;border-radius:8px;flex-shrink:0"><div style="min-width:0"><div style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">▶ '+esc(video.titulo||'YouTube')+'</div><div class="note">'+(video.dur?mmss(video.dur)+' · ':'')+'<a href="https://www.youtube.com/watch?v='+video.yt+'" target="_blank" rel="noopener" style="color:var(--accent)">abrir ↗</a></div></div></div>'
+    : '<div style="font-weight:600;margin-bottom:8px">🎬 '+esc(video.arquivo)+(video.dur?' <span class="note">· '+mmss(video.dur)+'</span>':'')+'</div>';
+  el.innerHTML=cab+
+    '<label class="lbl">Chegada (fim do principal) no vídeo</label><div style="display:flex;gap:8px;align-items:center"><input class="in" style="width:110px" value="'+mmss(video.chegada)+'" onchange="vidChegada(this.value)"><button class="btn bd bs" onclick="video=null;pintarVideo();rascunho()">Tirar</button></div>'+
+    '<div class="note" style="margin-top:6px">'+(ws?(ini<0?'<span style="color:#ff8a8a">⚠ O vídeo é '+mmss(-ini)+' mais curto que aquecimento + principal.</span>':'O vídeo começa em '+mmss(ini)+' para chegar junto com o fim do bloco principal.'):'')+'</div>';
+}
+// ── YouTube (30/09d): o link fica gravado na aula (video.fonte='youtube').
+// A duração vem da API do YouTube quando o navegador consegue carregá-la;
+// se não, o professor digita a chegada.
+function ytId(u){ var m=String(u||'').match(/(?:youtu\.be\/|[?&]v=|\/embed\/|\/shorts\/|\/live\/)([\w-]{11})/); if(m) return m[1]; return /^[\w-]{11}$/.test(String(u||'').trim())?String(u).trim():null; }
+function ytPedir(){ var b=$('ytBox'); b.style.display=b.style.display==='none'?'block':'none'; if(b.style.display==='block') $('ytUrl').focus(); }
+function ytUsar(){
+  var id=ytId($('ytUrl').value); if(!id){ toast('⚠ Esse link não parece ser de um vídeo do YouTube'); return; }
+  video={yt:id,url:'https://www.youtube.com/watch?v='+id,arquivo:null,dur:0,chegada:0,titulo:''}; $('ytBox').style.display='none'; $('ytUrl').value='';
+  pintarVideo(); rascunho(); ytInfo(id);
+}
+function ytInfo(id){
+  function pega(){
+    try{
+      var d=document.createElement('div'); d.id='ytTmp'+Date.now(); d.style.cssText='position:fixed;left:-9999px;width:320px;height:180px'; document.body.appendChild(d);
+      var pl=new YT.Player(d.id,{videoId:id,events:{onReady:function(){ try{ var du=pl.getDuration(), t=(pl.getVideoData&&pl.getVideoData().title)||''; if(video&&video.yt===id){ video.dur=du||0; video.titulo=t; if(!video.chegada) video.chegada=Math.round(du||0); pintarVideo(); rascunho(); } }catch(e){} setTimeout(function(){ try{ pl.destroy(); }catch(e){} d.remove(); },500); }}});
+    }catch(e){}
+  }
+  if(window.YT&&YT.Player) return pega();
+  (window._ytFila=window._ytFila||[]).push(pega);
+  if(!window._ytCarregando){ window._ytCarregando=true; window.onYouTubeIframeAPIReady=function(){ (window._ytFila||[]).forEach(function(f){f();}); window._ytFila=[]; };
+    var sc=document.createElement('script'); sc.src='https://www.youtube.com/iframe_api'; sc.onerror=function(){ toast('Não consegui ler a duração do vídeo: digite a chegada à mão.',4000); }; document.head.appendChild(sc); }
+}
+function vidChegada(v){ var p=String(v).split(':').map(function(x){return parseInt(x,10)||0;}); var s=p.length===3?p[0]*3600+p[1]*60+p[2]:p.length===2?p[0]*60+p[1]:p[0]; video.chegada=s; pintarVideo(); rascunho(); }
 
-// ══════════════════════════════════════════
-// UTILS
-// ══════════════════════════════════════════
-function formatTime(s){ const m=Math.floor(s/60),sec=s%60; return `${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}`; }
-function formatTimeFull(s){ const h=Math.floor(s/3600),m=Math.floor((s%3600)/60),sec=Math.floor(s%60); return h>0?`${h}:${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}`:`${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}`; }
-function slugify(s){ return (s||'aula').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')||'aula'; }
-function toast(msg,dur){
-  const t=document.getElementById("toast");
-  t.textContent=msg; t.classList.add("show");
-  clearTimeout(t._to); t._to=setTimeout(()=>t.classList.remove("show"),dur||2500);
+// ══════════════════════════════════════════════════════════════
+// ARQUIVO DA AULA (mesmo formato do Ginásio, v1.1)
+// ══════════════════════════════════════════════════════════════
+function nomeAula(){ return $('nomeAula').value.trim() || ('Aula '+new Date().toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'})); }
+function montar(){
+  var nome=nomeAula();
+  var wk=workout.map(function(b){ var d=durB(b); var o={durationSec:d,duration:d/60,rpmMin:+b.rpmMin||80,rpmMax:+b.rpmMax||90,intensity:zKey(b.intensity),ftpMin:(b.ftpMin!=null?+b.ftpMin:Z(b.intensity).f[0]),ftpMax:(b.ftpMax!=null?+b.ftpMax:Z(b.intensity).f[1]),position:b.position||'Sentado',notes:b.notes||'',segmentId:b.segmentId}; if(b.desafio&&b.desafio.tipo) o.desafio={tipo:b.desafio.tipo,modo:b.desafio.modo||'equipes',seg:b.desafio.seg}; return o; });
+  var usados={}; wk.forEach(function(b){ usados[b.segmentId]=1; });
+  var tot=wk.reduce(function(a,b){return a+b.durationSec;},0);
+  var out={versao:'1.1', gerado_por:'ProRider Construtor online', origem:'construtor-online', nome:nome, savedAt:new Date().toISOString(),
+    duracaoTotal:Math.round(tot/60*100)/100, duracaoTotalSec:tot, segments:segments.filter(function(s){return usados[s.id];}), mainCounter:mainCounter, workout:wk, blocks:wk};
+  if(video&&video.yt) out.video={fonte:'youtube',youtubeId:video.yt,url:video.url,titulo:video.titulo||'',duracao:Math.round(video.dur||0),arquivo:null,syncOffset:Math.max(0,Math.round(video.chegada||0))};
+  else if(video) out.video={fonte:'local',arquivo:video.arquivo,syncOffset:Math.max(0,Math.round(video.chegada||0))};
+  var link=$('muLink').value.trim();
+  if(trilha.length){ out.musica={fonte:'mp3',arquivo:trilha[0].nome,arquivos:trilha.map(function(t){return t.nome;}),syncOffset:0}; if(link) out.musica.playlist=link; }
+  else if(link){ out.musica={fonte:/spotify/i.test(link)?'spotify':/deezer/i.test(link)?'deezer':'link',link:link,arquivo:null,syncOffset:0}; if(/spotify/i.test(link)) out.musica.spotifyUri=link; }
+  out.instrucoes_pendrive={estrutura:'Coloque este arquivo em prorider/ no pendrive. Vídeos em prorider/video/ e MP3 em prorider/musicas/.'};
+  return out;
+}
+function carregar(d){
+  var bl=d.workout||d.blocks; if(!Array.isArray(bl)||!bl.length) throw new Error('sem blocos');
+  segments=(Array.isArray(d.segments)&&d.segments.length)?d.segments.map(function(s){return {id:s.id,name:s.name,type:s.type||'main'};}):SEG_PADRAO();
+  var ids={}; segments.forEach(function(s){ids[s.id]=1;});
+  workout=bl.map(function(b){
+    var d0=b.durationSec!=null?+b.durationSec:Math.round((+b.duration||1)*60), z=zKey(b.intensity||b.z);
+    var o={durationSec:Math.max(1,Math.round(d0)),duration:d0/60,intensity:z,ftpMin:b.ftpMin!=null?+b.ftpMin:ZONAS[z].f[0],ftpMax:b.ftpMax!=null?+b.ftpMax:ZONAS[z].f[1],rpmMin:+b.rpmMin||80,rpmMax:+b.rpmMax||90,position:b.position==='Em Pé'?'Em Pé':'Sentado',notes:b.notes||'',segmentId:b.segmentId||'main_1'};
+    if(!ids[o.segmentId]){ segments.splice(Math.max(0,segments.length-1),0,{id:o.segmentId,name:'Bloco principal',type:'main'}); ids[o.segmentId]=1; }
+    if(b.desafio&&b.desafio.tipo) o.desafio={tipo:b.desafio.tipo,modo:b.desafio.modo||'equipes',seg:+b.desafio.seg||o.durationSec};
+    return o;
+  });
+  mainCounter=Math.max(d.mainCounter||1, segments.filter(function(s){return s.type==='main';}).length);
+  $('nomeAula').value=d.nome||d.name||'';
+  video=d.video&&d.video.fonte==='youtube'&&(d.video.youtubeId||ytId(d.video.url))?{yt:d.video.youtubeId||ytId(d.video.url),url:d.video.url,titulo:d.video.titulo||'',dur:+d.video.duracao||0,chegada:+d.video.syncOffset||0,arquivo:null}
+       :d.video&&d.video.arquivo?{arquivo:d.video.arquivo,dur:0,chegada:+d.video.syncOffset||0}:null;
+  $('muLink').value=(d.musica&&(d.musica.playlist||d.musica.link||(d.musica.fonte==='spotify'&&d.musica.spotifyUri)))||'';
+  if(d.musica&&d.musica.arquivos&&!trilha.length) toast('A aula usa '+d.musica.arquivos.length+' música(s): adicione os MP3 para ver a trilha',4500);
+  segAtivo=segments[0].id; cancelarEdicao(); tudo();
+}
+$('fArq').addEventListener('change',function(){
+  var f=this.files[0]; this.value=''; if(!f) return;
+  var r=new FileReader(); r.onload=function(e){ try{ carregar(JSON.parse(e.target.result)); toast('✓ Aula aberta: '+nomeAula()); }catch(x){ toast('⚠ Esse arquivo não é uma aula do ProRider'); } }; r.readAsText(f);
+});
+function pronto(){ if(workout.length<1){ toast('⚠ Monte pelo menos um bloco'); return false; } return true; }
+function baixarJson(){
+  if(!pronto()) return; var d=montar(); guardarLocal(d);
+  var a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([JSON.stringify(d,null,2)],{type:'application/json'}));
+  a.download=d.nome.replace(/[\\/:*?"<>|]+/g,'_')+'.json'; document.body.appendChild(a); a.click(); setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); },1500);
+  toast('⬇ Baixado. Coloque na pasta prorider/ do pendrive.',4000);
+}
+function novaAula(){
+  if(workout.length && !confirm('Começar uma aula nova? O que não foi salvo fica só no rascunho deste computador.')) return;
+  segments=SEG_PADRAO(); mainCounter=1; workout=[]; segAtivo='warmup'; video=null; $('nomeAula').value=''; $('muLink').value=''; muParar(); trilha=[]; _tAtual=0; muPlayhead(); cancelarEdicao(); tudo();
 }
 
-// ── INIT ──
-renderSegTabs();
-renderBuilderTimeline();
+// Biblioteca deste computador + rascunho automático
+function libLer(){ try{ return JSON.parse(ls('prb_lib')||'[]'); }catch(e){ return []; } }
+function guardarLocal(d){ var l=libLer().filter(function(x){ return (x.nome||x.name)!==d.nome; }); l.unshift(d); ls('prb_lib',JSON.stringify(l.slice(0,40))); pintarLib(); }
+function pintarLib(){
+  var l=libLer(); $('libN').textContent=l.length?l.length+' aula'+(l.length>1?'s':''):'';
+  $('lib').innerHTML=l.length?l.map(function(x,i){ var bl=x.workout||x.blocks||[]; var s=bl.reduce(function(a,b){return a+(b.durationSec!=null?+b.durationSec:(+b.duration||0)*60);},0);
+    return '<div class="lib-it"><div><b>'+esc(x.nome||x.name||'—')+'</b><small>'+mmss(s)+' · '+bl.length+' blocos · '+new Date(x.savedAt||0).toLocaleDateString('pt-BR')+'</small></div><button class="btn bg bs" onclick="libAbrir('+i+')">Abrir</button><button class="ic" onclick="libTirar('+i+')" title="Apagar">🗑</button></div>'; }).join('')
+    :'<div class="note">As aulas que você baixar ou salvar ficam guardadas aqui também.</div>';
+}
+function libAbrir(i){ var x=libLer()[i]; if(!x) return; if(workout.length && !confirm('Abrir "'+(x.nome||x.name)+'"? A aula atual continua no rascunho só até você mudar algo.')) return; carregar(x); toast('✓ '+(x.nome||x.name)); }
+function libTirar(i){ var l=libLer(); if(!l[i]||!confirm('Apagar "'+(l[i].nome||l[i].name)+'" deste computador?')) return; l.splice(i,1); ls('prb_lib',JSON.stringify(l)); pintarLib(); }
+function rascunho(){ clearTimeout(window._rs); window._rs=setTimeout(function(){ try{ ls('prb_rascunho',JSON.stringify(Object.assign(montar(),{_mu:$('muLink').value}))); }catch(e){} },400); }
+$('nomeAula').addEventListener('input',rascunho);
+
+// ══════════════════════════════════════════════════════════════
+// CONTA (salvar para aparecer no Ginásio)
+// ══════════════════════════════════════════════════════════════
+var conta={token:null,nome:''};
+(function(){
+  var t=ls('pr_construtor_token'), n=ls('pr_construtor_nome');
+  if(!t){ t=ls('pr_gestor_token'); try{ n=(JSON.parse(ls('pr_gestor_user')||'null')||{}).name||''; }catch(e){} }
+  if(t){ conta.token=t; conta.nome=String(n||'').replace(/^⚡\s*/,''); }
+  pintarConta();
+})();
+function pintarConta(){
+  $('meNome').textContent=conta.token?(conta.nome||'Minha conta'):'Entrar';
+  $('meIni').textContent=conta.token?(String(conta.nome||'?').split(/\s+/).map(function(w){return w[0];}).slice(0,2).join('').toUpperCase()||'✓'):'?';
+}
+function contaClique(){ if(!conta.token) return loginAbrir(); if(confirm('Sair da conta '+(conta.nome||'')+' neste construtor?')){ ls('pr_construtor_token',null); ls('pr_construtor_nome',null); conta={token:null,nome:''}; pintarConta(); } }
+function loginAbrir(){ $('lgErr').style.display='none'; $('moLogin').classList.add('on'); setTimeout(function(){ $('lgEmail').focus(); },50); }
+function loginFechar(){ $('moLogin').classList.remove('on'); }
+async function loginEntrar(){
+  var e=$('lgEmail').value.trim(), s=$('lgSenha').value, er=$('lgErr'); er.style.display='none';
+  if(!e||!s){ er.textContent='Preencha e-mail e senha.'; er.style.display='block'; return; }
+  try{
+    var r=await fetch(SERVER+'/user/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:e,password:s})});
+    var d=await r.json(); if(!r.ok) throw new Error(d.error||'E-mail ou senha incorretos.');
+    conta={token:d.token,nome:(d.user&&d.user.name)||e}; ls('pr_construtor_token',d.token); ls('pr_construtor_nome',conta.nome);
+    $('lgSenha').value=''; loginFechar(); pintarConta(); toast('✓ Olá, '+conta.nome.split(' ')[0]);
+    if(window._salvarDepois){ window._salvarDepois=false; salvarConta(); }
+  }catch(x){ er.textContent=x.message||'Erro de conexão.'; er.style.display='block'; }
+}
+async function salvarConta(){
+  if(!pronto()) return;
+  if(!conta.token){ window._salvarDepois=true; loginAbrir(); return; }
+  var d=montar(); guardarLocal(d);
+  try{
+    var r=await fetch(SERVER+'/professor/treinos',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+conta.token},body:JSON.stringify({nome:d.nome,json:d,dados:d})});
+    if(r.status===401||r.status===403){ ls('pr_construtor_token',null); conta={token:null,nome:''}; pintarConta(); window._salvarDepois=true; loginAbrir(); $('lgErr').textContent='Sua sessão expirou. Entre de novo.'; $('lgErr').style.display='block'; return; }
+    if(!r.ok) throw new Error('o servidor respondeu '+r.status);
+    toast('☁ Salva na sua conta — aparece no Ginásio em Minhas aulas',4500);
+  }catch(x){ toast('⚠ Não consegui salvar na conta ('+(x.message||'erro')+'). Use “Baixar para pendrive”.',5000); }
+}
+
+// ══════════════════════════════════════════════════════════════
+// INÍCIO
+// ══════════════════════════════════════════════════════════════
+zonaMudou(); desAtualizar(); pintarLib();
+(function(){ try{ var r=JSON.parse(ls('prb_rascunho')||'null'); if(r&&(r.workout||[]).length){ carregar(r); $('muLink').value=r._mu||$('muLink').value; toast('Rascunho recuperado: '+nomeAula()); return; } }catch(e){} tudo(true); })();
 </script>
 </body>
 </html>

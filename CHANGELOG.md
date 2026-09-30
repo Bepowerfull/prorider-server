@@ -41,6 +41,49 @@ Componentes: `servidor` · `app` · `ginasio` · `portal` · `banco`.
 
 ---
 
+## 2026-09-30 · portal · 30/09d — link do YouTube no Construtor
+
+**O que mudou**
+- Vídeo de fundo no Construtor: além do arquivo, **link do YouTube**. Aceita `watch?v=`, `youtu.be/`, `shorts/`, `live/` e `embed/`. Mostra a miniatura e lê a duração e o título pela API do YouTube quando dá; senão, a chegada é digitada à mão.
+- O arquivo da aula grava `video:{fonte:'youtube', youtubeId, url, titulo, duracao, syncOffset}`. O `syncOffset` tem o mesmo significado do vídeo local: ponto de chegada, no fim do bloco principal.
+- O Ginásio atual ignora `fonte:'youtube'` sem erro e roda a aula sem vídeo. Tocar o YouTube na TV é a próxima etapa (ver PENDENTES).
+
+**Como confirmar**
+- Construtor → Vídeo de fundo → Link do YouTube → colar → aparece a miniatura. Baixar para pendrive → o `.json` traz `"fonte":"youtube"`.
+
+---
+
+## 2026-09-30 · portal · 30/09c — Construtor de aulas online (visual novo)
+
+**O que mudou**
+- **`studio.html` refeito:** é o Construtor de aulas online, com o visual do Portal. O antigo "Studio Builder v1.0" saiu.
+  - **Perfil da aula numa linha só:** cada bloco tem largura proporcional ao tempo, altura pela faixa de %FTP e cor da zona. Tem faixa dos segmentos, eixo em minutos e linhas de 50/100/150% FTP. Nada passa da tela e não há rolagem para o lado.
+  - **Edição pelo gráfico:** clicar num bloco edita; arrastar muda a ordem, e o bloco entra no segmento de onde caiu. A tabela de blocos embaixo tem subir/descer/editar/duplicar/remover.
+  - **Bloco completo:** minutos + segundos, zona (com as faixas do Ginásio), %FTP de–até editável, RPM, posição, observação e desafio automático (`desafio:{tipo,modo,seg}`, igual ao Ginásio).
+  - **Trilha sonora no mesmo eixo de tempo:** vários MP3 viram uma playlist. A forma de onda aparece embaixo do gráfico, com as linhas das trocas de bloco atravessando os dois; dá para ouvir a partir de onde clicar. Avisa se falta música ou se sobra.
+  - **Spotify / Deezer / link:** o link fica guardado na aula (`musica.link` / `musica.playlist`). Sem forma de onda, porque esses serviços não deixam o navegador ler o áudio.
+  - **Vídeo de fundo:** nome do arquivo e ponto de chegada (`video.syncOffset`), com o aviso de vídeo curto.
+  - **Salvar na minha conta** (`POST /professor/treinos`), com login do app dentro da página ou reaproveitando o login do Portal. A aula aparece no Ginásio em Minhas aulas.
+  - **Baixar para pendrive:** `.json` v1.1, o mesmo formato do Ginásio (`durationSec`, `ftpMin/ftpMax`, `desafio`). Abre arquivos v1.0 (minutos) e v1.1.
+  - **Aulas neste computador** e rascunho automático: não perde a aula se fechar a aba.
+- **Portal:**
+  - a aba "Criar aula" virou **Construtor de aulas**, só com o construtor online (abrir + copiar o link para o professor + como a aula chega na TV). Saíram "Construtor no app", "Agendar na grade" (continua na Agenda da semana), "Aula ao vivo agora" e "Studio Builder";
+  - o destaque do Início abre o Construtor online;
+  - **o professor passa a entrar no Portal** e vê só **Construtor de aulas** e **Meu perfil**, abrindo direto no Construtor. Antes, o login de professor era mandado para o app.
+
+**Por quê**
+- O Mario montou uma aula no Studio Builder e os blocos passavam da tela, sem rolagem. Ele também pediu o visual do Portal, o nome "Construtor de aulas", só essa função na aba, acesso para gestor, coordenador e professor, e a música no mesmo tempo do gráfico.
+
+**Como confirmar**
+- Portal → Construtor de aulas → Abrir o Construtor. Monte ~20 blocos: tudo cabe na largura. Adicione 2 MP3: a trilha aparece embaixo, e "Ouvir" anda com a linha branca. Salvar na minha conta → a aula aparece em Minhas aulas no Ginásio.
+- Entrar no Portal com um professor: só aparecem Construtor de aulas e Meu perfil.
+
+**Cuidados**
+- Servidor, app e Ginásio não mudam.
+- A página é pública, como antes, e qualquer um com o link monta e baixa aulas. Salvar na conta exige login.
+
+---
+
 ## 2026-09-30 · ginasio · 30/09b — gráfico ~25% maior
 
 **O que mudou**

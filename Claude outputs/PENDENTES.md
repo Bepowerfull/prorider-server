@@ -16,6 +16,7 @@ Lista do que foi combinado com o Mario e ainda não foi feito. Quem fizer um ite
 - [x] Localização: "Perto de mim" na lupinha do app (GPS do celular) e localização da academia no Portal.
 
 ## Pendências abertas
+- [ ] **Ginásio tocar o vídeo do YouTube gravado na aula** (`video.fonte='youtube'`, `youtubeId`, `syncOffset` = ponto de chegada, como no vídeo local). O Construtor já grava o link (30/09d). Falta, no Ginásio: player do YouTube (IFrame API) no lugar do `#backgroundVideo`, sem som, começando em `syncOffset − (aquecimento + principal)` e acompanhando pausa/avanço da aula. Cuidados: precisa de internet na academia; alguns vídeos não deixam ser incorporados; pode haver anúncio no começo. Testar numa TV de verdade antes de liberar.
 - [ ] **Mapa na lupinha** (ver as academias num mapa, além da lista). Dá para fazer com o OpenStreetMap, sem custo.
 - [ ] **Localização também no totem e na página pública** (link "como chegar").
 - [ ] **Vídeo de apresentação:** o Mario manda o link do YouTube e ele entra em `PR_VIDEO_URL`, em index.html e academia.html.
