@@ -41,6 +41,23 @@ Componentes: `servidor` · `app` · `ginasio` · `portal` · `banco`.
 
 ---
 
+## 2026-09-30 · ginasio · 30/09f — câmera ao vivo em cartão próprio
+
+**O que mudou**
+- Na tela Configurar aula, a câmera saiu das opções de vídeo e ganhou o cartão **"3 · Câmera ao vivo"**, com duas opções: "Câmera no fundo da aula" ou "Desligada". O cartão mostra quantas câmeras o computador encontrou (notebook ou USB no mini PC) e anuncia "em breve: gravar a aula para o app · transmitir ao vivo".
+- Câmera ligada: o professor aparece atrás do gráfico, no lugar do vídeo e do cenário (os dois ficam apagados na tela).
+- Nova ordem da navegação: Música → Vídeo → Câmera → Cenário → Iniciar.
+- Os cartões ficaram mais compactos para caber os quatro.
+
+**Por quê**
+- Pedido do Mario: a câmera tem funções próprias (aula ao vivo no telão; no futuro, gravar e transmitir), e o professor precisa enxergar a opção.
+
+**Como confirmar**
+- Tela inicial: BUILD 30/09f.
+- Configurar aula → cartão 3 → ←→ liga a câmera → a prévia mostra "CÂMERA AO VIVO" → Iniciar → a câmera aparece no fundo da aula.
+
+---
+
 ## 2026-09-30 · ginasio · 30/09e — telas de preparar a aula no visual do Portal, YouTube e Spotify
 
 **O que mudou**

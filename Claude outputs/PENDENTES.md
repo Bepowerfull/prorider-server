@@ -54,7 +54,29 @@ Pedido do Mario em 29/09. Depende dos brasões e da gravação dos resultados po
 - Página pública da academia: classificação e líderes.
 - Portal: criar, editar e encerrar o campeonato, e ver os resultados por etapa.
 
+**Regra de pontos (Mario, 30/09):** a classificação é a soma das etapas em que o aluno pedalou; etapa que ele faltou vale 0 (não trava o campeonato). Depois de CADA etapa o sistema recalcula a classificação inteira e redistribui as camisas: quem voltou numa etapa posterior soma só o que fez e pode recuperar ou perder a camisa.
+**Status 30/09:** só desenhado; nada construído ainda.
+
 **O que precisa antes:**
 1. Guardar os resultados por bloco de cada aula no servidor (hoje só vai o resumo da aula).
 2. Marcar os blocos no Construtor (sprint / montanha + categoria).
 3. Brasões e gamificação prontos.
+
+## Atualização futura — DESAFIO ENTRE ACADEMIAS (Mario, 30/09)
+**Ideia:** uma academia desafia outra para uma aula no mesmo dia e hora. As duas salas fazem a mesma aula ao mesmo tempo, com um placar Academia A x Academia B (e, no futuro, várias academias ao mesmo tempo, com a ideia de um recorde de aula coletiva).
+
+**Fluxo:**
+1. Portal → Grade → criar a aula → botão **Desafio** → lupinha para buscar a academia.
+2. A academia desafiada recebe o convite no **sininho de avisos do Portal** (novo) e por e-mail. Aceita ou recusa.
+3. Aceito, a aula entra na grade das duas academias. Se já houver aula no mesmo horário, a grade mostra as duas lado a lado (ninguém precisa apagar a aula normal).
+4. Antes da aula, o Ginásio de cada academia baixa sozinho a aula, a música e o vídeo por um link temporário (apagados 24 h depois).
+5. No horário, quem desafiou aperta START. O servidor manda "começar às HH:MM:SS" para as duas TVs, que começam juntas pelo relógio do servidor (diferença esperada: menos de meio segundo). Pausa e avanço de bloco vão para as duas.
+6. Placar ao vivo e ranking das duas salas juntos; resultado vai para o app e para o e-mail.
+**Plano B:** se a ligação cair ou o anfitrião não der START, a outra TV pode começar a mesma aula sozinha; o resultado vale como desafio "no mesmo dia".
+**Voz e câmera do professor (fase 2):** microfone e câmera no mini PC, enviados por um serviço de vídeo em tempo real (ex.: LiveKit), com atraso de menos de 1 s. A música e o vídeo continuam tocando do arquivo local em cada academia, sincronizados, para não perder qualidade.
+**Fases:** 1) convite, sininho, grade e início sincronizado; 2) voz do professor; 3) câmera do professor; 4) muitas academias ao mesmo tempo.
+
+## Atualização futura — CÂMERA: GRAVAR E TRANSMITIR (Mario, 30/09)
+- **Feito (30/09f):** a câmera virou um cartão próprio, "Câmera ao vivo", na tela de configurar a aula.
+- **Gravar a aula:** gravar a tela da aula (câmera, gráfico e música) e guardar no app com o nome do professor, para fazer depois de casa com o gráfico sincronizado.
+- **Transmitir ao vivo:** para o YouTube, pelo OBS (programa gratuito) capturando a tela. Transmissão própria para o app entra junto com a fase 3 do desafio entre academias.
