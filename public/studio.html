@@ -121,6 +121,9 @@ td .zb{display:inline-block;width:10px;height:10px;border-radius:3px;margin-righ
 .err{display:none;color:#ff8a8a;font-size:13px;margin-bottom:10px}
 .toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%) translateY(20px);background:#16161b;border:1px solid rgba(234,134,12,.5);color:#fff;padding:11px 18px;border-radius:12px;font-size:13.5px;font-weight:600;opacity:0;transition:all .25s;z-index:300;pointer-events:none;max-width:90vw;text-align:center}
 .toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+.giro{display:none;margin:12px 14px 0;padding:12px 14px;border-radius:12px;background:rgba(41,95,232,.14);border:1px solid rgba(41,95,232,.45);color:#cfe0ff;font-size:14px;font-weight:600;align-items:center;gap:10px}
+.giro button{margin-left:auto;border:0;background:#295fe8;color:#fff;border-radius:8px;padding:6px 12px;font-weight:700}
+@media(max-width:760px) and (orientation:portrait){.giro{display:flex}.tb-acts .btn{padding:8px 10px;font-size:12px}}
 @media(max-width:1200px){.kp{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media(max-width:980px){.wrap{grid-template-columns:1fr}.tb{flex-wrap:wrap}.tl-area{height:220px}}
 @media(max-width:560px){.kp{grid-template-columns:repeat(2,minmax(0,1fr))}.wrap{padding:14px}.tb{padding:10px 14px}}
@@ -129,8 +132,8 @@ td .zb{display:inline-block;width:10px;height:10px;border-radius:3px;margin-righ
 <body>
 
 <header class="tb">
-  <a class="brand" href="academia.html" title="Voltar ao Portal">PRORIDER</a>
-  <div class="tb-t"><small>Portal</small><b>Construtor de aulas</b></div>
+  <a href="academia.html" id="lnkVolta" title="Voltar ao Portal" style="display:flex;align-items:center"><img src="img/logo-prorider.png" alt="ProRider" style="height:40px;display:block"></a>
+  <div class="tb-t"><small id="tbDe">Portal</small><b>Construtor de aulas</b></div>
   <div class="tb-sp"></div>
   <div class="tb-acts">
     <button class="btn bg" onclick="novaAula()">＋ Nova</button>
@@ -142,6 +145,7 @@ td .zb{display:inline-block;width:10px;height:10px;border-radius:3px;margin-righ
   <input type="file" id="fArq" accept=".json,application/json" style="display:none">
 </header>
 
+<div class="giro" id="giro">📱↻ Vire o celular de lado para ter mais espaço para montar a aula. <button onclick="this.parentNode.style.display='none';ls('prb_giro','1')">ok</button></div>
 <div class="wrap">
   <!-- ═══ COLUNA DA ESQUERDA: montar ═══ -->
   <div class="col">
@@ -657,7 +661,55 @@ function montar(){
   out.instrucoes_pendrive={estrutura:'Coloque este arquivo em prorider/ no pendrive. Vídeos em prorider/video/ e MP3 em prorider/musicas/.'};
   return out;
 }
+// TrainingPeaks (.json do TP) -> formato do Ginásio (mesma conversão do Ginásio)
+function _prDeTrainingPeaks(j, arquivo){
+  if(!j || !Array.isArray(j.Structure)) return null;
+  var tipo=String(j.Type||'').toLowerCase();
+  if(tipo && tipo!=='bike' && tipo!=='mtb' && tipo!=='virtualbike'){
+    console.warn('[ProRider] '+(arquivo||'arquivo')+': treino de '+(j.Type||'outro esporte')+', nao de ciclismo — ignorado.');
+    return null;
+  }
+  var SEG={WarmUp:'warmup', CoolDown:'cooldown'};
+  var zona=function(p){ if(p<=55)return'z1'; if(p<=75)return'z2'; if(p<=90)return'z3'; if(p<=105)return'z4'; if(p<=120)return'z5'; if(p<=150)return'z6'; return'z7'; };
+  var wo=[], ign=0;
+  function passo(p){
+    var L=p.Length||{}, un=String(L.Unit||'').toLowerCase(), v=Number(L.Value)||0, seg=0;
+    if(un==='second') seg=v; else if(un==='minute') seg=v*60; else if(un==='hour') seg=v*3600;
+    if(!(seg>0)){ ign++; return; }
+    var a=p.IntensityTarget||{}, u=String(a.Unit||'').toLowerCase(), lo=null, hi=null;
+    if(u==='percentofftp'){ lo=a.MinValue; hi=a.MaxValue; }
+    else if(u==='watts' && j.Ftp){ lo=a.MinValue/j.Ftp*100; hi=a.MaxValue/j.Ftp*100; }
+    else if(u.indexOf('hr')<0 && u.indexOf('heart')<0){ lo=a.MinValue; hi=a.MaxValue; }
+    if(lo==null && a.Value!=null){ lo=hi=a.Value; }
+    if(lo!=null && hi==null) hi=lo; if(hi!=null && lo==null) lo=hi;
+    var c=p.CadenceTarget;
+    wo.push({
+      durationSec:Math.round(seg), duration:seg/60,
+      intensity:(lo!=null?zona((lo+hi)/2):'z1'),
+      ftpMin:(lo!=null?Math.round(lo):0), ftpMax:(hi!=null?Math.round(hi):55),
+      rpmMin:(c&&c.MinValue)?Math.round(c.MinValue):null, rpmMax:(c&&c.MaxValue)?Math.round(c.MaxValue):null,
+      position:'Sentado', notes:(p.Notes?String(p.Notes).trim():''),
+      segmentId:SEG[p.IntensityClass]||'main_1'
+    });
+  }
+  j.Structure.forEach(function(it){
+    if(String(it.Type).toLowerCase()==='repetition' && Array.isArray(it.Steps)){
+      var n=Number(it.Length&&it.Length.Value)||1;
+      for(var r=0;r<n;r++) it.Steps.forEach(passo);
+    } else if(Array.isArray(it.Steps) && !it.Length){ it.Steps.forEach(passo); }
+    else passo(it);
+  });
+  if(!wo.length){ console.warn('[ProRider] '+(arquivo||'arquivo')+': TrainingPeaks lido, mas nenhum bloco convertivel.'); return null; }
+  var usados={}; wo.forEach(function(b){ usados[b.segmentId]=1; });
+  var segs=[{id:'warmup',name:'Aquecimento',type:'warmup'},{id:'main_1',name:'Principal',type:'main'},{id:'cooldown',name:'Volta à Calma',type:'cooldown'}]
+    .filter(function(sg){ return usados[sg.id]; });
+  // aquecimento primeiro, volta a calma por ultimo (a ordem das telas segue os segmentos)
+  console.log('[ProRider] '+(arquivo||'arquivo')+': treino do TrainingPeaks convertido — '+wo.length+' blocos'+(ign?(', '+ign+' passo(s) ignorado(s) por duracao que nao e tempo'):'')+'.');
+  return { nome:j.Title||(arquivo||'Treino').replace(/\.json$/i,''), workout:wo, segments:segs, _origem:'TrainingPeaks' };
+}
+
 function carregar(d){
+  if(d && !d.workout && !d.blocks && Array.isArray(d.Structure)){ var _tp=_prDeTrainingPeaks(d, d.Title||''); if(_tp) d=_tp; }
   var bl=d.workout||d.blocks; if(!Array.isArray(bl)||!bl.length) throw new Error('sem blocos');
   segments=(Array.isArray(d.segments)&&d.segments.length)?d.segments.map(function(s){return {id:s.id,name:s.name,type:s.type||'main'};}):SEG_PADRAO();
   var ids={}; segments.forEach(function(s){ids[s.id]=1;});
@@ -713,6 +765,7 @@ var conta={token:null,nome:''};
 (function(){
   var t=ls('pr_construtor_token'), n=ls('pr_construtor_nome');
   if(!t){ t=ls('pr_gestor_token'); try{ n=(JSON.parse(ls('pr_gestor_user')||'null')||{}).name||''; }catch(e){} }
+  if(!t){ t=ls('pr_token'); try{ var _u=JSON.parse(ls('pr_user')||'null'); n=(_u&&(_u.name||_u.nome))||n; }catch(e){} }   // 30/09e: login do app
   if(t){ conta.token=t; conta.nome=String(n||'').replace(/^⚡\s*/,''); }
   pintarConta();
 })();
@@ -750,6 +803,9 @@ async function salvarConta(){
 // INÍCIO
 // ══════════════════════════════════════════════════════════════
 zonaMudou(); desAtualizar(); pintarLib();
+// 30/09e: aberto pelo app (celular) -> volta para o app; dica de virar o celular
+try{ if(/[?&]de=app/.test(location.search)){ $('lnkVolta').href='/aluno'; $('lnkVolta').title='Voltar ao app'; $('tbDe').textContent='App ProRider'; } }catch(e){}
+try{ if(ls('prb_giro')) $('giro').style.display='none'; }catch(e){}
 (function(){ try{ var r=JSON.parse(ls('prb_rascunho')||'null'); if(r&&(r.workout||[]).length){ carregar(r); $('muLink').value=r._mu||$('muLink').value; toast('Rascunho recuperado: '+nomeAula()); return; } }catch(e){} tudo(true); })();
 </script>
 </body>

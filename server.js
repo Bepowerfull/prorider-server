@@ -200,9 +200,9 @@ function _esc(t) { return String(t == null ? '' : t).replace(/[&<>"]/g, c => ({ 
 function emailLayout(titulo, corpo, botaoTxt, botaoUrl, academia) {
   return `<div style="background:#0b0b0e;padding:28px 12px;font-family:Arial,Helvetica,sans-serif">
   <div style="max-width:540px;margin:0 auto;background:#16161a;border-radius:14px;overflow:hidden;border:1px solid #26262d">
-    <div style="padding:22px 26px;background:linear-gradient(135deg,#ffe033,#ea860c,#d62d2d)">
-      <div style="font-size:26px;font-weight:900;letter-spacing:3px;color:#16161a">PRORIDER</div>
-      ${academia ? `<div style="font-size:12px;color:#16161a;opacity:.8;margin-top:2px">${_esc(academia)}</div>` : ''}
+    <div style="padding:20px 26px 16px;background:#0b0b0e;border-bottom:3px solid #ea860c">
+      <img src="${PORTAL_URL}/img/logo-prorider.png" alt="ProRider" width="170" style="display:block;width:170px;height:auto;border:0">
+      ${academia ? `<div style="font-size:11px;color:#9a9aa2;letter-spacing:2px;text-transform:uppercase;margin-top:8px">${_esc(academia)}</div>` : ''}
     </div>
     <div style="padding:26px;color:#e8e8ea;font-size:15px;line-height:1.55">
       <div style="font-size:21px;font-weight:800;color:#fff;margin-bottom:14px">${titulo}</div>
@@ -211,6 +211,32 @@ function emailLayout(titulo, corpo, botaoTxt, botaoUrl, academia) {
     </div>
     <div style="padding:14px 26px;border-top:1px solid #26262d;color:#77777f;font-size:11px">Você recebe este e-mail porque tem conta no ProRider. A academia pode desligar estes avisos no Portal.</div>
   </div></div>`;
+}
+// ── TEXTOS DOS E-MAILS (30/09e) ─────────────────────────────────────
+// A academia pode escrever os próprios textos no Portal (emails_cfg.textos).
+// Campo vazio = texto padrão abaixo. {palavras} viram os dados do aluno.
+const EMAIL_TEXTO_PADRAO = {
+  boas_vindas:      { assunto: 'Bem-vindo(a) ao ProRider — {academia}', titulo: 'Bem-vindo(a), {nome}!', abertura: 'Que bom ter você com a gente na {academia}.', fechamento: 'Na aula, escaneie o QR da bike com o app e acompanhe potência, zonas e calorias em tempo real. Depois de cada aula você recebe o seu resumo.', botao: '' },
+  resumo_aula:      { assunto: '⚡ {nome}, seu resumo da aula', titulo: 'Parabéns pela aula, {nome}! 🔥', abertura: 'Olha só o que você fez na aula {aula}:', fechamento: '', botao: '' },
+  sumido:           { assunto: 'Sentimos sua falta, {nome} 🚴', titulo: 'Sentimos sua falta!', abertura: 'Faz {dias} dias desde a sua última aula na {academia}.', fechamento: 'Que tal voltar esta semana? Seu FTP e seu histórico continuam guardados.', botao: '' },
+  novo_ftp:         { assunto: '📈 Novo FTP: {ftp_novo} W', titulo: 'Boa, {nome}! Seu FTP subiu.', abertura: '', fechamento: 'As zonas das próximas aulas já usam o FTP novo.', botao: '' },
+  aniversario:      { assunto: '🎉 Feliz aniversário, {nome}!', titulo: 'Feliz aniversário! 🎂', abertura: 'A equipe da {academia} deseja um ótimo dia.', fechamento: 'Venha comemorar pedalando!', botao: '' },
+  relatorio_mensal: { assunto: 'Relatório de {mes} — {academia}', titulo: 'Relatório de {mes}', abertura: '', fechamento: 'O relatório completo, com as zonas e os melhores alunos, está no Portal.', botao: 'Abrir relatórios' }
+};
+const EMAIL_CAMPOS = ['assunto', 'titulo', 'abertura', 'fechamento', 'botao'];
+function emailTexto(cfg, tipo) {
+  const base = EMAIL_TEXTO_PADRAO[tipo] || {}, meu = ((cfg && cfg.textos) || {})[tipo] || {}, o = {};
+  EMAIL_CAMPOS.forEach(k => { o[k] = (typeof meu[k] === 'string' && meu[k].trim()) ? meu[k] : (base[k] || ''); });
+  o.numeros = meu.numeros === undefined ? true : !!meu.numeros;
+  return o;
+}
+function emailVars(t, v) { return String(t || '').replace(/\{(\w+)\}/g, (m, k) => (v && v[k] != null) ? String(v[k]) : m); }
+// corpo = abertura + [números] + [extra fixo] + fechamento; tudo escapado
+function emailMontar(tipo, cfg, v, numerosHtml, extraHtml, botaoUrl, academia) {
+  const t = emailTexto(cfg, tipo);
+  const p = x => x ? `<p>${_esc(emailVars(x, v)).replace(/\n/g, '<br>')}</p>` : '';
+  const corpo = p(t.abertura) + ((t.numeros && numerosHtml) ? numerosHtml : '') + (extraHtml || '') + p(t.fechamento);
+  return { subject: emailVars(t.assunto, v), html: emailLayout(_esc(emailVars(t.titulo, v)), corpo, t.botao ? _esc(emailVars(t.botao, v)) : null, botaoUrl || (PORTAL_URL + '/aluno'), academia) };
 }
 function _numBox(v, l, cor) {
   return `<td style="text-align:center;padding:10px"><div style="font-size:28px;font-weight:900;color:${cor || '#fff'}">${v}</div><div style="font-size:10px;color:#8a8a92;letter-spacing:1px">${l}</div></td>`;
@@ -228,9 +254,13 @@ async function emailBoasVindas({ userId, email, nome, academia, licId, senhaTemp
        <p>Entre no Portal com:</p>
        <p style="background:#0b0b0e;border-radius:8px;padding:12px 14px">E-mail: <b>${_esc(email)}</b>${senhaTemp ? `<br>Senha provisória: <b>${_esc(senhaTemp)}</b>` : ''}</p>
        <p>No Portal você monta a agenda, acompanha os alunos, escolhe o que aparece no ranking da TV e muito mais.${senhaTemp ? ' Troque a senha no primeiro acesso.' : ''}</p>`
-    : `<p>Olá, <b>${_esc(nome || '')}</b>! Seja bem-vindo(a) ao ProRider${academia ? ` da <b>${_esc(academia)}</b>` : ''}.</p>
-       <p>Na aula, escaneie o QR da bike com o app e acompanhe potência, zonas e calorias em tempo real. Depois de cada aula você recebe o seu resumo.</p>
-       ${senhaTemp ? `<p style="background:#0b0b0e;border-radius:8px;padding:12px 14px">Seu acesso ao app: <b>${_esc(email)}</b><br>Senha provisória: <b>${_esc(senhaTemp)}</b></p>` : ''}`;
+    : null;
+  if (!gestor) {
+    const cfgA = licId ? await emailsCfgDe(licId) : {};
+    const acesso = senhaTemp ? `<p style="background:#0b0b0e;border-radius:8px;padding:12px 14px">Seu acesso ao app: <b>${_esc(email)}</b><br>Senha provisória: <b>${_esc(senhaTemp)}</b></p>` : '';
+    const m = emailMontar('boas_vindas', cfgA, { nome: String(nome || '').split(' ')[0], nome_completo: nome || '', academia: academia || 'ProRider' }, null, acesso, PORTAL_URL + '/aluno', academia);
+    return emailUmaVez('boas_vindas', 'u' + (userId || email), userId, email, m.subject, m.html);
+  }
   return emailUmaVez('boas_vindas', 'u' + (userId || email), userId, email,
     gestor ? `Sua licença ProRider está pronta — ${academia || ''}` : `Bem-vindo(a) ao ProRider${academia ? ' — ' + academia : ''}`,
     emailLayout(gestor ? 'Bem-vindo ao Portal ProRider' : 'Bem-vindo(a)!', corpo,
@@ -241,26 +271,27 @@ async function emailResumoAula(uid, a) {
   const u = await _userLic(uid); if (!u || !u.email) return;
   const c = await emailsCfgDe(u.license_id); if (!c.resumo_aula) return;
   const min = Math.round((parseInt(a.duracao_sec) || 0) / 60);
-  const corpo = `<p>Parabéns pela aula, <b>${_esc(u.name || '')}</b>! 🔥</p>
-    <table style="width:100%;background:#0b0b0e;border-radius:10px;margin:10px 0"><tr>
-      ${_numBox(min + ' min', 'DURAÇÃO')}${_numBox(parseInt(a.kcal) || 0, 'KCAL', '#ea860c')}${_numBox((parseInt(a.watts_med) || 0) + ' W', 'POTÊNCIA MÉDIA', '#5b8cff')}
+  const v = { nome: String(u.name || '').split(' ')[0], nome_completo: u.name || '', academia: u.academia || 'ProRider', aula: a.aula_nome || 'Aula',
+    duracao: min + ' min', kcal: parseInt(a.kcal) || 0, potencia: (parseInt(a.watts_med) || 0) + ' W', rpm: parseInt(a.rpm_med) || 0,
+    zona: String(a.zona_predominante || '—').toUpperCase(), pontos: parseInt(a.pontos) || 0 };
+  const nums = `<table style="width:100%;background:#0b0b0e;border-radius:10px;margin:10px 0"><tr>
+      ${_numBox(v.duracao, 'DURAÇÃO')}${_numBox(v.kcal, 'KCAL', '#ea860c')}${_numBox(v.potencia, 'POTÊNCIA MÉDIA', '#5b8cff')}
     </tr><tr>
-      ${_numBox(parseInt(a.rpm_med) || 0, 'RPM MÉDIO')}${_numBox(String(a.zona_predominante || '—').toUpperCase(), 'ZONA PREDOMINANTE')}${_numBox('+' + (parseInt(a.pontos) || 0), 'PONTOS', '#ffe033')}
-    </tr></table>
-    <p style="color:#9a9aa2;font-size:13px">Aula: <b style="color:#fff">${_esc(a.aula_nome || 'Aula')}</b></p>`;
-  await emailUmaVez('resumo_aula', 'u' + uid + ':' + Date.now(), uid, u.email,
-    `⚡ ${u.name ? u.name.split(' ')[0] + ', ' : ''}seu resumo da aula`, emailLayout('Seu resumo da aula', corpo, null, null, u.academia));
+      ${_numBox(v.rpm, 'RPM MÉDIO')}${_numBox(v.zona, 'ZONA PREDOMINANTE')}${_numBox('+' + v.pontos, 'PONTOS', '#ffe033')}
+    </tr></table>`;
+  const m = emailMontar('resumo_aula', c, v, nums, '', PORTAL_URL + '/aluno', u.academia);
+  await emailUmaVez('resumo_aula', 'u' + uid + ':' + Date.now(), uid, u.email, m.subject, m.html);
 }
 async function emailNovoFtp(uid, antes, depois) {
   if (!db || !emailProvedor()) return;
   const u = await _userLic(uid); if (!u || !u.email) return;
   const c = await emailsCfgDe(u.license_id); if (!c.novo_ftp) return;
-  const corpo = `<p>Boa, <b>${_esc(u.name || '')}</b>! Seu FTP subiu.</p>
-    <table style="width:100%;background:#0b0b0e;border-radius:10px;margin:10px 0"><tr>
+  const v = { nome: String(u.name || '').split(' ')[0], nome_completo: u.name || '', academia: u.academia || 'ProRider', ftp_antes: antes, ftp_novo: depois, evolucao: depois - antes };
+  const nums = `<table style="width:100%;background:#0b0b0e;border-radius:10px;margin:10px 0"><tr>
       ${_numBox(antes + ' W', 'ANTES')}${_numBox(depois + ' W', 'AGORA', '#5db13d')}${_numBox('+' + (depois - antes) + ' W', 'EVOLUÇÃO', '#ffe033')}
-    </tr></table>
-    <p>As zonas das próximas aulas já usam o FTP novo.</p>`;
-  await emailUmaVez('novo_ftp', 'u' + uid + ':' + depois, uid, u.email, `📈 Novo FTP: ${depois} W`, emailLayout('Novo FTP!', corpo, null, null, u.academia));
+    </tr></table>`;
+  const m = emailMontar('novo_ftp', c, v, nums, '', PORTAL_URL + '/aluno', u.academia);
+  await emailUmaVez('novo_ftp', 'u' + uid + ':' + depois, uid, u.email, m.subject, m.html);
 }
 // Rotina diária (10h de Brasília): sumidos, aniversários e relatório mensal.
 async function rotinaEmailsDiaria() {
@@ -279,18 +310,17 @@ async function rotinaEmailsDiaria() {
           GROUP BY u.id HAVING MAX(ah.data_aula) BETWEEN NOW()-INTERVAL '30 days' AND NOW()-INTERVAL '14 days'`, [l.codigo]);
         for (const u of r.rows) {
           const dias = Math.floor((Date.now() - new Date(u.ultima)) / 86400000);
-          await emailUmaVez('sumido', 'u' + u.id + ':' + new Date(u.ultima).toISOString().slice(0, 10), u.id, u.email,
-            `Sentimos sua falta, ${String(u.name || '').split(' ')[0]} 🚴`,
-            emailLayout('Sentimos sua falta!', `<p>Faz <b>${dias} dias</b> desde a sua última aula na <b>${_esc(l.nome)}</b>.</p><p>Que tal voltar esta semana? Seu FTP e seu histórico continuam guardados.</p>`, null, null, l.nome));
+          const mS = emailMontar('sumido', c, { nome: String(u.name || '').split(' ')[0], nome_completo: u.name || '', academia: l.nome, dias }, null, '', PORTAL_URL + '/aluno', l.nome);
+          await emailUmaVez('sumido', 'u' + u.id + ':' + new Date(u.ultima).toISOString().slice(0, 10), u.id, u.email, mS.subject, mS.html);
         }
       }
       if (c.aniversario) {
         const r = await db.query(`SELECT id, name, email FROM users WHERE license_id=$1 AND nascimento IS NOT NULL
           AND EXTRACT(MONTH FROM nascimento)=$2 AND EXTRACT(DAY FROM nascimento)=$3`, [l.codigo, agora.getMonth() + 1, agora.getDate()]);
-        for (const u of r.rows)
-          await emailUmaVez('aniversario', 'u' + u.id + ':' + agora.getFullYear(), u.id, u.email,
-            `🎉 Feliz aniversário, ${String(u.name || '').split(' ')[0]}!`,
-            emailLayout('Feliz aniversário! 🎂', `<p>A equipe da <b>${_esc(l.nome)}</b> deseja um ótimo dia. Venha comemorar pedalando!</p>`, null, null, l.nome));
+        for (const u of r.rows) {
+          const mA = emailMontar('aniversario', c, { nome: String(u.name || '').split(' ')[0], nome_completo: u.name || '', academia: l.nome }, null, '', PORTAL_URL + '/aluno', l.nome);
+          await emailUmaVez('aniversario', 'u' + u.id + ':' + agora.getFullYear(), u.id, u.email, mA.subject, mA.html);
+        }
       }
       if (c.relatorio_mensal && agora.getDate() === 1) {
         const para = l.email_gestor || l.contato_email; if (!para) continue;
@@ -301,10 +331,10 @@ async function rotinaEmailsDiaria() {
           WHERE u.license_id=$1 AND ah.data_aula >= $2::date AND ah.data_aula < ($2::date + INTERVAL '1 month')`, [l.codigo, ref + '-01']);
         const d = r.rows[0] || {};
         const nomeMes = mes.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
-        await emailUmaVez('relatorio_mensal', l.codigo + ':' + ref, null, para, `Relatório de ${nomeMes} — ${l.nome}`,
-          emailLayout(`Relatório de ${nomeMes}`, `<table style="width:100%;background:#0b0b0e;border-radius:10px;margin:10px 0"><tr>
-            ${_numBox(d.aulas || 0, 'AULAS CONCLUÍDAS')}${_numBox(d.alunos || 0, 'ALUNOS ATIVOS', '#5db13d')}${_numBox(d.kcal || 0, 'KCAL', '#ea860c')}</tr></table>
-            <p>O relatório completo, com as zonas e os melhores alunos, está no Portal.</p>`, 'Abrir relatórios', PORTAL_URL + '/academia.html', l.nome));
+        const numsR = `<table style="width:100%;background:#0b0b0e;border-radius:10px;margin:10px 0"><tr>
+            ${_numBox(d.aulas || 0, 'AULAS CONCLUÍDAS')}${_numBox(d.alunos || 0, 'ALUNOS ATIVOS', '#5db13d')}${_numBox(d.kcal || 0, 'KCAL', '#ea860c')}</tr></table>`;
+        const mR = emailMontar('relatorio_mensal', c, { academia: l.nome, mes: nomeMes, aulas: d.aulas || 0, alunos: d.alunos || 0, kcal: d.kcal || 0 }, numsR, '', PORTAL_URL + '/academia.html', l.nome);
+        await emailUmaVez('relatorio_mensal', l.codigo + ':' + ref, null, para, mR.subject, mR.html);
       }
     }
   } catch (e) { log('rotinaEmailsDiaria erro: ' + e.message); }
@@ -2537,8 +2567,18 @@ function professorAuth(req, res, next) {
 // Verifica se professor tem acesso à licença indicada.
 // Gestor/admin/super_admin passam sempre (usam license_id do próprio token).
 async function temAcessoLicenca(user, licenseId) {
-  if (['gestor','admin','super_admin'].includes(user.role)) return true;
+  if (['admin','super_admin'].includes(user.role)) return true;
   if (!db) return false;
+  // 30/09e: quem a academia convidou em "Equipe e acessos" (professor,
+  // coordenador, gestor) fica com users.license_id = a academia, mas nao
+  // ganhava linha em professor_licencas — o QR de "Minhas aulas" dava
+  // "Sem acesso a esta unidade". Agora vale a academia da propria conta.
+  try {
+    const u = await db.query('SELECT role, license_id FROM users WHERE id=$1', [user.id]);
+    const x = u.rows[0];
+    if (x && x.license_id && x.license_id === licenseId && ['professor','coordenador','gestor'].includes(x.role)) return true;
+    if (x && x.role === 'gestor' && !x.license_id) return true;
+  } catch (_e) {}
   const r = await db.query(
     'SELECT 1 FROM professor_licencas WHERE user_id=$1 AND license_id=$2',
     [user.id, licenseId]
@@ -2695,12 +2735,41 @@ app.get('/gestor/emails', gestorAuth, async (req, res) => {
       WHERE (u.license_id=$1 OR el.ref LIKE $2) AND el.enviado_em > NOW()-INTERVAL '30 days' GROUP BY el.tipo`,
       [req.user.license_id, req.user.license_id + ':%'])).rows;
   } catch (e) {}
-  res.json({ cfg, provedor: emailProvedor(), enviados_30d: enviados });
+  res.json({ cfg, provedor: emailProvedor(), enviados_30d: enviados, padrao: EMAIL_TEXTO_PADRAO });
+});
+// Prévia com um aluno de exemplo (o Portal mostra exatamente o que sai)
+const EMAIL_EXEMPLO = { nome: 'Ana', nome_completo: 'Ana Paula', aula: 'Endurance de quinta', duracao: '55 min', kcal: 512, potencia: '168 W', rpm: 88, zona: 'Z3', pontos: 152,
+  dias: 16, ftp_antes: 180, ftp_novo: 192, evolucao: 12, mes: 'setembro de 2026', aulas: 214, alunos: 63 };
+function emailPrevia(tipo, cfg, academia) {
+  const v = Object.assign({}, EMAIL_EXEMPLO, { academia });
+  let nums = null;
+  if (tipo === 'resumo_aula') nums = `<table style="width:100%;background:#0b0b0e;border-radius:10px;margin:10px 0"><tr>${_numBox('55 min', 'DURAÇÃO')}${_numBox(512, 'KCAL', '#ea860c')}${_numBox('168 W', 'POTÊNCIA MÉDIA', '#5b8cff')}</tr><tr>${_numBox(88, 'RPM MÉDIO')}${_numBox('Z3', 'ZONA PREDOMINANTE')}${_numBox('+152', 'PONTOS', '#ffe033')}</tr></table>`;
+  if (tipo === 'novo_ftp') nums = `<table style="width:100%;background:#0b0b0e;border-radius:10px;margin:10px 0"><tr>${_numBox('180 W', 'ANTES')}${_numBox('192 W', 'AGORA', '#5db13d')}${_numBox('+12 W', 'EVOLUÇÃO', '#ffe033')}</tr></table>`;
+  if (tipo === 'relatorio_mensal') nums = `<table style="width:100%;background:#0b0b0e;border-radius:10px;margin:10px 0"><tr>${_numBox(214, 'AULAS CONCLUÍDAS')}${_numBox(63, 'ALUNOS ATIVOS', '#5db13d')}${_numBox('96.400', 'KCAL', '#ea860c')}</tr></table>`;
+  return emailMontar(tipo, cfg, v, nums, '', PORTAL_URL + '/aluno', academia);
+}
+app.post('/gestor/emails/previa', gestorAuth, async (req, res) => {
+  const b = req.body || {}; const tipo = EMAIL_TEXTO_PADRAO[b.tipo] ? b.tipo : 'resumo_aula';
+  const cfg = await emailsCfgDe(req.user.license_id);
+  if (b.texto && typeof b.texto === 'object') cfg.textos = Object.assign({}, cfg.textos || {}, { [tipo]: b.texto });
+  let academia = 'Sua academia'; try { const l = await db.query('SELECT COALESCE(nome_fantasia, nome) AS n FROM licencas WHERE codigo=$1', [req.user.license_id]); if (l.rows[0]) academia = l.rows[0].n; } catch (e) {}
+  res.json(emailPrevia(tipo, cfg, academia));
 });
 app.put('/gestor/emails', gestorAuth, async (req, res) => {
   if (!db) return res.status(503).json({ error: 'Banco indisponível' });
   const b = req.body || {}, cfg = {};
   Object.keys(EMAILS_PADRAO).forEach(k => { cfg[k] = (b[k] === undefined) ? EMAILS_PADRAO[k] : !!b[k]; });
+  // 30/09e: textos próprios da academia (só os campos conhecidos, até 600 caracteres)
+  try { const at = await emailsCfgDe(req.user.license_id); if (at.textos) cfg.textos = at.textos; } catch (e) {}
+  if (b.textos && typeof b.textos === 'object') {
+    cfg.textos = cfg.textos || {};
+    Object.keys(EMAIL_TEXTO_PADRAO).forEach(tp => {
+      const x = b.textos[tp]; if (!x || typeof x !== 'object') return;
+      const o = {}; EMAIL_CAMPOS.forEach(k => { if (typeof x[k] === 'string') o[k] = x[k].slice(0, 600); });
+      if (x.numeros !== undefined) o.numeros = !!x.numeros;
+      cfg.textos[tp] = o;
+    });
+  }
   try {
     await db.query('UPDATE licencas SET emails_cfg=$1, updated_at=NOW() WHERE codigo=$2', [JSON.stringify(cfg), req.user.license_id]);
     res.json({ ok: true, cfg });
@@ -2759,8 +2828,13 @@ app.put('/gestor/equipe/:id/papel', gestorAuth, async (req, res) => {
 // Manda um e-mail de teste para quem está logado (confere a configuração)
 app.post('/gestor/emails/teste', gestorAuth, async (req, res) => {
   const para = (req.body && req.body.email) || req.user.email;
-  const r = await enviarEmail({ to: para, subject: 'Teste de e-mail — ProRider',
-    html: emailLayout('Tudo certo!', '<p>Se você está lendo isto, os e-mails automáticos do ProRider estão funcionando.</p>') });
+  let msg = { subject: 'Teste de e-mail — ProRider', html: emailLayout('Tudo certo!', '<p>Se você está lendo isto, os e-mails automáticos do ProRider estão funcionando.</p>') };
+  if (req.body && EMAIL_TEXTO_PADRAO[req.body.tipo]) {   // 30/09e: manda o modelo escolhido, com dados de exemplo
+    const cfg = await emailsCfgDe(req.user.license_id);
+    let academia = 'Sua academia'; try { const l = await db.query('SELECT COALESCE(nome_fantasia, nome) AS n FROM licencas WHERE codigo=$1', [req.user.license_id]); if (l.rows[0]) academia = l.rows[0].n; } catch (e) {}
+    const pv = emailPrevia(req.body.tipo, cfg, academia); msg = { subject: '[TESTE] ' + pv.subject, html: pv.html };
+  }
+  const r = await enviarEmail({ to: para, subject: msg.subject, html: msg.html });
   res.status(r.ok ? 200 : 400).json(r.ok ? { ok: true, para } : { error: r.erro });
 });
 
@@ -4998,9 +5072,13 @@ app.post('/professor/parear', authMiddleware, async (req, res) => {
       return res.status(410).json({ error: 'Código expirado ou não encontrado' });
     const p = pr.rows[0];
     if (p.status === 'usado') return res.status(410).json({ error: 'Código já usado' });
-    // Verificar acesso à licença
-    if (!await temAcessoLicenca(req.user, p.license_id))
-      return res.status(403).json({ error: 'Sem acesso a esta unidade' });
+    // 30/09e (Mario): o login de professor vale em QUALQUER academia — o
+    // professor que dá aula em outra unidade da rede lê o QR e traz as aulas
+    // DELE (a sessão só lê os treinos da própria conta). Aluno não pareia.
+    const _pu = await db.query('SELECT role FROM users WHERE id=$1', [req.user.id]);
+    const _papel = (_pu.rows[0] || {}).role || req.user.role;
+    if (!['professor', 'coordenador', 'gestor', 'admin', 'super_admin'].includes(_papel))
+      return res.status(403).json({ error: 'Só professor ou equipe da academia abre as próprias aulas na TV.' });
     // Token de sessão do professor para o Ginásio (4h, só lê treinos deste professor)
     const token = jwt.sign(
       { role: 'prof_session', user_id: req.user.id, license_id: p.license_id },

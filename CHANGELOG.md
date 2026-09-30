@@ -41,6 +41,107 @@ Componentes: `servidor` · `app` · `ginasio` · `portal` · `banco`.
 
 ---
 
+## 2026-09-30 · ginasio · 30/09e — telas de preparar a aula no visual do Portal, YouTube e Spotify
+
+**O que mudou**
+- **Arquivo novo `telas-pv.js`**, carregado depois do `script.js`. Ele substitui as funções das telas de preparar a aula (`mostrarEscolha`, `_origemAulaEscolher`, `_nuvParear`, `_renderSistCats`, `_renderSistAulas`, `abrirBgPicker`, `bgConfirmar`, `mostrarPreAula`, `_renderPreAlunos`…). O visual novo usa as classes `pv-*`, `bgc-*`, `pa2-*` e `nv-*`, que ficam no fim do `style.css`. Tudo em px do desenho 1920×1080.
+- **Início:** 3 opções (Aulas do sistema · Minhas aulas · Sessão livre), mais três cartões: aulas de hoje na grade, academia e licença, sistema online com relógio. A engrenagem das configurações continua piscando com L1+R1.
+- **Minhas aulas → "De onde vem a aula?":**
+  - **Da minha conta:** o QR já aparece dentro do cartão (sem apertar nada) e fica esperando o celular do professor. Erros, código expirado e acesso negado aparecem no próprio cartão; START gera outro código.
+  - **Do pendrive:** mostra quantas aulas o pendrive tem e abre a pasta ProRider.
+- **Aulas do sistema:** 5 objetivos em grade de 3 colunas. Cada um mostra o perfil típico (aquecimento progressivo → miolo → volta à calma), com a faixa AQUEC./PRINCIPAL/CALMA e o número de aulas. ←→ anda 1; ↑↓ anda uma linha (gamepad e teclado).
+- **Lista de aulas:** lista mais painel de detalhe. O painel tem perfil com faixa e eixo de minutos, duração, TSS, FTP médio, desafios, tempo em cada zona, mídia gravada e "Usar esta aula". B volta para onde veio: objetivos, Minhas aulas ou início (`_usbVoltar`).
+- **Configurar aula:**
+  - **Música:** MP3 do pendrive / Spotify (ou Deezer, ou outro link) / sem música. Com playlist, aparecem o QR para o celular do professor e os 3 passos.
+  - **Vídeo:** pendrive / YouTube / câmera / sem vídeo. O YouTube mostra miniatura, título, ponto de início e o aviso de anúncio.
+  - **Cenário:** vale só sem vídeo.
+  - **Resumo:** nome, professor, academia, bikes, alunos conectados, duração, blocos, TSS, desafios e a prévia "como vai aparecer na TV".
+  - ↑↓ escolhe a parte e ←→ troca a opção.
+  - A câmera saiu da lista de cenários, porque virou opção de vídeo.
+- **QR code:**
+  - **dois QRs grandes:** ① entrar na aula (código da sala) e ② baixar o app / abrir no navegador. O "Como entrar" virou uma linha no alto das bikes (pedido do Mario);
+  - **bikes da sala** de 1 a N (teto da licença): verde com W e ♥ quando pedala, "na bike · parado", livre, DEMO. Os demos e quem ainda não escolheu bike ocupam as livres do fim;
+  - contadores "X de N na bike · Y pedalando" e "N alunos demo";
+  - perfil grande com faixa e eixo. A agulha do progresso continua (`preAulaAgulha`).
+- **YouTube de fundo:** player da IFrame API em `#prYTWrap`, logo acima do `#backgroundVideo`, sem som.
+  - Começa em `syncOffset − (aquecimento + principal)`, como o vídeo do pendrive.
+  - Segue o relógio da aula por `_prMidiaSync`/`_prMidiaPausar`, que agora também mexem no YouTube: pausa junto, pula junto e corrige se passar de 2,5 s de diferença.
+  - Mostra a etiqueta "YouTube · sincronizado".
+  - Se o vídeo não tocar (sem internet, vídeo que não deixa incorporar), a aula segue com o cenário animado.
+- **Contagem 3·2·1 com playlist:** mostra "No JÁ, dê play no Spotify" e, no fim, "JÁ! ▶ play" por 1,4 s. A aula (e o YouTube) começa no fim da contagem, como sempre.
+- **Tela final, painel da esquerda:** gráfico mais baixo com a faixa AQUECIMENTO / BLOCO PRINCIPAL / VOLTA e o eixo de minutos, tempo em cada zona maior e "Destaques" (mais tempo no alvo e maior pico). Centro e pódio iguais.
+- **Logo original** (`logo-prorider.png`) na tela de espera, no início, em todas as telas novas, na tela final, no ranking, no menu secreto e no pareamento.
+- **Correção:** `abrirAula()` não copiava o `desafio` do bloco, então o desafio montado no Construtor não disparava na TV. Agora copia.
+
+**Por quê**
+- Telas aprovadas pelo Mario em 30/09 (imagens u1, u1b, u2, fc, u4 e t5), com o ajuste dos dois QRs grandes.
+
+**Como confirmar**
+- Tela inicial: BUILD 30/09e.
+- Minhas aulas → o QR aparece sozinho no cartão da esquerda → ler com o app logado como professor, **inclusive de outra academia** → as aulas dele aparecem.
+- Abrir uma aula do Construtor com playlist e YouTube → Configurar aula mostra os dois → Iniciar aula → QR → Iniciar: a contagem pede o play do Spotify e o YouTube entra no fundo, sem som.
+- Aula com desafio no bloco → o desafio começa sozinho no bloco.
+
+**Cuidados**
+- O YouTube precisa de internet no computador da TV e funciona com o Ginásio aberto por `http://localhost:3000` (o `PRORIDER.bat` já abre assim).
+- **No executável (Electron):** se a janela abre o `ginasio.html` como arquivo (`file://`), o YouTube pode recusar tocar ("erro 153", falta de origem). Nesse caso a aula segue sozinha com o cenário e o console mostra `[ProRider] YouTube não tocou`. A correção é o Electron abrir `http://localhost:3000/ginasio` (o `servidor-local.js` já serve a pasta) ou mandar um `Referer` http nas chamadas ao youtube.com.
+- Anúncio: sem anúncio só se o navegador da TV estiver logado numa conta YouTube Premium. **Testar numa TV de verdade.**
+- `telas-pv.js` precisa ir junto no pacote do Ginásio (o `ginasio.html` carrega esse arquivo).
+
+---
+
+## 2026-09-30 · servidor · 30/09e — e-mails editáveis e login de professor em qualquer academia
+
+**O que mudou**
+- **E-mails editáveis:** cada um dos 6 e-mails (boas-vindas, resumo da aula, sumido, novo FTP, aniversário, relatório do mês) tem assunto, título, abertura, fechamento, texto do botão e "mostrar os números".
+  - Os textos da academia ficam em `licencas.emails_cfg.textos`, sem coluna nova.
+  - Sem texto próprio, vale o padrão (`EMAIL_TEXTO_PADRAO`).
+  - Variáveis conforme o e-mail: `{nome}` e `{academia}` em todos; `{aula}`, `{duracao}`, `{kcal}`, `{potencia}`, `{rpm}`, `{zona}`, `{pontos}` no resumo; `{dias}` no sumido; `{ftp_antes}`, `{ftp_novo}`, `{evolucao}` no novo FTP; `{mes}`, `{aulas}`, `{alunos}`, `{kcal}` no relatório.
+- **Rotas de e-mail:**
+  - `GET /gestor/emails` agora devolve também `padrao`;
+  - nova `POST /gestor/emails/previa {tipo, texto}` monta o e-mail com dados de exemplo;
+  - `PUT /gestor/emails` guarda `textos`, só os campos conhecidos e até 600 caracteres cada;
+  - `POST /gestor/emails/teste` aceita `tipo` e manda o modelo com "[TESTE]".
+- **Cabeçalho dos e-mails:** logo original (`PORTAL_URL/img/logo-prorider.png`) em fundo escuro.
+- **Professor em qualquer academia:** `POST /professor/parear` aceita quem tem papel de professor, coordenador, gestor, admin ou super_admin, **em qualquer licença**. Um professor que dá aula em outra academia lê o QR e recebe as próprias aulas. Aluno continua recusado (403).
+- **`temAcessoLicenca`:** quem foi convidado em "Equipe e acessos" passa pela academia da própria conta (`users.license_id`). Antes dava "Sem acesso a esta unidade".
+
+**Como confirmar**
+- Portal → E-mails automáticos → editar o texto → a prévia muda → "Mandar este e-mail para mim".
+- Ler o QR de Minhas aulas de uma TV de outra academia com login de professor: as aulas aparecem.
+
+**Cuidados**
+- Nenhuma migração nova. `PORTAL_URL` precisa apontar para o site público, para o logo carregar nos e-mails.
+
+---
+
+## 2026-09-30 · portal · 30/09e — E-mails automáticos, Construtor no celular e logo original
+
+**O que mudou**
+- **Página "E-mails automáticos":**
+  - lista dos 6 e-mails, cada um com chave liga/desliga;
+  - editor de assunto, título, abertura, fechamento, botão e "mostrar os números";
+  - as variáveis entram no cursor com um toque;
+  - prévia ao vivo à direita;
+  - "Voltar ao texto padrão", "Mandar este e-mail para mim" e "Salvar texto".
+- **Construtor (`studio.html`) também no celular:**
+  - usa o login do app (`pr_token`);
+  - com `?de=app`, o "voltar" leva ao app;
+  - no celular em pé, aparece a dica "vire o celular de lado", que dá para fechar;
+  - importa aula do TrainingPeaks;
+  - logo original no topo.
+- **Logo original** (imagem) no lugar do texto "PRORIDER": Portal, portal do aluno, onboarding, totem e página pública.
+
+---
+
+## 2026-09-30 · app · 30/09e — Construtor do celular = Construtor online
+
+**O que mudou**
+- "Construtor de treino" no app abre o **mesmo Construtor online** (`/studio.html?de=app`), com as mesmas funções e a mesma conta. O construtor antigo do app ficou guardado em `_doOpenConstructorAntigo`.
+- Logo original na entrada, no perfil e na tela de login.
+
+---
+
 ## 2026-09-30 · portal · 30/09d — link do YouTube no Construtor
 
 **O que mudou**

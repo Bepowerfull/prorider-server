@@ -198,6 +198,16 @@ button{font-family:inherit}
 .pr-lr .st{text-align:right;color:var(--muted);white-space:nowrap}
 .pr-pill{font-size:11px;font-weight:700;border-radius:6px;padding:3px 8px;white-space:nowrap}
 .pr-ok{background:rgba(93,177,61,.18);color:#8fd66f}.pr-wa{background:rgba(234,134,12,.18);color:#ffb45a}.pr-er{background:rgba(214,45,45,.2);color:#ff7a7a}.pr-nv{background:var(--card2);color:#fff}
+.em-g{display:grid;grid-template-columns:minmax(0,300px) minmax(0,1fr) minmax(0,460px);gap:16px;align-items:start}
+.em-it{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;cursor:pointer;margin-bottom:4px}
+.em-it:hover{background:rgba(255,255,255,.04)}
+.em-it.on{background:rgba(234,134,12,.12);box-shadow:inset 3px 0 0 var(--accent)}
+.em-it div{flex:1;min-width:0}.em-it b{display:block;font-size:14px}.em-it small{color:var(--muted);font-size:12px}
+.em-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px;align-items:end}
+.em-vars{display:flex;flex-wrap:wrap;gap:6px}
+.em-vars span{background:rgba(41,95,232,.16);border:1px solid rgba(41,95,232,.4);color:#a9c1ff;border-radius:7px;padding:4px 8px;font-size:12px;font-weight:600;cursor:pointer}
+@media(max-width:1300px){.em-g{grid-template-columns:1fr 1fr}}
+@media(max-width:900px){.em-g,.em-row{grid-template-columns:1fr}}
 .pr-tg{display:flex;align-items:center;justify-content:space-between;gap:12px;background:var(--card2);border-radius:10px;padding:11px 14px;font-size:14px;margin-bottom:8px;user-select:none}
 .pr-tg small{display:block;color:var(--muted);font-size:12px;margin-top:2px}
 .pr-tg[draggable=true]{cursor:grab}.pr-tg.drag{opacity:.4}
@@ -214,8 +224,9 @@ button{font-family:inherit}
 .pr-tvr .c{text-align:center}
 .pr-fg{display:flex;flex-direction:column;gap:5px}
 .pr-fg label{font-size:11px;color:var(--muted);letter-spacing:.8px;text-transform:uppercase;font-weight:600}
-.pr-fg input,.pr-fg select{background:var(--card2);border:1px solid var(--border);border-radius:9px;padding:10px 12px;font-size:14px;color:#fff;outline:none;font-family:inherit}
-.pr-fg input:focus,.pr-fg select:focus{border-color:var(--accent)}
+.pr-fg input,.pr-fg select,.pr-fg textarea{background:var(--card2);border:1px solid var(--border);border-radius:9px;padding:10px 12px;font-size:14px;color:#fff;outline:none;font-family:inherit}
+.pr-fg input:focus,.pr-fg select:focus,.pr-fg textarea:focus{border-color:var(--accent)}
+.pr-fg textarea{resize:vertical;line-height:1.5;min-height:64px}
 .pr-fg select option{background:#1b1b21}
 .pr-grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .pr-note{font-size:12px;color:var(--muted);line-height:1.5}
@@ -466,7 +477,7 @@ button{font-family:inherit}
   </div>
   <div class="pr-shell">
   <aside class="pr-sb">
-    <div class="pr-brand">PRORIDER</div>
+    <div class="pr-brand"><img src="img/logo-prorider.png" alt="ProRider" style="height:40px;display:block"></div>
     <div class="pr-lic"><small>Licença</small><b id="meLic">—</b></div>
     <nav id="sbNav"></nav>
     <div class="pr-me" onclick="showTab('perfil')" title="Meu perfil">
@@ -733,91 +744,29 @@ button{font-family:inherit}
 
   <!-- EMAILS -->
   <div class="page content" id="page-emails">
-    <div class="pr-hd"><div><h1>E-mails automáticos</h1><p>Liga e desliga cada aviso desta academia</p></div>
-      <button class="pr-btn pr-bg" onclick="emTeste()">✉ Mandar um teste para mim</button></div>
+    <div class="pr-hd"><div><h1>E-mails automáticos</h1><p>Liga, desliga e escreve do jeito da sua academia</p></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="pr-btn pr-bg" onclick="emTeste()">✉ Mandar este e-mail para mim</button><button class="pr-btn pr-bp" id="emSalvarBtn" onclick="emSalvar()">Salvar texto</button></div></div>
     <div id="emStatus" style="margin-bottom:14px"></div>
-    <div class="pr-card" style="margin-bottom:18px"><div id="emCfg"><div class="pr-empty">Carregando…</div></div></div>
-    <details style="margin-bottom:20px"><summary style="cursor:pointer;color:var(--accent);font-weight:700;font-size:13px;margin-bottom:14px">Ver os modelos dos e-mails</summary>
-    <div style="margin-bottom:20px">
-      <div style="font-size:11px;font-weight:700;letter-spacing:2px;color:var(--muted);text-transform:uppercase;margin-bottom:6px">Automação de e-mails pós-aula</div>
-      <div style="font-size:13px;color:var(--muted);max-width:600px">Estes e-mails são enviados automaticamente para cada aluno após concluir uma aula. Os dados são preenchidos automaticamente com o desempenho real do aluno.</div>
-    </div>
-
-    <!-- E-mail 1 -->
-    <div class="email-card">
-      <div class="email-header">
-        <h3>📊 E-mail 1 — Resumo imediato (5 min após a aula)</h3>
-        <span style="font-size:11px;font-weight:700;color:var(--green);background:rgba(93,177,61,.1);padding:3px 10px;border-radius:20px">Ativo</span>
-      </div>
-      <div class="email-meta">
-        <div><span style="color:var(--muted)">Assunto:</span> ⚡ {{nome}}, sua aula foi incrível!</div>
-        <div><span style="color:var(--muted)">Disparo:</span> 5 minutos após conclusão</div>
-      </div>
-      <div class="email-body">
-        <div style="background:#0a0a0f;border-radius:10px;padding:24px;font-family:Arial,sans-serif;max-width:520px">
-          <div style="font-size:22px;font-weight:900;color:#ea860c;margin-bottom:4px">⚡ PRORIDER</div>
-          <div style="font-size:11px;color:#888;letter-spacing:3px;margin-bottom:20px">CYCLING PERFORMANCE</div>
-          <div style="font-size:18px;font-weight:700;color:#fff;margin-bottom:16px">Parabéns pela aula, <span style="color:#ea860c">{{nome}}</span>! 🔥</div>
-          <div style="background:#16161a;border-radius:8px;padding:16px;margin-bottom:16px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;text-align:center">
-            <div><div style="font-size:28px;font-weight:900;color:#fff">{{duracao}}</div><div style="font-size:10px;color:#888">DURAÇÃO</div></div>
-            <div><div style="font-size:28px;font-weight:900;color:#ea860c">{{kcal}}</div><div style="font-size:10px;color:#888">KCAL</div></div>
-            <div><div style="font-size:28px;font-weight:900;color:#295fe8">{{avg_ftp}}%</div><div style="font-size:10px;color:#888">FTP MÉDIO</div></div>
-          </div>
-          <div style="background:#16161a;border-radius:8px;padding:14px;margin-bottom:16px">
-            <div style="font-size:10px;color:#888;margin-bottom:8px;letter-spacing:2px">ZONA DOMINANTE</div>
-            <div style="font-size:20px;font-weight:700;color:#fff">{{zona_dominante}}</div>
-          </div>
-          <div style="font-size:12px;color:#888;margin-bottom:16px">Aula: <strong style="color:#fff">{{nome_aula}}</strong> · {{data}}</div>
-          <div style="background:linear-gradient(135deg,#ea860c,#d62d2d);border-radius:8px;padding:12px;text-align:center;font-weight:700;color:#fff;font-size:14px">VER RESULTADO COMPLETO →</div>
+    <div class="em-g">
+      <div class="pr-card"><h3>Os e-mails <a style="cursor:default;color:var(--muted)">6</a></h3><div id="emCfg"><div class="pr-empty">Carregando…</div></div></div>
+      <div class="pr-card" id="emEd">
+        <h3><span id="emEdTit">Resumo da aula</span> <a style="cursor:default;color:var(--muted)" id="emEdSt">texto padrão</a></h3>
+        <div class="pr-fg"><label>Assunto</label><input id="emAssunto" oninput="emMudou()"></div>
+        <div class="pr-fg" style="margin-top:10px"><label>Título</label><input id="emTitulo" oninput="emMudou()"></div>
+        <div class="pr-fg" style="margin-top:10px"><label>Mensagem de abertura</label><textarea id="emAbertura" oninput="emMudou()" rows="3"></textarea></div>
+        <div class="pr-fg" style="margin-top:10px"><label>Mensagem final</label><textarea id="emFechamento" oninput="emMudou()" rows="3"></textarea></div>
+        <div class="em-row">
+          <div class="pr-tg" id="emNumBox" style="margin:0"><span>Mostrar os números<small id="emNumDica">tabela com os dados da aula</small></span><button class="pr-sw" id="emNum" onclick="this.classList.toggle('off');emMudou()"></button></div>
+          <div class="pr-fg"><label>Botão no fim (opcional)</label><input id="emBotao" oninput="emMudou()" placeholder="Ex.: Reservar próxima aula"></div>
         </div>
+        <div style="font-size:11px;font-weight:700;letter-spacing:1.3px;color:var(--muted);text-transform:uppercase;margin:14px 0 6px">Palavras que viram os dados (toque para colocar)</div>
+        <div class="em-vars" id="emVars"></div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:16px;gap:10px;flex-wrap:wrap"><button class="pr-btn pr-bg pr-bs" onclick="emPadrao()">↺ Voltar ao texto padrão</button><span class="pr-note">Campo vazio usa o texto padrão do ProRider</span></div>
       </div>
+      <div class="pr-card"><h3>Como o aluno recebe <a style="cursor:default;color:var(--muted)">exemplo</a></h3>
+        <div class="pr-note" style="margin-bottom:8px">Assunto: <b style="color:#fff" id="emPrevAss">—</b></div>
+        <iframe id="emPrev" style="width:100%;height:640px;border:0;border-radius:12px;background:#0b0b0e"></iframe></div>
     </div>
-
-    <!-- E-mail 2 -->
-    <div class="email-card">
-      <div class="email-header">
-        <h3>💪 E-mail 2 — Recuperação (24h depois)</h3>
-        <span style="font-size:11px;font-weight:700;color:var(--green);background:rgba(93,177,61,.1);padding:3px 10px;border-radius:20px">Ativo</span>
-      </div>
-      <div class="email-meta">
-        <div><span style="color:var(--muted)">Assunto:</span> {{nome}}, como está a recuperação?</div>
-        <div><span style="color:var(--muted)">Disparo:</span> 24 horas após a aula</div>
-      </div>
-      <div class="email-body">
-        <div style="background:#0a0a0f;border-radius:10px;padding:24px;max-width:520px;font-family:Arial,sans-serif">
-          <div style="font-size:22px;font-weight:900;color:#ea860c;margin-bottom:16px">⚡ PRORIDER</div>
-          <div style="font-size:16px;font-weight:700;color:#fff;margin-bottom:12px">Como está a recuperação, <span style="color:#ea860c">{{nome}}</span>?</div>
-          <div style="font-size:13px;color:#aaa;margin-bottom:16px">Ontem você completou <strong style="color:#fff">{{nome_aula}}</strong> com {{avg_ftp}}% de FTP médio. Seu corpo está se adaptando! 🚴</div>
-          <div style="background:#16161a;border-radius:8px;padding:14px;margin-bottom:16px">
-            <div style="font-size:11px;color:#888;margin-bottom:8px">PRÓXIMA AULA SUGERIDA</div>
-            <div style="font-size:15px;font-weight:700;color:#fff">{{proxima_aula}}</div>
-            <div style="font-size:12px;color:#888;margin-top:4px">Para manter o ritmo e continuar evoluindo</div>
-          </div>
-          <div style="background:linear-gradient(135deg,#295fe8,#9b30ff);border-radius:8px;padding:12px;text-align:center;font-weight:700;color:#fff;font-size:14px">AGENDAR PRÓXIMA AULA →</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- E-mail 3 -->
-    <div class="email-card">
-      <div class="email-header">
-        <h3>😴 E-mail 3 — Reativação (7 dias sem aula)</h3>
-        <span style="font-size:11px;font-weight:700;color:var(--accent);background:rgba(234,134,12,.1);padding:3px 10px;border-radius:20px">Em breve</span>
-      </div>
-      <div class="email-meta">
-        <div><span style="color:var(--muted)">Assunto:</span> Sentimos sua falta, {{nome}} 🚴</div>
-        <div><span style="color:var(--muted)">Disparo:</span> 7 dias sem atividade</div>
-      </div>
-      <div class="email-body" style="opacity:.5">
-        <div style="background:#0a0a0f;border-radius:10px;padding:24px;max-width:520px;font-family:Arial,sans-serif">
-          <div style="font-size:22px;font-weight:900;color:#ea860c;margin-bottom:16px">⚡ PRORIDER</div>
-          <div style="font-size:16px;font-weight:700;color:#fff;margin-bottom:12px">Sentimos sua falta, <span style="color:#ea860c">{{nome}}</span>!</div>
-          <div style="font-size:13px;color:#aaa;margin-bottom:16px">Faz {{dias_ausente}} dias desde sua última aula. Sua bicicleta sente sua falta 🚴</div>
-          <div style="background:linear-gradient(135deg,#ea860c,#d62d2d);border-radius:8px;padding:12px;text-align:center;font-weight:700;color:#fff">VOLTAR A PEDALAR →</div>
-        </div>
-      </div>
-    </div>
-    </details>
   </div>
 
 
@@ -1574,35 +1523,94 @@ async function pfTrocarSenha(){
 
 // ── E-mails automáticos ──
 const EM_INFO = [
-  ['boas_vindas','Boas-vindas','quando alguém entra na academia (aluno pela primeira aula, equipe pelo convite)'],
-  ['resumo_aula','Resumo depois da aula','kcal, potência, zona e pontos da aula'],
-  ['sumido','Sumido há 14 dias','convite para voltar a quem parou de vir'],
+  ['boas_vindas','Boas-vindas','quando o aluno entra na academia'],
+  ['resumo_aula','Resumo da aula','logo depois de cada aula'],
+  ['sumido','Sentimos sua falta','14 dias sem vir'],
   ['novo_ftp','Novo FTP','quando o FTP do aluno sobe'],
-  ['aniversario','Aniversário','no dia (precisa da data no perfil do aluno)'],
-  ['relatorio_mensal','Relatório mensal ao gestor','dia 1º, com os números do mês anterior'],
+  ['aniversario','Aniversário','no dia, às 10h (precisa da data no perfil)'],
+  ['relatorio_mensal','Relatório do mês','dia 1º, para o gestor'],
 ];
 let emCfg = {};
+const EM_ICO = {boas_vindas:'👋',resumo_aula:'📊',sumido:'🚴',novo_ftp:'📈',aniversario:'🎂',relatorio_mensal:'📅'};
+const EM_VARS = {
+  boas_vindas:['nome','nome_completo','academia'],
+  resumo_aula:['nome','academia','aula','duracao','kcal','potencia','rpm','zona','pontos'],
+  sumido:['nome','academia','dias'],
+  novo_ftp:['nome','academia','ftp_antes','ftp_novo','evolucao'],
+  aniversario:['nome','academia'],
+  relatorio_mensal:['academia','mes','aulas','alunos','kcal']
+};
+const EM_NUM = {resumo_aula:'duração, kcal, potência, RPM, zona e pontos', novo_ftp:'FTP antes, agora e a evolução', relatorio_mensal:'aulas, alunos ativos e kcal do mês'};
+let emSel = 'resumo_aula', emPadraoTxt = {}, emEdit = {}, _emFoco = null;
 async function loadEmails(){
   const box = document.getElementById('emCfg'); if (!box) return;
   try {
     const d = await api('/gestor/emails');
-    emCfg = d.cfg || {};
+    emCfg = d.cfg || {}; emPadraoTxt = d.padrao || {};
+    emEdit = JSON.parse(JSON.stringify(emCfg.textos || {}));
     const env = {}; (d.enviados_30d || []).forEach(x => env[x.tipo] = x.total);
     document.getElementById('emStatus').innerHTML = d.provedor
-      ? `<span class="pr-pill pr-ok">E-mail ligado (${d.provedor === 'resend' ? 'Resend' : 'SMTP'})</span>`
-      : `<div class="pr-warn">O servidor ainda não tem um serviço de e-mail configurado — nada é enviado por enquanto. As escolhas abaixo ficam guardadas e passam a valer assim que o desenvolvedor configurar.</div>`;
-    const pode = ['gestor','coordenador','admin','super_admin'].includes(prPapel());
-    box.innerHTML = EM_INFO.map(([k, nome, desc]) => `<div class="pr-tg"><span>${nome}<small>${desc}${env[k] ? ` · ${env[k]} enviados em 30 dias` : ''}</small></span>
-      <button class="pr-sw${emCfg[k] ? '' : ' off'}" ${pode ? `onclick="emAlternar('${k}')"` : 'disabled'}></button></div>`).join('');
+      ? `<span class="pr-pill pr-ok">✓ Envio de e-mail ligado (${d.provedor === 'resend' ? 'Resend' : 'SMTP'})</span>`
+      : `<div class="pr-warn">O servidor ainda não tem um serviço de e-mail configurado — nada é enviado por enquanto. As escolhas e os textos ficam guardados e passam a valer assim que o desenvolvedor configurar.</div>`;
+    emLista(env);
+    emAbrir(emSel);
   } catch(e) { box.innerHTML = `<div class="pr-empty">${prEsc(e.message||'Erro')}</div>`; }
+}
+function emPode(){ return ['gestor','coordenador','admin','super_admin'].includes(prPapel()); }
+function emLista(env){
+  const pode = emPode();
+  document.getElementById('emCfg').innerHTML = EM_INFO.map(([k, nome, desc]) => `<div class="em-it${k===emSel?' on':''}" onclick="emAbrir('${k}')"><div><b>${EM_ICO[k]} ${nome}</b><small>${desc}${env && env[k] ? ` · ${env[k]} em 30 dias` : ''}</small></div>
+    <button class="pr-sw${emCfg[k] ? '' : ' off'}" ${pode ? `onclick="event.stopPropagation();emAlternar('${k}')"` : 'disabled'}></button></div>`).join('');
+}
+function emAbrir(k){
+  emSel = k; const nome = (EM_INFO.find(x => x[0] === k) || [])[1] || k;
+  document.querySelectorAll('.em-it').forEach((el, i) => el.classList.toggle('on', EM_INFO[i][0] === k));
+  document.getElementById('emEdTit').textContent = EM_ICO[k] + ' ' + nome;
+  const p = emPadraoTxt[k] || {}, m = emEdit[k] || {};
+  [['emAssunto','assunto'],['emTitulo','titulo'],['emAbertura','abertura'],['emFechamento','fechamento'],['emBotao','botao']].forEach(([id, c]) => {
+    const el = document.getElementById(id); el.value = m[c] || ''; el.placeholder = p[c] || '(vazio)'; el.disabled = !emPode(); el.onfocus = () => { _emFoco = el; };
+  });
+  const tem = !!EM_NUM[k];
+  document.getElementById('emNumBox').style.visibility = tem ? 'visible' : 'hidden';
+  document.getElementById('emNumDica').textContent = EM_NUM[k] || '';
+  document.getElementById('emNum').classList.toggle('off', m.numeros === false);
+  document.getElementById('emVars').innerHTML = (EM_VARS[k] || []).map(v => `<span onclick="emPor('{${v}}')">{${v}}</span>`).join('');
+  document.getElementById('emEdSt').textContent = Object.keys(m).some(c => c !== 'numeros' && m[c]) ? 'texto da academia' : 'texto padrão';
+  document.getElementById('emSalvarBtn').style.display = emPode() ? '' : 'none';
+  emPrevia();
+}
+function emPor(t){
+  const el = _emFoco || document.getElementById('emAbertura'); if (el.disabled) return;
+  const a = el.selectionStart != null ? el.selectionStart : el.value.length;
+  if (!el.value && el.placeholder && el.placeholder !== '(vazio)') el.value = el.placeholder;    // começa do texto padrão
+  const pos = Math.min(a, el.value.length);
+  el.value = el.value.slice(0, pos) + t + el.value.slice(pos); el.focus(); emMudou();
+}
+function emLer(){
+  const o = {}; [['emAssunto','assunto'],['emTitulo','titulo'],['emAbertura','abertura'],['emFechamento','fechamento'],['emBotao','botao']].forEach(([id, c]) => { o[c] = document.getElementById(id).value; });
+  if (EM_NUM[emSel]) o.numeros = !document.getElementById('emNum').classList.contains('off');
+  return o;
+}
+function emMudou(){ emEdit[emSel] = emLer(); clearTimeout(window._emT); window._emT = setTimeout(emPrevia, 350); document.getElementById('emEdSt').textContent = 'não salvo'; }
+async function emPrevia(){
+  try {
+    const d = await apiSend('POST', '/gestor/emails/previa', { tipo: emSel, texto: emEdit[emSel] || {} });
+    document.getElementById('emPrevAss').textContent = d.subject;
+    document.getElementById('emPrev').srcdoc = '<!doctype html><meta charset="utf-8"><body style="margin:0;background:#0b0b0e">' + d.html + '</body>';
+  } catch(e) {}
+}
+function emPadrao(){ emEdit[emSel] = {}; emAbrir(emSel); document.getElementById('emEdSt').textContent = 'não salvo'; }
+async function emSalvar(){
+  try { const d = await apiSend('PUT', '/gestor/emails', Object.assign({}, emCfg, { textos: emEdit })); emCfg = d.cfg; toast('✓ Texto salvo'); document.getElementById('emEdSt').textContent = 'salvo'; }
+  catch(e) { toast('⚠ ' + e.message); }
 }
 async function emAlternar(k){
   emCfg[k] = !emCfg[k];
-  try { await apiSend('PUT', '/gestor/emails', emCfg); toast(emCfg[k] ? '✓ E-mail ligado' : 'E-mail desligado'); } catch(e) { toast('⚠ ' + e.message); emCfg[k] = !emCfg[k]; }
-  loadEmails();
+  try { await apiSend('PUT', '/gestor/emails', Object.assign({}, emCfg, { textos: emEdit })); toast(emCfg[k] ? '✓ E-mail ligado' : 'E-mail desligado'); } catch(e) { toast('⚠ ' + e.message); emCfg[k] = !emCfg[k]; }
+  emLista();
 }
 async function emTeste(){
-  try { const d = await apiSend('POST', '/gestor/emails/teste', {}); toast('✓ Teste enviado para ' + d.para); }
+  try { const d = await apiSend('POST', '/gestor/emails/teste', { tipo: emSel }); toast('✓ Teste enviado para ' + d.para); }
   catch(e) { toast('⚠ ' + e.message); }
 }
 

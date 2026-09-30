@@ -96,7 +96,7 @@ async function carregar(){
        :'<div class="vazio">O ranking do mês começa com a primeira aula.</div>')+'</div>');
   }
   if(blocos.length) h+='<div class="cols" style="'+(blocos.length===1?'grid-template-columns:1fr':'')+'">'+blocos.join('')+'</div>';
-  h+='<div class="ft"><span>Atualiza sozinho a cada minuto.</span><a class="brand" href="'+SERVER+'/" target="_blank" rel="noopener">PRORIDER</a></div>';
+  h+='<div class="ft"><span>Atualiza sozinho a cada minuto.</span><a class="brand" href="'+SERVER+'/" target="_blank" rel="noopener"><img src="'+SERVER+'/img/logo-prorider.png" alt="ProRider" style="height:26px;display:block"></a></div>';
   app.innerHTML=h;
 }
 carregar(); setInterval(carregar, 60000);
