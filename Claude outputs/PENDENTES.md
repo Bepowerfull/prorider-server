@@ -12,7 +12,12 @@ Lista do que foi combinado com o Mario e ainda não foi feito. Quem fizer um ite
 - [x] Página pública da academia.
 - [x] Totem no tablet.
 
+## Feito na 29/09c
+- [x] Localização: "Perto de mim" na lupinha do app (GPS do celular) e localização da academia no Portal.
+
 ## Pendências abertas
+- [ ] **Mapa na lupinha** (ver as academias num mapa, além da lista). Dá para fazer com o OpenStreetMap, sem custo.
+- [ ] **Localização também no totem e na página pública** (link "como chegar").
 - [ ] **Vídeo de apresentação:** o Mario manda o link do YouTube e ele entra em `PR_VIDEO_URL`, em index.html e academia.html.
 - [ ] **Histórico de quem pedala pelo totem sem app:** a TV mostra os números, mas a aula não é gravada no histórico da pessoa. Caminho: no `fim_aula`, o Ginásio manda os resultados dos alunos `_totem` e o servidor grava em `aula_historico` (quem tem conta).
 - [ ] **Brasão também nos cartões de potência e na tela final da aula** (hoje aparece só no Ranking B).

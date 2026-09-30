@@ -1879,9 +1879,12 @@ input[type=file]{display:none}
   <div style="padding:0 18px;">
     <div style="font-size:11px;font-weight:700;letter-spacing:2px;color:rgba(255,255,255,.35);text-transform:uppercase;margin-bottom:10px;">Buscar academia</div>
     <div style="position:relative;margin-bottom:14px;">
-      <input id="agCidadeInput" placeholder="Digite a cidade..." oninput="filtrarAcademias(this.value)"
+      <input id="agCidadeInput" placeholder="Cidade, bairro ou academia..." oninput="filtrarAcademias(this.value)"
         style="width:100%;padding:12px 16px;border-radius:12px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.06);color:#fff;font-size:14px;outline:none;">
     </div>
+    <button id="agPertoBtn" onclick="agPertoDeMim(true)" style="width:100%;display:flex;align-items:center;justify-content:center;gap:8px;padding:11px 14px;margin:-4px 0 14px;border-radius:12px;border:1px solid rgba(234,134,12,.45);background:rgba(234,134,12,.12);color:#ffb44a;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg><span>Perto de mim</span></button>
+    <div id="agPertoMsg" style="display:none;font-size:12px;color:rgba(255,255,255,.55);margin:-6px 0 12px;text-align:center;line-height:1.45"></div>
     <div id="agAcademias"></div>
   </div>
 
@@ -4089,47 +4092,88 @@ async function loadMinhasReservas() {
   } catch(e) { console.error(e); }
 }
 
+// ── Busca de academias + Perto de mim (29/09c) ──
+// A posição do celular só vai na busca (o servidor devolve a distância e
+// não grava). Se o aluno já deu permissão antes, a lista já abre em ordem
+// de distância; se nunca deu, só pede quando ele toca em "Perto de mim".
+var _agPos = null;
 async function loadAcademias() {
   try {
-    const r = await fetch(SERVER_HTTP + '/agenda/cidades');
+    var q = _agPos ? ('?lat=' + _agPos.lat.toFixed(4) + '&lng=' + _agPos.lng.toFixed(4)) : '';
+    const r = await fetch(SERVER_HTTP + '/agenda/cidades' + q);
     _agTodasAcademias = await r.json();
-    renderAcademias(_agTodasAcademias);
+    if (!Array.isArray(_agTodasAcademias)) _agTodasAcademias = [];
+    filtrarAcademias((document.getElementById('agCidadeInput') || {}).value || '');
   } catch(e) {
     document.getElementById('agAcademias').innerHTML = '<div style="color:rgba(255,255,255,.3);font-size:13px;text-align:center;padding:16px;">Nenhuma academia disponível.</div>';
   }
+  if (!_agPos && !window._agPertoAuto) { window._agPertoAuto = true;
+    try { navigator.permissions && navigator.permissions.query({ name: 'geolocation' }).then(function(st){ if (st.state === 'granted') agPertoDeMim(false); }).catch(function(){}); } catch(e) {}
+  }
+}
+function agPertoMsg(t){ var m = document.getElementById('agPertoMsg'); if (!m) return; m.style.display = t ? 'block' : 'none'; m.innerHTML = t || ''; }
+function agPertoDeMim(pediu) {
+  var btn = document.getElementById('agPertoBtn');
+  if (!navigator.geolocation) { if (pediu) agPertoMsg('Este aparelho não informa a localização. Busque pela cidade.'); return; }
+  if (btn) { btn.disabled = true; btn.querySelector('span').textContent = 'Procurando você…'; }
+  navigator.geolocation.getCurrentPosition(function(p){
+    _agPos = { lat: p.coords.latitude, lng: p.coords.longitude };
+    if (btn) { btn.disabled = false; btn.querySelector('span').textContent = 'Perto de mim · atualizar'; }
+    agPertoMsg(''); loadAcademias();
+  }, function(err){
+    if (btn) { btn.disabled = false; btn.querySelector('span').textContent = 'Perto de mim'; }
+    if (pediu) agPertoMsg(err.code === 1
+      ? 'A localização está bloqueada para o ProRider. Libere em <b>Ajustes → Navegador → Localização</b> (ou no cadeado ao lado do endereço) e toque de novo. Enquanto isso, busque pela cidade.'
+      : 'Não consegui achar você agora. Ligue o GPS e tente de novo, ou busque pela cidade.');
+  }, { enableHighAccuracy: false, timeout: 12000, maximumAge: 300000 });
 }
 
 function filtrarAcademias(q) {
-  const f = q.toLowerCase();
-  renderAcademias(_agTodasAcademias.filter(a =>
-    (a.cidade||'').toLowerCase().includes(f) ||
-    (a.nome||'').toLowerCase().includes(f) ||
-    (a.nome_fantasia||'').toLowerCase().includes(f)
+  const f = String(q || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+  const n = function(t){ return String(t || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, ''); };
+  renderAcademias(!f ? _agTodasAcademias : _agTodasAcademias.filter(a =>
+    n(a.cidade).includes(f) || n(a.nome).includes(f) || n(a.nome_fantasia).includes(f) || n(a.bairro).includes(f)
   ));
 }
 
+function agDist(km) { if (km == null) return ''; return km < 1 ? Math.max(50, Math.round(km * 1000 / 50) * 50) + ' m' : (km < 10 ? km.toFixed(1).replace('.', ',') : Math.round(km)) + ' km'; }
+function agCardAcademia(a) {
+  const nm = String(a.nome_fantasia || a.nome || '').replace(/</g, '&lt;');
+  const sub = [a.bairro, a.cidade].filter(Boolean).join(' · ').replace(/</g, '&lt;');
+  const vivo = a.ao_vivo ? `<div style="display:inline-flex;align-items:center;gap:6px;margin-top:5px;font-size:11px;font-weight:800;color:#8fe06a;background:rgba(93,177,61,.14);border:1px solid rgba(93,177,61,.45);padding:3px 8px;border-radius:20px;"><i style="width:7px;height:7px;border-radius:50%;background:#7dff5a;box-shadow:0 0 8px #7dff5a;display:inline-block"></i>${a.ao_vivo.iniciada ? 'AULA AGORA' : 'AULA ABRINDO'}${a.ao_vivo.livres != null ? ' · ' + a.ao_vivo.livres + ' bike' + (a.ao_vivo.livres == 1 ? '' : 's') + ' livre' + (a.ao_vivo.livres == 1 ? '' : 's') : ''}</div>` : '';
+  return `
+        <div onclick="abrirGradeAcademia('${a.codigo}')" style="display:flex;align-items:center;gap:12px;background:rgba(255,255,255,.04);border:1px solid ${a.ao_vivo ? 'rgba(93,177,61,.5)' : 'rgba(255,255,255,.07)'};border-radius:12px;padding:14px;margin-bottom:8px;cursor:pointer;">
+          <div style="width:40px;height:40px;border-radius:10px;background:linear-gradient(135deg,rgba(234,134,12,.3),rgba(214,45,45,.3));display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">⚡</div>
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:14px;font-weight:700;">${nm}</div>
+            <div style="font-size:11px;color:rgba(255,255,255,.4);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${sub}</div>
+            ${vivo}
+          </div>
+          ${a.dist_km != null ? `<div style="font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:17px;color:#ffb44a;white-space:nowrap;">${agDist(a.dist_km)}</div>` : ''}
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.3)" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+        </div>`;
+}
+function agTitulo(t) { return `<div style="font-size:10px;font-weight:700;letter-spacing:2px;color:rgba(255,255,255,.3);text-transform:uppercase;margin-bottom:8px;">${t}</div>`; }
 function renderAcademias(lista) {
   const el = document.getElementById('agAcademias');
   if (!lista.length) {
     el.innerHTML = '<div style="color:rgba(255,255,255,.3);font-size:13px;text-align:center;padding:16px;">Nenhuma academia encontrada.</div>';
     return;
   }
-  // agrupar por cidade
+  let h = '';
+  const perto = lista.filter(a => a.dist_km != null);
+  const resto = lista.filter(a => a.dist_km == null);
+  if (perto.length) {
+    h += '<div style="margin-bottom:16px;">' + agTitulo('📍 Perto de você') + perto.map(agCardAcademia).join('') + '</div>';
+  } else {
+    const vivo = resto.filter(a => a.ao_vivo);
+    if (vivo.length) h += '<div style="margin-bottom:16px;">' + agTitulo('🟢 Aula acontecendo agora') + vivo.map(agCardAcademia).join('') + '</div>';
+  }
+  // o resto agrupado por cidade (como antes)
   const byCidade = {};
-  lista.forEach(a => { const c = a.cidade||'Outros'; if(!byCidade[c]) byCidade[c]=[]; byCidade[c].push(a); });
-  el.innerHTML = Object.entries(byCidade).map(([cidade, acs]) => `
-    <div style="margin-bottom:16px;">
-      <div style="font-size:10px;font-weight:700;letter-spacing:2px;color:rgba(255,255,255,.3);text-transform:uppercase;margin-bottom:8px;">📍 ${cidade}</div>
-      ${acs.map(a => `
-        <div onclick="abrirGradeAcademia('${a.codigo}')" style="display:flex;align-items:center;gap:12px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);border-radius:12px;padding:14px;margin-bottom:8px;cursor:pointer;">
-          <div style="width:40px;height:40px;border-radius:10px;background:linear-gradient(135deg,rgba(234,134,12,.3),rgba(214,45,45,.3));display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">⚡</div>
-          <div style="flex:1;min-width:0;">
-            <div style="font-size:14px;font-weight:700;">${a.nome_fantasia||a.nome}</div>
-            <div style="font-size:11px;color:rgba(255,255,255,.4);">${a.cidade}</div>
-          </div>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.3)" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
-        </div>`).join('')}
-    </div>`).join('');
+  resto.filter(a => perto.length || !a.ao_vivo).forEach(a => { const c = a.cidade || 'Outros'; (byCidade[c] = byCidade[c] || []).push(a); });
+  h += Object.entries(byCidade).map(([cidade, acs]) => '<div style="margin-bottom:16px;">' + agTitulo('📍 ' + String(cidade).replace(/</g, '&lt;')) + acs.map(agCardAcademia).join('') + '</div>').join('');
+  el.innerHTML = h;
 }
 
 async function abrirGradeAcademia(licId) {
@@ -8380,7 +8424,7 @@ updateProfileUI = function() {
          + ' fill="none" stroke="'+col(fm)+'" stroke-width="30" stroke-linecap="'+cap+'"/>';
     }
     g.innerHTML=out;
-    try{ console.log('%c[ProRider Aluno] BUILD 29/09a — faixa verde da aula ao vivo na academia + aulas de hoje na grade + brasões novos (subiu de nível) + Criar aula do Portal abre direto o Construtor (/aluno#construtor) + FC da cinta do celular vai para o Ginasio; Avg. HR = media da aula; aula termina quando a sala some + resultado do teste de FTP da aula no celular (1 min; automatico grava, senao pergunta) + home do professor: sai o Build Workout antigo (com senha), fica Agenda + Treino do Treinador + Construtor de Treino + voltar para a propria bike depois de reabrir o app + relogio do bloco anda sem bike transmitindo + vigia: reentra na sala se a aula parar de chegar + resultado do desafio no celular (10 s, toque fecha) + sexo enviado na entrada da sala (desafio Homens x Mulheres) + aluno sem nome nao entra mais como "-" na sala + leitor do app aceita o QR de Minhas Aulas do Ginasio + aula anterior nao fica mais grudada (fim da aula fecha o socket em qualquer tela; QR de outra sala troca de sala) + gauge com FTP e BLOCO simetricos + marcha e FC na aula da academia + %FTP com o FTP da gaveta na hora + FTP da gaveta vai para a sala na hora + FTP tambem na entrada pela reserva + Revisar o treino mostra a aula do Ginasio + caloria por watt (kJ/eficiencia) + basal Mifflin-St Jeor no cadastro + historico gravado no aparelho + FTP na gaveta + card 1080x1920 reposicionado + 6 protocolos de FTP + TSS + teste de 3 min + fator do teste de 5 min corrigido (era 1,05) + explicacao de FTP em cada teste + gaveta esconde pela propria altura + importacao de treino do TrainingPeaks (grade 2x2 na tela inicial + construtor) com tela de conferencia (botoes acima da navegacao) + corrigido: aula aberta por objeto agora e a que roda + botao Revisar o treino na gaveta + FTP e peso persistem no aparelho + gauge reequilibrado + textos do Brasil + codigo de sala normalizado (QR do navegador deixava a sala inexistente) + faixa de voltar corrigida + reconexao nao trava mais + sala encerrada limpa o codigo guardado + VISTA DA SALA + card comprido de Construtor para professor + fim da corrida no login','color:#ea860c;font-weight:700;'); }catch(e){}
+    try{ console.log('%c[ProRider Aluno] BUILD 29/09c — Perto de mim na lupinha (GPS do celular, distância até a academia, aula ao vivo no topo) + faixa verde da aula ao vivo na academia + aulas de hoje na grade + brasões novos (subiu de nível) + Criar aula do Portal abre direto o Construtor (/aluno#construtor) + FC da cinta do celular vai para o Ginasio; Avg. HR = media da aula; aula termina quando a sala some + resultado do teste de FTP da aula no celular (1 min; automatico grava, senao pergunta) + home do professor: sai o Build Workout antigo (com senha), fica Agenda + Treino do Treinador + Construtor de Treino + voltar para a propria bike depois de reabrir o app + relogio do bloco anda sem bike transmitindo + vigia: reentra na sala se a aula parar de chegar + resultado do desafio no celular (10 s, toque fecha) + sexo enviado na entrada da sala (desafio Homens x Mulheres) + aluno sem nome nao entra mais como "-" na sala + leitor do app aceita o QR de Minhas Aulas do Ginasio + aula anterior nao fica mais grudada (fim da aula fecha o socket em qualquer tela; QR de outra sala troca de sala) + gauge com FTP e BLOCO simetricos + marcha e FC na aula da academia + %FTP com o FTP da gaveta na hora + FTP da gaveta vai para a sala na hora + FTP tambem na entrada pela reserva + Revisar o treino mostra a aula do Ginasio + caloria por watt (kJ/eficiencia) + basal Mifflin-St Jeor no cadastro + historico gravado no aparelho + FTP na gaveta + card 1080x1920 reposicionado + 6 protocolos de FTP + TSS + teste de 3 min + fator do teste de 5 min corrigido (era 1,05) + explicacao de FTP em cada teste + gaveta esconde pela propria altura + importacao de treino do TrainingPeaks (grade 2x2 na tela inicial + construtor) com tela de conferencia (botoes acima da navegacao) + corrigido: aula aberta por objeto agora e a que roda + botao Revisar o treino na gaveta + FTP e peso persistem no aparelho + gauge reequilibrado + textos do Brasil + codigo de sala normalizado (QR do navegador deixava a sala inexistente) + faixa de voltar corrigida + reconexao nao trava mais + sala encerrada limpa o codigo guardado + VISTA DA SALA + card comprido de Construtor para professor + fim da corrida no login','color:#ea860c;font-weight:700;'); }catch(e){}
   }
   if(document.readyState!=='loading') buildGaugeArc();
   else document.addEventListener('DOMContentLoaded', buildGaugeArc);

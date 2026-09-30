@@ -763,6 +763,10 @@ async function runMigrations() {
         ADD COLUMN IF NOT EXISTS totem_token TEXT
     `);
     log('Migração 29/09a (brasões, página pública, totem) OK');
+    // 29/09c: localização da academia ("Perto de mim" no app)
+    await db.query(`ALTER TABLE licencas ADD COLUMN IF NOT EXISTS geo_fonte TEXT, ADD COLUMN IF NOT EXISTS geo_em TIMESTAMPTZ`);
+    log('Migração 29/09c (localização) OK');
+    setTimeout(() => geoPreencherFaltando().catch(e => log('geo backfill: ' + e.message)), 15000);
 
   } catch(e) {
     log('Migração ERRO: ' + e.message);
@@ -1944,6 +1948,7 @@ app.post('/admin/licencas', adminAuth, async (req, res) => {
         [b.logradouro||null, b.numero||null, b.bairro||null, b.cep||null, b.cidade_lic||null, b.estado||null, b.pais||'Brasil',
          (b.gestor_email||'').trim().toLowerCase() || null, r.rows[0].id]);
     } catch(_e) { log('licenca endereço: ' + _e.message); }
+    geoAtualizarPorEndereco(r.rows[0].id, false).catch(() => {}); // 29/09c
     // 26/09e: cria o login do gestor e manda o e-mail de boas-vindas
     const out = { ...r.rows[0] };
     const gEmail = String(b.gestor_email || '').trim().toLowerCase();
@@ -1983,6 +1988,7 @@ app.put('/admin/licencas/:id', adminAuth, async (req, res) => {
   const _mb = _validaMaxBikes(max_bikes);
   if (!_mb.ok) return res.status(400).json({ error: _mb.erro });
   try {
+    const _antes = await db.query('SELECT * FROM licencas WHERE id=$1', [req.params.id]);
     const r = await db.query(
       `UPDATE licencas SET nome=$1, contato_nome=$2, contato_email=$3, contato_tel=$4,
        plano=$5, max_alunos=$6, max_profs=$7, valor_mensal=$8, vencimento=$9,
@@ -1997,6 +2003,10 @@ app.put('/admin/licencas/:id', adminAuth, async (req, res) => {
     );
     // disponiveis nunca acima do vendido (24/09)
     try { await db.query('UPDATE licencas SET bikes_disponiveis=LEAST(COALESCE(NULLIF(bikes_disponiveis,0), max_bikes), max_bikes) WHERE id=$1', [req.params.id]); } catch(_e) {}
+    // 29/09c: endereço mudou (ou ainda sem localização) -> procura no mapa
+    { const A = _antes.rows[0] || {}, N = r.rows[0] || {};
+      const mudou = ['logradouro', 'numero', 'bairro', 'cep', 'cidade_lic', 'estado'].some(k => String(A[k] || '') !== String(N[k] || ''));
+      if (N.id && (mudou || N.lat === null)) geoAtualizarPorEndereco(N.id, false).catch(() => {}); }
     res.json(r.rows[0]);
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
@@ -3723,19 +3733,138 @@ app.post('/totem/:t/entrar', async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-// Buscar academias por cidade
+// ══════════════════════════════════════════════════════════════
+// LOCALIZAÇÃO DAS ACADEMIAS (29/09c) — "Perto de mim" na lupinha do app
+// ══════════════════════════════════════════════════════════════
+// A academia ganha latitude/longitude de 3 jeitos (geo_fonte):
+//   'gps'      — o gestor, estando na academia, toca "usar a localização
+//                deste aparelho" no Portal (o mais preciso);
+//   'manual'   — o gestor cola coordenadas ou um link do Google Maps;
+//   'endereco' — o servidor procura o endereço cadastrado no mapa
+//                (OpenStreetMap/Nominatim, grátis) sempre que o endereço
+//                muda. Nunca sobrescreve 'gps' nem 'manual'.
+// O celular do aluno manda a posição só na busca; o servidor não grava.
+function geoNum(v, lim) { if (v == null || String(v).trim() === '') return null; const n = Number(String(v).trim().replace(',', '.')); return (isFinite(n) && Math.abs(n) <= lim) ? n : null; }
+function geoDistKm(lat1, lng1, lat2, lng2) {
+  const R = 6371, rad = Math.PI / 180, dLat = (lat2 - lat1) * rad, dLng = (lng2 - lng1) * rad;
+  const h = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * rad) * Math.cos(lat2 * rad) * Math.sin(dLng / 2) ** 2;
+  return 2 * R * Math.asin(Math.min(1, Math.sqrt(h)));
+}
+// aceita "-23.55, -46.70" ou links do Google Maps (@-23.55,-46.70 / q=-23.55,-46.70 / !3d-23.55!4d-46.70)
+function geoDeTexto(t) {
+  t = String(t || '');
+  let m = /!3d(-?\d+(?:\.\d+)?)!4d(-?\d+(?:\.\d+)?)/.exec(t)
+       || /@(-?\d+(?:\.\d+)?),\s*(-?\d+(?:\.\d+)?)/.exec(t)
+       || /[?&](?:q|ll|query|destination)=(-?\d+(?:\.\d+)?),\s*(-?\d+(?:\.\d+)?)/.exec(t)
+       || /^\s*(-?\d{1,2}(?:[.,]\d+)?)\s*[,;\s]\s*(-?\d{1,3}(?:[.,]\d+)?)\s*$/.exec(t);
+  if (!m) return null;
+  const lat = geoNum(m[1], 90), lng = geoNum(m[2], 180);
+  return (lat === null || lng === null || (lat === 0 && lng === 0)) ? null : { lat, lng };
+}
+const GEOCODER_URL = process.env.GEOCODER_URL || 'https://nominatim.openstreetmap.org/search';
+let _geoUltima = 0;
+async function geoBuscarEndereco(L) {
+  // tenta o endereço completo; se não achar, rua + cidade; por último o CEP
+  const cidade = L.cidade_lic || L.cidade, uf = L.estado, pais = L.pais || 'Brasil';
+  const tentativas = [];
+  if (L.logradouro && cidade) tentativas.push([L.logradouro + (L.numero ? ', ' + L.numero : ''), L.bairro, cidade, uf, pais].filter(Boolean).join(', '));
+  if (L.logradouro && cidade) tentativas.push([L.logradouro, cidade, uf, pais].filter(Boolean).join(', '));
+  if (L.cep) tentativas.push([String(L.cep).replace(/\D/g, '').replace(/^(\d{5})(\d{3})$/, '$1-$2'), pais].join(', '));
+  for (const q of tentativas) {
+    const espera = 1100 - (Date.now() - _geoUltima); if (espera > 0) await new Promise(r => setTimeout(r, espera)); // regra do Nominatim: 1 por segundo
+    _geoUltima = Date.now();
+    try {
+      const ctl = new AbortController(), to = setTimeout(() => ctl.abort(), 8000);
+      const r = await fetch(GEOCODER_URL + '?format=json&limit=1&countrycodes=br&q=' + encodeURIComponent(q),
+        { headers: { 'User-Agent': 'ProRider/1.0 (' + (process.env.GEOCODER_EMAIL || 'contato@prorider.app') + ')', 'Accept-Language': 'pt-BR' }, signal: ctl.signal });
+      clearTimeout(to);
+      if (!r.ok) continue;
+      const j = await r.json();
+      if (Array.isArray(j) && j.length) { const lat = geoNum(j[0].lat, 90), lng = geoNum(j[0].lon, 180); if (lat !== null && lng !== null) return { lat, lng, q }; }
+    } catch (e) { log('geo: ' + e.message); }
+  }
+  return null;
+}
+// procura pelo endereço, a não ser que o gestor já tenha marcado no GPS/manual
+async function geoAtualizarPorEndereco(codigoOuId, forcar) {
+  if (!db) return null;
+  const r = await db.query('SELECT * FROM licencas WHERE ' + (typeof codigoOuId === 'number' ? 'id=$1' : 'codigo=$1'), [codigoOuId]);
+  const L = r.rows[0]; if (!L) return null;
+  if (!forcar && ['gps', 'manual'].includes(L.geo_fonte)) return null;
+  const g = await geoBuscarEndereco(L);
+  if (!g) return null;
+  await db.query("UPDATE licencas SET lat=$1, lng=$2, geo_fonte='endereco', geo_em=NOW() WHERE id=$3", [g.lat, g.lng, L.id]);
+  log('geo: ' + L.codigo + ' → ' + g.lat + ',' + g.lng);
+  return g;
+}
+async function geoPreencherFaltando() {
+  if (!db) return;
+  const r = await db.query(`SELECT id FROM licencas WHERE status='ativa' AND lat IS NULL AND geo_em IS NULL
+    AND ((logradouro IS NOT NULL AND COALESCE(cidade_lic, cidade) IS NOT NULL) OR cep IS NOT NULL) LIMIT 50`);
+  for (const x of r.rows) {
+    const g = await geoAtualizarPorEndereco(x.id, false);
+    if (!g) await db.query('UPDATE licencas SET geo_em=NOW() WHERE id=$1 AND lat IS NULL', [x.id]); // não tenta de novo a cada reinício
+  }
+}
+
+// Buscar academias (lupinha). Sem posição: igual antes (por cidade).
+// Com ?lat=&lng= (celular do aluno): traz dist_km e vem ordenado por
+// distância. Toda academia com aula acontecendo agora vem com ao_vivo.
 app.get('/agenda/cidades', async (req, res) => {
   if (!db) return res.status(503).json({ error: 'Banco indisponível' });
   try {
     const r = await db.query(`
-      SELECT DISTINCT l.codigo, l.nome, l.nome_fantasia, COALESCE(NULLIF(l.cidade,''), l.cidade_lic) AS cidade
+      SELECT l.codigo, l.nome, l.nome_fantasia, COALESCE(NULLIF(l.cidade,''), l.cidade_lic) AS cidade, l.estado, l.bairro,
+             l.lat, l.lng,
+             (SELECT COUNT(*) FROM aulas_agenda a WHERE a.license_id=l.codigo AND a.ativa=TRUE)::int AS n_aulas
       FROM licencas l
-      JOIN aulas_agenda a ON a.license_id=l.codigo
-      WHERE l.status='ativa' AND a.ativa=TRUE AND COALESCE(NULLIF(l.cidade,''), l.cidade_lic) IS NOT NULL
-      ORDER BY 4, l.nome
+      WHERE l.status='ativa'
     `);
-    res.json(r.rows);
+    const uLat = geoNum(req.query.lat, 90), uLng = geoNum(req.query.lng, 180), comPos = uLat !== null && uLng !== null;
+    const out = [];
+    for (const l of r.rows) {
+      const av = aulaAtivaDe(l.codigo);
+      if (!l.n_aulas && !av) continue;                                 // sem grade e sem aula agora: não aparece
+      const temGeo = l.lat !== null && l.lng !== null;
+      if (!l.cidade && !temGeo) continue;
+      const o = { codigo: l.codigo, nome: l.nome, nome_fantasia: l.nome_fantasia, cidade: l.cidade, estado: l.estado, bairro: l.bairro,
+                  tem_localizacao: temGeo, ao_vivo: av ? { nome_aula: av.nome_aula, iniciada: av.iniciada, livres: av.livres } : null };
+      if (comPos && temGeo) o.dist_km = Math.round(geoDistKm(uLat, uLng, Number(l.lat), Number(l.lng)) * 10) / 10;
+      out.push(o);
+    }
+    out.sort((a, b) => comPos
+      ? ((a.dist_km == null) - (b.dist_km == null)) || ((a.dist_km || 0) - (b.dist_km || 0)) || String(a.cidade || '').localeCompare(String(b.cidade || ''))
+      : String(a.cidade || '').localeCompare(String(b.cidade || '')) || String(a.nome_fantasia || a.nome).localeCompare(String(b.nome_fantasia || b.nome)));
+    res.json(out);
   } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// Portal do gestor: ver / marcar a localização da academia
+app.get('/gestor/localizacao', gestorAuth, async (req, res) => {
+  try {
+    const r = await db.query('SELECT lat, lng, geo_fonte, geo_em, logradouro, numero, bairro, cep, COALESCE(NULLIF(cidade_lic,\'\'), cidade) AS cidade, estado FROM licencas WHERE codigo=$1', [req.user.license_id]);
+    if (!r.rows.length) return res.status(404).json({ error: 'Licença não encontrada' });
+    const L = r.rows[0];
+    res.json({ lat: L.lat === null ? null : Number(L.lat), lng: L.lng === null ? null : Number(L.lng), fonte: L.lat === null ? null : L.geo_fonte, em: L.geo_em,
+      endereco: [[L.logradouro, L.numero].filter(Boolean).join(', '), L.bairro, [L.cidade, L.estado].filter(Boolean).join(' - '), L.cep].filter(Boolean).join(' · ') });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+app.put('/gestor/localizacao', gestorAuth, async (req, res) => {
+  if (!['gestor', 'admin', 'super_admin'].includes(req.user.role) && !req.user.impersonated_by) return res.status(403).json({ error: 'Só o gestor marca a localização.' });
+  try {
+    const b = req.body || {};
+    if (b.pelo_endereco) {
+      const g = await geoAtualizarPorEndereco(req.user.license_id, true);
+      if (!g) return res.status(422).json({ error: 'Não achei esse endereço no mapa. Confira o endereço da academia ou use a localização do aparelho estando lá.' });
+      return res.json({ ok: true, lat: g.lat, lng: g.lng, fonte: 'endereco' });
+    }
+    let g = null, fonte = b.fonte === 'gps' ? 'gps' : 'manual';
+    if (b.texto) g = geoDeTexto(b.texto);
+    else { const lat = geoNum(b.lat, 90), lng = geoNum(b.lng, 180); if (lat !== null && lng !== null) g = { lat, lng }; }
+    if (!g) return res.status(400).json({ error: 'Coordenadas inválidas. Cole algo como -23.5505, -46.6333 ou um link do Google Maps.' });
+    await db.query('UPDATE licencas SET lat=$1, lng=$2, geo_fonte=$3, geo_em=NOW(), updated_at=NOW() WHERE codigo=$4', [g.lat, g.lng, fonte, req.user.license_id]);
+    res.json({ ok: true, lat: g.lat, lng: g.lng, fonte });
+  } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
 // Grade de uma academia específica (próximos 7 dias)

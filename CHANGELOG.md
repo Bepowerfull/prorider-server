@@ -39,6 +39,47 @@ Componentes: `servidor` · `app` · `ginasio` · `portal` · `banco`.
 - GET /agenda/aula-ativa/:license_id
 - JWT_SECRET obrigatório — throw; valor fixo no Railway em 23/09
 
+---
+
+## 2026-09-29 · servidor + portal + app · 29/09c — localização ("Perto de mim")
+
+**O que mudou**
+- **App, lupinha (Agenda → Buscar academia):**
+  - botão **"Perto de mim"**: usa o GPS do celular e lista as academias por distância ("300 m", "5,9 km");
+  - se o aluno já deu permissão antes, a lista já abre em ordem de distância;
+  - academia com aula aberta agora ganha a etiqueta verde **"AULA AGORA / AULA ABRINDO · N bikes livres"**. Sem GPS, ela vai para o topo, no grupo "Aula acontecendo agora";
+  - a busca por texto também acha pelo **bairro** e ignora acentos ("sao paulo" acha "São Paulo");
+  - permissão negada: o app explica como liberar e a busca por cidade continua funcionando.
+- **Portal, "Página no site" → cartão "📍 Localização no app":**
+  - "Estou na academia: usar este aparelho" (GPS);
+  - "Buscar pelo endereço";
+  - colar coordenadas ou um link do Google Maps;
+  - mostra de onde veio a localização e o link "ver no mapa".
+  - Na **Grade**, aparece um aviso enquanto a academia não tiver localização.
+- **Servidor:**
+  - `GET /agenda/cidades` aceita `?lat=&lng=` e devolve `dist_km`, `bairro`, `ao_vivo` e `tem_localizacao`. Sem posição, a resposta é igual à de antes (compatível com o app antigo). Agora também aparece a academia com aula aberta mesmo sem grade;
+  - rotas novas `GET/PUT /gestor/localizacao`;
+  - ao criar ou editar uma licença no Portal do super admin, o servidor procura o endereço no mapa sozinho (OpenStreetMap / Nominatim, grátis, sem chave). Na primeira subida, ele preenche as academias que já têm endereço (até 50, uma por segundo).
+- **Banco:** colunas novas `licencas.geo_fonte` (`gps` | `manual` | `endereco`) e `licencas.geo_em`. As colunas `lat`/`lng` já existiam e agora são usadas.
+
+**Por quê**
+- O Mario pediu busca por localização na lupinha: o aluno acha a academia mais perto e entra na aula que está acontecendo.
+
+**Como confirmar**
+- O log mostra `Migração 29/09c (localização) OK` e, alguns segundos depois, uma linha `geo: CODIGO → lat,lng` para cada academia com endereço.
+- `GET /agenda/cidades?lat=-23.56&lng=-46.70` traz `dist_km` e vem em ordem de distância.
+- Portal → Página no site: o cartão mostra "✓ Aparece no Perto de mim" e o link do mapa abre no lugar certo.
+- No celular (https), abra o app → Agenda → **Perto de mim** → permitir: aparece a distância.
+
+**Cuidados**
+- A localização do aluno não é gravada: vai só na busca, arredondada para cerca de 10 m.
+- A busca pelo endereço nunca sobrescreve uma localização marcada pelo GPS ou colada à mão.
+- O Nominatim pede no máximo 1 consulta por segundo e um contato no User-Agent. O servidor respeita isso. A variável opcional `GEOCODER_EMAIL` troca o contato (o padrão é contato@prorider.app).
+- A localização por endereço é aproximada (às vezes cai no meio da rua ou do bairro). O melhor é o gestor tocar "Estou na academia" uma vez, pelo celular.
+- O Ginásio não mudou: continua o BUILD 29/09b.
+
+---
+
 ## 2026-09-29 · servidor + portal + ginasio · 29/09b (substitui a 29/09a, que não foi publicada)
 
 **O que mudou**
