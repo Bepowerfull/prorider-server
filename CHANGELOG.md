@@ -33,6 +33,26 @@ Componentes: `servidor` · `app` · `ginasio` · `portal` · `banco`.
 
 ---
 
+## 2026-10-01 · ginasio · 01/10e — correção: telas de preparar a aula sem visual, gráficos, controle e peso
+
+**O que mudou**
+- `style.css`: o 01/10d saiu com o fim do arquivo cortado (blocos `bgc-*`, `pa2-*`, `nv-*`, `pv-info`, `pv-clk`, `#prYTWrap`, `#cdSpotify`, `#cdJa`). Restaurado a partir do 01/10c, só com a troca do bloco da tela de espera.
+- `telas-pv.js` `_pvBarras`: barras em posição absoluta pelo tempo (antes flex com 2 px de vão por bloco).
+- `telas-pv.js` `mostrarEscolha`: START aceito após 450 ms, sem precisar mexer no direcional.
+- `telas-pv.js` `_bgPrevLoop`: prévia parada só redesenha quando muda; cenário a ~30 quadros/s.
+- `script.js` `_prCabeTexto`: só reajusta quando texto/largura mudam. Medido: layout da aula ao vivo 0,11 → 0,04 s por segundo.
+- BUILD 01/10e.
+
+**Por quê**
+- O Mario viu as telas de origem, configurar e QR desmontadas, gráficos esticados, controle demorando e o sistema pesado.
+
+**Como confirmar**
+- As 4 telas de preparar a aula com cartões e cores; o eixo de minutos alinhado com as barras.
+- Na tela inicial, START direto abre a opção marcada.
+
+**Cuidados**
+- Só Ginásio. Servidor e site iguais ao 01/10c/d.
+
 ## 2026-10-01 · ginasio · 01/10d — tela de espera opção 2 (logo no centro, aulas passando embaixo)
 
 **O que mudou**
