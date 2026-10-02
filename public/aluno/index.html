@@ -1896,7 +1896,18 @@ input[type=file]{display:none}
         <div><div style="font-family:'Barlow Condensed',sans-serif;font-size:24px;font-weight:900;color:#5db13d;" id="rcVagas">—</div><div style="font-size:9px;color:rgba(255,255,255,.4);letter-spacing:1px;">VAGAS</div></div>
       </div>
     </div>
-    <button id="rcBtn" style="width:100%;padding:14px;border-radius:12px;border:none;background:linear-gradient(135deg,#ea860c,#d62d2d);color:#fff;font-size:16px;font-weight:700;cursor:pointer;" onclick="confirmarReserva()">RESERVAR VAGA</button>
+    <!-- 01/10b: escolher a BIKE antes de reservar -->
+    <div style="display:flex;align-items:baseline;justify-content:space-between;margin:0 0 10px;">
+      <div style="font-size:11px;font-weight:800;letter-spacing:2px;color:rgba(255,255,255,.45);text-transform:uppercase;">Escolha a sua bike</div>
+      <div id="rcBikeInfo" style="font-size:11px;color:rgba(255,255,255,.35);"></div>
+    </div>
+    <div id="rcBikes" style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:10px;max-height:42vh;overflow-y:auto;"></div>
+    <div style="display:flex;gap:14px;justify-content:center;font-size:11px;color:rgba(255,255,255,.4);margin-bottom:16px;">
+      <span><b style="display:inline-block;width:10px;height:10px;border-radius:3px;background:rgba(255,255,255,.12);vertical-align:-1px;"></b> livre</span>
+      <span><b style="display:inline-block;width:10px;height:10px;border-radius:3px;background:#ea860c;vertical-align:-1px;"></b> sua</span>
+      <span><b style="display:inline-block;width:10px;height:10px;border-radius:3px;background:rgba(214,45,45,.5);vertical-align:-1px;"></b> reservada</span>
+    </div>
+    <button id="rcBtn" disabled style="width:100%;padding:14px;border-radius:12px;border:none;background:linear-gradient(135deg,#ea860c,#d62d2d);color:#fff;font-size:16px;font-weight:700;cursor:pointer;opacity:.45;" onclick="confirmarReserva()">ESCOLHA A BIKE</button>
     <button onclick="closeReservaModal()" style="width:100%;padding:12px;border-radius:12px;border:none;background:transparent;color:rgba(255,255,255,.4);font-size:14px;cursor:pointer;margin-top:8px;">Cancelar</button>
   </div>
 </div>
@@ -2253,8 +2264,28 @@ function _numBikesCacheLer(){ try{ var s=localStorage.getItem('pr_sala_nb_'+(las
 // para mim (marcada SUA), e posso voltar para ela. Duas pistas: o nome de
 // quem ocupa (Ginasio novo manda 'ocupantes') e a ultima bike que escolhi
 // nesta sala, guardada no aparelho (funciona mesmo com Ginasio antigo).
+// 01/10b: id da conta (vai no entrar_sala: a reserva vira 'presente' e o campeonato liga à conta)
+function _prUid(){ try{ var t=localStorage.getItem('pr_token')||''; var p=t.split('.')[1]; if(!p) return null;
+  var j=JSON.parse(decodeURIComponent(escape(atob(p.replace(/-/g,'+').replace(/_/g,'/'))))); return j&&j.id?j.id:null; }catch(e){ return null; } }
+// 01/10b: bike que reservei para a aula de agora (hoje, de 90 min antes até o fim)
+var _prResvHoje=null;
+async function _prCarregarReservaHoje(){
+  try{
+    var tok=localStorage.getItem('pr_token')||''; if(!tok) return;
+    var r=await fetch(SERVER_HTTP+'/aluno/reservas',{headers:{'Authorization':'Bearer '+tok}}); if(!r.ok) return;
+    var l=await r.json(), ag=new Date(), iso=ag.getFullYear()+'-'+String(ag.getMonth()+1).padStart(2,'0')+'-'+String(ag.getDate()).padStart(2,'0'), min=ag.getHours()*60+ag.getMinutes();
+    _prResvHoje=null;
+    (Array.isArray(l)?l:[]).forEach(function(x){
+      if(String(x.data_aula).slice(0,10)!==iso||!x.bike_numero) return;
+      var p=String(x.hora||'').split(':'), h=parseInt(p[0],10)*60+parseInt(p[1]||0,10);
+      if(min>=h-90 && min<=h+(parseInt(x.duracao_min,10)||60)) _prResvHoje={bike:parseInt(x.bike_numero,10),aula:x.aula_nome,hora:String(x.hora||'').slice(0,5)};
+    });
+    try{ _renderBikeGrid(); }catch(e){}
+  }catch(e){}
+}
 function _bikeEhMinha(n){
   try{
+    if(_prResvHoje && _prResvHoje.bike===parseInt(n,10)) return true;
     var oc=(_salaInfo&&_salaInfo.ocupantes)||{}, quem=oc[n]||oc[String(n)];
     if(quem){ var eu=_entrarNome||_prNomeAluno(); return String(quem)===String(eu); }
     var ult=parseInt(localStorage.getItem('pr_ult_bike_'+(lastCode||''))||'0',10);
@@ -2317,9 +2348,18 @@ function _renderBikeGrid(){
     var bg=taken?'rgba(214,45,45,.12)':'rgba(255,255,255,.06)';
     var bc=taken?'rgba(214,45,45,.4)':(i===_bikeSelNum?'#ea860c':'rgba(255,255,255,.1)');
     var op=taken?'opacity:.45;':'';
-    html+='<button '+(taken?'disabled':'onclick="selectBike('+i+')"')+' style="padding:18px 0;border-radius:14px;background:'+bg+';border:2px solid '+bc+';color:#fff;font-family:\'Bebas Neue\',sans-serif;font-size:28px;cursor:'+(taken?'not-allowed':'pointer')+';transition:all .15s;'+op+'" id="bikeBtnSel'+i+'">'+i+(taken?'<div style="font-size:9px;letter-spacing:1px;">ocupada</div>':'')+'</button>';
+    var _res=_prResvHoje&&_prResvHoje.bike===i&&!taken;
+    if(_res&&i!==_bikeSelNum){ bg='rgba(234,134,12,.16)'; bc='#ea860c'; }
+    html+='<button '+(taken?'disabled':'onclick="selectBike('+i+')"')+' style="padding:18px 0;border-radius:14px;background:'+bg+';border:2px solid '+bc+';color:#fff;font-family:\'Bebas Neue\',sans-serif;font-size:28px;cursor:'+(taken?'not-allowed':'pointer')+';transition:all .15s;'+op+'" id="bikeBtnSel'+i+'">'+i+(taken?'<div style="font-size:9px;letter-spacing:1px;">ocupada</div>':(_res?'<div style="font-size:9px;letter-spacing:1px;color:#ffb45a;">SUA RESERVA</div>':''))+'</button>';
   }
   grid.innerHTML=html;
+  // 01/10b: aviso da bike reservada, em cima da grade
+  var av=document.getElementById('bikeSelResv');
+  if(!av){ av=document.createElement('div'); av.id='bikeSelResv'; grid.parentNode.insertBefore(av,topo); }
+  if(_prResvHoje && _prResvHoje.bike<=n){
+    av.style.cssText='margin:0 0 14px;padding:12px 14px;border-radius:14px;background:rgba(234,134,12,.12);border:1.5px solid rgba(234,134,12,.55);font-size:13px;line-height:1.4;';
+    av.innerHTML='<b style="color:#ffb45a">Você reservou a bike '+_prResvHoje.bike+'</b>'+(_prResvHoje.aula?' · '+_salaEsc(_prResvHoje.aula)+' '+_prResvHoje.hora:'')+'<br><span style="color:rgba(255,255,255,.6)">Toque nela para entrar. Se sentou em outra, toque na outra.</span>';
+  } else { av.style.cssText='display:none'; av.innerHTML=''; }
 }
 
 function selectBike(num){
@@ -2331,7 +2371,7 @@ function selectBike(num){
   // Já estava observando (socket aberto) → vira participante de verdade na bike escolhida
   if(wsConn && wsConn.readyState===1){
     _entrarNome=nomeVal; _entrarCodigo=lastCode;
-    wsConn.send(JSON.stringify({tipo:'entrar_sala',codigo:lastCode,nome:nomeVal,genero:_prSexoAluno(),nivel:_prNivelAluno(),bike:num,
+    wsConn.send(JSON.stringify({tipo:'entrar_sala',user_id:_prUid(),codigo:lastCode,nome:nomeVal,genero:_prSexoAluno(),nivel:_prNivelAluno(),bike:num,
       foto:(localStorage.getItem('pr_foto')||null),
       ftpBase:(function(){ try{ var f=parseInt(_ftpDoAluno(),10)||0; return f>0?f:null; }catch(e){ return null; } })()}));
   } else {
@@ -2412,13 +2452,14 @@ function connectQR(code){
         var _meuFtp = 0;
         try{ _meuFtp = parseInt(_ftpDoAluno(),10) || 0; }catch(e){}
         _entrarNome=nomeVal; _entrarCodigo=code;
-        wsConn.send(JSON.stringify({tipo:'entrar_sala',codigo:code,nome:nomeVal,genero:_prSexoAluno(),nivel:_prNivelAluno(),bike:_bikeSelNum,
+        wsConn.send(JSON.stringify({tipo:'entrar_sala',user_id:_prUid(),codigo:code,nome:nomeVal,genero:_prSexoAluno(),nivel:_prNivelAluno(),bike:_bikeSelNum,
           foto:(localStorage.getItem('pr_foto')||null),
           ftpBase:(_meuFtp>0?_meuFtp:null)}));
       } else {
         // Primeiro contato: observa o mapa da sala ao vivo e mostra a tela de seleção
         wsConn.send(JSON.stringify({tipo:'assinar_sala',codigo:code}));
         _renderBikeGrid();   // mostra cache imediatamente, se houver
+        _prCarregarReservaHoje();   // 01/10b: destaca a bike reservada
         go('sBikeSel');
       }
     };
@@ -4052,6 +4093,7 @@ async function loadMinhasReservas() {
   try {
     const r = await fetch(SERVER_HTTP + '/aluno/reservas', { headers:{'Authorization':'Bearer '+tok} });
     const lista = await r.json();
+    window._minhasResv = Array.isArray(lista) ? lista : [];   // 01/10b: a grade marca as aulas já reservadas
     const el = document.getElementById('minhasReservas');
     if (!Array.isArray(lista) || !lista.length) {
       el.innerHTML = '<div style="text-align:center;padding:20px;color:rgba(255,255,255,.3);font-size:13px;">Nenhuma reserva futura.</div>';
@@ -4059,7 +4101,7 @@ async function loadMinhasReservas() {
     }
     const DIAS = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
     el.innerHTML = lista.map(r => {
-      const d = new Date(r.data_aula+'T00:00');
+      const d = new Date(String(r.data_aula).slice(0,10)+'T00:00');   // 01/10b: vinha data com hora (NaN)
       return `<div style="display:flex;align-items:center;gap:12px;background:rgba(255,255,255,.04);border-radius:12px;padding:12px 14px;margin-bottom:8px;">
         <div style="text-align:center;min-width:40px;">
           <div style="font-size:9px;color:rgba(255,255,255,.4);letter-spacing:1px;">${DIAS[d.getDay()]}</div>
@@ -4068,6 +4110,7 @@ async function loadMinhasReservas() {
         <div style="flex:1;min-width:0;">
           <div style="font-size:14px;font-weight:700;">${r.aula_nome}</div>
           <div style="font-size:11px;color:rgba(255,255,255,.4);">${r.hora?.slice(0,5)} · ${r.academia_nome||r.nome_fantasia||''} · ${r.cidade||''}</div>
+          ${r.bike_numero ? `<div style="font-size:11px;font-weight:800;color:#ea860c;margin-top:2px;">🚲 Bike ${r.bike_numero}</div>` : `<div style="font-size:11px;color:#ffb45a;margin-top:2px;">sem bike escolhida — reserve de novo para escolher</div>`}
         </div>
         <button onclick="cancelarReserva(${r.id})" style="background:rgba(214,45,45,.12);border:1px solid rgba(214,45,45,.2);color:#d62d2d;padding:6px 10px;border-radius:8px;font-size:11px;cursor:pointer;">Cancelar</button>
       </div>`;
@@ -4171,6 +4214,7 @@ async function abrirGradeAcademia(licId) {
     document.getElementById('agNomeAcad').textContent = d.academia?.nome_fantasia || d.academia?.nome || licId;
     document.getElementById('agCidadeAcad').textContent = d.academia?.cidade || '';
     window._agAulasCache = d.aulas || [];
+    if (!window._minhasResv) { try { await loadMinhasReservas(); } catch(_) {} }
     renderGradeAluno(d.aulas || []);
     aulaAtivaVerificar(licId);
   } catch(e) {
@@ -4302,11 +4346,12 @@ function renderGradeAluno(aulas) {
           </div>
           <div style="display:flex;justify-content:space-between;align-items:center;">
             <div style="font-size:12px;font-weight:700;color:${corVaga};">${lotado ? '🔴 Lotado' : livres<=3 ? '🟡 '+livres+' vagas' : '🟢 '+livres+' vagas'}</div>
-            <button onclick="abrirReservaModal(${a.id},'${a.nome}','${a.hora.slice(0,5)}','${dateStr}',${a.duracao_min},${livres})"
+            ${(() => { const mr = (window._minhasResv||[]).find(x => x.agenda_id === a.id && String(x.data_aula).slice(0,10) === dateStr);
+              return mr ? `<button onclick="abrirReservaModal(${a.id},'${a.nome}','${a.hora.slice(0,5)}','${dateStr}',${a.duracao_min},${livres})" style="padding:8px 14px;border-radius:10px;border:1.5px solid #5db13d;background:rgba(93,177,61,.14);color:#8fe06a;font-size:13px;font-weight:700;cursor:pointer;">✓ ${mr.bike_numero ? 'Bike '+mr.bike_numero : 'Reservado'} · trocar</button>` : ''; })() || `<button onclick="abrirReservaModal(${a.id},'${a.nome}','${a.hora.slice(0,5)}','${dateStr}',${a.duracao_min},${livres})"
               ${lotado?'disabled':''}
               style="padding:8px 18px;border-radius:10px;border:none;background:${lotado?'rgba(255,255,255,.06)':'linear-gradient(135deg,#ea860c,#d62d2d)'};color:${lotado?'rgba(255,255,255,.3)':'#fff'};font-size:13px;font-weight:700;cursor:${lotado?'default':'pointer'};">
               ${lotado ? 'Lotado' : 'Reservar'}
-            </button>
+            </button>`}
           </div>
         </div>`;
       }).join('')}
@@ -4315,7 +4360,7 @@ function renderGradeAluno(aulas) {
 }
 
 function abrirReservaModal(agendaId, nome, hora, data, dur, vagas) {
-  _rcPendente = { agenda_id: agendaId, data_aula: data };
+  _rcPendente = { agenda_id: agendaId, data_aula: data, bike: null };
   // Guarda o contexto para a Sala do Professor saber de que aula falar.
   try{ salaContexto(agendaId, data); }catch(e){}
   document.getElementById('rcNome').textContent = nome;
@@ -4324,42 +4369,91 @@ function abrirReservaModal(agendaId, nome, hora, data, dur, vagas) {
   document.getElementById('rcHora').textContent = hora;
   document.getElementById('rcDur').textContent = dur+'min';
   document.getElementById('rcVagas').textContent = vagas;
+  _rcBtnAtualizar();
+  document.getElementById('rcBikes').innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:14px;color:rgba(255,255,255,.35);font-size:13px;">Carregando as bikes…</div>';
   document.getElementById('reservaConfirmModal').style.display = 'flex';
+  rcCarregarBikes();
+}
+// 01/10b: mapa das bikes da aula (as reservadas por outros ficam em vermelho)
+var _rcMapa = null;
+async function rcCarregarBikes() {
+  if (!_rcPendente) return;
+  const tok = localStorage.getItem('pr_token') || '';
+  const box = document.getElementById('rcBikes');
+  if (!tok) { box.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:14px;color:rgba(255,255,255,.45);font-size:13px;">Faça login para escolher a bike.</div>'; return; }
+  try {
+    const r = await fetch(SERVER_HTTP + '/aluno/agenda/' + _rcPendente.agenda_id + '/bikes?data=' + encodeURIComponent(_rcPendente.data_aula), { headers:{'Authorization':'Bearer '+tok} });
+    const m = await r.json();
+    if (!r.ok) throw new Error(m.error || 'erro');
+    _rcMapa = m;
+    if (m.minha && !_rcPendente.bike) _rcPendente.bike = m.minha;   // já reservada: mostra a dela e deixa trocar
+    rcRenderBikes();
+  } catch(e) {
+    box.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:14px;color:#ff8a8a;font-size:13px;">Não consegui carregar as bikes. <a onclick="rcCarregarBikes()" style="color:#ea860c;text-decoration:underline;cursor:pointer;">Tentar de novo</a></div>';
+  }
+}
+function rcRenderBikes() {
+  const m = _rcMapa || { total: 0, ocupadas: [] }, box = document.getElementById('rcBikes');
+  const oc = (m.ocupadas || []).map(Number);
+  let h = '';
+  for (let i = 1; i <= m.total; i++) {
+    const tomada = oc.indexOf(i) >= 0, sel = _rcPendente && _rcPendente.bike === i;
+    h += '<button ' + (tomada ? 'disabled' : 'onclick="rcEscolherBike(' + i + ')"') + ' style="padding:12px 0;border-radius:12px;font-family:\'Bebas Neue\',sans-serif;font-size:24px;line-height:1;color:#fff;'
+      + 'background:' + (sel ? 'linear-gradient(135deg,#ea860c,#d62d2d)' : tomada ? 'rgba(214,45,45,.14)' : 'rgba(255,255,255,.07)') + ';'
+      + 'border:2px solid ' + (sel ? '#ffb45a' : tomada ? 'rgba(214,45,45,.4)' : 'rgba(255,255,255,.1)') + ';' + (tomada ? 'opacity:.5;cursor:not-allowed;' : 'cursor:pointer;') + '">'
+      + i + (tomada ? '<div style="font-family:Barlow,sans-serif;font-size:8px;letter-spacing:.5px;margin-top:2px;">reservada</div>' : sel ? '<div style="font-family:Barlow,sans-serif;font-size:8px;letter-spacing:.5px;margin-top:2px;">SUA</div>' : '') + '</button>';
+  }
+  box.innerHTML = h || '<div style="grid-column:1/-1;text-align:center;padding:14px;color:rgba(255,255,255,.35);font-size:13px;">Sem bikes nesta aula.</div>';
+  const livres = m.total - oc.length - (m.minha ? 1 : 0);
+  document.getElementById('rcBikeInfo').textContent = m.total ? (m.total + ' bikes · ' + Math.max(0, livres) + ' livres') : '';
+  _rcBtnAtualizar();
+}
+function rcEscolherBike(n) { if (!_rcPendente) return; _rcPendente.bike = n; rcRenderBikes(); }
+function _rcBtnAtualizar() {
+  const b = document.getElementById('rcBtn'); if (!b) return;
+  const n = _rcPendente && _rcPendente.bike, troca = _rcMapa && _rcMapa.minha;
+  b.disabled = !n; b.style.opacity = n ? '1' : '.45';
+  b.textContent = !n ? 'ESCOLHA A BIKE' : (troca && troca !== n ? 'TROCAR PARA A BIKE ' + n : troca ? 'MANTER A BIKE ' + n : 'RESERVAR A BIKE ' + n);
 }
 
 function closeReservaModal() {
   document.getElementById('reservaConfirmModal').style.display = 'none';
-  _rcPendente = null;
+  _rcPendente = null; _rcMapa = null;
 }
 
 async function confirmarReserva() {
   if (!_rcPendente) return;
+  if (!_rcPendente.bike) { showToast('Escolha a bike primeiro.'); return; }
   const tok = localStorage.getItem('pr_token') || '';
   if (!tok) { showToast('Faça login primeiro.'); closeReservaModal(); return; }
-  document.getElementById('rcBtn').textContent = 'Reservando...';
+  const btn = document.getElementById('rcBtn');
+  btn.textContent = 'Reservando...'; btn.disabled = true;
   try {
     const r = await fetch(SERVER_HTTP + '/aluno/reservar', {
       method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+tok},
       body: JSON.stringify(_rcPendente)
     });
     const d = await r.json();
-    closeReservaModal();
     if (r.ok) {
-      showToast('✅ Reserva confirmada!');
+      const bk = d.bike_numero || _rcPendente.bike;
+      closeReservaModal();
+      showToast('✅ Reservado! Bike ' + bk + ' é sua.');
       await loadMinhasReservas();
       if (_agAcadSelecionada) abrirGradeAcademia(_agAcadSelecionada);
-    } else {
-      showToast(d.error || 'Erro ao reservar.', '#d62d2d');
+      return;
     }
+    showToast(d.error || 'Erro ao reservar.', '#d62d2d');
+    if (r.status === 409 && _rcPendente) { _rcPendente.bike = null; rcCarregarBikes(); return; }  // outra pessoa pegou: atualiza o mapa
+    if (r.status !== 409) closeReservaModal();
   } catch(e) { showToast('Erro de conexão.', '#d62d2d'); }
-  document.getElementById('rcBtn').textContent = 'RESERVAR VAGA';
+  _rcBtnAtualizar();
 }
 
 async function cancelarReserva(id) {
   const tok = localStorage.getItem('pr_token') || '';
   if (!tok) return;
   const r = await fetch(SERVER_HTTP + '/aluno/reservar/'+id, { method:'DELETE', headers:{'Authorization':'Bearer '+tok} });
-  if (r.ok) { showToast('Reserva cancelada.'); loadMinhasReservas(); }
+  if (r.ok) { showToast('Reserva cancelada.'); await loadMinhasReservas(); if (_agAcadSelecionada) abrirGradeAcademia(_agAcadSelecionada); }
 }
 
 function goTab(id,tabId){
@@ -5872,7 +5966,7 @@ function _ftpAvisarSala(){
       var nomeVal=_entrarNome; if(!nomeVal) return;
       var _cod=_entrarCodigo||lastCode; if(!_cod) return;
       window._ftpReenvio=Date.now();
-      wsConn.send(JSON.stringify({tipo:'entrar_sala',codigo:_cod,nome:nomeVal,genero:_prSexoAluno(),nivel:_prNivelAluno(),bike:_bikeSelNum,
+      wsConn.send(JSON.stringify({tipo:'entrar_sala',user_id:_prUid(),codigo:_cod,nome:nomeVal,genero:_prSexoAluno(),nivel:_prNivelAluno(),bike:_bikeSelNum,
         foto:(localStorage.getItem('pr_foto')||null), ftpBase:f}));
       console.log('[ProRider] FTP '+f+'W enviado a sala (bike '+_bikeSelNum+').');
     }catch(e){ console.warn('[ProRider] nao consegui enviar o FTP a sala:', e&&e.message); }
@@ -7853,7 +7947,7 @@ function _tentarConexaoWS(wsUrl, token, dadosSessao){
       // 23/09c: este era o TERCEIRO ponto que manda entrar_sala (entrada pela
       // reserva/sessao) e tambem ia sem o FTP — o Ginasio ficava com 150.
       var _ftpS=0; try{ _ftpS=parseInt(_ftpDoAluno(),10)||0; }catch(e){}
-      ws.send(JSON.stringify({tipo:'entrar_sala', codigo:token, nome:nomeVal, genero:_prSexoAluno(),nivel:_prNivelAluno(), bike:dadosSessao.bike_num||null,
+      ws.send(JSON.stringify({tipo:'entrar_sala',user_id:_prUid(), codigo:token, nome:nomeVal, genero:_prSexoAluno(),nivel:_prNivelAluno(), bike:dadosSessao.bike_num||null,
         foto:(localStorage.getItem('pr_foto')||null), ftpBase:(_ftpS>0?_ftpS:null)}));
       _entrarNome=nomeVal; _entrarCodigo=token;
       if(dadosSessao.bike_num) _bikeSelNum=parseInt(dadosSessao.bike_num); // casa o relay com a bike da sessão
@@ -8013,7 +8107,7 @@ setInterval(function(){
     if(!cod || !nm) return;
     window._vigiaTs=Date.now();
     var f=0; try{ f=parseInt(_ftpDoAluno(),10)||0; }catch(e){}
-    wsConn.send(JSON.stringify({tipo:'entrar_sala',codigo:cod,nome:nm,genero:_prSexoAluno(),nivel:_prNivelAluno(),bike:(_bikeSelNum||null),
+    wsConn.send(JSON.stringify({tipo:'entrar_sala',user_id:_prUid(),codigo:cod,nome:nm,genero:_prSexoAluno(),nivel:_prNivelAluno(),bike:(_bikeSelNum||null),
       foto:(localStorage.getItem('pr_foto')||null),ftpBase:(f>0?f:null)}));
     window._ftpReenvio=Date.now(); // a resposta nao deve navegar de tela
     console.log('[ProRider] sem noticias da aula ha '+Math.round((Date.now()-window._ultUpdateAula)/1000)+' s — entrando de novo na sala.');
@@ -8415,7 +8509,7 @@ updateProfileUI = function() {
          + ' fill="none" stroke="'+col(fm)+'" stroke-width="30" stroke-linecap="'+cap+'"/>';
     }
     g.innerHTML=out;
-    try{ console.log('%c[ProRider Aluno] BUILD 01/10a — campeonato no app (posição, camisas, próxima etapa) + camisas conquistadas no perfil + logo original no início + 30/09e: Construtor do celular = o mesmo Construtor online do computador (mesmas funções, mesma conta) + Perto de mim na lupinha (GPS do celular, distância até a academia, aula ao vivo no topo) + faixa verde da aula ao vivo na academia + aulas de hoje na grade + brasões novos (subiu de nível) + Criar aula do Portal abre direto o Construtor (/aluno#construtor) + FC da cinta do celular vai para o Ginasio; Avg. HR = media da aula; aula termina quando a sala some + resultado do teste de FTP da aula no celular (1 min; automatico grava, senao pergunta) + home do professor: sai o Build Workout antigo (com senha), fica Agenda + Treino do Treinador + Construtor de Treino + voltar para a propria bike depois de reabrir o app + relogio do bloco anda sem bike transmitindo + vigia: reentra na sala se a aula parar de chegar + resultado do desafio no celular (10 s, toque fecha) + sexo enviado na entrada da sala (desafio Homens x Mulheres) + aluno sem nome nao entra mais como "-" na sala + leitor do app aceita o QR de Minhas Aulas do Ginasio + aula anterior nao fica mais grudada (fim da aula fecha o socket em qualquer tela; QR de outra sala troca de sala) + gauge com FTP e BLOCO simetricos + marcha e FC na aula da academia + %FTP com o FTP da gaveta na hora + FTP da gaveta vai para a sala na hora + FTP tambem na entrada pela reserva + Revisar o treino mostra a aula do Ginasio + caloria por watt (kJ/eficiencia) + basal Mifflin-St Jeor no cadastro + historico gravado no aparelho + FTP na gaveta + card 1080x1920 reposicionado + 6 protocolos de FTP + TSS + teste de 3 min + fator do teste de 5 min corrigido (era 1,05) + explicacao de FTP em cada teste + gaveta esconde pela propria altura + importacao de treino do TrainingPeaks (grade 2x2 na tela inicial + construtor) com tela de conferencia (botoes acima da navegacao) + corrigido: aula aberta por objeto agora e a que roda + botao Revisar o treino na gaveta + FTP e peso persistem no aparelho + gauge reequilibrado + textos do Brasil + codigo de sala normalizado (QR do navegador deixava a sala inexistente) + faixa de voltar corrigida + reconexao nao trava mais + sala encerrada limpa o codigo guardado + VISTA DA SALA + card comprido de Construtor para professor + fim da corrida no login','color:#ea860c;font-weight:700;'); }catch(e){}
+    try{ console.log('%c[ProRider Aluno] BUILD 01/10b — reserva com escolha da bike (mapa das bikes, a reservada aparece como SUA na hora de entrar) + 01/10a: campeonato no app (posição, camisas, próxima etapa) + camisas conquistadas no perfil + logo original no início + 30/09e: Construtor do celular = o mesmo Construtor online do computador (mesmas funções, mesma conta) + Perto de mim na lupinha (GPS do celular, distância até a academia, aula ao vivo no topo) + faixa verde da aula ao vivo na academia + aulas de hoje na grade + brasões novos (subiu de nível) + Criar aula do Portal abre direto o Construtor (/aluno#construtor) + FC da cinta do celular vai para o Ginasio; Avg. HR = media da aula; aula termina quando a sala some + resultado do teste de FTP da aula no celular (1 min; automatico grava, senao pergunta) + home do professor: sai o Build Workout antigo (com senha), fica Agenda + Treino do Treinador + Construtor de Treino + voltar para a propria bike depois de reabrir o app + relogio do bloco anda sem bike transmitindo + vigia: reentra na sala se a aula parar de chegar + resultado do desafio no celular (10 s, toque fecha) + sexo enviado na entrada da sala (desafio Homens x Mulheres) + aluno sem nome nao entra mais como "-" na sala + leitor do app aceita o QR de Minhas Aulas do Ginasio + aula anterior nao fica mais grudada (fim da aula fecha o socket em qualquer tela; QR de outra sala troca de sala) + gauge com FTP e BLOCO simetricos + marcha e FC na aula da academia + %FTP com o FTP da gaveta na hora + FTP da gaveta vai para a sala na hora + FTP tambem na entrada pela reserva + Revisar o treino mostra a aula do Ginasio + caloria por watt (kJ/eficiencia) + basal Mifflin-St Jeor no cadastro + historico gravado no aparelho + FTP na gaveta + card 1080x1920 reposicionado + 6 protocolos de FTP + TSS + teste de 3 min + fator do teste de 5 min corrigido (era 1,05) + explicacao de FTP em cada teste + gaveta esconde pela propria altura + importacao de treino do TrainingPeaks (grade 2x2 na tela inicial + construtor) com tela de conferencia (botoes acima da navegacao) + corrigido: aula aberta por objeto agora e a que roda + botao Revisar o treino na gaveta + FTP e peso persistem no aparelho + gauge reequilibrado + textos do Brasil + codigo de sala normalizado (QR do navegador deixava a sala inexistente) + faixa de voltar corrigida + reconexao nao trava mais + sala encerrada limpa o codigo guardado + VISTA DA SALA + card comprido de Construtor para professor + fim da corrida no login','color:#ea860c;font-weight:700;'); }catch(e){}
   }
   if(document.readyState!=='loading') buildGaugeArc();
   else document.addEventListener('DOMContentLoaded', buildGaugeArc);

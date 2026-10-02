@@ -33,6 +33,34 @@ Componentes: `servidor` · `app` · `ginasio` · `portal` · `banco`.
 
 ---
 
+## 2026-10-01 · servidor + app + ginasio · 01/10f — reserva com escolha da bike
+
+**O que mudou**
+- **Servidor:**
+  - `GET /aluno/agenda/:id/bikes?data=` — mapa das bikes da aula (total = bikes da licença; ocupadas; a minha).
+  - `POST /aluno/reservar` aceita `bike` (1..total). Bike de outra pessoa → 409; reservar de novo troca a bike; a lotação não conta a própria reserva.
+  - Índice único `aulas_reservas_bike_uniq` (aula + dia + bike, fora as canceladas). Se não puder ser criado, só avisa no log.
+  - `GET /display/reservas/agora` — reservas da aula de agora para a TV (nome, foto, bike).
+  - `entrar_sala` com `user_id`: a reserva de hoje vira `presente` na bike em que a pessoa sentou.
+  - `/aluno/reservas` devolve `data_aula` como AAAA-MM-DD (o app mostrava "NaN").
+- **App (`public/aluno/index.html`):**
+  - Lupinha → academia → grade → **Reservar** abre o mapa das bikes. Só reserva depois de escolher a bike.
+  - A grade mostra "✓ Bike N · trocar", e Minhas reservas mostra a bike.
+  - Na hora de entrar (QR), a bike reservada vem destacada como "SUA RESERVA".
+  - O app passa a mandar `user_id` no `entrar_sala`.
+- **Ginásio:** reservas na tela do QR (cartão amarelo; verde pedalando), bike reservada bloqueada no `sala_info`. BUILD 01/10f.
+
+**Por quê**
+- O Mario viu que o app reservava direto, sem escolher a bike, e quem reservou não aparecia na TV.
+
+**Como confirmar**
+- Reservar pelo app escolhendo a bike 10 → na TV, a tela do QR mostra o nome na bike 10.
+- Outro aluno no app vê a bike 10 ocupada.
+
+**Cuidados**
+- Publicar servidor e site juntos (o app novo chama a rota nova).
+- Reservas antigas, sem bike, continuam valendo. Aparecem como "sem bike escolhida" e podem ser trocadas.
+
 ## 2026-10-01 · ginasio · 01/10e — correção: telas de preparar a aula sem visual, gráficos, controle e peso
 
 **O que mudou**

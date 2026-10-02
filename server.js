@@ -602,6 +602,11 @@ async function runMigrations() {
       ALTER TABLE aulas_reservas
         ADD COLUMN IF NOT EXISTS bike_numero SMALLINT
     `);
+    // 01/10b: duas pessoas não reservam a mesma bike na mesma aula
+    try {
+      await db.query(`CREATE UNIQUE INDEX IF NOT EXISTS aulas_reservas_bike_uniq ON aulas_reservas (agenda_id, data_aula, bike_numero)
+        WHERE status<>'cancelado' AND bike_numero IS NOT NULL AND bike_numero<>99`);
+    } catch (e) { log('Aviso: índice de bike única nas reservas não criado (' + e.message + ') — a checagem continua no /aluno/reservar'); }
     log('Migração aulas_reservas OK');
 
     // ── Sessões ao vivo (ProRider Jim / QR login) ─────────────────
@@ -1631,6 +1636,13 @@ wss.on('connection', (ws) => {
         sala.observadores.delete(ws); // se estava só observando o mapa, agora é participante
         ws._salaCode = codigo; ws._tipo = 'aluno'; ws._nome = nome; ws._bike = bike || null; ws._bikeNum = bike ? Number(bike) : null;
         ws._userId = user_id ? (parseInt(user_id, 10) || null) : null;   // 01/10a: campeonato liga o resultado à conta
+        // 01/10b: quem reservou e entrou: reserva vira 'presente' na bike em que sentou
+        if (ws._userId && db && sala.licenca) {
+          const { iso } = _hojeBR();
+          db.query(`UPDATE aulas_reservas r SET status='presente', bike_numero=COALESCE($1, r.bike_numero) FROM aulas_agenda a
+            WHERE r.agenda_id=a.id AND a.license_id=$2 AND r.user_id=$3 AND r.data_aula=$4 AND r.status='reservado'`,
+            [(_bikeN && _bikeN !== 99) ? _bikeN : null, sala.licenca, ws._userId, iso]).catch(() => {});
+        }
         // 01/10a: camisa do aluno (a que veste no campeonato ou a que conquistou) vai para a TV
         if (ws._userId && db) campCamisaDestaque(ws._userId).then(cm => {
           if (cm && sala.professor && sala.professor.readyState === WebSocket.OPEN) sala.professor.send(JSON.stringify({ tipo: 'aluno_camisa', nome, camisa: cm }));
@@ -3983,7 +3995,7 @@ app.get('/aluno/reservas', authMiddleware, async (req, res) => {
   if (!db) return res.status(503).json({ error: 'Banco indisponível' });
   try {
     const r = await db.query(`
-      SELECT r.*, a.nome as aula_nome, a.hora, a.dia_semana, a.professor_nome,
+      SELECT r.*, to_char(r.data_aula,'YYYY-MM-DD') AS data_aula, a.nome as aula_nome, a.hora, a.dia_semana, a.professor_nome,
              a.duracao_min, a.sala, l.nome as academia_nome, l.nome_fantasia, l.cidade
       FROM aulas_reservas r
       JOIN aulas_agenda a ON a.id=r.agenda_id
@@ -3995,7 +4007,34 @@ app.get('/aluno/reservas', authMiddleware, async (req, res) => {
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
-// Reservar vaga
+// 01/10b: quantas bikes a sala tem para reservar = bikes da licença (teto);
+// sem teto, as vagas da aula. Nunca mais de 40.
+async function _bikesDaAula(agendaId) {
+  const a = await db.query('SELECT vagas_max, license_id FROM aulas_agenda WHERE id=$1', [agendaId]);
+  if (!a.rows.length) return 0;
+  const teto = await tetoLicenca(a.rows[0].license_id);
+  return Math.min(40, teto || _capVagas(a.rows[0].vagas_max, 0));
+}
+// 01/10b: mapa das bikes de uma aula num dia — o app mostra antes de reservar
+app.get('/aluno/agenda/:id/bikes', authMiddleware, async (req, res) => {
+  if (!db) return res.status(503).json({ error: 'Banco indisponível' });
+  try {
+    const id = parseInt(req.params.id, 10) || 0, data = String(req.query.data || '');
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(data)) return res.status(400).json({ error: 'data obrigatória (AAAA-MM-DD)' });
+    const total = await _bikesDaAula(id);
+    if (!total) return res.status(404).json({ error: 'Aula não encontrada' });
+    const r = await db.query(`SELECT user_id, bike_numero FROM aulas_reservas
+      WHERE agenda_id=$1 AND data_aula=$2 AND status<>'cancelado' AND bike_numero IS NOT NULL`, [id, data]);
+    let minha = null; const ocupadas = [];
+    r.rows.forEach(x => { if (x.user_id === req.user.id) minha = x.bike_numero; else ocupadas.push(x.bike_numero); });
+    const sem = await db.query(`SELECT COUNT(*)::int AS n FROM aulas_reservas
+      WHERE agenda_id=$1 AND data_aula=$2 AND status<>'cancelado' AND bike_numero IS NULL AND user_id<>$3`, [id, data, req.user.id]);
+    res.json({ total, ocupadas, minha, sem_bike: sem.rows[0].n });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Reservar vaga — 01/10b: com a BIKE escolhida (bike: 1..total). Reservar de
+// novo a mesma aula troca a bike.
 app.post('/aluno/reservar', authMiddleware, async (req, res) => {
   if (!db) return res.status(503).json({ error: 'Banco indisponível' });
   const { agenda_id, data_aula } = req.body;
@@ -4023,23 +4062,37 @@ app.post('/aluno/reservar', authMiddleware, async (req, res) => {
         return res.status(425).json({ error: 'Esta aula já começou.' });
       }
     }
+    // quem já tem reserva nesta aula não conta (está só trocando de bike)
     const confirmados = await db.query(
-      "SELECT COUNT(*) FROM aulas_reservas WHERE agenda_id=$1 AND data_aula=$2 AND status<>'cancelado'",
-      [agenda_id, data_aula]
+      "SELECT COUNT(*) FROM aulas_reservas WHERE agenda_id=$1 AND data_aula=$2 AND status<>'cancelado' AND user_id<>$3",
+      [agenda_id, data_aula, req.user.id]
     );
     // 24/09: o limite e o menor entre as vagas da aula e as bikes da licenca
     const _licR = await db.query('SELECT a.license_id FROM aulas_agenda a WHERE a.id=$1', [agenda_id]);
     const _teto = await tetoLicenca(_licR.rows[0] && _licR.rows[0].license_id);
     if (parseInt(confirmados.rows[0].count) >= _capVagas(aula.rows[0].vagas_max, _teto))
       return res.status(409).json({ error: 'Aula lotada' });
+    // 01/10b: bike escolhida
+    let bike = null;
+    if (req.body.bike != null && req.body.bike !== '') {
+      bike = parseInt(req.body.bike, 10) || 0;
+      const total = await _bikesDaAula(agenda_id);
+      if (bike < 1 || bike > total) return res.status(400).json({ error: `Escolha uma bike de 1 a ${total}.` });
+      const ocup = await db.query(`SELECT 1 FROM aulas_reservas WHERE agenda_id=$1 AND data_aula=$2 AND status<>'cancelado'
+        AND bike_numero=$3 AND user_id<>$4`, [agenda_id, data_aula, bike, req.user.id]);
+      if (ocup.rows.length) return res.status(409).json({ error: `A bike ${bike} acabou de ser reservada por outra pessoa. Escolha outra.`, bike_ocupada: bike });
+    }
     const r = await db.query(`
-      INSERT INTO aulas_reservas (agenda_id, user_id, data_aula)
-      VALUES ($1,$2,$3)
-      ON CONFLICT (agenda_id, user_id, data_aula) DO UPDATE SET status='reservado'
+      INSERT INTO aulas_reservas (agenda_id, user_id, data_aula, bike_numero)
+      VALUES ($1,$2,$3,$4)
+      ON CONFLICT (agenda_id, user_id, data_aula) DO UPDATE SET status='reservado', bike_numero=COALESCE(EXCLUDED.bike_numero, aulas_reservas.bike_numero)
       RETURNING *
-    `, [agenda_id, req.user.id, data_aula]);
+    `, [agenda_id, req.user.id, data_aula, bike]);
     res.json(r.rows[0]);
-  } catch(e) { res.status(500).json({ error: e.message }); }
+  } catch(e) {
+    if (e && e.code === '23505') return res.status(409).json({ error: 'Essa bike acabou de ser reservada por outra pessoa. Escolha outra.' });
+    res.status(500).json({ error: e.message });
+  }
 });
 
 // Cancelar reserva
@@ -5438,6 +5491,31 @@ app.delete('/gestor/campeonatos/:id', gestorAuth, async (req, res) => {
 
 // ── Ginásio (TV) ────────────────────────────────────────────────
 // Etapa de hoje: a aula mais perto do horário atual (de 1 h antes a 3 h depois)
+// 01/10b: reservas da aula de agora (ou a próxima de hoje) — a TV mostra quem
+// reservou na bike reservada, já na tela do QR, mesmo antes de pedalar.
+app.get('/display/reservas/agora', displayAuth, async (req, res) => {
+  if (!db) return res.status(503).json({ error: 'Banco indisponível' });
+  try {
+    const a = await db.query(`
+      SELECT a.id, a.nome, to_char(a.hora,'HH24:MI') AS hora, a.duracao_min,
+             ABS(EXTRACT(EPOCH FROM ((NOW() AT TIME ZONE 'America/Sao_Paulo')::time - a.hora))) AS dist
+      FROM aulas_agenda a
+      WHERE a.license_id=$1 AND a.ativa=TRUE
+        AND a.dia_semana=EXTRACT(DOW FROM (NOW() AT TIME ZONE 'America/Sao_Paulo'))::int
+        AND (NOW() AT TIME ZONE 'America/Sao_Paulo')::time BETWEEN a.hora - INTERVAL '90 minutes'
+            AND a.hora + make_interval(mins => COALESCE(a.duracao_min,60))
+      ORDER BY dist ASC LIMIT 1`, [req.user.license_id]);
+    if (!a.rows.length) return res.json({ aula: null, reservas: [] });
+    const A = a.rows[0];
+    const r = await db.query(`
+      SELECT r.id, r.status, r.bike_numero AS bike, u.id AS user_id, u.name AS nome,
+             CASE WHEN length(u.foto_url) < 150000 THEN u.foto_url ELSE NULL END AS foto
+      FROM aulas_reservas r JOIN users u ON u.id=r.user_id
+      WHERE r.agenda_id=$1 AND r.data_aula=(NOW() AT TIME ZONE 'America/Sao_Paulo')::date AND r.status<>'cancelado'
+      ORDER BY r.bike_numero NULLS LAST, r.created_at`, [A.id]);
+    res.json({ aula: { id: A.id, nome: A.nome, hora: A.hora, duracao_min: A.duracao_min }, reservas: r.rows });
+  } catch (e) { log('reservas agora: ' + e.message); res.status(500).json({ error: 'Erro interno' }); }
+});
 app.get('/display/campeonato/hoje', displayAuth, async (req, res) => {
   if (!db) return res.status(503).json({ error: 'Banco indisponível' });
   try {
