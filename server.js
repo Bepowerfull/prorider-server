@@ -6263,6 +6263,106 @@ app.post('/gestor/sumidos/:id/avisar', gestorAuth, async (req, res) => {
     res.json({ ok: true, enviado: ok, msg: ok ? 'E-mail enviado.' : 'Já foi enviado hoje para este aluno.' });
   } catch (e) { log('avisar sumido: ' + e.message); res.status(500).json({ error: 'Erro interno' }); }
 });
+// ══════════════════════════════════════════════════════════════
+// ASAAS — WEBHOOK DE PAGAMENTOS
+// ══════════════════════════════════════════════════════════════
+const ASAAS_API_KEY = process.env.ASAAS_API_KEY || null;
+const ASAAS_BASE    = 'https://api.asaas.com/v3';
+
+// Recebe eventos do Asaas e atualiza status das licenças
+app.post('/webhook/asaas', express.json(), async (req, res) => {
+  if (!db) return res.status(503).json({ error: 'Banco indisponível' });
+  const ev = req.body;
+  if (!ev || !ev.event) return res.status(400).json({ error: 'Evento inválido' });
+  log(`[Asaas webhook] ${ev.event} payment=${ev.payment && ev.payment.id}`);
+  try {
+    const p = ev.payment || {};
+    const externalRef = p.externalReference || ''; // license_id guardado na cobrança
+    if (!externalRef) return res.json({ ok: true, ignorado: 'sem externalReference' });
+
+    if (ev.event === 'PAYMENT_RECEIVED' || ev.event === 'PAYMENT_CONFIRMED') {
+      // Pagamento confirmado: marca como em_dia e registra data
+      await db.query(
+        `UPDATE licencas SET status_pagamento='em_dia', ultimo_pagamento=NOW(),
+         pagamento_ok_ate=NOW() + INTERVAL '35 days', status='ativa', updated_at=NOW()
+         WHERE codigo=$1`,
+        [externalRef]
+      );
+      log(`[Asaas] Licença ${externalRef} paga → em_dia`);
+    } else if (ev.event === 'PAYMENT_OVERDUE') {
+      await db.query(
+        `UPDATE licencas SET status_pagamento='inadimplente', updated_at=NOW() WHERE codigo=$1`,
+        [externalRef]
+      );
+      log(`[Asaas] Licença ${externalRef} → inadimplente`);
+    } else if (ev.event === 'PAYMENT_DELETED' || ev.event === 'PAYMENT_REFUNDED') {
+      await db.query(
+        `UPDATE licencas SET status_pagamento='pendente', updated_at=NOW() WHERE codigo=$1`,
+        [externalRef]
+      );
+      log(`[Asaas] Licença ${externalRef} → pendente (${ev.event})`);
+    }
+    res.json({ ok: true });
+  } catch (e) {
+    log(`[Asaas webhook] erro: ${e.message}`);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// Criar assinatura Asaas para uma licença (chamado internamente ou pelo portal)
+app.post('/admin/asaas/assinatura', adminAuth, async (req, res) => {
+  if (!ASAAS_API_KEY) return res.status(503).json({ error: 'ASAAS_API_KEY não configurada' });
+  if (!db) return res.status(503).json({ error: 'Banco indisponível' });
+  const { license_id, customer_name, customer_email, customer_cpf_cnpj,
+          valor, ciclo, dia_vencimento } = req.body;
+  if (!license_id || !customer_email || !valor)
+    return res.status(400).json({ error: 'license_id, customer_email e valor obrigatórios' });
+  try {
+    const lic = (await db.query('SELECT * FROM licencas WHERE codigo=$1', [license_id])).rows[0];
+    if (!lic) return res.status(404).json({ error: 'Licença não encontrada' });
+
+    // 1. Cria/obtém customer no Asaas
+    const custRes = await fetch(`${ASAAS_BASE}/customers`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'access_token': ASAAS_API_KEY },
+      body: JSON.stringify({
+        name: customer_name || lic.contato_nome || lic.nome,
+        email: customer_email,
+        cpfCnpj: customer_cpf_cnpj || '',
+        externalReference: license_id,
+      })
+    });
+    const cust = await custRes.json();
+    if (!cust.id) return res.status(400).json({ error: 'Erro ao criar customer Asaas', detalhe: cust });
+
+    // 2. Cria assinatura recorrente
+    const hoje = new Date();
+    const dataInicio = `${hoje.getFullYear()}-${String(hoje.getMonth()+1).padStart(2,'0')}-${String(hoje.getDate()).padStart(2,'0')}`;
+    const subRes = await fetch(`${ASAAS_BASE}/subscriptions`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'access_token': ASAAS_API_KEY },
+      body: JSON.stringify({
+        customer: cust.id,
+        billingType: 'CREDIT_CARD',
+        value: parseFloat(valor),
+        nextDueDate: dataInicio,
+        cycle: ciclo || 'MONTHLY',
+        description: `ProRider — licença ${license_id}`,
+        externalReference: license_id,
+      })
+    });
+    const sub = await subRes.json();
+    if (!sub.id) return res.status(400).json({ error: 'Erro ao criar assinatura Asaas', detalhe: sub });
+
+    // 3. Salva IDs na licença
+    await db.query(
+      `UPDATE licencas SET obs=COALESCE(obs,'')||' | asaas_sub='||$1, updated_at=NOW() WHERE codigo=$2`,
+      [sub.id, license_id]
+    );
+    res.json({ ok: true, customer_id: cust.id, subscription_id: sub.id });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 server.listen(PORT, () => {
   log(`ProRider Server v2.0 rodando na porta ${PORT}`);
   log(`HTTP + WebSocket ativos`);
