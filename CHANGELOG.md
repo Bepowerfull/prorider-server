@@ -33,6 +33,133 @@ Componentes: `servidor` · `app` · `ginasio` · `portal` · `banco`.
 
 ---
 
+## 2026-10-02 · portal (Construtor) + ginasio · 02/10c — linha do tempo única, zoom com a roda do mouse e trecho de cada música
+
+**O que mudou**
+- **Construtor (`studio.html`):**
+  - o gráfico da aula e as músicas ficam na **mesma linha do tempo**; a escala é a maior das duas (aula ou músicas), e uma linha marca o **fim da aula**;
+  - **zoom com a roda do mouse** em cima do ponto do cursor; **Shift + roda** anda para os lados; botões − / + / "Aula inteira" e uma barra para arrastar;
+  - cada música tem **"toca de … até …"** (escolher o começo e antecipar o fim);
+  - botão **"✂ Cortar no fim da aula"** quando as músicas passam do fim;
+  - a aula salva `musica.trilha=[{arquivo,ini,fim,dur}]` e, ao abrir de novo, os cortes voltam quando os MP3 são colocados.
+- **Ginásio (`telas-pv.js`, BUILD 02/10c):**
+  - lê `musica.trilha` e toca as músicas **em sequência**, cada uma no trecho escolhido, ancoradas no relógio da aula (pausa, avanço e volta de minimizado continuam certos);
+  - acha cada arquivo no pendrive pelo nome (sem diferença de maiúscula, acento ou extensão); música que falta vira silêncio no trecho dela, e as seguintes continuam no tempo certo;
+  - aula com uma música inteira segue o caminho antigo; se o professor troca a música na TV, vale a escolhida.
+
+**Por quê**
+- O Mario montou uma aula de 1 min com várias músicas: o gráfico parou e a música continuou. Ele pediu zoom pela roda do mouse e poder escolher o trecho de cada música.
+
+**Como confirmar**
+- Construtor: colocar 2 MP3 numa aula curta → aparece a linha "fim da aula"; rolar a roda em cima de um bloco aproxima; mudar "toca de/até" e ver a faixa encurtar; "Cortar no fim da aula" deixa música = aula.
+- Ginásio: aula com 2 músicas cortadas → no console, "trilha da aula: 2 música(s)"; a 2ª começa no segundo escolhido quando a 1ª termina o trecho dela.
+
+**Cuidados**
+- Os MP3 precisam estar no pendrive com o **mesmo nome** usado no Construtor.
+
+## 2026-10-02 · servidor + portal + app + ginasio · 02/10b — aula gravada no app (vídeo do professor + números do aluno) e sai a mensalidade
+
+**O que mudou**
+- **Gravação nova (Ginásio):**
+  - o arquivo é a **câmera limpa** (vídeo + voz, 1,5 Mb/s, uns 0,6 GB por aula);
+  - junto vai um **roteiro**: a cada segundo, o bloco, o segundo do bloco, a tela da TV (gráfico, cartões, ranking, FC), a pausa e o desafio;
+  - o quadro com a faixa da aula só é montado para a transmissão;
+  - `servidor-local.js`: `/gravacao/:id/roteiro` salva o `.json` ao lado do vídeo; `/gravacao/arquivo` serve o arquivo para o envio; o ajuste da duração termina antes de responder.
+- **Teste sem nuvem (Servidor):**
+  - a TV manda a gravação em pedaços de 8 MB (`/display/gravacao/:id/parte`, `/pronta`);
+  - ficam no máximo 5 por academia, apagadas em 72 h (`GRAVACOES_TESTE_DIR`, padrão: pasta temporária);
+  - rotas `/user/gravadas`, `/gravadas/:id/roteiro`, `/gravadas/:id/video?t=` (com Range) e `/user/gravadas/:id/resultado`;
+  - ranking da aula = quem pedalou ao vivo (`aulas_tv`, pelo `uid`) + quem fez gravada (`gravadas_resultados`).
+- **App:**
+  - Loja → **Aulas gravadas**;
+  - conectar a bike → tela deitada com o vídeo do professor no fundo;
+  - na tela do gráfico: as bolas (RPM e watts do aluno, com o alvo) e o perfil com a agulha;
+  - nas telas de cartões, ranking e FC: o **cartão do próprio aluno**;
+  - no desafio: o mesmo desafio, **só com ele**;
+  - WPP pela mesma conta da TV;
+  - no fim: resultado, ranking junto com a sala, `.tcx` e histórico;
+  - aviso "vire o celular de lado";
+  - no lugar das bolas pequenas, **duas caixas grandes e meio transparentes** no meio da tela, uma de cada lado:
+    - à esquerda, a **RPM** com o alvo; a borda fica verde dentro do alvo e laranja fora;
+    - à direita, o **% do FTP** na cor da zona em que o aluno está, com o alvo e os watts;
+  - o perfil da aula vai embaixo, de ponta a ponta;
+  - ao lado da zona aparece **SENTADO / EM PÉ**, que vem da aula do Construtor;
+  - super admin vê as gravações de teste de todas as academias;
+  - **Construtor (`studio.html`):** sem blocos, a régua da música era fixa em 60 s; a trilha aparecia só no primeiro minuto e a agulha grudava no fim. Agora a régua é a própria música até entrar o primeiro bloco;
+  - Loja: "ProHyder" corrigido para ProRider.
+- **Sai a mensalidade da academia** (decisão do Mario): sem planos e assinaturas no Portal, no app e no servidor. A venda será aula por aula, na Loja.
+
+**Por quê**
+- Gravar a tela da TV mostraria os números de quem estava na sala, ficaria borrado no celular e não mediria o aluno. Com vídeo limpo + roteiro, o app monta tudo com os números de quem está pedalando, e o arquivo fica menor.
+
+**Como confirmar**
+- Ginásio → Câmera ao vivo → **Gravar** → dar a aula. No fim, o console da TV mostra "gravação pronta para testar no app".
+- App (aluno da mesma academia) → **Loja** → Aulas gravadas → conectar a bike → a aula toca com os números dele. No fim, o ranking mistura "na sala" e "gravada".
+
+**Cuidados**
+- O teste usa a pasta temporária do servidor: um redeploy apaga as gravações de teste, que voltam na próxima aula gravada.
+- Banda: cada gravação de teste sobe uns 0,6 GB pela internet da academia, em segundo plano.
+
+## 2026-10-02 · servidor + portal + app + ginasio · 02/10a — desafio entre academias, gravar e transmitir, lista de espera, Strava, painel e planos
+
+**O que mudou**
+- **Desafio entre academias:**
+  - **Servidor:** tabelas `aulas_tv`, `desafios_academias` e `desafios_academias_part`, mais as rotas:
+    - `/gestor/desafios-academias*` e `/user/desafios-academias`;
+    - `POST /display/aula/resumo` (resumo de toda aula que termina na TV);
+    - `GET /display/desafio-academias/agora`;
+    - WebSocket `duelo_entrar`/`duelo_placar` → `duelo_estado`.
+  - **Portal:** página **Desafio entre academias** (criar, código, entrar com código, ranking).
+  - **TV:** faixa ao vivo com o placar das academias e resultado no fim.
+  - **App:** cartão no início.
+- **Gravar e transmitir:**
+  - **Ginásio:** o cartão da câmera tem 4 modos: Desligada / No fundo / Gravar / Gravar e transmitir. O quadro 1280x720 junta a câmera com a faixa da aula (zona, tempo, FTP, RPM, perfil, professor).
+  - **`servidor-local.js`:**
+    - `/gravacao/*` salva em `C:\ProRider\Gravacoes` e arruma a duração com o ffmpeg;
+    - `/yt/*` manda para o YouTube Live pelo ffmpeg;
+    - só aceita pedidos do próprio computador.
+  - **Servidor:**
+    - WebSocket `tx_estado`/`tx_ver`/`tx_sinal`/`tx_saiu` (WebRTC: o servidor só passa os recados);
+    - `/gestor/transmissao` (chave do YouTube e limite de pessoas);
+    - `/display/transmissao`, `/display/gravacao`;
+    - `aula-ativa` devolve `transmitindo`.
+  - **Portal:** página **Gravar e transmitir**.
+  - **App:** "📺 Assistir ao vivo" na faixa verde.
+- **Lista de espera, bike liberada e lembrete:**
+  - **Servidor:**
+    - tabela `aulas_espera` e rotas `/aluno/espera`, `/aluno/esperas`;
+    - a vaga que abre (cancelou, professor marcou ausente, ou não subiu na bike até 5 min do começo) vai para o 1º da fila, na mesma bike, com e-mail "Abriu uma vaga";
+    - lembrete por e-mail 1 h antes (`lembrete_aula`);
+    - a TV marca presente quem está na bike reservada (`/display/reservas/presentes`), com ou sem app;
+    - status `ausente` libera a bike: índice `aulas_reservas_bike_uniq2` no lugar do antigo.
+  - **App:** "Lotado · entrar na fila", "⏳ Nº na fila · sair", fila em Minhas reservas.
+  - **Portal:** 2 e-mails novos editáveis.
+- **Strava/Garmin:** o app grava 1 ponto por segundo (potência, cadência, FC) e gera o `.tcx` na tela de resultado.
+- **Painel do gestor:** `/gestor/ocupacao` (mapa dia × horário), `/gestor/sumidos` + "Chamar de volta" (e-mail na hora).
+- **Planos:**
+  - **Servidor:** tabelas `planos` e `assinaturas`; rotas `/gestor/planos`, `/gestor/assinaturas/:id`, `/user/planos` e `/user/assinar`.
+  - **Portal:** página **Planos dos alunos**.
+  - **App:** "Meu plano" no perfil.
+  - O pagamento online fica desligado até contratar (`PAGAMENTO_GATEWAY`).
+- **Pacotes:** `conferir_pacote.py` confere cada pacote antes de entregar (arquivos cortados, sintaxe, BUILD, telas).
+
+**Por quê**
+- O Mario pediu tudo da lista de melhorias, sem fechar com empresa paga. O que depende de contrato ficou com a estrutura pronta e desligada.
+
+**Como confirmar**
+- **Portal → Desafio entre academias:** criar e copiar o código; na outra academia, entrar com o código. Os dois aparecem no ranking.
+- **Ginásio → Configurar aula → Câmera ao vivo → Gravar e transmitir:**
+  - na aula aparece o selo AO VIVO;
+  - no app, a faixa verde mostra "Assistir ao vivo";
+  - no fim, o arquivo fica em `C:\ProRider\Gravacoes` e aparece no Portal.
+- **App:** aula lotada → "entrar na fila"; quem reservou cancela → o 1º da fila ganha a bike.
+- **App, tela de resultado:** "Arquivo para Strava / Garmin" baixa um `.tcx`.
+
+**Cuidados**
+- Publicar servidor + site + Ginásio juntos. O servidor cria tudo sozinho: `Migração 02/10a`, `02/10b`, `02/10c` e `02/10d` OK no log.
+- YouTube Live precisa do ffmpeg no computador da TV (`C:\ProRider\ffmpeg\bin\ffmpeg.exe`) e da chave no Portal.
+- Gravar/transmitir usa CPU e internet de subida: ~2,5 Mb/s por pessoa assistindo no app.
+
 ## 2026-10-01 · servidor + app + ginasio · 01/10f — reserva com escolha da bike
 
 **O que mudou**

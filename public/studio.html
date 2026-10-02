@@ -86,6 +86,13 @@ textarea.in{resize:vertical;min-height:58px}
 .tl-ax{position:relative;height:22px}
 .tl-ax span{position:absolute;top:5px;transform:translateX(-50%);font-size:11px;color:var(--muted);font-weight:600}
 .tl-lin{position:absolute;top:0;bottom:0;width:0;border-left:1px dashed rgba(255,255,255,.18);pointer-events:none;z-index:4}
+.tl-zoom{display:flex;align-items:center;gap:6px;margin:-4px 0 10px;flex-wrap:wrap}
+.tl-ztr{position:relative;flex:1;min-width:140px;height:12px;border-radius:6px;background:rgba(255,255,255,.07);cursor:pointer}
+#tlZbar{position:absolute;top:0;bottom:0;border-radius:6px;background:rgba(234,134,12,.6);cursor:grab}
+#tl{overflow:hidden}
+.tl-fim{position:absolute;top:0;bottom:0;width:0;border-left:2px dashed #ff8a8a;pointer-events:none;z-index:5}
+.tl-fim span{position:absolute;top:2px;left:4px;font-size:10px;font-weight:800;color:#ff8a8a;white-space:nowrap}
+.mu-t{width:54px;background:var(--card2);border:1px solid var(--border);border-radius:6px;color:#fff;font-size:12px;padding:3px 5px;text-align:center}
 .tl-play{position:absolute;top:0;bottom:0;width:2px;background:#fff;box-shadow:0 0 8px rgba(255,255,255,.7);pointer-events:none;z-index:6;display:none}
 .tip{position:fixed;z-index:100;background:#0f0f13;border:1px solid rgba(255,255,255,.14);border-radius:10px;padding:9px 12px;font-size:12px;line-height:1.5;pointer-events:none;display:none;max-width:260px;box-shadow:0 8px 24px rgba(0,0,0,.5)}
 .vazio{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:6px;color:var(--dim);font-size:14px;text-align:center}
@@ -246,6 +253,10 @@ td .zb{display:inline-block;width:10px;height:10px;border-radius:3px;margin-righ
 
     <div class="card">
       <h3>Perfil da aula <small>clique num bloco para editar · arraste para mudar a ordem</small></h3>
+      <div class="tl-zoom" id="tlZoom"><button class="btn bg bs" onclick="visZoom(0.8)" title="Afastar">－</button><button class="btn bg bs" onclick="visZoom(1.25)" title="Aproximar">＋</button>
+        <button class="btn bg bs" onclick="_vis.z=1;_vis.ini=0;pintarPerfil();muDesenhar();muPlayhead()">Aula inteira</button>
+        <div class="tl-ztr" id="tlZtrilho" title="Arraste para andar pela aula"><div id="tlZbar"></div></div><span class="note" id="tlZv"></span>
+        <span class="note">🖱 rodinha = zoom · Shift + rodinha = andar</span></div>
       <div class="tl" id="tl">
         <div class="tl-segs" id="tlSegs"></div>
         <div class="tl-area" id="tlArea"></div>
@@ -440,24 +451,24 @@ var _escala={tot:1,topo:150};
 function pintarPerfil(){
   var area=$('tlArea'), segsEl=$('tlSegs'), ax=$('tlAx'), tot=totalSeg();
   var topo=Math.max(130, Math.ceil(Math.max.apply(null,[0].concat(workout.map(function(b){return +b.ftpMax||0;})))/10)*10+10);
-  _escala={tot:Math.max(tot,60),topo:topo};
+  visClamp(); _escala={tot:visSpan(),topo:topo};
   if(!workout.length){
     area.innerHTML='<div class="vazio"><div style="font-size:30px">⚡</div>Monte a aula à esquerda: cada bloco aparece aqui, no tamanho do tempo dele.</div>';
-    segsEl.innerHTML=''; ax.innerHTML=''; $('tlLinhas').innerHTML=''; return;
+    segsEl.innerHTML=''; ax.innerHTML=''; $('tlLinhas').innerHTML=''; pintarZoom(); return;
   }
   var h='', t=0, H=area.clientHeight||300;
   // linhas de referência (FTP 100% etc.)
   [50,100,150].forEach(function(p){ if(p<topo) h+='<div class="tl-ref" style="bottom:'+(p/topo*100)+'%"><span>'+p+'% FTP</span></div>'; });
   var linhas='';
   workout.forEach(function(b,i){
-    var d=durB(b), x=t/_escala.tot*100, w=d/_escala.tot*100, z=Z(b.intensity);
+    var d=durB(b), x=px(t), w=d/_escala.tot*100, z=Z(b.intensity);
     var hh=Math.max(10, Math.min(100, ftpMeio(b)/topo*100));
     var larguraPx=w/100*(area.clientWidth||1000);
     var txt=larguraPx>=46?'<span class="t">'+mmss(d)+'</span>'+(larguraPx>=64?'<span class="r">'+b.rpmMin+'–'+b.rpmMax+'</span>':''):'';
     var des=b.desafio&&b.desafio.tipo?'<span class="dz">'+(DES_ICO[b.desafio.tipo]||'🏆')+'</span>':'';
     h+='<div class="bk'+(b.position==='Em Pé'?' pe':'')+(i===selIdx?' sel':'')+'" data-i="'+i+'" draggable="true" style="left:calc('+x+'% + 1px);width:calc('+w+'% - 2px);height:'+hh+'%;background:linear-gradient(180deg,'+z.c+','+z.c+'cc)">'+des+txt+'</div>';
     t+=d;
-    if(i<workout.length-1) linhas+='<div class="tl-lin" style="left:'+(t/_escala.tot*100)+'%"></div>';
+    if(i<workout.length-1) linhas+='<div class="tl-lin" style="left:'+px(t)+'%"></div>';
   });
   area.innerHTML=h;
   // faixa dos segmentos
@@ -465,13 +476,16 @@ function pintarPerfil(){
   segments.forEach(function(s){
     var d=workout.filter(function(b){return b.segmentId===s.id;}).reduce(function(a,b){return a+durB(b);},0);
     if(!d) return;
-    sh+='<div class="tl-seg" style="left:'+(t2/_escala.tot*100)+'%;width:calc('+(d/_escala.tot*100)+'% - 4px);color:'+segCor(s)+';border-color:'+segCor(s)+'">'+esc(s.name)+' · '+mmss(d)+'</div>';
+    sh+='<div class="tl-seg" style="left:'+px(t2)+'%;width:calc('+(d/_escala.tot*100)+'% - 4px);color:'+segCor(s)+';border-color:'+segCor(s)+'">'+esc(s.name)+' · '+mmss(d)+'</div>';
     t2+=d;
   });
   segsEl.innerHTML=sh;
   // eixo de tempo
-  var passo=[60,120,300,600,900,1200].find(function(p){ return _escala.tot/p<=14; })||1800, a='';
-  for(var s2=0;s2<=_escala.tot+1;s2+=passo) a+='<span style="left:'+(s2/_escala.tot*100)+'%">'+Math.round(s2/60)+'′</span>';
+  var passo=[10,15,30,60,120,300,600,900,1200].find(function(p){ return _escala.tot/p<=14; })||1800, a='';
+  for(var s2=Math.ceil(_vis.ini/passo)*passo;s2<=_vis.ini+_escala.tot+1;s2+=passo) a+='<span style="left:'+px(s2)+'%">'+(passo<60?mmss(s2):Math.round(s2/60)+'′')+'</span>';
+  // a música passa do fim da aula: marca onde a aula acaba
+  if(muTotal()>tot+1) linhas+='<div class="tl-fim" style="left:'+px(tot)+'%"><span>fim da aula</span></div>';
+  pintarZoom();
   ax.innerHTML=a;
   $('tlLinhas').innerHTML=linhas;
   ligarBlocos();
@@ -539,64 +553,127 @@ $('fMu').addEventListener('change',async function(){
       var buf=await _ac.decodeAudioData(await f.arrayBuffer());
       var ch=buf.getChannelData(0), N=4000, passo=Math.max(1,Math.floor(ch.length/N)), p=new Float32Array(N);
       for(var j=0;j<N;j++){ var m=0, ini=j*passo, fim=Math.min(ch.length,ini+passo); for(var k=ini;k<fim;k+=8){ var v=Math.abs(ch[k]); if(v>m) m=v; } p[j]=m; }
-      trilha.push({nome:f.name, dur:buf.duration, picos:p, url:URL.createObjectURL(f)});
+      var _ct=(window._muCortes||{})[f.name.toLowerCase()]||{};   // aula aberta de arquivo: volta o corte
+      trilha.push({nome:f.name, dur:buf.duration, picos:p, url:URL.createObjectURL(f), ini:Math.min(_ct.ini||0,buf.duration-1), fim:_ct.fim!=null?Math.min(_ct.fim,buf.duration):null});
     }catch(e){ toast('⚠ Não consegui ler '+f.name); }
   }
   muLista(); muDesenhar(); rascunho(); if(fs.length) toast('✓ Trilha atualizada');
 });
-function muTotal(){ return trilha.reduce(function(a,t){return a+t.dur;},0); }
+// 02/10: cada música pode tocar só um trecho (ini → fim, em segundos do arquivo)
+function muEf(t){ return Math.max(1,(t.fim!=null?t.fim:t.dur)-(t.ini||0)); }
+function muTotal(){ return trilha.reduce(function(a,t){return a+muEf(t);},0); }
 function muLista(){
-  $('muList').innerHTML=trilha.map(function(t,i){ return '<div class="mu-it"><b style="color:var(--accent)">'+(i+1)+'</b><span title="'+esc(t.nome)+'">'+esc(t.nome)+'</span><small class="note">'+mmss(t.dur)+'</small><button onclick="muMover('+i+',-1)" title="Antes">◀</button><button onclick="muMover('+i+',1)" title="Depois">▶</button><button onclick="muTirar('+i+')" title="Tirar">✕</button></div>'; }).join('');
+  $('muList').innerHTML=trilha.map(function(t,i){ var ini=t.ini||0, fim=t.fim!=null?t.fim:t.dur, cortada=ini>0.5||fim<t.dur-0.5;
+    return '<div class="mu-it"><b style="color:var(--accent)">'+(i+1)+'</b><span title="'+esc(t.nome)+'">'+esc(t.nome)+'</span>'
+      +'<small class="note">toca</small><input class="mu-t" value="'+mmss(ini)+'" title="Começa neste ponto da música" onchange="muCorte('+i+',\'ini\',this.value)">'
+      +'<small class="note">até</small><input class="mu-t" value="'+mmss(fim)+'" title="Para neste ponto da música" onchange="muCorte('+i+',\'fim\',this.value)">'
+      +'<small class="note" style="'+(cortada?'color:var(--accent);font-weight:800':'')+'">'+mmss(fim-ini)+(cortada?' de '+mmss(t.dur):'')+'</small>'
+      +'<button onclick="muMover('+i+',-1)" title="Antes">◀</button><button onclick="muMover('+i+',1)" title="Depois">▶</button><button onclick="muTirar('+i+')" title="Tirar">✕</button></div>'; }).join('');
   $('muVazio').style.display=trilha.length?'none':'flex';
   var tot=totalSeg(), mu=muTotal(), av=$('muAviso');
   if(!trilha.length||!tot) av.innerHTML='';
   else if(mu<tot-5) av.innerHTML='<span class="aviso w">Faltam '+mmss(tot-mu)+' de música para cobrir a aula</span>';
-  else if(mu>tot+5) av.innerHTML='<span class="aviso w">A música passa '+mmss(mu-tot)+' do fim da aula</span>';
+  else if(mu>tot+5) av.innerHTML='<span class="aviso w">A música passa '+mmss(mu-tot)+' do fim da aula</span> <button class="btn bg bs" style="padding:4px 9px" onclick="muCortarNoFim()">✂ Cortar no fim da aula</button>';
   else av.innerHTML='<span class="aviso ok">✓ A música cobre a aula inteira</span>';
   $('muClock').textContent=mmss(_tAtual)+' / '+mmss(Math.max(tot,mu));
 }
+function muSeg(v){ var p=String(v||'').trim().split(':').map(function(x){ return parseFloat(String(x).replace(',','.'))||0; }); return p.length===3?p[0]*3600+p[1]*60+p[2]:p.length===2?p[0]*60+p[1]:p[0]; }
+function muCorte(i,qual,v){
+  var t=trilha[i]; if(!t) return; var x=Math.max(0,Math.min(t.dur,muSeg(v)));
+  if(qual==='ini'){ t.ini=Math.min(x,(t.fim!=null?t.fim:t.dur)-1); } else { t.fim=Math.max(x,(t.ini||0)+1); }
+  muParar(); tudo(); toast('✂ '+t.nome.replace(/\.[a-z0-9]+$/i,'')+': toca '+mmss(t.ini||0)+' → '+mmss(t.fim!=null?t.fim:t.dur));
+}
+// a última música para exatamente no fim da aula
+function muCortarNoFim(){
+  var tot=totalSeg(), a=0; if(!tot) return;
+  for(var i=0;i<trilha.length;i++){ var t=trilha[i], ef=muEf(t);
+    if(a>=tot){ trilha.splice(i); break; }
+    if(a+ef>tot){ t.fim=(t.ini||0)+(tot-a); trilha.splice(i+1); break; }
+    a+=ef; }
+  muParar(); tudo(); toast('✂ Música cortada no fim da aula');
+}
 function muMover(i,d){ var j=i+d; if(!trilha[j]) return; var t=trilha[i]; trilha[i]=trilha[j]; trilha[j]=t; muParar(); muLista(); muDesenhar(); rascunho(); }
 function muTirar(i){ muParar(); try{ URL.revokeObjectURL(trilha[i].url); }catch(e){} trilha.splice(i,1); muLista(); muDesenhar(); rascunho(); }
+// 02/10: UM SÓ EIXO DE TEMPO para o perfil e a música — o maior dos dois — e
+// ZOOM: a rodinha do mouse aproxima onde está o ponteiro; Shift + rodinha (ou
+// arrastar a barra) anda para os lados. Aula de 1 hora cabe inteira; com zoom
+// dá para ver os blocos curtos, o desafio e o ponto exato da música.
+var _vis={z:1,ini:0};
+function visTot(){ return Math.max(totalSeg(), muTotal(), 60); }
+function visSpan(){ return visTot()/_vis.z; }
+function visClamp(){ var T=visTot(); _vis.z=Math.max(1,Math.min(_vis.z,T/10)); _vis.ini=Math.max(0,Math.min(T-visSpan(),_vis.ini)); }
+function px(t){ return (t-_vis.ini)/visSpan()*100; }
+function muEscala(){ return visSpan(); }
+function visZoom(f,tFoco){ var sp0=visSpan(); if(tFoco==null) tFoco=_vis.ini+sp0/2; var rel=(tFoco-_vis.ini)/sp0;
+  _vis.z=_vis.z*f; visClamp(); _vis.ini=tFoco-rel*visSpan(); visClamp(); pintarPerfil(); muDesenhar(); muPlayhead(); }
+function visAndar(dt){ _vis.ini+=dt; visClamp(); pintarPerfil(); muDesenhar(); muPlayhead(); }
+function pintarZoom(){
+  var z=$('tlZoom'); if(!z) return; var T=visTot(), sp=visSpan();
+  $('tlZv').textContent=_vis.z<=1.001?'aula inteira':('zoom '+(Math.round(_vis.z*10)/10)+'× · '+mmss(_vis.ini)+'–'+mmss(_vis.ini+sp));
+  var bar=$('tlZbar'); bar.style.left=(_vis.ini/T*100)+'%'; bar.style.width=Math.max(3,sp/T*100)+'%';
+}
 function muDesenhar(){
   var cv=$('muCv'), lane=$('muLane'), W=lane.clientWidth, H=lane.clientHeight, dpr=Math.min(2,window.devicePixelRatio||1);
   cv.width=W*dpr; cv.height=H*dpr; var c=cv.getContext('2d'); c.setTransform(dpr,0,0,dpr,0,0); c.clearRect(0,0,W,H);
   muLista();
   if(!trilha.length) return;
-  var esc_=Math.max(totalSeg(),60), t0=0, cores=['#ffb45a','#7fa3ff','#8fe06a','#e39bff','#ffd84a','#ff8a8a'];
+  visClamp();
+  var sp=visSpan(), v0=_vis.ini, cores=['#ffb45a','#7fa3ff','#8fe06a','#e39bff','#ffd84a','#ff8a8a'], mid=H/2+8, ini=[], a=0;
+  trilha.forEach(function(t){ ini.push(a); a+=muEf(t); });
+  // fundo e nome de cada música no ponto em que ela começa
   trilha.forEach(function(t,ti){
-    var x0=t0/esc_*W, x1=Math.min(W,(t0+t.dur)/esc_*W), cor=cores[ti%cores.length];
-    if(x0<W){
-      c.fillStyle='rgba(255,255,255,.035)'; c.fillRect(x0,0,x1-x0,H);
-      c.fillStyle=cor; var mid=H/2+8;
-      for(var x=Math.floor(x0);x<x1;x++){
-        var tt=(x/W*esc_-t0)/t.dur; if(tt<0||tt>1) continue;
-        var a=Math.floor(tt*(t.picos.length-1)), b=Math.min(t.picos.length-1,a+Math.ceil(t.picos.length/((t.dur/esc_)*W)+1)), m=0;
-        for(var k=a;k<=b;k++) if(t.picos[k]>m) m=t.picos[k];
-        var h=Math.max(1,m*(H-26)/2); c.globalAlpha=.85; c.fillRect(x,mid-h,1,h*2);
-      }
-      c.globalAlpha=1; c.fillStyle='rgba(255,255,255,.85)'; c.font='600 11px Inter,sans-serif';
-      c.save(); c.beginPath(); c.rect(x0+4,0,Math.max(0,x1-x0-8),16); c.clip(); c.fillText((ti+1)+'. '+t.nome.replace(/\.[a-z0-9]+$/i,''),x0+6,12); c.restore();
-      c.fillStyle='rgba(255,255,255,.5)'; c.fillRect(x0,0,1,H);
-    }
-    t0+=t.dur;
+    var x0=(ini[ti]-v0)/sp*W, x1=(ini[ti]+muEf(t)-v0)/sp*W; if(x1<0||x0>W) return;
+    c.fillStyle='rgba(255,255,255,.035)'; c.fillRect(Math.max(0,x0),0,Math.min(W,x1)-Math.max(0,x0),H);
+    c.fillStyle='rgba(255,255,255,.5)'; if(x0>=0) c.fillRect(x0,0,1,H);
+    var cort=(t.ini||0)>0.5||(t.fim!=null&&t.fim<t.dur-0.5);
+    c.fillStyle='rgba(255,255,255,.85)'; c.font='600 11px Inter,sans-serif';
+    c.save(); c.beginPath(); c.rect(Math.max(0,x0)+4,0,Math.max(0,Math.min(W,x1)-Math.max(0,x0)-8),16); c.clip();
+    c.fillText((ti+1)+'. '+t.nome.replace(/\.[a-z0-9]+$/i,'')+(cort?'  ✂ '+mmss(t.ini||0)+'–'+mmss(t.fim!=null?t.fim:t.dur):''),Math.max(0,x0)+6,12); c.restore();
   });
+  // onda: cada pixel = um trecho de tempo; pega o pico daquele trecho
+  var porPx=sp/W, ti=0;
+  for(var x=0;x<W;x++){
+    var t=v0+x*porPx; while(ti<trilha.length-1&&t>=ini[ti]+muEf(trilha[ti])) ti++;
+    while(ti>0&&t<ini[ti]) ti--;
+    var tr=trilha[ti]; if(!tr||t<ini[ti]||t>=ini[ti]+muEf(tr)) continue;
+    var src=(tr.ini||0)+(t-ini[ti]), N=tr.picos.length, k0=Math.floor(src/tr.dur*(N-1)), k1=Math.min(N-1,Math.floor((src+porPx)/tr.dur*(N-1))), m=0;
+    for(var k=k0;k<=k1;k++) if(tr.picos[k]>m) m=tr.picos[k];
+    var h=Math.max(1,m*(H-26)/2); c.globalAlpha=.85; c.fillStyle=cores[ti%cores.length]; c.fillRect(x,mid-h,1,h*2);
+  }
+  c.globalAlpha=1;
 }
-function muOnde(t){ var a=0; for(var i=0;i<trilha.length;i++){ if(t<a+trilha[i].dur) return {i:i,off:t-a}; a+=trilha[i].dur; } return null; }
+function muOnde(t){ var a=0; for(var i=0;i<trilha.length;i++){ var ef=muEf(trilha[i]); if(t<a+ef) return {i:i,off:t-a,a:a}; a+=ef; } return null; }
 function muTocar(){ if(_tocando){ muParar(); return; } if(!trilha.length){ toast('Adicione um MP3 primeiro'); return; } muDe(_tAtual); }
 function muDe(t){
   muParar(); var o=muOnde(t); if(!o){ _tAtual=0; o=muOnde(0); if(!o) return; }
-  var au=new Audio(trilha[o.i].url); au.currentTime=o.off; au.play().catch(function(){});
+  var tr=trilha[o.i], ini=tr.ini||0, fim=tr.fim!=null?tr.fim:tr.dur;
+  var au=new Audio(tr.url); au.currentTime=ini+o.off; au.play().catch(function(){});
   _tocando={au:au,i:o.i}; $('muPlay').textContent='❚❚ Pausar';
-  au.onended=function(){ var prox=o.i+1; if(trilha[prox]){ var a=0; for(var j=0;j<prox;j++) a+=trilha[j].dur; muDe(a+0.01); } else muParar(); };
-  (function anda(){ if(!_tocando||_tocando.au!==au) return; var a=0; for(var j=0;j<_tocando.i;j++) a+=trilha[j].dur; _tAtual=a+au.currentTime; muPlayhead(); requestAnimationFrame(anda); })();
+  var proxima=function(){ if(!_tocando||_tocando.au!==au) return; if(trilha[o.i+1]) muDe(o.a+muEf(tr)+0.01); else muParar(); };
+  au.onended=proxima;
+  (function anda(){ if(!_tocando||_tocando.au!==au) return; if(au.currentTime>=fim){ au.pause(); proxima(); return; }
+    _tAtual=o.a+(au.currentTime-ini); muPlayhead(); requestAnimationFrame(anda); })();
 }
 function muParar(){ if(_tocando){ _tocando.au.pause(); _tocando=null; } $('muPlay').textContent='▶ Ouvir'; }
 function muPlayhead(){
-  var p=$('tlPlay'), esc_=Math.max(totalSeg(),60); p.style.display=_tAtual>0?'block':'none';
-  p.style.left=Math.min(100,_tAtual/esc_*100)+'%';
+  var p=$('tlPlay'), x=px(_tAtual); p.style.display=(_tAtual>0&&x>=0&&x<=100)?'block':'none';
+  p.style.left=Math.max(0,Math.min(100,x))+'%';
   $('muClock').textContent=mmss(_tAtual)+' / '+mmss(Math.max(totalSeg(),muTotal()));
 }
-$('muLane').addEventListener('click',function(e){ if(!trilha.length) return; var r=this.getBoundingClientRect(); _tAtual=(e.clientX-r.left)/r.width*Math.max(totalSeg(),60); muPlayhead(); muDe(_tAtual); });
+$('muLane').addEventListener('click',function(e){ if(!trilha.length) return; var r=this.getBoundingClientRect(); _tAtual=_vis.ini+(e.clientX-r.left)/r.width*visSpan(); muPlayhead(); muDe(_tAtual); });
+// rodinha = zoom no ponto do mouse; Shift+rodinha ou rolagem lateral = andar
+$('tl').addEventListener('wheel',function(e){
+  var r=$('tlArea').getBoundingClientRect(), tFoco=_vis.ini+Math.max(0,Math.min(1,(e.clientX-r.left)/r.width))*visSpan();
+  if(e.shiftKey||Math.abs(e.deltaX)>Math.abs(e.deltaY)){ e.preventDefault(); visAndar((e.deltaX||e.deltaY)/r.width*visSpan()); return; }
+  e.preventDefault(); visZoom(e.deltaY<0?1.25:0.8,tFoco);
+},{passive:false});
+(function(){ var tr=$('tlZtrilho'), arr=null;
+  tr.addEventListener('pointerdown',function(e){ var r=tr.getBoundingClientRect(); arr={x:e.clientX,ini:_vis.ini}; tr.setPointerCapture(e.pointerId);
+    if(e.target!==$('tlZbar')){ _vis.ini=(e.clientX-r.left)/r.width*visTot()-visSpan()/2; arr.ini=_vis.ini; visAndar(0); } });
+  tr.addEventListener('pointermove',function(e){ if(!arr) return; var r=tr.getBoundingClientRect(); _vis.ini=arr.ini+(e.clientX-arr.x)/r.width*visTot(); visAndar(0); });
+  tr.addEventListener('pointerup',function(){ arr=null; });
+})();
+window.addEventListener('resize',function(){ pintarPerfil(); muDesenhar(); });
 
 // ══════════════════════════════════════════════════════════════
 // VÍDEO
@@ -656,7 +733,10 @@ function montar(){
   if(video&&video.yt) out.video={fonte:'youtube',youtubeId:video.yt,url:video.url,titulo:video.titulo||'',duracao:Math.round(video.dur||0),arquivo:null,syncOffset:Math.max(0,Math.round(video.chegada||0))};
   else if(video) out.video={fonte:'local',arquivo:video.arquivo,syncOffset:Math.max(0,Math.round(video.chegada||0))};
   var link=$('muLink').value.trim();
-  if(trilha.length){ out.musica={fonte:'mp3',arquivo:trilha[0].nome,arquivos:trilha.map(function(t){return t.nome;}),syncOffset:0}; if(link) out.musica.playlist=link; }
+  if(trilha.length){ out.musica={fonte:'mp3',arquivo:trilha[0].nome,arquivos:trilha.map(function(t){return t.nome;}),syncOffset:0,
+      // 02/10: a ordem, o trecho de cada música (ini → fim) e a duração; o Ginásio toca na sequência
+      trilha:trilha.map(function(t){ return {arquivo:t.nome,ini:Math.round((t.ini||0)*10)/10,fim:Math.round((t.fim!=null?t.fim:t.dur)*10)/10,dur:Math.round(t.dur*10)/10}; })};
+    if(link) out.musica.playlist=link; }
   else if(link){ out.musica={fonte:/spotify/i.test(link)?'spotify':/deezer/i.test(link)?'deezer':'link',link:link,arquivo:null,syncOffset:0}; if(/spotify/i.test(link)) out.musica.spotifyUri=link; }
   out.instrucoes_pendrive={estrutura:'Coloque este arquivo em prorider/ no pendrive. Vídeos em prorider/video/ e MP3 em prorider/musicas/.'};
   return out;
@@ -725,6 +805,7 @@ function carregar(d){
   video=d.video&&d.video.fonte==='youtube'&&(d.video.youtubeId||ytId(d.video.url))?{yt:d.video.youtubeId||ytId(d.video.url),url:d.video.url,titulo:d.video.titulo||'',dur:+d.video.duracao||0,chegada:+d.video.syncOffset||0,arquivo:null}
        :d.video&&d.video.arquivo?{arquivo:d.video.arquivo,dur:0,chegada:+d.video.syncOffset||0}:null;
   $('muLink').value=(d.musica&&(d.musica.playlist||d.musica.link||(d.musica.fonte==='spotify'&&d.musica.spotifyUri)))||'';
+  window._muCortes={}; ((d.musica&&d.musica.trilha)||[]).forEach(function(x){ if(x&&x.arquivo) window._muCortes[String(x.arquivo).toLowerCase()]={ini:+x.ini||0,fim:x.fim!=null?+x.fim:null}; });
   if(d.musica&&d.musica.arquivos&&!trilha.length) toast('A aula usa '+d.musica.arquivos.length+' música(s): adicione os MP3 para ver a trilha',4500);
   segAtivo=segments[0].id; cancelarEdicao(); tudo();
 }

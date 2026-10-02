@@ -771,6 +771,83 @@ button{font-family:inherit}
     </div>
   </div>
 
+
+
+
+  <!-- OCUPAÇÃO E SUMIDOS (02/10d) -->
+  <div class="page content" id="page-ocupacao">
+    <div class="pr-hd"><div><h1>Ocupação e sumidos</h1><p>Quais horários enchem, quais ficam vazios, e quem parou de vir</p></div>
+      <div style="display:flex;gap:6px" id="ocDias"></div></div>
+    <div id="ocResumo" style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:14px"></div>
+    <div class="cp-g">
+      <div class="pr-card" style="min-width:0"><h3 style="margin-bottom:6px">Ocupação por dia e horário <small style="color:var(--muted);font-weight:500;text-transform:none;font-family:Barlow,sans-serif">média de quem pedalou ÷ bikes</small></h3>
+        <div id="ocMapa" style="overflow-x:auto"></div></div>
+      <div class="pr-card" style="min-width:0"><h3 style="margin-bottom:6px">Alunos sumidos <small style="color:var(--muted);font-weight:500;text-transform:none;font-family:Barlow,sans-serif">2+ aulas e nenhuma nos últimos 14 dias</small></h3>
+        <div id="ocSum"></div></div>
+    </div>
+  </div>
+
+  <!-- GRAVAR E TRANSMITIR (02/10b) -->
+  <div class="page content" id="page-transmissao">
+    <div class="pr-hd"><div><h1>Gravar e transmitir</h1><p>A TV grava a aula com a câmera e transmite no app e no YouTube da academia</p></div></div>
+    <div class="cp-g">
+      <div style="display:flex;flex-direction:column;gap:14px;min-width:0">
+        <div class="pr-card">
+          <h3 style="margin-bottom:10px">Como liga</h3>
+          <div style="color:var(--muted);font-size:14px;line-height:1.55">Na TV, em <b style="color:#fff">Configurar aula → Câmera ao vivo</b>, escolha com ← →:<br>
+            <b style="color:#fff">Gravar</b>: grava a câmera com a faixa da aula (zona, tempo, FTP, professor) no computador da TV, na pasta <b style="color:#fff">C:\ProRider\Gravacoes</b>.<br>
+            <b style="color:#fff">Gravar e transmitir</b>: grava e também transmite no <b style="color:#fff">app</b> (os alunos tocam em "Assistir ao vivo") e no <b style="color:#fff">YouTube Live</b> da academia, se a chave estiver aqui embaixo.</div>
+        </div>
+        <div class="pr-card">
+          <h3 style="margin-bottom:10px">YouTube Live da academia</h3>
+          <div style="color:var(--muted);font-size:13px;margin-bottom:10px">No YouTube Studio da academia: <b style="color:#fff">Criar → Transmitir ao vivo → Stream</b> e copie a <b style="color:#fff">chave de transmissão</b>. Cole aqui. Quem tiver a chave consegue transmitir no canal: só o gestor vê e troca.</div>
+          <div id="txYtAtual" style="font-size:14px;margin-bottom:8px"></div>
+          <div style="display:flex;gap:8px"><input id="txYt" type="password" autocomplete="off" placeholder="xxxx-xxxx-xxxx-xxxx-xxxx" style="flex:1;background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:10px 12px;color:#fff;font-size:15px">
+            <button class="pr-btn pr-bp" onclick="txSalvarYt()">Salvar chave</button><button class="pr-btn pr-bg" onclick="txApagarYt()">Apagar</button></div>
+          <div style="color:var(--muted);font-size:12.5px;margin-top:10px">O computador da TV precisa do <b style="color:#fff">ffmpeg</b> (programa gratuito) na pasta C:\ProRider\ffmpeg. Está no LEIA-ME do Ginásio.</div>
+        </div>
+        <div class="pr-card">
+          <h3 style="margin-bottom:10px">Assistir no app</h3>
+          <div style="display:flex;align-items:center;gap:10px"><span style="color:var(--muted);font-size:14px;flex:1">Quantas pessoas podem assistir ao mesmo tempo pelo app (a internet da academia manda o vídeo para cada uma; com internet de 30 Mb de subida, até uns 15)</span>
+            <input id="txMax" type="number" min="1" max="30" style="width:80px;background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:8px 10px;color:#fff;font-size:16px;text-align:center">
+            <button class="pr-btn pr-bg" onclick="txSalvarMax()">Salvar</button></div>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:14px;min-width:0">
+        <div class="pr-card">
+          <h3 style="margin-bottom:10px">Aulas gravadas <small id="txEnvio" style="color:var(--muted);font-weight:500;text-transform:none;font-family:Barlow,sans-serif"></small></h3>
+          <div id="txGrav"><div class="pr-empty">Carregando…</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- DESAFIO ENTRE ACADEMIAS (02/10a) -->
+  <div class="page content" id="page-desafiosacad">
+    <div class="pr-hd"><div><h1>Desafio entre academias</h1><p>Sua academia contra outras: por período (semana, mês) ou numa aula ao vivo no mesmo horário</p></div></div>
+    <div class="cp-g">
+      <div style="display:flex;flex-direction:column;gap:14px;min-width:0">
+        <div class="pr-card">
+          <h3 style="margin-bottom:12px">Criar um desafio</h3>
+          <div class="cp-tipos" style="grid-template-columns:1fr 1fr" id="daTipos">
+            <button class="on" onclick="daTipo('periodo')" id="daTpP"><span style="font-size:24px">📅</span><b>Por período</b><small>semana, mês… vence a média por aluno</small></button>
+            <button onclick="daTipo('ao_vivo')" id="daTpV"><span style="font-size:24px">⚔</span><b>Aula ao vivo</b><small>mesmo horário · placar ao vivo nas TVs</small></button>
+          </div>
+          <div class="pr-fg"><label>Nome</label><input id="daNome" placeholder="Ex.: Outubro · Clube x Studio Moema"></div>
+          <div class="cp-3" id="daPer"><div class="pr-fg"><label>Métrica</label><select id="daMet"></select></div>
+            <div class="pr-fg"><label>Começa</label><input type="date" id="daIni"></div><div class="pr-fg"><label>Termina</label><input type="date" id="daFim"></div></div>
+          <div class="cp-3" id="daViv" style="display:none;grid-template-columns:2fr 2fr"><div class="pr-fg"><label>Métrica</label><select id="daMet2"></select></div>
+            <div class="pr-fg"><label>Dia e horário da aula</label><input type="datetime-local" id="daHora"></div></div>
+          <div style="color:var(--muted);font-size:13px;margin:4px 0 12px">Conta todo mundo que pedalou na TV, com ou sem app. Alunos demo não contam. A média por aluno deixa justo academia pequena contra grande.</div>
+          <button class="pr-btn pr-bp" onclick="daCriar()">Criar e pegar o código</button>
+        </div>
+        <div class="pr-card">
+          <h3 style="margin-bottom:10px">Recebeu um código de outra academia?</h3>
+          <div style="display:flex;gap:8px"><input id="daCod" placeholder="DA-XXXXXX" style="flex:1;text-transform:uppercase;background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:10px 12px;color:#fff;font-size:15px;letter-spacing:1px"><button class="pr-btn pr-bg" onclick="daEntrar()">Entrar no desafio</button></div>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:14px;min-width:0" id="daLista"><div class="pr-card"><div class="pr-empty">Carregando…</div></div></div>
+    </div>
+  </div>
   <!-- CAMPEONATOS (01/10a) -->
   <div class="page content" id="page-campeonatos">
     <div class="pr-hd"><div><h1>Campeonatos</h1><p>Junte aulas da grade em etapas e vista as camisas de quem lidera</p></div>
@@ -1265,6 +1342,9 @@ const PR_NAV = [
     ['grade','📅','Agenda da semana',['gestor','coordenador','admin','super_admin']],
     ['criar','🎛','Construtor de aulas',['gestor','coordenador','professor','admin','super_admin']],
     ['campeonatos','🏁','Campeonatos',['gestor','coordenador','admin','super_admin']],
+    ['desafiosacad','⚔','Desafio entre academias',['gestor','coordenador','admin','super_admin']],
+    ['transmissao','📡','Gravar e transmitir',['gestor','coordenador','admin','super_admin']],
+    ['ocupacao','📊','Ocupação e sumidos',['gestor','coordenador','admin','super_admin']],
   ]],
   ['Pessoas', [
     ['alunos','👥','Alunos',[]],
@@ -1593,16 +1673,20 @@ const EM_INFO = [
   ['novo_ftp','Novo FTP','quando o FTP do aluno sobe'],
   ['aniversario','Aniversário','no dia, às 10h (precisa da data no perfil)'],
   ['relatorio_mensal','Relatório do mês','dia 1º, para o gestor'],
+  ['lembrete_aula','Lembrete da aula','1 hora antes, para quem reservou'],
+  ['vaga_aberta','Abriu uma vaga','para o 1º da lista de espera'],
 ];
 let emCfg = {};
-const EM_ICO = {boas_vindas:'👋',resumo_aula:'📊',sumido:'🚴',novo_ftp:'📈',aniversario:'🎂',relatorio_mensal:'📅'};
+const EM_ICO = {boas_vindas:'👋',resumo_aula:'📊',sumido:'🚴',novo_ftp:'📈',aniversario:'🎂',relatorio_mensal:'📅',lembrete_aula:'⏰',vaga_aberta:'🚲'};
 const EM_VARS = {
   boas_vindas:['nome','nome_completo','academia'],
   resumo_aula:['nome','academia','aula','duracao','kcal','potencia','rpm','zona','pontos'],
   sumido:['nome','academia','dias'],
   novo_ftp:['nome','academia','ftp_antes','ftp_novo','evolucao'],
   aniversario:['nome','academia'],
-  relatorio_mensal:['academia','mes','aulas','alunos','kcal']
+  relatorio_mensal:['academia','mes','aulas','alunos','kcal'],
+  lembrete_aula:['nome','academia','aula','hora','bike'],
+  vaga_aberta:['nome','academia','aula','data','hora','bike']
 };
 const EM_NUM = {resumo_aula:'duração, kcal, potência, RPM, zona e pontos', novo_ftp:'FTP antes, agora e a evolução', relatorio_mensal:'aulas, alunos ativos e kcal do mês'};
 let emSel = 'resumo_aula', emPadraoTxt = {}, emEdit = {}, _emFoco = null;
@@ -1762,8 +1846,113 @@ function showTab(t) {
   if (t === 'perfil') loadPerfil();
   if (t === 'emails') loadEmails();
   if (t === 'campeonatos') loadCampeonatos();
+  if (t === 'desafiosacad') loadDesafiosAcad();
+  if (t === 'transmissao') loadTransmissao();
+  if (t === 'ocupacao') loadOcupacao();
   if (t === 'pagina') loadPagina();
   if (t === 'totem') loadTotem();
+}
+
+
+
+// ══ 02/10d — OCUPAÇÃO E SUMIDOS ════════════════════════════
+let ocDias=60;
+async function loadOcupacao(){
+  document.getElementById('ocDias').innerHTML=[30,60,90].map(d=>'<button class="pr-btn '+(d===ocDias?'pr-bp':'pr-bg')+'" style="padding:6px 12px" onclick="ocDias='+d+';loadOcupacao()">'+d+' dias</button>').join('');
+  try{
+    const d=await api('/gestor/ocupacao?dias='+ocDias); if(d.error) throw new Error(d.error);
+    const t=d.total||{}, rs=d.reservas||{}, card=(v,l,c)=>'<div class="pr-card" style="padding:14px 16px"><div style="font-family:\'Barlow Condensed\',sans-serif;font-weight:900;font-size:30px;color:'+(c||'#fff')+'">'+v+'</div><div style="color:var(--muted);font-size:12.5px">'+l+'</div></div>';
+    const med=t.aulas?Math.round(t.part/t.aulas*10)/10:0;
+    document.getElementById('ocResumo').innerHTML=card(t.aulas||0,'aulas na TV')+card(med.toLocaleString('pt-BR'),'alunos por aula (de '+d.bikes+' bikes)','#ffb45a')+card(rs.faltas||0,'faltaram sem cancelar','#ff8a8a')+card(rs.fila||0,'entraram na lista de espera','#8fe06a');
+    const cel={}; (d.celulas||[]).forEach(c=>{ cel[c.dow+'_'+c.hora]=c; });
+    const horas=[...new Set((d.celulas||[]).map(c=>c.hora))].sort((a,b)=>a-b);
+    if(!horas.length){ document.getElementById('ocMapa').innerHTML='<div class="pr-empty">Ainda sem aulas fechadas na TV neste período. O mapa enche sozinho a cada aula.</div>'; }
+    else { const DS=['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'], ord=[1,2,3,4,5,6,0];
+      let h='<table style="border-collapse:separate;border-spacing:4px;font-size:13px"><tr><th></th>'+ord.map(k=>'<th style="color:var(--muted);font-weight:700;padding:2px 6px">'+DS[k]+'</th>').join('')+'</tr>';
+      horas.forEach(hh=>{ h+='<tr><td style="color:var(--muted);font-weight:700;padding-right:6px">'+String(hh).padStart(2,'0')+'h</td>'+ord.map(k=>{ const c=cel[k+'_'+hh]; if(!c) return '<td style="width:64px;height:40px;border-radius:8px;background:rgba(255,255,255,.03)"></td>';
+        const p=Math.min(100,c.pct), cor=p>=80?'234,134,12':p>=50?'215,196,20':'41,95,232';
+        return '<td title="'+c.aulas+' aulas · média '+c.media+' · máx '+c.max+'" style="width:64px;height:40px;border-radius:8px;text-align:center;font-weight:800;background:rgba('+cor+','+(0.15+p/130)+')">'+p+'%</td>'; }).join('')+'</tr>'; });
+      document.getElementById('ocMapa').innerHTML=h+'</table><div style="color:var(--muted);font-size:12px;margin-top:8px">Laranja: enche (80%+) · amarelo: metade · azul: vazio. Passe o mouse para ver quantas aulas.</div>'; }
+    const s2=await api('/gestor/sumidos');
+    const L=s2.sumidos||[];
+    document.getElementById('ocSum').innerHTML=L.length?L.map(u=>'<div style="display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 10px;align-items:center;padding:10px 12px;border-radius:10px;background:var(--card2);margin-bottom:6px">'
+      +'<div style="font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+cpEsc(u.nome)+' <span style="color:var(--muted);font-weight:500;font-size:12.5px">'+cpEsc(u.email||'')+'</span></div>'
+      +'<button class="pr-btn pr-bg" style="padding:6px 10px" '+(s2.email?'onclick="ocAvisar('+u.id+',this)"':'disabled title="E-mail não configurado no servidor"')+'>✉ Chamar de volta</button>'
+      +'<div style="color:var(--muted);font-size:12.5px">'+u.dias+' dias sem vir · '+u.aulas+' aulas no total'+(u.avisado_em?' · avisado em '+new Date(u.avisado_em).toLocaleDateString('pt-BR'):'')+'</div></div>').join('')
+      :'<div class="pr-empty">Ninguém sumido. 🎉</div>';
+  }catch(e){ toast('Não consegui carregar: '+e.message); }
+}
+async function ocAvisar(id,btn){ try{ btn.disabled=true; const r=await apiSend('POST','/gestor/sumidos/'+id+'/avisar'); toast(r.msg||'Enviado'); btn.textContent='✓ Avisado'; }catch(e){ btn.disabled=false; toast(e.message); } }
+// ══ 02/10b — GRAVAR E TRANSMITIR ═══════════════════════════════════
+async function loadTransmissao(){
+  try{
+    const d=await api('/gestor/transmissao'); if(d.error) throw new Error(d.error);
+    document.getElementById('txYtAtual').innerHTML=d.yt_configurado?'<span style="color:#8fe06a;font-weight:800">✓ Chave salva</span> <span style="color:var(--muted)">('+cpEsc(d.yt_chave)+')</span>':'<span style="color:#ffb45a;font-weight:700">Nenhuma chave ainda: a TV transmite só no app.</span>';
+    document.getElementById('txMax').value=d.tx_max||15;
+    document.getElementById('txEnvio').textContent=d.envio_app?'· envio para o app ligado':'· ficam no computador da TV; as 5 últimas vão para o app em teste por 72 h';
+    const g=d.gravacoes||[];
+    document.getElementById('txGrav').innerHTML=g.length?g.map(x=>{ const t=new Date(x.created_at), mb=Math.round((x.bytes||0)/1048576), dm=Math.round((x.dur_seg||0)/60);
+      return '<div style="display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 10px;padding:10px 12px;border-radius:10px;background:var(--card2);margin-bottom:6px">'
+        +'<div style="font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+cpEsc(x.nome_aula)+(x.professor?' <span style="color:var(--muted);font-weight:600">· '+cpEsc(x.professor)+'</span>':'')+'</div>'
+        +'<div style="text-align:right;font-size:12.5px;color:var(--muted)">'+t.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'})+' '+t.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})+'</div>'
+        +'<div style="font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="'+cpEsc(x.arquivo)+'">'+cpEsc(x.arquivo)+'</div>'
+        +'<div style="text-align:right;font-size:12.5px">'+dm+' min · '+mb+' MB'+(x.status==='teste'?' · <span style="color:#8fe06a">📱 no app (teste)</span>':'')+(x.transmitida?' · <span style="color:#ff6b8a">📡 ao vivo</span>':'')+(x.youtube?' · <span style="color:#ff3355">▶ YouTube</span>':'')+'</div></div>'; }).join(''):'<div class="pr-empty">Nenhuma aula gravada ainda.</div>';
+  }catch(e){ toast('Não consegui carregar: '+e.message); }
+}
+async function txSalvarYt(){ const k=document.getElementById('txYt').value.trim(); if(!k){ toast('Cole a chave do YouTube.'); return; }
+  try{ await apiSend('PUT','/gestor/transmissao',{yt_chave:k}); document.getElementById('txYt').value=''; toast('✓ Chave do YouTube salva'); loadTransmissao(); }catch(e){ toast(e.message); } }
+async function txApagarYt(){ if(!confirm('Apagar a chave do YouTube? A TV volta a transmitir só no app.')) return; try{ await apiSend('PUT','/gestor/transmissao',{yt_chave:''}); toast('Chave apagada'); loadTransmissao(); }catch(e){ toast(e.message); } }
+async function txSalvarMax(){ try{ await apiSend('PUT','/gestor/transmissao',{tx_max:document.getElementById('txMax').value}); toast('✓ Salvo'); loadTransmissao(); }catch(e){ toast(e.message); } }
+// ══ 02/10a — DESAFIO ENTRE ACADEMIAS ═══════════════════════════════
+let daTipoSel='periodo', daMetricas={};
+function daTipo(t){ daTipoSel=t; document.getElementById('daTpP').classList.toggle('on',t==='periodo'); document.getElementById('daTpV').classList.toggle('on',t==='ao_vivo');
+  document.getElementById('daPer').style.display=t==='periodo'?'grid':'none'; document.getElementById('daViv').style.display=t==='ao_vivo'?'grid':'none'; }
+async function loadDesafiosAcad(){
+  try{
+    const d=await api('/gestor/desafios-academias'); if(d.error) throw new Error(d.error);
+    daMetricas=d.metricas||{};
+    const op=Object.keys(daMetricas).map(k=>'<option value="'+k+'">'+cpEsc(daMetricas[k].nome)+'</option>').join('');
+    ['daMet','daMet2'].forEach(id=>{ const e=document.getElementById(id); if(e&&!e.options.length) e.innerHTML=op; });
+    const hj=new Date(), f=new Date(hj.getTime()+30*864e5), iso=x=>x.getFullYear()+'-'+String(x.getMonth()+1).padStart(2,'0')+'-'+String(x.getDate()).padStart(2,'0');
+    if(!document.getElementById('daIni').value){ document.getElementById('daIni').value=iso(hj); document.getElementById('daFim').value=iso(f); }
+    daRenderLista(d.desafios||[]);
+  }catch(e){ toast('Não consegui carregar os desafios: '+e.message); }
+}
+function daQuando(x){
+  if(x.tipo==='ao_vivo'){ const t=new Date(x.data_hora); return '⚔ ao vivo · '+t.toLocaleDateString('pt-BR',{weekday:'short',day:'2-digit',month:'2-digit'})+' às '+t.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}); }
+  const f=s=>s.split('-').reverse().slice(0,2).join('/'); return '📅 '+f(x.inicio)+' a '+f(x.fim);
+}
+function daRenderLista(l){
+  const el=document.getElementById('daLista');
+  if(!l.length){ el.innerHTML='<div class="pr-card"><div class="pr-empty">Nenhum desafio ainda. Crie um e mande o código para a outra academia.</div></div>'; return; }
+  el.innerHTML=l.map(x=>{
+    const fim=x.status!=='ativo', venc=fim&&x.ranking[0]&&x.ranking[0].participacoes>0?x.ranking[0]:null;
+    return '<div class="pr-card"><div style="display:flex;align-items:flex-start;gap:10px"><div style="flex:1;min-width:0"><h3 style="margin:0">'+cpEsc(x.nome)+'</h3>'
+      +'<div style="color:var(--muted);font-size:13px;margin-top:3px">'+daQuando(x)+' · '+cpEsc(x.metrica_nome)+'</div></div>'
+      +'<span class="cp-pill" style="margin-left:0;'+(fim?'background:rgba(255,255,255,.08);color:var(--muted)':'')+'">'+(fim?'encerrado':'valendo')+'</span></div>'
+      +(fim?'':'<div style="margin:12px 0 4px;padding:10px 12px;border-radius:10px;background:var(--card2);display:flex;align-items:center;gap:10px"><span style="color:var(--muted);font-size:13px">Código para a outra academia</span><b style="font-family:\'Barlow Condensed\',sans-serif;font-size:24px;letter-spacing:2px;color:#ffb45a">'+cpEsc(x.codigo)+'</b>'
+        +'<button class="pr-btn pr-bg" style="margin-left:auto;padding:6px 10px" onclick="navigator.clipboard&&navigator.clipboard.writeText(\''+x.codigo+'\');toast(\'Código copiado\')">Copiar</button></div>')
+      +(venc?'<div style="margin:12px 0 0;font-weight:800;color:#ffd23f">🏆 Venceu: '+cpEsc(venc.nome)+'</div>':'')
+      +'<div style="margin-top:12px">'+x.ranking.map(r=>'<div style="display:grid;grid-template-columns:34px minmax(0,1fr) 150px 80px;gap:8px;align-items:center;padding:8px 10px;border-radius:10px;margin-bottom:6px;background:'+(x.eu&&r.license_id===x.eu.license_id?'rgba(234,134,12,.14);border:1px solid rgba(234,134,12,.5)':'var(--card2)')+'">'
+        +'<b style="font-family:\'Barlow Condensed\',sans-serif;font-size:20px">'+r.pos+'º</b><span style="font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+cpEsc(r.nome)+(r.cidade?' <small style="color:var(--muted);font-weight:500">'+cpEsc(r.cidade)+'</small>':'')+'</span>'
+        +'<span style="color:var(--muted);font-size:12.5px;text-align:right">'+r.participacoes+' particip. · '+r.aulas+' aulas</span>'
+        +'<b style="text-align:right;font-family:\'Barlow Condensed\',sans-serif;font-size:22px;color:#ffb45a">'+(r.participacoes?r.valor.toLocaleString('pt-BR'):'—')+'</b></div>').join('')+'</div>'
+      +(x.ranking.length<2&&!fim?'<div style="color:var(--muted);font-size:13px;margin-top:6px">Esperando outra academia entrar com o código.</div>':'')
+      +'<div style="margin-top:10px;text-align:right"><button class="pr-btn pr-bg" style="padding:6px 10px;color:#ff8a8a" onclick="daSair('+x.id+','+(x.criador?1:0)+')">'+(x.criador?'Apagar desafio':'Sair do desafio')+'</button></div></div>';
+  }).join('');
+}
+async function daCriar(){
+  const body={nome:document.getElementById('daNome').value.trim(),tipo:daTipoSel,metrica:document.getElementById(daTipoSel==='periodo'?'daMet':'daMet2').value,
+    inicio:document.getElementById('daIni').value,fim:document.getElementById('daFim').value,data_hora:document.getElementById('daHora').value};
+  try{ const r=await apiSend('POST','/gestor/desafios-academias',body); toast('⚔ Desafio criado · código '+r.codigo); document.getElementById('daNome').value=''; await loadDesafiosAcad(); }catch(e){ toast(e.message); }
+}
+async function daEntrar(){
+  const c=document.getElementById('daCod').value.trim(); if(!c){ toast('Cole o código que a outra academia mandou.'); return; }
+  try{ const r=await apiSend('POST','/gestor/desafios-academias/entrar',{codigo:c}); toast('Você entrou em "'+r.nome+'"'); document.getElementById('daCod').value=''; await loadDesafiosAcad(); }catch(e){ toast(e.message); }
+}
+async function daSair(id,criador){
+  if(!confirm(criador?'Apagar este desafio para todas as academias?':'Sair deste desafio?')) return;
+  try{ await apiSend('DELETE','/gestor/desafios-academias/'+id); toast(criador?'Desafio apagado':'Você saiu do desafio'); await loadDesafiosAcad(); }catch(e){ toast(e.message); }
 }
 // ══ 01/10a — CAMPEONATOS ═══════════════════════════════════════════
 const CP_PONTOS=[25,20,16,13,11,10,9,8,7,6];

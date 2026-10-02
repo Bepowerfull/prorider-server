@@ -135,7 +135,7 @@ function shortId() {
 //   EMAIL_FROM="ProRider <nao-responda@seudominio.com>"   (remetente)
 //   PORTAL_URL=https://...   (link dos botões; padrão: este servidor)
 // Sem nenhuma delas, nada é enviado e o Portal mostra "e-mail não configurado".
-const EMAILS_PADRAO = { boas_vindas: true, resumo_aula: true, sumido: true, novo_ftp: true, aniversario: false, relatorio_mensal: true };
+const EMAILS_PADRAO = { boas_vindas: true, resumo_aula: true, sumido: true, novo_ftp: true, aniversario: false, relatorio_mensal: true, lembrete_aula: true, vaga_aberta: true };
 const PORTAL_URL = process.env.PORTAL_URL || 'https://prorider-server-production-5784.up.railway.app';
 let _smtp = null;
 function emailProvedor() {
@@ -221,7 +221,9 @@ const EMAIL_TEXTO_PADRAO = {
   sumido:           { assunto: 'Sentimos sua falta, {nome} 🚴', titulo: 'Sentimos sua falta!', abertura: 'Faz {dias} dias desde a sua última aula na {academia}.', fechamento: 'Que tal voltar esta semana? Seu FTP e seu histórico continuam guardados.', botao: '' },
   novo_ftp:         { assunto: '📈 Novo FTP: {ftp_novo} W', titulo: 'Boa, {nome}! Seu FTP subiu.', abertura: '', fechamento: 'As zonas das próximas aulas já usam o FTP novo.', botao: '' },
   aniversario:      { assunto: '🎉 Feliz aniversário, {nome}!', titulo: 'Feliz aniversário! 🎂', abertura: 'A equipe da {academia} deseja um ótimo dia.', fechamento: 'Venha comemorar pedalando!', botao: '' },
-  relatorio_mensal: { assunto: 'Relatório de {mes} — {academia}', titulo: 'Relatório de {mes}', abertura: '', fechamento: 'O relatório completo, com as zonas e os melhores alunos, está no Portal.', botao: 'Abrir relatórios' }
+  relatorio_mensal: { assunto: 'Relatório de {mes} — {academia}', titulo: 'Relatório de {mes}', abertura: '', fechamento: 'O relatório completo, com as zonas e os melhores alunos, está no Portal.', botao: 'Abrir relatórios' },
+  lembrete_aula:    { assunto: '⏰ {nome}, sua aula é às {hora}', titulo: 'Sua aula é daqui a pouco!', abertura: '{aula} hoje às {hora} na {academia} — bike {bike}.', fechamento: 'Não vai conseguir ir? Cancele no app e libere a vaga para quem está na lista de espera.', botao: 'Abrir o app' },
+  vaga_aberta:      { assunto: '🚲 Abriu uma vaga: {aula} às {hora}', titulo: 'Abriu uma vaga para você!', abertura: 'Você estava na lista de espera da aula {aula}, {data} às {hora}. A bike {bike} agora é sua.', fechamento: 'Se não puder ir, cancele no app para a vaga ir para o próximo da fila.', botao: 'Abrir o app' },
 };
 const EMAIL_CAMPOS = ['assunto', 'titulo', 'abertura', 'fechamento', 'botao'];
 function emailTexto(cfg, tipo) {
@@ -604,8 +606,10 @@ async function runMigrations() {
     `);
     // 01/10b: duas pessoas não reservam a mesma bike na mesma aula
     try {
-      await db.query(`CREATE UNIQUE INDEX IF NOT EXISTS aulas_reservas_bike_uniq ON aulas_reservas (agenda_id, data_aula, bike_numero)
-        WHERE status<>'cancelado' AND bike_numero IS NOT NULL AND bike_numero<>99`);
+      // 02/10c: quem faltou ('ausente') também libera a bike
+      await db.query(`DROP INDEX IF EXISTS aulas_reservas_bike_uniq`);
+      await db.query(`CREATE UNIQUE INDEX IF NOT EXISTS aulas_reservas_bike_uniq2 ON aulas_reservas (agenda_id, data_aula, bike_numero)
+        WHERE status NOT IN ('cancelado','ausente') AND bike_numero IS NOT NULL AND bike_numero<>99`);
     } catch (e) { log('Aviso: índice de bike única nas reservas não criado (' + e.message + ') — a checagem continua no /aluno/reservar'); }
     log('Migração aulas_reservas OK');
 
@@ -802,6 +806,9 @@ async function runMigrations() {
     await db.query(`ALTER TABLE licencas ADD COLUMN IF NOT EXISTS geo_fonte TEXT, ADD COLUMN IF NOT EXISTS geo_em TIMESTAMPTZ`);
     log('Migração 29/09c (localização) OK');
     await campMigrar().catch(e => log('Migração 01/10a (campeonatos) ERRO: ' + e.message));
+    await daMigrar().catch(e => log('Migração 02/10a (desafio entre academias) ERRO: ' + e.message));
+    await gvMigrar().catch(e => log('Migração 02/10b (gravar e transmitir) ERRO: ' + e.message));
+    await esMigrar().catch(e => log('Migração 02/10c (lista de espera e lembretes) ERRO: ' + e.message));
     setTimeout(() => geoPreencherFaltando().catch(e => log('geo backfill: ' + e.message)), 15000);
 
   } catch(e) {
@@ -1693,6 +1700,45 @@ wss.on('connection', (ws) => {
       }
 
       // Observador: escaneou o QR fixo da porta e quer só VER o mapa ao vivo (sem entrar).
+      // 02/10b: TRANSMISSÃO NO APP (WebRTC). A TV manda o vídeo direto para
+      // cada celular; o servidor só passa os recados (oferta, resposta, ICE).
+      case 'tx_estado': {
+        const sala = ws._salaCode && salas[ws._salaCode]; if (!sala || ws._tipo !== 'professor') break;
+        sala.tx = { ativo: !!msg.ativo, max: Math.max(1, Math.min(30, parseInt(msg.max, 10) || 15)) };
+        if (!sala.txv) sala.txv = new Map();
+        if (!sala.tx.ativo) { for (const [, v] of sala.txv) { try { v.send(JSON.stringify({ tipo: 'tx_estado', ativo: false })); } catch (e) {} } sala.txv.clear(); }
+        const t = JSON.stringify({ tipo: 'tx_estado', ativo: sala.tx.ativo });
+        for (const [, aws] of sala.alunos) { if (aws.readyState === WebSocket.OPEN) { try { aws.send(t); } catch (e) {} } }
+        log(`Transmissão ${sala.tx.ativo ? 'ligada' : 'desligada'} na sala ${ws._salaCode}`);
+        break;
+      }
+      case 'tx_ver': {
+        const cod = String(msg.codigo || ''), sala = salas[cod];
+        if (!sala || !sala.tx || !sala.tx.ativo || !sala.professor || sala.professor.readyState !== WebSocket.OPEN) { ws.send(JSON.stringify({ tipo: 'tx_erro', msg: 'Esta aula não está sendo transmitida agora.' })); break; }
+        if (!sala.txv) sala.txv = new Map();
+        for (const [k, v] of sala.txv) { if (v.readyState !== WebSocket.OPEN) sala.txv.delete(k); }
+        if (sala.txv.size >= sala.tx.max) { ws.send(JSON.stringify({ tipo: 'tx_erro', msg: `A transmissão está cheia (${sala.tx.max} pessoas). Tente daqui a pouco.` })); break; }
+        ws._txSala = cod; ws._txId = 'v' + Math.random().toString(36).slice(2, 10);
+        sala.txv.set(ws._txId, ws);
+        sala.professor.send(JSON.stringify({ tipo: 'tx_novo', vid: ws._txId, nome: String(msg.nome || '').slice(0, 40) }));
+        ws.send(JSON.stringify({ tipo: 'tx_ok', vid: ws._txId }));
+        break;
+      }
+      case 'tx_sinal': {
+        if (ws._tipo === 'professor') {
+          const sala = salas[ws._salaCode]; const v = sala && sala.txv && sala.txv.get(String(msg.vid || ''));
+          if (v && v.readyState === WebSocket.OPEN) v.send(JSON.stringify({ tipo: 'tx_sinal', dado: msg.dado }));
+        } else if (ws._txId && salas[ws._txSala]) {
+          const pr = salas[ws._txSala].professor;
+          if (pr && pr.readyState === WebSocket.OPEN) pr.send(JSON.stringify({ tipo: 'tx_sinal', vid: ws._txId, dado: msg.dado }));
+        }
+        break;
+      }
+
+      // 02/10a: placar ao vivo do desafio entre academias (TV ↔ TVs das outras academias)
+      case 'duelo_entrar': { daDueloEntrar(ws, msg).catch(() => {}); break; }
+      case 'duelo_placar': { daDueloPlacar(ws, msg); break; }
+
       case 'assinar_sala': {
         const codigo = msg.codigo;
         if (!codigo) return;
@@ -1883,6 +1929,11 @@ wss.on('connection', (ws) => {
   });
 
   ws.on('close', () => {
+    try { daDueloSair(ws); } catch (e) {}
+    if (ws._txId && salas[ws._txSala]) {   // 02/10b: quem assistia saiu
+      const sl = salas[ws._txSala]; if (sl.txv) sl.txv.delete(ws._txId);
+      if (sl.professor && sl.professor.readyState === WebSocket.OPEN) { try { sl.professor.send(JSON.stringify({ tipo: 'tx_saiu', vid: ws._txId })); } catch (e) {} }
+    }
     const salaCode = ws._salaCode;
     if (!salaCode || !salas[salaCode]) return;
     const sala = salas[salaCode];
@@ -2442,7 +2493,7 @@ app.get('/display/agenda', displayAuth, async (req, res) => {
     const diaN  = nowBR.getDay();
     const r = await db.query(
       `SELECT a.*, COALESCE(p.name, a.professor_nome) AS professor_nome,
-         (SELECT COUNT(*)::int FROM aulas_reservas r WHERE r.agenda_id=a.id AND r.data_aula=$3::date AND r.status<>'cancelado') AS reservas_hoje
+         (SELECT COUNT(*)::int FROM aulas_reservas r WHERE r.agenda_id=a.id AND r.data_aula=$3::date AND r.status NOT IN ('cancelado','ausente')) AS reservas_hoje
        FROM aulas_agenda a
        LEFT JOIN users p ON p.id = a.professor_id
        WHERE a.license_id=$1 AND a.dia_semana=$2 AND a.ativa=true
@@ -2757,7 +2808,7 @@ app.get('/gestor/emails', gestorAuth, async (req, res) => {
 });
 // Prévia com um aluno de exemplo (o Portal mostra exatamente o que sai)
 const EMAIL_EXEMPLO = { nome: 'Ana', nome_completo: 'Ana Paula', aula: 'Endurance de quinta', duracao: '55 min', kcal: 512, potencia: '168 W', rpm: 88, zona: 'Z3', pontos: 152,
-  dias: 16, ftp_antes: 180, ftp_novo: 192, evolucao: 12, mes: 'setembro de 2026', aulas: 214, alunos: 63 };
+  dias: 16, ftp_antes: 180, ftp_novo: 192, evolucao: 12, mes: 'setembro de 2026', aulas: 214, alunos: 63, hora: '18:30', bike: 7, data: 'quinta, 03/10' };
 function emailPrevia(tipo, cfg, academia) {
   const v = Object.assign({}, EMAIL_EXEMPLO, { academia });
   let nums = null;
@@ -3143,7 +3194,7 @@ app.get('/gestor/proxima-aula', gestorAuth, async (req, res) => {
 
     // ── 5. Contar reservas ──
     const reservas = await db.query(
-      "SELECT COUNT(*) FROM aulas_reservas WHERE agenda_id=$1 AND data_aula=CURRENT_DATE AND status<>'cancelado'",
+      "SELECT COUNT(*) FROM aulas_reservas WHERE agenda_id=$1 AND data_aula=CURRENT_DATE AND status NOT IN ('cancelado','ausente')",
       [aula.id]
     );
     const reservadas = parseInt(reservas.rows[0].count);
@@ -3291,7 +3342,7 @@ app.get('/gestor/agenda', gestorAuth, async (req, res) => {
     const r = await db.query(`
       SELECT a.*,
         (SELECT COUNT(*) FROM aulas_reservas r
-         WHERE r.agenda_id=a.id AND r.data_aula=CURRENT_DATE AND r.status<>'cancelado') as reservas_hoje
+         WHERE r.agenda_id=a.id AND r.data_aula=CURRENT_DATE AND r.status NOT IN ('cancelado','ausente')) as reservas_hoje
       FROM aulas_agenda a
       WHERE a.license_id=$1
       ORDER BY a.dia_semana, a.hora
@@ -3403,9 +3454,11 @@ app.put('/gestor/reservas/:id/status', professorAuth, async (req, res) => {
     if (!await temAcessoLicenca(req.user, licR.rows[0].license_id))
       return res.status(403).json({ error: 'Sem acesso a esta unidade' });
     const r = await db.query(
-      'UPDATE aulas_reservas SET status=$1 WHERE id=$2 RETURNING *',
+      "UPDATE aulas_reservas SET status=$1 WHERE id=$2 RETURNING *, to_char(data_aula,'YYYY-MM-DD') AS data_iso",
       [status, req.params.id]
     );
+    // 02/10c: professor liberou a vaga → vai para a lista de espera
+    if (r.rows[0] && (status === 'ausente' || status === 'cancelado')) await esPromover(r.rows[0].agenda_id, r.rows[0].data_iso, r.rows[0].bike_numero);
     res.json(r.rows[0]);
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
@@ -3537,7 +3590,8 @@ function aulaAtivaDe(licId) {
       iniciada: !!(sala.estado && sala.estado.iniciada),
       desde: pre.desde || null,
       pedalando, bikes: num, livres: num ? Math.max(0, num - ocupadas) : null,
-      bikes_lista: info.bikes || [], ocupadas: info.ocupadas || []
+      bikes_lista: info.bikes || [], ocupadas: info.ocupadas || [],
+      transmitindo: !!(sala.tx && sala.tx.ativo)   // 02/10b: dá para assistir no app
     };
   }
   return null;
@@ -3691,7 +3745,7 @@ app.get('/totem/:t/info', async (req, res) => {
     // hoje e amanhã
     const dias = [d.getDay(), (d.getDay() + 1) % 7];
     const g = await db.query(`SELECT a.id, a.nome, COALESCE(p.name, a.professor_nome) AS professor_nome, a.dia_semana, a.hora, a.duracao_min, a.vagas_max, a.cor,
-        (SELECT COUNT(*)::int FROM aulas_reservas r WHERE r.agenda_id=a.id AND r.status<>'cancelado'
+        (SELECT COUNT(*)::int FROM aulas_reservas r WHERE r.agenda_id=a.id AND r.status NOT IN ('cancelado','ausente')
            AND r.data_aula = ($2::date + ((a.dia_semana - EXTRACT(DOW FROM $2::date)::int + 7) % 7) * INTERVAL '1 day')::date) AS reservas
       FROM aulas_agenda a LEFT JOIN users p ON p.id=a.professor_id
       WHERE a.license_id=$1 AND a.ativa=TRUE AND a.dia_semana = ANY($3::int[]) ORDER BY ((a.dia_semana - $4 + 7) % 7), a.hora`, [L.codigo, iso, dias, d.getDay()]);
@@ -3773,7 +3827,7 @@ async function reservarAula(userId, agenda_id, data_aula) {
     const inicio = new Date(String(data_aula) + 'T' + String(A.hora));
     if (new Date() < new Date(inicio.getTime() - A.janela_reserva * 3600 * 1000)) return [425, { error: 'A reserva desta aula ainda não abriu.' }];
   }
-  const conf = await db.query("SELECT COUNT(*) FROM aulas_reservas WHERE agenda_id=$1 AND data_aula=$2 AND status<>'cancelado'", [agenda_id, data_aula]);
+  const conf = await db.query("SELECT COUNT(*) FROM aulas_reservas WHERE agenda_id=$1 AND data_aula=$2 AND status NOT IN ('cancelado','ausente')", [agenda_id, data_aula]);
   const teto = await tetoLicenca(A.license_id);
   if (parseInt(conf.rows[0].count) >= _capVagas(A.vagas_max, teto)) return [409, { error: 'Aula lotada' }];
   const r = await db.query(`INSERT INTO aulas_reservas (agenda_id, user_id, data_aula) VALUES ($1,$2,$3)
@@ -3971,7 +4025,7 @@ app.get('/agenda/grade/:license_id', async (req, res) => {
           (SELECT COUNT(*) FROM aulas_reservas r
            WHERE r.agenda_id=a.id
              AND r.data_aula=CURRENT_DATE + ((a.dia_semana - EXTRACT(DOW FROM CURRENT_DATE)::int + 7) % 7) * INTERVAL '1 day'
-             AND r.status<>'cancelado') as reservas
+             AND r.status NOT IN ('cancelado','ausente')) as reservas
         FROM aulas_agenda a
         WHERE a.license_id=$1 AND a.ativa=TRUE
         ORDER BY a.dia_semana, a.hora
@@ -4000,7 +4054,7 @@ app.get('/aluno/reservas', authMiddleware, async (req, res) => {
       FROM aulas_reservas r
       JOIN aulas_agenda a ON a.id=r.agenda_id
       JOIN licencas l ON l.codigo=a.license_id
-      WHERE r.user_id=$1 AND r.data_aula >= CURRENT_DATE AND r.status<>'cancelado'
+      WHERE r.user_id=$1 AND r.data_aula >= CURRENT_DATE AND r.status NOT IN ('cancelado','ausente')
       ORDER BY r.data_aula, a.hora
     `, [req.user.id]);
     res.json(r.rows);
@@ -4024,11 +4078,11 @@ app.get('/aluno/agenda/:id/bikes', authMiddleware, async (req, res) => {
     const total = await _bikesDaAula(id);
     if (!total) return res.status(404).json({ error: 'Aula não encontrada' });
     const r = await db.query(`SELECT user_id, bike_numero FROM aulas_reservas
-      WHERE agenda_id=$1 AND data_aula=$2 AND status<>'cancelado' AND bike_numero IS NOT NULL`, [id, data]);
+      WHERE agenda_id=$1 AND data_aula=$2 AND status NOT IN ('cancelado','ausente') AND bike_numero IS NOT NULL`, [id, data]);
     let minha = null; const ocupadas = [];
     r.rows.forEach(x => { if (x.user_id === req.user.id) minha = x.bike_numero; else ocupadas.push(x.bike_numero); });
     const sem = await db.query(`SELECT COUNT(*)::int AS n FROM aulas_reservas
-      WHERE agenda_id=$1 AND data_aula=$2 AND status<>'cancelado' AND bike_numero IS NULL AND user_id<>$3`, [id, data, req.user.id]);
+      WHERE agenda_id=$1 AND data_aula=$2 AND status NOT IN ('cancelado','ausente') AND bike_numero IS NULL AND user_id<>$3`, [id, data, req.user.id]);
     res.json({ total, ocupadas, minha, sem_bike: sem.rows[0].n });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
@@ -4064,7 +4118,7 @@ app.post('/aluno/reservar', authMiddleware, async (req, res) => {
     }
     // quem já tem reserva nesta aula não conta (está só trocando de bike)
     const confirmados = await db.query(
-      "SELECT COUNT(*) FROM aulas_reservas WHERE agenda_id=$1 AND data_aula=$2 AND status<>'cancelado' AND user_id<>$3",
+      "SELECT COUNT(*) FROM aulas_reservas WHERE agenda_id=$1 AND data_aula=$2 AND status NOT IN ('cancelado','ausente') AND user_id<>$3",
       [agenda_id, data_aula, req.user.id]
     );
     // 24/09: o limite e o menor entre as vagas da aula e as bikes da licenca
@@ -4078,14 +4132,14 @@ app.post('/aluno/reservar', authMiddleware, async (req, res) => {
       bike = parseInt(req.body.bike, 10) || 0;
       const total = await _bikesDaAula(agenda_id);
       if (bike < 1 || bike > total) return res.status(400).json({ error: `Escolha uma bike de 1 a ${total}.` });
-      const ocup = await db.query(`SELECT 1 FROM aulas_reservas WHERE agenda_id=$1 AND data_aula=$2 AND status<>'cancelado'
+      const ocup = await db.query(`SELECT 1 FROM aulas_reservas WHERE agenda_id=$1 AND data_aula=$2 AND status NOT IN ('cancelado','ausente')
         AND bike_numero=$3 AND user_id<>$4`, [agenda_id, data_aula, bike, req.user.id]);
       if (ocup.rows.length) return res.status(409).json({ error: `A bike ${bike} acabou de ser reservada por outra pessoa. Escolha outra.`, bike_ocupada: bike });
     }
     const r = await db.query(`
-      INSERT INTO aulas_reservas (agenda_id, user_id, data_aula, bike_numero)
-      VALUES ($1,$2,$3,$4)
-      ON CONFLICT (agenda_id, user_id, data_aula) DO UPDATE SET status='reservado', bike_numero=COALESCE(EXCLUDED.bike_numero, aulas_reservas.bike_numero)
+      INSERT INTO aulas_reservas (agenda_id, user_id, data_aula, bike_numero, liberar_apos)
+      VALUES ($1,$2,$3,$4,NOW()+INTERVAL '10 minutes')
+      ON CONFLICT (agenda_id, user_id, data_aula) DO UPDATE SET status='reservado', bike_numero=COALESCE(EXCLUDED.bike_numero, aulas_reservas.bike_numero), liberar_apos=EXCLUDED.liberar_apos
       RETURNING *
     `, [agenda_id, req.user.id, data_aula, bike]);
     res.json(r.rows[0]);
@@ -4099,10 +4153,12 @@ app.post('/aluno/reservar', authMiddleware, async (req, res) => {
 app.delete('/aluno/reservar/:id', authMiddleware, async (req, res) => {
   if (!db) return res.status(503).json({ error: 'Banco indisponível' });
   try {
-    await db.query(
-      "UPDATE aulas_reservas SET status='cancelado' WHERE id=$1 AND user_id=$2",
+    const c = await db.query(
+      "UPDATE aulas_reservas SET status='cancelado' WHERE id=$1 AND user_id=$2 AND status<>'cancelado' RETURNING agenda_id, to_char(data_aula,'YYYY-MM-DD') AS data_aula, bike_numero",
       [req.params.id, req.user.id]
     );
+    // 02/10c: a vaga vai para o primeiro da lista de espera (na mesma bike)
+    if (c.rows.length) await esPromover(c.rows[0].agenda_id, c.rows[0].data_aula, c.rows[0].bike_numero);
     res.json({ ok: true });
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
@@ -5511,7 +5567,7 @@ app.get('/display/reservas/agora', displayAuth, async (req, res) => {
       SELECT r.id, r.status, r.bike_numero AS bike, u.id AS user_id, u.name AS nome,
              CASE WHEN length(u.foto_url) < 150000 THEN u.foto_url ELSE NULL END AS foto
       FROM aulas_reservas r JOIN users u ON u.id=r.user_id
-      WHERE r.agenda_id=$1 AND r.data_aula=(NOW() AT TIME ZONE 'America/Sao_Paulo')::date AND r.status<>'cancelado'
+      WHERE r.agenda_id=$1 AND r.data_aula=(NOW() AT TIME ZONE 'America/Sao_Paulo')::date AND r.status NOT IN ('cancelado','ausente')
       ORDER BY r.bike_numero NULLS LAST, r.created_at`, [A.id]);
     res.json({ aula: { id: A.id, nome: A.nome, hora: A.hora, duracao_min: A.duracao_min }, reservas: r.rows });
   } catch (e) { log('reservas agora: ' + e.message); res.status(500).json({ error: 'Erro interno' }); }
@@ -5600,6 +5656,613 @@ app.get('/user/camisas', authMiddleware, async (req, res) => {
   } catch (e) { log('user camisas: ' + e.message); res.status(500).json({ error: 'Erro interno' }); }
 });
 
+// ══════════════════════════════════════════════════════════════
+// 02/10a — DESAFIO ENTRE ACADEMIAS
+// ══════════════════════════════════════════════════════════════
+// Toda aula que termina na TV manda um resumo (aulas_tv): quantos pedalaram,
+// WPP, kcal e km de cada um. É daí que sai o placar entre academias — conta
+// todo mundo que pedalou, com ou sem app.
+//   POR PERÍODO: semana/mês; vence a MÉDIA por participação (justo entre
+//   academia pequena e grande). Métricas: wpp, kcal, km, presenca.
+//   AO VIVO: as academias dão a aula no mesmo horário; as TVs trocam o placar
+//   pelo WebSocket (duelos) e cada uma mostra a faixa com todas.
+const DA_METRICAS = {
+  wpp:      { nome: 'WPP médio por aluno',  un: 'WPP' },
+  kcal:     { nome: 'kcal média por aluno', un: 'kcal' },
+  km:       { nome: 'km médio por aluno',   un: 'km' },
+  presenca: { nome: 'Alunos por bike',      un: 'por bike' },
+};
+const duelos = {};   // desafioId -> Map(license_id -> {ws, nome, valor, n, kcal, t})
+async function daMigrar() {
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS aulas_tv (
+      id SERIAL PRIMARY KEY, license_id TEXT NOT NULL, uid TEXT NOT NULL, sala TEXT, nome_aula TEXT,
+      inicio TIMESTAMPTZ, fim TIMESTAMPTZ DEFAULT NOW(), dur_seg INTEGER DEFAULT 0,
+      n_alunos INTEGER DEFAULT 0, wpp_soma NUMERIC DEFAULT 0, kcal_total INTEGER DEFAULT 0, km_total NUMERIC DEFAULT 0,
+      watts_med INTEGER DEFAULT 0, detalhe JSONB, created_at TIMESTAMPTZ DEFAULT NOW(), UNIQUE(license_id, uid));
+    CREATE INDEX IF NOT EXISTS aulas_tv_lic_inicio ON aulas_tv (license_id, inicio);
+    CREATE TABLE IF NOT EXISTS desafios_academias (
+      id SERIAL PRIMARY KEY, codigo TEXT UNIQUE NOT NULL, nome TEXT NOT NULL, criador_license TEXT NOT NULL,
+      tipo TEXT NOT NULL DEFAULT 'periodo', metrica TEXT NOT NULL DEFAULT 'wpp',
+      inicio DATE, fim DATE, data_hora TIMESTAMPTZ, status TEXT DEFAULT 'ativo', vencedor_license TEXT,
+      created_at TIMESTAMPTZ DEFAULT NOW());
+    CREATE TABLE IF NOT EXISTS desafios_academias_part (
+      id SERIAL PRIMARY KEY, desafio_id INTEGER REFERENCES desafios_academias(id) ON DELETE CASCADE,
+      license_id TEXT NOT NULL, entrou_em TIMESTAMPTZ DEFAULT NOW(), UNIQUE(desafio_id, license_id));
+  `);
+  log('Migração 02/10a (desafio entre academias) OK');
+}
+function daCodigo() { const c = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; let s = 'DA-'; for (let i = 0; i < 6; i++) s += c[Math.floor(Math.random() * c.length)]; return s; }
+// janela de tempo que vale: período = dias inteiros (horário de Brasília); ao vivo = aula que começou de 30 min antes a 30 min depois
+function daJanela(d) {
+  if (d.tipo === 'ao_vivo') { const t = new Date(d.data_hora).getTime(); return [new Date(t - 30 * 60000), new Date(t + 30 * 60000)]; }
+  return [new Date(String(d.inicio_s) + 'T00:00:00-03:00'), new Date(String(d.fim_s) + 'T23:59:59-03:00')];
+}
+function daTerminou(d) {
+  if (d.tipo === 'ao_vivo') return Date.now() > new Date(d.data_hora).getTime() + 3 * 3600000;
+  return Date.now() > new Date(String(d.fim_s) + 'T23:59:59-03:00').getTime();
+}
+async function daCarregar(id) {
+  const r = await db.query(`SELECT d.*, to_char(d.inicio,'YYYY-MM-DD') AS inicio_s, to_char(d.fim,'YYYY-MM-DD') AS fim_s FROM desafios_academias d WHERE d.id=$1`, [id]);
+  return r.rows[0] || null;
+}
+async function daRanking(d) {
+  const [ini, fim] = daJanela(d);
+  const r = await db.query(`
+    SELECT p.license_id, COALESCE(l.nome_fantasia, l.nome, p.license_id) AS nome, l.cidade,
+           COALESCE(NULLIF(l.bikes_disponiveis,0), NULLIF(l.max_bikes,0), 15) AS bikes,
+           COUNT(a.id)::int AS aulas, COALESCE(SUM(a.n_alunos),0)::int AS part,
+           COALESCE(SUM(a.wpp_soma),0)::float AS wpp, COALESCE(SUM(a.kcal_total),0)::float AS kcal, COALESCE(SUM(a.km_total),0)::float AS km
+    FROM desafios_academias_part p
+    JOIN licencas l ON l.codigo=p.license_id
+    LEFT JOIN aulas_tv a ON a.license_id=p.license_id AND a.inicio BETWEEN $2 AND $3 AND a.n_alunos>0
+    WHERE p.desafio_id=$1
+    GROUP BY p.license_id, l.nome_fantasia, l.nome, l.cidade, l.bikes_disponiveis, l.max_bikes`, [d.id, ini, fim]);
+  const lista = r.rows.map(x => {
+    let v = 0;
+    if (x.part > 0) {
+      if (d.metrica === 'kcal') v = x.kcal / x.part;
+      else if (d.metrica === 'km') v = x.km / x.part;
+      else if (d.metrica === 'presenca') v = x.part / Math.max(1, x.bikes);
+      else v = x.wpp / x.part;
+    }
+    const casas = d.metrica === 'kcal' ? 1 : d.metrica === 'km' ? 10 : 100;
+    return { license_id: x.license_id, nome: x.nome, cidade: x.cidade, aulas: x.aulas, participacoes: x.part, valor: Math.round(v * casas) / casas };
+  }).sort((a, b) => b.valor - a.valor || b.participacoes - a.participacoes);
+  lista.forEach((x, i) => { x.pos = (i > 0 && x.valor === lista[i - 1].valor && x.participacoes === lista[i - 1].participacoes) ? lista[i - 1].pos : i + 1; });
+  return lista;
+}
+async function daResumo(d, minhaLic) {
+  if (d.status === 'ativo' && daTerminou(d)) {   // encerra sozinho quando passa do fim
+    const rk = await daRanking(d);
+    const venc = rk[0] && rk[0].participacoes > 0 ? rk[0].license_id : null;
+    await db.query(`UPDATE desafios_academias SET status='encerrado', vencedor_license=$2 WHERE id=$1 AND status='ativo'`, [d.id, venc]);
+    d.status = 'encerrado'; d.vencedor_license = venc;
+  }
+  const ranking = await daRanking(d);
+  const eu = ranking.find(x => x.license_id === minhaLic) || null;
+  const ao = (d.tipo === 'ao_vivo' && duelos[d.id]) ? [...duelos[d.id].values()].filter(x => Date.now() - x.t < 20000).map(x => ({ license_id: x.lic, nome: x.nome, valor: x.valor, n: x.n })) : [];
+  return { id: d.id, codigo: d.codigo, nome: d.nome, tipo: d.tipo, metrica: d.metrica, metrica_nome: (DA_METRICAS[d.metrica] || DA_METRICAS.wpp).nome,
+    unidade: (DA_METRICAS[d.metrica] || DA_METRICAS.wpp).un, inicio: d.inicio_s, fim: d.fim_s, data_hora: d.data_hora, status: d.status,
+    criador: d.criador_license === minhaLic, vencedor_license: d.vencedor_license, ranking, eu, ao_vivo_agora: ao };
+}
+async function daParticipa(id, lic) { return (await db.query('SELECT 1 FROM desafios_academias_part WHERE desafio_id=$1 AND license_id=$2', [id, lic])).rows.length > 0; }
+
+// ── Portal (gestor) ───────────────────────────────────────────
+app.get('/gestor/desafios-academias', gestorAuth, async (req, res) => {
+  if (!db) return res.status(503).json({ error: 'Banco indisponível' });
+  try {
+    const r = await db.query(`SELECT d.id FROM desafios_academias d JOIN desafios_academias_part p ON p.desafio_id=d.id
+      WHERE p.license_id=$1 ORDER BY (d.status='ativo') DESC, COALESCE(d.data_hora::date, d.inicio) DESC, d.id DESC LIMIT 40`, [req.user.license_id]);
+    const out = [];
+    for (const x of r.rows) { const d = await daCarregar(x.id); if (d) out.push(await daResumo(d, req.user.license_id)); }
+    res.json({ desafios: out, metricas: DA_METRICAS });
+  } catch (e) { log('desafios-academias list: ' + e.message); res.status(500).json({ error: 'Erro interno' }); }
+});
+app.post('/gestor/desafios-academias', gestorAuth, async (req, res) => {
+  if (!db) return res.status(503).json({ error: 'Banco indisponível' });
+  try {
+    const b = req.body || {};
+    const nome = String(b.nome || '').trim().slice(0, 80);
+    const tipo = b.tipo === 'ao_vivo' ? 'ao_vivo' : 'periodo';
+    const metrica = DA_METRICAS[b.metrica] ? b.metrica : 'wpp';
+    if (!nome) return res.status(400).json({ error: 'Dê um nome ao desafio.' });
+    let inicio = null, fim = null, dataHora = null;
+    if (tipo === 'periodo') {
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(b.inicio || '') || !/^\d{4}-\d{2}-\d{2}$/.test(b.fim || '')) return res.status(400).json({ error: 'Escolha a data de começo e de fim.' });
+      if (b.fim < b.inicio) return res.status(400).json({ error: 'O fim é antes do começo.' });
+      inicio = b.inicio; fim = b.fim;
+    } else {
+      if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(b.data_hora || '')) return res.status(400).json({ error: 'Escolha o dia e o horário da aula.' });
+      dataHora = b.data_hora + ':00-03:00'; inicio = fim = b.data_hora.slice(0, 10);
+      if (new Date(dataHora).getTime() < Date.now() - 3 * 3600000) return res.status(400).json({ error: 'Esse horário já passou.' });
+    }
+    let id = null;
+    for (let k = 0; k < 5 && !id; k++) {
+      try {
+        const r = await db.query(`INSERT INTO desafios_academias (codigo,nome,criador_license,tipo,metrica,inicio,fim,data_hora) VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING id`,
+          [daCodigo(), nome, req.user.license_id, tipo, metrica, inicio, fim, dataHora]);
+        id = r.rows[0].id;
+      } catch (e) { if (e.code !== '23505') throw e; }
+    }
+    await db.query('INSERT INTO desafios_academias_part (desafio_id, license_id) VALUES ($1,$2) ON CONFLICT DO NOTHING', [id, req.user.license_id]);
+    res.json(await daResumo(await daCarregar(id), req.user.license_id));
+  } catch (e) { log('desafios-academias criar: ' + e.message); res.status(500).json({ error: 'Erro interno' }); }
+});
+app.post('/gestor/desafios-academias/entrar', gestorAuth, async (req, res) => {
+  if (!db) return res.status(503).json({ error: 'Banco indisponível' });
+  try {
+    const cod = String((req.body || {}).codigo || '').trim().toUpperCase().replace(/^DA-?/, 'DA-');
+    const r = await db.query('SELECT id FROM desafios_academias WHERE codigo=$1', [cod]);
+    if (!r.rows.length) return res.status(404).json({ error: 'Código não encontrado. Confira com a outra academia.' });
+    const d = await daCarregar(r.rows[0].id);
+    if (d.status !== 'ativo' || daTerminou(d)) return res.status(409).json({ error: 'Este desafio já terminou.' });
+    const n = (await db.query('SELECT COUNT(*)::int AS n FROM desafios_academias_part WHERE desafio_id=$1', [d.id])).rows[0].n;
+    if (n >= 20) return res.status(409).json({ error: 'Este desafio já tem 20 academias.' });
+    await db.query('INSERT INTO desafios_academias_part (desafio_id, license_id) VALUES ($1,$2) ON CONFLICT DO NOTHING', [d.id, req.user.license_id]);
+    res.json(await daResumo(d, req.user.license_id));
+  } catch (e) { log('desafios-academias entrar: ' + e.message); res.status(500).json({ error: 'Erro interno' }); }
+});
+app.get('/gestor/desafios-academias/:id', gestorAuth, async (req, res) => {
+  if (!db) return res.status(503).json({ error: 'Banco indisponível' });
+  try {
+    const d = await daCarregar(parseInt(req.params.id, 10) || 0);
+    if (!d || !(await daParticipa(d.id, req.user.license_id))) return res.status(404).json({ error: 'Desafio não encontrado' });
+    res.json(await daResumo(d, req.user.license_id));
+  } catch (e) { res.status(500).json({ error: 'Erro interno' }); }
+});
+// sair (quem entrou) ou apagar (quem criou)
+app.delete('/gestor/desafios-academias/:id', gestorAuth, async (req, res) => {
+  if (!db) return res.status(503).json({ error: 'Banco indisponível' });
+  try {
+    const d = await daCarregar(parseInt(req.params.id, 10) || 0);
+    if (!d || !(await daParticipa(d.id, req.user.license_id))) return res.status(404).json({ error: 'Desafio não encontrado' });
+    if (d.criador_license === req.user.license_id) await db.query('DELETE FROM desafios_academias WHERE id=$1', [d.id]);
+    else await db.query('DELETE FROM desafios_academias_part WHERE desafio_id=$1 AND license_id=$2', [d.id, req.user.license_id]);
+    res.json({ ok: true, apagado: d.criador_license === req.user.license_id });
+  } catch (e) { res.status(500).json({ error: 'Erro interno' }); }
+});
+
+// ── App do aluno ──────────────────────────────────────────────
+app.get('/user/desafios-academias', authMiddleware, async (req, res) => {
+  if (!db) return res.status(503).json({ error: 'Banco indisponível' });
+  try {
+    const u = (await db.query('SELECT license_id FROM users WHERE id=$1', [req.user.id])).rows[0] || {};
+    if (!u.license_id) return res.json({ desafios: [] });
+    const r = await db.query(`SELECT d.id FROM desafios_academias d JOIN desafios_academias_part p ON p.desafio_id=d.id
+      WHERE p.license_id=$1 AND (d.status='ativo' OR COALESCE(d.fim, d.data_hora::date) >= CURRENT_DATE - 7)
+      ORDER BY (d.status='ativo') DESC, COALESCE(d.data_hora::date, d.fim) ASC LIMIT 6`, [u.license_id]);
+    const out = [];
+    for (const x of r.rows) { const d = await daCarregar(x.id); if (d) out.push(await daResumo(d, u.license_id)); }
+    res.json({ desafios: out, minha_academia: u.license_id });
+  } catch (e) { log('user desafios-academias: ' + e.message); res.status(500).json({ error: 'Erro interno' }); }
+});
+
+// ── TV ─────────────────────────────────────────────────────────
+// resumo de cada aula que termina (vale para os desafios entre academias)
+app.post('/display/aula/resumo', displayAuth, async (req, res) => {
+  if (!db) return res.status(503).json({ error: 'Banco indisponível' });
+  try {
+    const b = req.body || {};
+    const uid = String(b.uid || '').slice(0, 60); if (!uid) return res.status(400).json({ error: 'uid obrigatório' });
+    const alunos = (Array.isArray(b.alunos) ? b.alunos : []).slice(0, 200).map(a => ({
+      nome: String(a.nome || '').slice(0, 60), user_id: parseInt(a.user_id, 10) || null,
+      wpp: Math.max(0, Math.min(50, Number(a.wpp) || 0)), kcal: Math.max(0, Math.min(3000, Math.round(Number(a.kcal) || 0))),
+      km: Math.max(0, Math.min(200, Number(a.km) || 0)), w: Math.max(0, Math.min(2500, Math.round(Number(a.w) || 0))) }))
+      .filter(a => a.nome && !/^demo\b/i.test(a.nome) && (a.w > 0 || a.kcal > 0 || a.km > 0));
+    const ini = b.inicio && !isNaN(new Date(b.inicio)) ? new Date(b.inicio) : new Date(Date.now() - (parseInt(b.dur_seg, 10) || 0) * 1000);
+    const n = alunos.length, soma = k => alunos.reduce((s, a) => s + a[k], 0);
+    const comW = alunos.filter(a => a.w > 0);
+    await db.query(`INSERT INTO aulas_tv (license_id, uid, sala, nome_aula, inicio, dur_seg, n_alunos, wpp_soma, kcal_total, km_total, watts_med, detalhe)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
+      ON CONFLICT (license_id, uid) DO UPDATE SET n_alunos=EXCLUDED.n_alunos, wpp_soma=EXCLUDED.wpp_soma, kcal_total=EXCLUDED.kcal_total,
+        km_total=EXCLUDED.km_total, watts_med=EXCLUDED.watts_med, detalhe=EXCLUDED.detalhe, dur_seg=EXCLUDED.dur_seg, fim=NOW()`,
+      [req.user.license_id, uid, String(b.sala || '').slice(0, 30), String(b.nome_aula || 'Aula').slice(0, 80), ini, parseInt(b.dur_seg, 10) || 0,
+       n, Math.round(soma('wpp') * 100) / 100, soma('kcal'), Math.round(soma('km') * 100) / 100,
+       comW.length ? Math.round(comW.reduce((s, a) => s + a.w, 0) / comW.length) : 0, JSON.stringify(alunos)]);
+    // desafios ao vivo desta academia que batem com esta aula
+    const ao = await db.query(`SELECT d.id FROM desafios_academias d JOIN desafios_academias_part p ON p.desafio_id=d.id
+      WHERE p.license_id=$1 AND d.tipo='ao_vivo' AND d.data_hora BETWEEN $2::timestamptz - INTERVAL '30 minutes' AND $2::timestamptz + INTERVAL '30 minutes'`, [req.user.license_id, ini]);
+    const desafios = [];
+    for (const x of ao.rows) { const d = await daCarregar(x.id); if (d) desafios.push(await daResumo(d, req.user.license_id)); }
+    res.json({ ok: true, n_alunos: n, desafios });
+  } catch (e) { log('aula resumo: ' + e.message); res.status(500).json({ error: 'Erro interno' }); }
+});
+// desafio AO VIVO desta academia agora (de 60 min antes a 2 h depois do horário)
+app.get('/display/desafio-academias/agora', displayAuth, async (req, res) => {
+  if (!db) return res.status(503).json({ error: 'Banco indisponível' });
+  try {
+    const r = await db.query(`SELECT d.id FROM desafios_academias d JOIN desafios_academias_part p ON p.desafio_id=d.id
+      WHERE p.license_id=$1 AND d.tipo='ao_vivo' AND d.status='ativo'
+        AND NOW() BETWEEN d.data_hora - INTERVAL '60 minutes' AND d.data_hora + INTERVAL '120 minutes'
+      ORDER BY ABS(EXTRACT(EPOCH FROM (NOW() - d.data_hora))) LIMIT 1`, [req.user.license_id]);
+    if (!r.rows.length) return res.json({ desafio: null });
+    const d = await daCarregar(r.rows[0].id);
+    const lic = await db.query('SELECT COALESCE(nome_fantasia, nome) AS nome FROM licencas WHERE codigo=$1', [req.user.license_id]);
+    res.json({ desafio: await daResumo(d, req.user.license_id), minha_academia: (lic.rows[0] || {}).nome || req.user.license_id, license_id: req.user.license_id });
+  } catch (e) { log('desafio agora: ' + e.message); res.status(500).json({ error: 'Erro interno' }); }
+});
+// placar ao vivo: a TV entra no duelo e manda a média da sala; o servidor
+// devolve a todas as TVs do duelo a lista das academias (chamado pelo WS)
+async function daDueloEntrar(ws, msg) {
+  let p; try { p = jwt.verify(String(msg.display_token || ''), JWT_SECRET); } catch (e) { return; }
+  if (!p || !p.license_id || !db) return;
+  const id = parseInt(msg.desafio_id, 10) || 0;
+  if (!(await daParticipa(id, p.license_id))) return;
+  const lic = await db.query('SELECT COALESCE(nome_fantasia, nome) AS nome FROM licencas WHERE codigo=$1', [p.license_id]);
+  if (!duelos[id]) duelos[id] = new Map();
+  ws._duelo = id; ws._dueloLic = p.license_id;
+  duelos[id].set(p.license_id, { ws, lic: p.license_id, nome: (lic.rows[0] || {}).nome || p.license_id, valor: 0, n: 0, kcal: 0, t: Date.now() });
+  daDueloEnviar(id);
+}
+function daDueloPlacar(ws, msg) {
+  const id = ws._duelo; if (!id || !duelos[id]) return;
+  const e = duelos[id].get(ws._dueloLic); if (!e) return;
+  e.ws = ws; e.valor = Math.max(0, Math.min(99999, Number(msg.valor) || 0)); e.n = Math.max(0, parseInt(msg.n, 10) || 0); e.kcal = Math.max(0, parseInt(msg.kcal, 10) || 0); e.t = Date.now();
+  if (!duelos[id]._ult || Date.now() - duelos[id]._ult > 1500) daDueloEnviar(id);
+}
+function daDueloEnviar(id) {
+  const m = duelos[id]; if (!m) return; m._ult = Date.now();
+  const lista = [...m.values()].filter(x => Date.now() - x.t < 30000).map(x => ({ license_id: x.lic, nome: x.nome, valor: x.valor, n: x.n, kcal: x.kcal }))
+    .sort((a, b) => b.valor - a.valor);
+  const txt = JSON.stringify({ tipo: 'duelo_estado', desafio_id: id, academias: lista });
+  for (const x of m.values()) { if (x.ws && x.ws.readyState === WebSocket.OPEN) { try { x.ws.send(txt); } catch (e) {} } }
+}
+function daDueloSair(ws) {
+  const id = ws._duelo; if (!id || !duelos[id]) return;
+  const e = duelos[id].get(ws._dueloLic); if (e && e.ws === ws) e.ws = null;   // fica no placar até 30 s sem dados
+}
+
+
+// ══════════════════════════════════════════════════════════════
+// 02/10b — GRAVAR E TRANSMITIR
+// ══════════════════════════════════════════════════════════════
+// A gravação fica no computador da TV (pasta ProRider\Gravacoes); aqui só
+// guardamos a ficha (nome, professor, duração, arquivo) para o Portal listar.
+// Enviar a gravação para o app fica pronto mas DESLIGADO até contratar um
+// armazenamento (variável GRAVACOES_STORAGE). A chave do YouTube Live é da
+// academia: o gestor cola no Portal e a TV usa para transmitir.
+async function gvMigrar() {
+  await db.query(`
+    ALTER TABLE licencas ADD COLUMN IF NOT EXISTS yt_chave TEXT;
+    ALTER TABLE licencas ADD COLUMN IF NOT EXISTS tx_max INTEGER DEFAULT 15;
+    CREATE TABLE IF NOT EXISTS aulas_gravadas (
+      id SERIAL PRIMARY KEY, license_id TEXT NOT NULL, nome_aula TEXT, professor TEXT, dur_seg INTEGER DEFAULT 0,
+      arquivo TEXT, bytes BIGINT DEFAULT 0, transmitida BOOLEAN DEFAULT FALSE, youtube BOOLEAN DEFAULT FALSE,
+      status TEXT DEFAULT 'no_pc', url TEXT, created_at TIMESTAMPTZ DEFAULT NOW());
+    ALTER TABLE aulas_gravadas ADD COLUMN IF NOT EXISTS uid TEXT;
+    ALTER TABLE aulas_gravadas ADD COLUMN IF NOT EXISTS roteiro JSONB;
+    ALTER TABLE aulas_gravadas ADD COLUMN IF NOT EXISTS teste_ate TIMESTAMPTZ;
+    ALTER TABLE aulas_gravadas ADD COLUMN IF NOT EXISTS teste_bytes BIGINT DEFAULT 0;
+    CREATE TABLE IF NOT EXISTS gravadas_resultados (
+      id SERIAL PRIMARY KEY, gravada_id INTEGER REFERENCES aulas_gravadas(id) ON DELETE CASCADE, user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+      nome TEXT, wpp NUMERIC DEFAULT 0, kcal INTEGER DEFAULT 0, watts INTEGER DEFAULT 0, created_at TIMESTAMPTZ DEFAULT NOW(), UNIQUE(gravada_id, user_id));
+  `);
+  log('Migração 02/10b (gravar e transmitir) OK');
+}
+function _ytMascara(k) { k = String(k || ''); return k ? '••••' + k.slice(-4) : ''; }
+app.get('/gestor/transmissao', gestorAuth, async (req, res) => {
+  if (!db) return res.status(503).json({ error: 'Banco indisponível' });
+  try {
+    const l = (await db.query('SELECT yt_chave, tx_max FROM licencas WHERE codigo=$1', [req.user.license_id])).rows[0] || {};
+    const g = await db.query(`SELECT id, nome_aula, professor, dur_seg, arquivo, bytes, transmitida, youtube, status, url, created_at FROM aulas_gravadas WHERE license_id=$1 ORDER BY created_at DESC LIMIT 60`, [req.user.license_id]);
+    res.json({ yt_configurado: !!l.yt_chave, yt_chave: _ytMascara(l.yt_chave), tx_max: l.tx_max || 15, envio_app: !!process.env.GRAVACOES_STORAGE, gravacoes: g.rows });
+  } catch (e) { log('transmissao get: ' + e.message); res.status(500).json({ error: 'Erro interno' }); }
+});
+app.put('/gestor/transmissao', gestorAuth, async (req, res) => {
+  if (!db) return res.status(503).json({ error: 'Banco indisponível' });
+  try {
+    const b = req.body || {};
+    if (b.yt_chave !== undefined) {
+      const k = String(b.yt_chave || '').trim();
+      if (k && !/^[A-Za-z0-9_-]{8,80}$/.test(k)) return res.status(400).json({ error: 'A chave do YouTube tem só letras, números e traços (ex.: abcd-1234-efgh-5678-ijkl).' });
+      await db.query('UPDATE licencas SET yt_chave=$1 WHERE codigo=$2', [k || null, req.user.license_id]);
+    }
+    if (b.tx_max !== undefined) await db.query('UPDATE licencas SET tx_max=$1 WHERE codigo=$2', [Math.max(1, Math.min(30, parseInt(b.tx_max, 10) || 15)), req.user.license_id]);
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: 'Erro interno' }); }
+});
+// a TV pega a configuração ao abrir a tela de configurar a aula
+app.get('/display/transmissao', displayAuth, async (req, res) => {
+  if (!db) return res.status(503).json({ error: 'Banco indisponível' });
+  try {
+    const l = (await db.query('SELECT yt_chave, tx_max FROM licencas WHERE codigo=$1', [req.user.license_id])).rows[0] || {};
+    res.json({ yt_chave: l.yt_chave || null, tx_max: l.tx_max || 15 });
+  } catch (e) { res.status(500).json({ error: 'Erro interno' }); }
+});
+app.post('/display/gravacao', displayAuth, async (req, res) => {
+  if (!db) return res.status(503).json({ error: 'Banco indisponível' });
+  try {
+    const b = req.body || {};
+    const rot = (b.roteiro && typeof b.roteiro === 'object' && Array.isArray(b.roteiro.a)) ? b.roteiro : null;
+    const r = await db.query(`INSERT INTO aulas_gravadas (license_id, nome_aula, professor, dur_seg, arquivo, bytes, transmitida, youtube, uid, roteiro) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING id`,
+      [req.user.license_id, String(b.nome_aula || 'Aula').slice(0, 80), String(b.professor || '').slice(0, 80), parseInt(b.dur_seg, 10) || 0,
+       String(b.arquivo || '').slice(0, 300), parseInt(b.bytes, 10) || 0, !!b.transmitida, !!b.youtube, b.uid ? String(b.uid).slice(0, 60) : null, rot ? JSON.stringify(rot) : null]);
+    // 02/10b2: com roteiro e até 2,5 GB, a TV manda o vídeo para o servidor de teste
+    res.json({ ok: true, id: r.rows[0].id, envio_app: !!process.env.GRAVACOES_STORAGE, teste: !!rot && (parseInt(b.bytes, 10) || 0) <= GV_TESTE_MAX });
+  } catch (e) { log('gravacao: ' + e.message); res.status(500).json({ error: 'Erro interno' }); }
+});
+
+// ── 02/10b2: AULA GRAVADA NO APP (servidor de TESTE) ─────────────
+// Enquanto não há nuvem de vídeo contratada, a TV manda a gravação para cá
+// (pasta temporária do servidor, até 5 por academia, apagadas em 72 h). O app
+// toca o vídeo e monta o gráfico pelo roteiro, com os números do aluno, e no
+// fim junta o resultado dele ao de quem pedalou ao vivo (aulas_tv).
+const GV_TESTE_MAX = 2.5 * 1024 * 1024 * 1024;
+const GV_DIR = process.env.GRAVACOES_TESTE_DIR || path.join(require('os').tmpdir(), 'prorider-gravacoes');
+try { require('fs').mkdirSync(GV_DIR, { recursive: true }); } catch (e) {}
+function gvArq(id) { return path.join(GV_DIR, 'g' + parseInt(id, 10) + '.webm'); }
+app.post('/display/gravacao/:id/parte', displayAuth, express.raw({ type: 'application/octet-stream', limit: '12mb' }), async (req, res) => {
+  if (!db) return res.status(503).json({ error: 'Banco indisponível' });
+  try {
+    const g = (await db.query('SELECT id FROM aulas_gravadas WHERE id=$1 AND license_id=$2', [parseInt(req.params.id, 10) || 0, req.user.license_id])).rows[0];
+    if (!g) return res.status(404).json({ error: 'Gravação não encontrada' });
+    const ofs = parseInt(req.query.ofs, 10) || 0, buf = req.body;
+    if (!Buffer.isBuffer(buf) || !buf.length) return res.status(400).json({ error: 'pedaço vazio' });
+    if (ofs + buf.length > GV_TESTE_MAX) return res.status(413).json({ error: 'gravação grande demais para o teste' });
+    const fs = require('fs'), arq = gvArq(g.id);
+    const fd = fs.openSync(arq, fs.existsSync(arq) ? 'r+' : 'w'); fs.writeSync(fd, buf, 0, buf.length, ofs); fs.closeSync(fd);
+    await db.query('UPDATE aulas_gravadas SET teste_bytes=GREATEST(teste_bytes,$2) WHERE id=$1', [g.id, ofs + buf.length]);
+    res.json({ ok: true });
+  } catch (e) { log('gravação parte: ' + e.message); res.status(500).json({ error: 'Erro interno' }); }
+});
+app.post('/display/gravacao/:id/pronta', displayAuth, async (req, res) => {
+  if (!db) return res.status(503).json({ error: 'Banco indisponível' });
+  try {
+    const r = await db.query(`UPDATE aulas_gravadas SET status='teste', teste_ate=NOW()+INTERVAL '72 hours' WHERE id=$1 AND license_id=$2 RETURNING id`, [parseInt(req.params.id, 10) || 0, req.user.license_id]);
+    if (!r.rows.length) return res.status(404).json({ error: 'Gravação não encontrada' });
+    // no máximo 5 no teste por academia: as mais antigas saem
+    const velhas = await db.query(`SELECT id FROM aulas_gravadas WHERE license_id=$1 AND status='teste' ORDER BY created_at DESC OFFSET 5`, [req.user.license_id]);
+    for (const v of velhas.rows) gvApagarTeste(v.id);
+    log(`Gravação ${r.rows[0].id} pronta para testar no app (${req.user.license_id})`);
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: 'Erro interno' }); }
+});
+async function gvApagarTeste(id) {
+  try { require('fs').unlinkSync(gvArq(id)); } catch (e) {}
+  try { await db.query(`UPDATE aulas_gravadas SET status='no_pc', teste_ate=NULL WHERE id=$1`, [id]); } catch (e) {}
+}
+setInterval(async () => { if (!db) return; try { const r = await db.query(`SELECT id FROM aulas_gravadas WHERE status='teste' AND teste_ate < NOW()`); for (const x of r.rows) await gvApagarTeste(x.id); } catch (e) {} }, 3600000);
+async function gvDaAcademia(req, id) {
+  const u = (await db.query('SELECT license_id, role FROM users WHERE id=$1', [req.user.id])).rows[0] || {};
+  const g = (await db.query(`SELECT id, license_id, nome_aula, professor, dur_seg, uid, roteiro, teste_bytes, created_at FROM aulas_gravadas WHERE id=$1 AND status='teste' AND teste_ate > NOW()`, [parseInt(id, 10) || 0])).rows[0];
+  if (!g) return null;
+  if (g.license_id !== u.license_id && !['super_admin', 'admin'].includes(u.role)) return null;
+  return g;
+}
+async function gvRanking(g) {
+  const out = [];
+  if (g.uid) {
+    const a = (await db.query('SELECT detalhe FROM aulas_tv WHERE license_id=$1 AND uid=$2', [g.license_id, g.uid])).rows[0];
+    ((a && a.detalhe) || []).forEach(x => out.push({ nome: x.nome, wpp: Number(x.wpp) || 0, kcal: x.kcal || 0, onde: 'ao vivo' }));
+  }
+  const r = await db.query('SELECT user_id, nome, wpp, kcal FROM gravadas_resultados WHERE gravada_id=$1', [g.id]);
+  r.rows.forEach(x => out.push({ nome: x.nome, wpp: Number(x.wpp) || 0, kcal: x.kcal || 0, onde: 'gravada', user_id: x.user_id }));
+  out.sort((a, b) => b.wpp - a.wpp); out.forEach((x, i) => { x.pos = i + 1; });
+  return out;
+}
+app.get('/user/gravadas', authMiddleware, async (req, res) => {
+  if (!db) return res.status(503).json({ error: 'Banco indisponível' });
+  try {
+    const u = (await db.query('SELECT license_id, role FROM users WHERE id=$1', [req.user.id])).rows[0] || {};
+    const todas = ['super_admin', 'admin'].includes(u.role);   // o dono do sistema vê as gravações de teste de todas as academias
+    const r = await db.query(`SELECT g.id, g.nome_aula, g.professor, g.dur_seg, g.created_at, g.teste_ate, COALESCE(l.nome_fantasia, l.nome) AS academia,
+        (SELECT COUNT(*)::int FROM gravadas_resultados x WHERE x.gravada_id=g.id) AS fizeram
+      FROM aulas_gravadas g JOIN licencas l ON l.codigo=g.license_id
+      WHERE g.status='teste' AND g.teste_ate > NOW() AND (g.license_id=$1 OR $2) AND g.roteiro IS NOT NULL ORDER BY g.created_at DESC LIMIT 20`, [u.license_id || '', todas]);
+    res.json({ gravadas: r.rows, teste: true });
+  } catch (e) { log('user gravadas: ' + e.message); res.status(500).json({ error: 'Erro interno' }); }
+});
+app.get('/gravadas/:id/roteiro', authMiddleware, async (req, res) => {
+  if (!db) return res.status(503).json({ error: 'Banco indisponível' });
+  try {
+    const g = await gvDaAcademia(req, req.params.id); if (!g) return res.status(404).json({ error: 'Aula gravada não encontrada (o teste dura 72 h).' });
+    res.json({ id: g.id, nome_aula: g.nome_aula, professor: g.professor, dur_seg: g.dur_seg, roteiro: g.roteiro, ranking: await gvRanking(g) });
+  } catch (e) { res.status(500).json({ error: 'Erro interno' }); }
+});
+// o <video> não manda cabeçalho: o token vem no endereço (?t=)
+app.get('/gravadas/:id/video', async (req, res) => {
+  if (!db) return res.status(503).end();
+  try {
+    let p; try { p = jwt.verify(String(req.query.t || ''), JWT_SECRET); } catch (e) { return res.status(401).end(); }
+    const g = await gvDaAcademia({ user: { id: p.id } }, req.params.id); if (!g) return res.status(404).end();
+    const fs = require('fs'), arq = gvArq(g.id); let st; try { st = fs.statSync(arq); } catch (e) { return res.status(404).end(); }
+    const m = /bytes=(\d*)-(\d*)/.exec(req.headers.range || '');
+    if (!m) { res.writeHead(200, { 'Content-Type': 'video/webm', 'Content-Length': st.size, 'Accept-Ranges': 'bytes' }); return fs.createReadStream(arq).pipe(res); }
+    const ini = m[1] ? parseInt(m[1], 10) : 0, fim = Math.min(st.size - 1, m[2] ? parseInt(m[2], 10) : st.size - 1);
+    if (ini >= st.size) { res.writeHead(416, { 'Content-Range': 'bytes */' + st.size }); return res.end(); }
+    res.writeHead(206, { 'Content-Type': 'video/webm', 'Content-Range': `bytes ${ini}-${fim}/${st.size}`, 'Accept-Ranges': 'bytes', 'Content-Length': fim - ini + 1 });
+    fs.createReadStream(arq, { start: ini, end: fim }).pipe(res);
+  } catch (e) { res.status(500).end(); }
+});
+app.post('/user/gravadas/:id/resultado', authMiddleware, async (req, res) => {
+  if (!db) return res.status(503).json({ error: 'Banco indisponível' });
+  try {
+    const g = await gvDaAcademia(req, req.params.id); if (!g) return res.status(404).json({ error: 'Aula gravada não encontrada' });
+    const b = req.body || {}, u = (await db.query('SELECT name FROM users WHERE id=$1', [req.user.id])).rows[0] || {};
+    await db.query(`INSERT INTO gravadas_resultados (gravada_id, user_id, nome, wpp, kcal, watts) VALUES ($1,$2,$3,$4,$5,$6)
+      ON CONFLICT (gravada_id, user_id) DO UPDATE SET wpp=GREATEST(gravadas_resultados.wpp, EXCLUDED.wpp), kcal=EXCLUDED.kcal, watts=EXCLUDED.watts, created_at=NOW()`,
+      [g.id, req.user.id, u.name || 'Aluno', Math.max(0, Math.min(200, Number(b.wpp) || 0)), Math.max(0, Math.min(5000, parseInt(b.kcal, 10) || 0)), Math.max(0, Math.min(2500, parseInt(b.watts, 10) || 0))]);
+    res.json({ ok: true, ranking: await gvRanking(g) });
+  } catch (e) { log('gravada resultado: ' + e.message); res.status(500).json({ error: 'Erro interno' }); }
+});
+// envio do arquivo para o app: pronto para quando houver armazenamento contratado
+app.post('/display/gravacao/:id/enviar', displayAuth, async (req, res) => {
+  if (!process.env.GRAVACOES_STORAGE) return res.status(501).json({ error: 'Envio de gravações para o app ainda não está ligado (falta contratar o armazenamento). A gravação continua no computador da TV.' });
+  res.status(501).json({ error: 'Armazenamento configurado, mas o envio ainda não foi implementado para este provedor.' });
+});
+
+
+// ══════════════════════════════════════════════════════════════
+// 02/10c — LISTA DE ESPERA, BIKE LIBERADA E LEMBRETE
+// ══════════════════════════════════════════════════════════════
+// Aula lotada → o aluno entra na fila (aulas_espera). Quando uma vaga abre
+// (alguém cancela, ou não subiu na bike até 5 min depois do começo), o
+// primeiro da fila ganha a reserva — de preferência na mesma bike — e recebe
+// um e-mail. A TV avisa quem está na bike reservada (com ou sem app), para
+// ninguém presente ser marcado como ausente. Lembrete por e-mail 1 h antes.
+async function esMigrar() {
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS aulas_espera (
+      id SERIAL PRIMARY KEY, agenda_id INTEGER REFERENCES aulas_agenda(id) ON DELETE CASCADE,
+      user_id INTEGER REFERENCES users(id) ON DELETE CASCADE, data_aula DATE NOT NULL,
+      status TEXT DEFAULT 'esperando', created_at TIMESTAMPTZ DEFAULT NOW(), chamado_em TIMESTAMPTZ,
+      UNIQUE(agenda_id, user_id, data_aula));
+    ALTER TABLE aulas_reservas ADD COLUMN IF NOT EXISTS lembrado BOOLEAN DEFAULT FALSE;
+    ALTER TABLE aulas_reservas ADD COLUMN IF NOT EXISTS origem TEXT;
+    ALTER TABLE aulas_reservas ADD COLUMN IF NOT EXISTS liberar_apos TIMESTAMPTZ;
+  `);
+  log('Migração 02/10c (lista de espera e lembretes) OK');
+}
+const _DSEM = ['domingo', 'segunda', 'terça', 'quarta', 'quinta', 'sexta', 'sábado'];
+function _dataBR(iso) { const d = new Date(String(iso).slice(0, 10) + 'T12:00:00'); return _DSEM[d.getDay()] + ', ' + String(d.getDate()).padStart(2, '0') + '/' + String(d.getMonth() + 1).padStart(2, '0'); }
+async function esLotacao(agendaId, data) {
+  const a = (await db.query('SELECT vagas_max, license_id FROM aulas_agenda WHERE id=$1', [agendaId])).rows[0]; if (!a) return null;
+  const teto = await tetoLicenca(a.license_id), cap = _capVagas(a.vagas_max, teto), total = Math.min(40, teto || cap);
+  const r = await db.query(`SELECT user_id, bike_numero FROM aulas_reservas WHERE agenda_id=$1 AND data_aula=$2 AND status NOT IN ('cancelado','ausente')`, [agendaId, data]);
+  return { cap, total, n: r.rows.length, bikes: r.rows.map(x => x.bike_numero).filter(Boolean).map(Number) };
+}
+// chama o primeiro da fila (se houver vaga); bikePref = a bike que ficou livre
+async function esPromover(agendaId, data, bikePref) {
+  try {
+    const L = await esLotacao(agendaId, data); if (!L || L.n >= L.cap) return null;
+    const f = await db.query(`SELECT id, user_id FROM aulas_espera WHERE agenda_id=$1 AND data_aula=$2 AND status='esperando' ORDER BY created_at, id LIMIT 1`, [agendaId, data]);
+    if (!f.rows.length) return null;
+    const e = f.rows[0];
+    let bike = (bikePref && !L.bikes.includes(Number(bikePref))) ? Number(bikePref) : null;
+    if (!bike) { for (let k = 1; k <= L.total; k++) if (!L.bikes.includes(k)) { bike = k; break; } }
+    // quem é chamado da fila tem 15 min para chegar antes de a bike ser liberada de novo
+    await db.query(`INSERT INTO aulas_reservas (agenda_id, user_id, data_aula, bike_numero, origem, liberar_apos) VALUES ($1,$2,$3,$4,'espera',NOW()+INTERVAL '15 minutes')
+      ON CONFLICT (agenda_id, user_id, data_aula) DO UPDATE SET status='reservado', bike_numero=EXCLUDED.bike_numero, origem='espera', liberar_apos=EXCLUDED.liberar_apos`, [agendaId, e.user_id, data, bike]);
+    await db.query(`UPDATE aulas_espera SET status='chamado', chamado_em=NOW() WHERE id=$1`, [e.id]);
+    log(`Lista de espera: usuário ${e.user_id} ganhou a vaga (bike ${bike}) na aula ${agendaId} de ${data}`);
+    esEmail('vaga_aberta', e.user_id, agendaId, data, bike).catch(() => {});
+    return { user_id: e.user_id, bike };
+  } catch (err) { log('esPromover: ' + err.message); return null; }
+}
+async function esEmail(tipo, uid, agendaId, data, bike) {
+  if (!emailProvedor()) return;
+  const u = await _userLic(uid); if (!u || !u.email) return;
+  const a = (await db.query(`SELECT a.nome, to_char(a.hora,'HH24:MI') AS hora, a.license_id, COALESCE(l.nome_fantasia, l.nome) AS academia FROM aulas_agenda a JOIN licencas l ON l.codigo=a.license_id WHERE a.id=$1`, [agendaId])).rows[0];
+  if (!a) return;
+  const c = await emailsCfgDe(a.license_id); if (!c[tipo]) return;
+  const v = { nome: String(u.name || '').split(' ')[0], nome_completo: u.name || '', academia: a.academia, aula: a.nome, hora: a.hora, bike: bike || '—', data: _dataBR(data) };
+  const m = emailMontar(tipo, c, v, null, '', PORTAL_URL + '/aluno', a.academia);
+  await emailUmaVez(tipo, 'u' + uid + ':' + agendaId + ':' + String(data).slice(0, 10) + (tipo === 'vaga_aberta' ? ':' + Date.now() : ''), uid, u.email, m.subject, m.html);
+}
+app.post('/aluno/espera', authMiddleware, async (req, res) => {
+  if (!db) return res.status(503).json({ error: 'Banco indisponível' });
+  try {
+    const agenda_id = parseInt((req.body || {}).agenda_id, 10) || 0, data = String((req.body || {}).data_aula || '').slice(0, 10);
+    if (!agenda_id || !/^\d{4}-\d{2}-\d{2}$/.test(data)) return res.status(400).json({ error: 'agenda_id e data_aula obrigatórios' });
+    const L = await esLotacao(agenda_id, data); if (!L) return res.status(404).json({ error: 'Aula não encontrada' });
+    const ja = await db.query(`SELECT 1 FROM aulas_reservas WHERE agenda_id=$1 AND data_aula=$2 AND user_id=$3 AND status NOT IN ('cancelado','ausente')`, [agenda_id, data, req.user.id]);
+    if (ja.rows.length) return res.status(409).json({ error: 'Você já tem reserva nesta aula.' });
+    if (L.n < L.cap) return res.status(409).json({ error: 'Ainda tem vaga: reserve direto.', tem_vaga: true });
+    await db.query(`INSERT INTO aulas_espera (agenda_id, user_id, data_aula) VALUES ($1,$2,$3)
+      ON CONFLICT (agenda_id, user_id, data_aula) DO UPDATE SET status='esperando', created_at=CASE WHEN aulas_espera.status='esperando' THEN aulas_espera.created_at ELSE NOW() END`, [agenda_id, req.user.id, data]);
+    const pos = (await db.query(`SELECT COUNT(*)::int AS n FROM aulas_espera WHERE agenda_id=$1 AND data_aula=$2 AND status='esperando'
+      AND created_at <= (SELECT created_at FROM aulas_espera WHERE agenda_id=$1 AND data_aula=$2 AND user_id=$3)`, [agenda_id, data, req.user.id])).rows[0].n;
+    res.json({ ok: true, posicao: pos });
+  } catch (e) { log('espera: ' + e.message); res.status(500).json({ error: 'Erro interno' }); }
+});
+app.delete('/aluno/espera/:agenda/:data', authMiddleware, async (req, res) => {
+  if (!db) return res.status(503).json({ error: 'Banco indisponível' });
+  try { await db.query(`UPDATE aulas_espera SET status='saiu' WHERE agenda_id=$1 AND data_aula=$2 AND user_id=$3 AND status='esperando'`, [parseInt(req.params.agenda, 10) || 0, req.params.data, req.user.id]); res.json({ ok: true }); }
+  catch (e) { res.status(500).json({ error: 'Erro interno' }); }
+});
+app.get('/aluno/esperas', authMiddleware, async (req, res) => {
+  if (!db) return res.status(503).json({ error: 'Banco indisponível' });
+  try {
+    const r = await db.query(`SELECT e.agenda_id, to_char(e.data_aula,'YYYY-MM-DD') AS data_aula, a.nome AS aula_nome, to_char(a.hora,'HH24:MI') AS hora,
+        COALESCE(l.nome_fantasia, l.nome) AS academia,
+        (SELECT COUNT(*)::int FROM aulas_espera x WHERE x.agenda_id=e.agenda_id AND x.data_aula=e.data_aula AND x.status='esperando' AND x.created_at<=e.created_at) AS posicao
+      FROM aulas_espera e JOIN aulas_agenda a ON a.id=e.agenda_id JOIN licencas l ON l.codigo=a.license_id
+      WHERE e.user_id=$1 AND e.status='esperando' AND e.data_aula >= CURRENT_DATE ORDER BY e.data_aula, a.hora`, [req.user.id]);
+    res.json(r.rows);
+  } catch (e) { res.status(500).json({ error: 'Erro interno' }); }
+});
+// TV: quem está na bike reservada (pedalando, com ou sem app) → presente
+app.post('/display/reservas/presentes', displayAuth, async (req, res) => {
+  if (!db) return res.status(503).json({ error: 'Banco indisponível' });
+  try {
+    const ids = (Array.isArray((req.body || {}).ids) ? req.body.ids : []).map(x => parseInt(x, 10)).filter(Boolean).slice(0, 60);
+    if (ids.length) await db.query(`UPDATE aulas_reservas r SET status='presente' FROM aulas_agenda a
+      WHERE r.agenda_id=a.id AND a.license_id=$1 AND r.id = ANY($2::int[]) AND r.status='reservado'`, [req.user.license_id, ids]);
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: 'Erro interno' }); }
+});
+// rotina de 1 em 1 minuto: lembrete 1 h antes e bike liberada 5 min depois do começo
+async function esRotina() {
+  if (!db) return;
+  try {
+    const { iso } = _hojeBR();
+    const lem = await db.query(`SELECT r.id, r.user_id, r.agenda_id, r.bike_numero FROM aulas_reservas r JOIN aulas_agenda a ON a.id=r.agenda_id
+      WHERE r.data_aula=$1 AND r.status='reservado' AND NOT COALESCE(r.lembrado,false)
+        AND a.hora BETWEEN (NOW() AT TIME ZONE 'America/Sao_Paulo')::time AND (NOW() AT TIME ZONE 'America/Sao_Paulo')::time + INTERVAL '60 minutes'`, [iso]);
+    for (const r of lem.rows) { await db.query('UPDATE aulas_reservas SET lembrado=TRUE WHERE id=$1', [r.id]); esEmail('lembrete_aula', r.user_id, r.agenda_id, iso, r.bike_numero).catch(() => {}); }
+    const aus = await db.query(`UPDATE aulas_reservas r SET status='ausente' FROM aulas_agenda a
+      WHERE r.agenda_id=a.id AND r.data_aula=$1 AND r.status='reservado' AND (r.liberar_apos IS NULL OR NOW() > r.liberar_apos)
+        AND (NOW() AT TIME ZONE 'America/Sao_Paulo')::time BETWEEN a.hora + INTERVAL '5 minutes' AND a.hora + make_interval(mins => COALESCE(a.duracao_min,60))
+      RETURNING r.agenda_id, r.bike_numero, r.user_id`, [iso]);
+    for (const r of aus.rows) { log(`Bike ${r.bike_numero || '—'} liberada (usuário ${r.user_id} não chegou) na aula ${r.agenda_id}`); await esPromover(r.agenda_id, iso, r.bike_numero); }
+  } catch (e) { log('esRotina: ' + e.message); }
+}
+setInterval(esRotina, 60000);
+
+
+// ══════════════════════════════════════════════════════════════
+// 02/10d — PAINEL DO GESTOR (OCUPAÇÃO E ALUNOS SUMIDOS)
+// ══════════════════════════════════════════════════════════════
+// Ocupação: pelas aulas que a TV fechou (aulas_tv) — quantos pedalaram em
+// cada dia da semana e horário, sobre as bikes da licença. Sumidos: alunos
+// com 2+ aulas cuja última foi há mais de 14 dias, com o botão de mandar o
+// e-mail "Sentimos sua falta" na hora.
+app.get('/gestor/ocupacao', gestorAuth, async (req, res) => {
+  if (!db) return res.status(503).json({ error: 'Banco indisponível' });
+  try {
+    const dias = Math.max(7, Math.min(180, parseInt(req.query.dias, 10) || 60));
+    const lic = (await db.query(`SELECT COALESCE(NULLIF(bikes_disponiveis,0), NULLIF(max_bikes,0), 15) AS bikes FROM licencas WHERE codigo=$1`, [req.user.license_id])).rows[0] || { bikes: 15 };
+    const r = await db.query(`
+      SELECT EXTRACT(DOW FROM (inicio AT TIME ZONE 'America/Sao_Paulo'))::int AS dow, EXTRACT(HOUR FROM (inicio AT TIME ZONE 'America/Sao_Paulo'))::int AS hora,
+             COUNT(*)::int AS aulas, ROUND(AVG(n_alunos)::numeric,1)::float AS media, MAX(n_alunos)::int AS max
+      FROM aulas_tv WHERE license_id=$1 AND inicio > NOW() - make_interval(days => $2) GROUP BY 1,2 ORDER BY 1,2`, [req.user.license_id, dias]);
+    const tot = await db.query(`SELECT COUNT(*)::int AS aulas, COALESCE(SUM(n_alunos),0)::int AS part FROM aulas_tv WHERE license_id=$1 AND inicio > NOW() - make_interval(days => $2)`, [req.user.license_id, dias]);
+    const res2 = await db.query(`SELECT COUNT(*) FILTER (WHERE r.status='presente')::int AS presentes, COUNT(*) FILTER (WHERE r.status='ausente')::int AS faltas,
+        (SELECT COUNT(*)::int FROM aulas_espera e JOIN aulas_agenda a2 ON a2.id=e.agenda_id WHERE a2.license_id=$1 AND e.data_aula > CURRENT_DATE - $2::int) AS fila
+      FROM aulas_reservas r JOIN aulas_agenda a ON a.id=r.agenda_id WHERE a.license_id=$1 AND r.data_aula > CURRENT_DATE - $2::int AND r.data_aula <= CURRENT_DATE`, [req.user.license_id, dias]);
+    res.json({ dias, bikes: lic.bikes, celulas: r.rows.map(x => Object.assign(x, { pct: Math.round(x.media / Math.max(1, lic.bikes) * 100) })), total: tot.rows[0], reservas: res2.rows[0] });
+  } catch (e) { log('ocupacao: ' + e.message); res.status(500).json({ error: 'Erro interno' }); }
+});
+app.get('/gestor/sumidos', gestorAuth, async (req, res) => {
+  if (!db) return res.status(503).json({ error: 'Banco indisponível' });
+  try {
+    const r = await db.query(`
+      SELECT u.id, u.name AS nome, u.email, COUNT(ah.id)::int AS aulas, MAX(ah.data_aula) AS ultima,
+             EXTRACT(DAY FROM NOW() - MAX(ah.data_aula))::int AS dias,
+             (SELECT MAX(enviado_em) FROM email_log el WHERE el.user_id=u.id AND el.tipo='sumido') AS avisado_em
+      FROM users u JOIN aula_historico ah ON ah.user_id=u.id
+      WHERE u.license_id=$1 AND u.role='aluno' AND COALESCE(u.status,'ativo')='ativo'
+      GROUP BY u.id HAVING COUNT(ah.id) >= 2 AND MAX(ah.data_aula) < NOW() - INTERVAL '14 days'
+      ORDER BY MAX(ah.data_aula) DESC LIMIT 200`, [req.user.license_id]);
+    res.json({ sumidos: r.rows, email: !!emailProvedor() });
+  } catch (e) { log('sumidos: ' + e.message); res.status(500).json({ error: 'Erro interno' }); }
+});
+app.post('/gestor/sumidos/:id/avisar', gestorAuth, async (req, res) => {
+  if (!db) return res.status(503).json({ error: 'Banco indisponível' });
+  if (!emailProvedor()) return res.status(501).json({ error: 'O envio de e-mail ainda não está configurado no servidor.' });
+  try {
+    const u = (await db.query(`SELECT u.id, u.name, u.email, MAX(ah.data_aula) AS ultima FROM users u LEFT JOIN aula_historico ah ON ah.user_id=u.id
+      WHERE u.id=$1 AND u.license_id=$2 GROUP BY u.id`, [parseInt(req.params.id, 10) || 0, req.user.license_id])).rows[0];
+    if (!u || !u.email) return res.status(404).json({ error: 'Aluno não encontrado' });
+    const l = (await db.query('SELECT COALESCE(nome_fantasia, nome) AS nome FROM licencas WHERE codigo=$1', [req.user.license_id])).rows[0] || {};
+    const c = await emailsCfgDe(req.user.license_id);
+    const dias = u.ultima ? Math.floor((Date.now() - new Date(u.ultima)) / 86400000) : 0;
+    const m = emailMontar('sumido', c, { nome: String(u.name || '').split(' ')[0], nome_completo: u.name || '', academia: l.nome, dias }, null, '', PORTAL_URL + '/aluno', l.nome);
+    const ok = await emailUmaVez('sumido', 'manual:u' + u.id + ':' + new Date().toISOString().slice(0, 10), u.id, u.email, m.subject, m.html);
+    res.json({ ok: true, enviado: ok, msg: ok ? 'E-mail enviado.' : 'Já foi enviado hoje para este aluno.' });
+  } catch (e) { log('avisar sumido: ' + e.message); res.status(500).json({ error: 'Erro interno' }); }
+});
 server.listen(PORT, () => {
   log(`ProRider Server v2.0 rodando na porta ${PORT}`);
   log(`HTTP + WebSocket ativos`);
