@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ProRider · Financeiro</title>
+<!-- 02/10h: página do RESPONSÁVEL FINANCEIRO da academia (regra do Mario).
+     Entra só o login cujo e-mail é o financeiro_email da licença; gestor e
+     coordenador não entram. O cartão é digitado na página do Asaas. -->
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@700;900&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0b0b12;--card:#15151f;--card2:#1c1c28;--border:rgba(255,255,255,.09);--txt:#f2f2f7;--muted:rgba(255,255,255,.55);--accent:#ea860c;--accent2:#d62d2d;--green:#5db13d;--yellow:#d7c414;--red:#ff5a5a}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--txt);font:15px/1.5 'Barlow',system-ui,sans-serif}
+.top{display:flex;align-items:center;gap:14px;padding:14px 20px;border-bottom:1px solid var(--border);background:#0f0f18}
+.logo{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:22px;letter-spacing:1px}.logo i{font-style:normal;color:var(--accent)}
+.top .who{margin-left:auto;text-align:right;font-size:13px;color:var(--muted)}.top .who b{color:var(--txt);display:block;font-size:14px}
+.wrap{max-width:860px;margin:0 auto;padding:24px 16px 60px}
+h1{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:30px;letter-spacing:.5px;margin:0 0 4px}
+.sub{color:var(--muted);margin:0 0 20px}
+.card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:20px;margin-bottom:16px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px}
+.k small{display:block;font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted)}
+.k b{font-family:'Barlow Condensed',sans-serif;font-size:30px;font-weight:900}
+.st{font-size:20px;font-weight:700}
+.btn{border:0;border-radius:10px;padding:12px 18px;font:700 15px 'Barlow',sans-serif;cursor:pointer;color:#fff;background:linear-gradient(135deg,var(--accent),var(--accent2))}
+.btn.gh{background:transparent;border:1px solid var(--border);color:var(--muted);font-weight:600}
+.btn:disabled{opacity:.5;cursor:default}
+label{display:block;font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin:10px 0 4px}
+input{width:100%;padding:11px 13px;border-radius:9px;border:1px solid var(--border);background:var(--card2);color:#fff;font:15px 'Barlow',sans-serif;outline:none}
+input:focus{border-color:var(--accent)}
+.note{font-size:13px;color:var(--muted)}
+.err{color:var(--red);font-size:14px;margin-top:10px;display:none}
+.ok{color:var(--green)}
+.aviso{border-radius:10px;padding:12px 14px;font-size:14px;margin-bottom:16px;background:rgba(41,95,232,.1);border:1px solid rgba(41,95,232,.35);color:#9db8ff}
+table{width:100%;border-collapse:collapse;font-size:14px}th{text-align:left;font-size:11px;letter-spacing:1px;text-transform:uppercase;color:var(--muted);padding:8px 6px;border-bottom:1px solid var(--border)}
+td{padding:10px 6px;border-bottom:1px solid var(--border)}td a{color:var(--accent);font-weight:700;text-decoration:none}
+.pill{display:inline-block;border-radius:20px;padding:2px 10px;font-size:12px;font-weight:700}
+.tabs{display:flex;gap:6px;margin-bottom:6px}.tabs button{flex:1;background:var(--card2);border:1px solid var(--border);color:var(--muted);border-radius:9px;padding:10px;font:700 14px 'Barlow',sans-serif;cursor:pointer}.tabs button.on{border-color:var(--accent);color:#fff}
+.cartao{display:inline-block;background:linear-gradient(135deg,rgba(41,95,232,.25),rgba(155,48,255,.2));border:1px solid rgba(41,95,232,.3);border-radius:12px;padding:12px 16px;font-family:monospace;font-size:17px;letter-spacing:3px}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:end}.row>div{flex:1;min-width:200px}
+td{white-space:nowrap}
+@media (max-width:600px){.top .who{display:none}h1{font-size:25px}td:nth-child(4),th:nth-child(4){display:none}.card{padding:14px}td,th{padding:8px 4px;font-size:13px}.pill{padding:2px 7px}}
+</style>
+</head>
+<body>
+<div class="top"><div class="logo">PRO <i>RIDER</i></div><span class="note">Financeiro</span>
+  <div class="who" id="who"></div><button class="btn gh" id="btSair" style="display:none;padding:8px 12px" onclick="sair()">Sair</button></div>
+
+<div class="wrap">
+  <!-- ENTRAR / CRIAR CONTA -->
+  <div id="vLogin" style="display:none;max-width:420px;margin:30px auto 0">
+    <h1>Financeiro da academia</h1>
+    <p class="sub">Pagamento da licença ProRider. Só entra o e-mail que a academia informou como responsável financeiro.</p>
+    <div class="card">
+      <div class="tabs"><button id="tbE" class="on" onclick="aba('e')">Entrar</button><button id="tbC" onclick="aba('c')">Criar conta</button></div>
+      <div id="fNome" style="display:none"><label>Nome</label><input id="iNome" autocomplete="name"></div>
+      <label>E-mail</label><input id="iEmail" type="email" autocomplete="username" placeholder="financeiro@academia.com.br">
+      <label>Senha</label><input id="iSenha" type="password" autocomplete="current-password">
+      <div id="fSenha2" style="display:none"><label>Repita a senha</label><input id="iSenha2" type="password" autocomplete="new-password"></div>
+      <button class="btn" style="width:100%;margin-top:16px" id="btEntrar" onclick="entrar()">Entrar</button>
+      <div class="err" id="eLogin"></div>
+      <p class="note" style="margin-top:14px">A mesma conta serve no app ProRider. Quem já tem conta no app entra com ela.</p>
+    </div>
+    <p class="note" style="text-align:center"><a href="academia.html" style="color:var(--muted)">← Portal da academia</a></p>
+  </div>
+
+  <!-- PAINEL -->
+  <div id="vPainel" style="display:none">
+    <div class="aviso" id="avSup" style="display:none">⚡ <b>Modo suporte</b>: só leitura. Quem paga e mexe no cartão é o responsável financeiro da academia.</div>
+    <h1 id="pAcad">—</h1>
+    <p class="sub" id="pSub">Licença ProRider</p>
+    <div class="card">
+      <div class="grid">
+        <div class="k"><small>Situação</small><div class="st" id="pSit">—</div><div class="note" id="pSitD"></div></div>
+        <div class="k"><small>Mensalidade</small><b id="pValor">—</b></div>
+        <div class="k"><small>Vencimento</small><b id="pVenc">—</b></div>
+      </div>
+    </div>
+    <div class="card" id="cPagar">
+      <div style="font-weight:700;font-size:17px;margin-bottom:6px">💳 Pagamento</div>
+      <div id="pCartao" style="margin-bottom:12px"></div>
+      <div id="pPrimeira" style="display:none">
+        <p class="note" style="margin:0 0 4px">Primeira vez: informe quem paga. Em seguida abre a página segura do Asaas para digitar o cartão — a ProRider nunca vê o número do cartão. Depois, a cobrança é automática todo mês.</p>
+        <div class="row"><div><label>Nome ou razão social</label><input id="iPagNome"></div><div><label>CPF ou CNPJ</label><input id="iDoc" inputmode="numeric" placeholder="só números"></div></div>
+      </div>
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:14px">
+        <button class="btn" id="btPagar" onclick="pagar()">Cadastrar cartão e pagar</button>
+        <a id="lkPagar" class="btn gh" style="display:none;text-decoration:none" target="_blank" rel="noopener">Abrir a página de pagamento</a>
+        <span class="note" id="pPagNota"></span>
+      </div>
+      <div class="err" id="ePagar"></div>
+      <p class="note" style="margin:14px 0 0">Para trocar o cartão da cobrança automática, fale com a ProRider.</p>
+    </div>
+    <div class="card">
+      <div style="font-weight:700;font-size:17px;margin-bottom:8px">📋 Faturas</div>
+      <div class="note" id="pErroAsaas" style="display:none;margin-bottom:8px"></div>
+      <div style="overflow-x:auto"><table><thead><tr><th>Vencimento</th><th>Valor</th><th>Situação</th><th>Pago em</th><th></th></tr></thead><tbody id="pFat"></tbody></table></div>
+    </div>
+    <p class="note" id="pPortal" style="display:none"><a href="academia.html" style="color:var(--accent)">Abrir o Portal da academia →</a></p>
+  </div>
+</div>
+
+<script>
+var SERVER = (location.hostname === 'localhost' || location.hostname === '127.0.0.1') ? location.origin : 'https://prorider-server-production-5784.up.railway.app';
+var _sup = sessionStorage.getItem('pr_imp_token');   // super admin em modo suporte (mesma aba do Portal)
+var token = _sup || localStorage.getItem('pr_fin_token') || '';
+var user = _sup ? JSON.parse(sessionStorage.getItem('pr_imp_user') || 'null') : JSON.parse(localStorage.getItem('pr_fin_user') || 'null');
+var _aba = 'e';
+function $(id){ return document.getElementById(id); }
+function esc(t){ return String(t == null ? '' : t).replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+function brl(v){ return 'R$ ' + Number(v || 0).toFixed(2).replace('.', ','); }
+function dt(s){ if (!s) return '—'; var p = String(s).slice(0, 10).split('-'); return p[2] + '/' + p[1] + '/' + p[0]; }
+function mostrarErro(id, t){ var e = $(id); e.textContent = t || ''; e.style.display = t ? 'block' : 'none'; }
+
+function aba(a){
+  _aba = a; $('tbE').classList.toggle('on', a === 'e'); $('tbC').classList.toggle('on', a === 'c');
+  $('fNome').style.display = $('fSenha2').style.display = a === 'c' ? 'block' : 'none';
+  $('btEntrar').textContent = a === 'c' ? 'Criar conta e entrar' : 'Entrar'; mostrarErro('eLogin', '');
+}
+async function entrar(){
+  var email = $('iEmail').value.trim(), senha = $('iSenha').value;
+  if (!email || !senha) return mostrarErro('eLogin', 'Preencha e-mail e senha.');
+  try {
+    var r, d;
+    if (_aba === 'c') {
+      var nome = $('iNome').value.trim();
+      if (!nome) return mostrarErro('eLogin', 'Preencha o nome.');
+      if (senha.length < 6) return mostrarErro('eLogin', 'A senha precisa de pelo menos 6 caracteres.');
+      if (senha !== $('iSenha2').value) return mostrarErro('eLogin', 'As senhas não são iguais.');
+      r = await fetch(SERVER + '/user/register', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ name: nome, email: email, password: senha }) });
+      d = await r.json();
+      if (!r.ok) return mostrarErro('eLogin', r.status === 409 ? 'Este e-mail já tem conta (do app ou do Portal): use "Entrar".' : (d.error || 'Não consegui criar a conta.'));
+    } else {
+      r = await fetch(SERVER + '/user/login', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ email: email, password: senha }) });
+      d = await r.json();
+      if (!r.ok) return mostrarErro('eLogin', d.error || 'E-mail ou senha incorretos.');
+    }
+    if (!d.user.financeiro) return mostrarErro('eLogin', 'Conta pronta, mas este e-mail ainda não está cadastrado como financeiro de nenhuma academia. Peça à ProRider para cadastrar este e-mail na licença e entre de novo.');
+    token = d.token; user = d.user;
+    localStorage.setItem('pr_fin_token', token); localStorage.setItem('pr_fin_user', JSON.stringify(user));
+    if (!['financeiro','aluno'].includes(user.role)) { localStorage.setItem('pr_gestor_token', token); localStorage.setItem('pr_gestor_user', JSON.stringify(user)); }
+    painel();
+  } catch (e) { mostrarErro('eLogin', 'Sem conexão com o servidor.'); }
+}
+function sair(){
+  if (_sup) { location.href = 'academia.html'; return; }
+  localStorage.removeItem('pr_fin_token'); localStorage.removeItem('pr_fin_user'); token = ''; user = null; telaLogin();
+}
+function telaLogin(){ $('vPainel').style.display = 'none'; $('vLogin').style.display = 'block'; $('btSair').style.display = 'none'; $('who').innerHTML = ''; if (location.hash === '#criar') aba('c'); }
+
+var SIT = { em_dia:['🟢 Em dia','var(--green)'], vencido:['🟡 Vencido','var(--yellow)'], suspenso:['🔴 Suspenso','var(--red)'], pendente:['⚪ Aguardando o 1º pagamento','var(--muted)'], sem_cobranca:['⚪ Cobrança ainda não cadastrada','var(--muted)'] };
+var FST = { PENDING:['Em aberto','rgba(215,196,20,.18)','#ffe033'], OVERDUE:['Vencida','rgba(255,90,90,.15)','#ff8a8a'], RECEIVED:['Paga','rgba(93,177,61,.18)','#8fe06a'], CONFIRMED:['Paga','rgba(93,177,61,.18)','#8fe06a'], RECEIVED_IN_CASH:['Paga','rgba(93,177,61,.18)','#8fe06a'], REFUNDED:['Estornada','rgba(255,255,255,.08)','#ccc'], REFUND_REQUESTED:['Estorno pedido','rgba(255,255,255,.08)','#ccc'], CHARGEBACK_REQUESTED:['Contestada','rgba(255,90,90,.15)','#ff8a8a'] };
+var _dados = null;
+async function painel(){
+  $('vLogin').style.display = 'none'; $('vPainel').style.display = 'block'; $('btSair').style.display = '';
+  $('who').innerHTML = '<b>' + esc((user && (user.name || user.email)) || '') + '</b>' + esc(_sup ? 'modo suporte' : 'responsável financeiro');
+  try {
+    var r = await fetch(SERVER + '/academia/financeiro', { headers: { 'Authorization': 'Bearer ' + token } });
+    var d = await r.json();
+    if (r.status === 401) { sair(); return; }
+    if (!r.ok) { $('pAcad').textContent = 'Sem acesso'; $('pSub').textContent = d.error || 'Esta página é só do responsável financeiro da academia.'; $('cPagar').style.display = 'none'; return; }
+    _dados = d;
+    $('pAcad').textContent = d.academia; $('pSub').textContent = 'Licença ' + d.codigo + (d.financeiro_email ? ' · financeiro: ' + d.financeiro_email : '');
+    var s = SIT[d.situacao] || SIT.sem_cobranca; $('pSit').innerHTML = '<span style="color:' + s[1] + '">' + s[0] + '</span>';
+    $('pSitD').textContent = d.situacao === 'em_dia' && d.pago_ate ? 'pago até ' + dt(d.pago_ate)
+      : d.situacao === 'vencido' && d.pago_ate ? 'o Ginásio da academia para 5 dias depois de ' + dt(d.pago_ate) : d.situacao === 'suspenso' ? 'o Ginásio da academia está parado até o pagamento' : '';
+    $('pValor').textContent = d.valor_mensal ? brl(d.valor_mensal) : '—';
+    $('pVenc').textContent = d.fatura_aberta ? dt(d.fatura_aberta.vencimento) : ('dia ' + (d.dia_vencimento || '—'));
+    $('pCartao').innerHTML = d.cartao ? '<span class="cartao">' + esc(d.cartao.bandeira || 'Cartão') + ' •••• ' + esc(d.cartao.final) + '</span> <span class="note ok">cobrança automática</span>' : '<span class="note">Nenhum cartão em uso ainda.</span>';
+    $('pPrimeira').style.display = d.tem_assinatura ? 'none' : 'block';
+    if (!d.tem_assinatura && !$('iPagNome').value) $('iPagNome').value = d.financeiro_nome || d.academia || '';
+    $('btPagar').textContent = !d.tem_assinatura ? 'Cadastrar cartão e pagar' : d.fatura_aberta ? 'Pagar a fatura de ' + dt(d.fatura_aberta.vencimento) + ' · ' + brl(d.fatura_aberta.valor) : 'Nenhuma fatura em aberto';
+    $('btPagar').disabled = !!(d.suporte || (d.tem_assinatura && !d.fatura_aberta));
+    $('avSup').style.display = d.suporte ? 'block' : 'none';
+    $('pPortal').style.display = (!_sup && user && !['financeiro','aluno'].includes(user.role)) ? 'block' : 'none';
+    $('pErroAsaas').style.display = d.erro_asaas ? 'block' : 'none'; $('pErroAsaas').textContent = d.erro_asaas || '';
+    $('pFat').innerHTML = (d.faturas || []).length ? d.faturas.map(function(f){
+      var st = FST[f.status] || [f.status, 'rgba(255,255,255,.08)', '#ccc'], aberta = f.status === 'PENDING' || f.status === 'OVERDUE';
+      var lk = aberta && f.url && !d.suporte ? '<a href="' + esc(f.url) + '" target="_blank" rel="noopener">Pagar</a>' : f.recibo ? '<a href="' + esc(f.recibo) + '" target="_blank" rel="noopener">Recibo</a>' : '';
+      return '<tr><td>' + dt(f.vencimento) + '</td><td>' + brl(f.valor) + '</td><td><span class="pill" style="background:' + st[1] + ';color:' + st[2] + '">' + st[0] + '</span></td><td>' + dt(f.pago_em) + '</td><td>' + lk + '</td></tr>';
+    }).join('') : '<tr><td colspan="5" class="note" style="text-align:center;padding:20px">Nenhuma fatura ainda.</td></tr>';
+  } catch (e) { $('pSub').textContent = 'Sem conexão com o servidor.'; }
+}
+async function pagar(){
+  mostrarErro('ePagar', ''); var bt = $('btPagar'); bt.disabled = true; $('pPagNota').textContent = 'Abrindo o Asaas…';
+  var w = null; try { w = window.open('', '_blank'); } catch (e) {}   // abre já no clique (o navegador bloqueia janela aberta depois)
+  try {
+    var r = await fetch(SERVER + '/academia/financeiro/pagar', { method: 'POST', headers: { 'Content-Type':'application/json', 'Authorization': 'Bearer ' + token },
+      body: JSON.stringify({ nome: $('iPagNome').value.trim(), cpf_cnpj: $('iDoc').value }) });
+    var d = await r.json();
+    if (!r.ok || !d.url) { if (w) w.close(); mostrarErro('ePagar', d.error || d.msg || 'Não consegui abrir a fatura.'); $('pPagNota').textContent = ''; bt.disabled = false; painel(); return; }
+    if (w) w.location = d.url; $('lkPagar').href = d.url; $('lkPagar').style.display = 'inline-block';
+    $('pPagNota').textContent = 'A página do Asaas abriu em outra aba. Depois de pagar, volte aqui: a situação atualiza em instantes.';
+    painel();
+  } catch (e) { if (w) w.close(); mostrarErro('ePagar', 'Sem conexão com o servidor.'); $('pPagNota').textContent = ''; bt.disabled = false; }
+}
+document.addEventListener('keydown', function(e){ if (e.key === 'Enter' && $('vLogin').style.display === 'block') entrar(); });
+if (token) painel(); else telaLogin();
+</script>
+</body>
+</html>

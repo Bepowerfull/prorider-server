@@ -431,6 +431,7 @@ button{font-family:inherit}
     <button type="button" class="lpx-o lpx-hit" style="left:76.923%;top:65.323%;width:8.953%;height:3.226%" onclick="var d=document.getElementById('lpDica');d.style.display=d.style.display==='block'?'none':'block'" aria-label="Esqueci a senha"></button>
     <a class="lpx-o lpx-hit" style="left:89.029%;top:65.323%;width:7.188%;height:3.226%" href="/aluno" aria-label="Sou aluno: abrir o app"></a>
     <button type="button" class="lpx-o lpx-hit" style="left:2.774%;top:62.903%;width:41.488%;height:12.500%" onclick="lpVideo()" aria-label="Assista ao vídeo"></button>
+    <a class="lpx-o" href="financeiro.html#criar" style="left:77.112%;top:68.6%;width:18.916%;height:auto;font:600 12px Barlow,sans-serif;color:rgba(255,255,255,.6);text-align:center;text-decoration:none">Financeiro da academia: criar conta</a>
     <div class="lpx-o lpx-err login-err" id="lErr" style="left:77.112%;top:70.968%;width:18.916%;height:4.032%;height:auto"></div>
     <div class="lpx-o lpx-dica" id="lpDica" style="left:75.662%;top:70.968%;width:21.942%;height:9.073%;height:auto">Peça ao gestor da sua academia uma senha nova (Portal → Alunos ou Equipe). Gestor: fale com o suporte ProRider.</div>
     <div class="lpx-o lpx-k" style="left:9.836%;top:80.343%;width:8.575%;height:5.645%"><b data-lp="atl">—</b><small data-lpd="atl">&nbsp;</small></div><div class="lpx-o lpx-k" style="left:24.968%;top:80.343%;width:8.575%;height:5.645%"><b data-lp="km">—</b><small data-lpd="km">&nbsp;</small></div><div class="lpx-o lpx-k" style="left:40.101%;top:80.343%;width:9.079%;height:5.645%"><b data-lp="kcal">—</b><small data-lpd="kcal">&nbsp;</small></div><div class="lpx-o lpx-k" style="left:55.612%;top:80.343%;width:9.332%;height:5.645%"><b data-lp="aulas">—</b><small data-lpd="aulas">&nbsp;</small></div><div class="lpx-o lpx-k" style="left:71.627%;top:80.343%;width:8.827%;height:5.645%"><b data-lp="horas">—</b><small data-lpd="horas">&nbsp;</small></div><div class="lpx-o lpx-k" style="left:87.201%;top:80.343%;width:8.197%;height:5.645%"><b data-lp="wpp">—</b><small data-lpd="wpp">&nbsp;</small></div>
@@ -471,6 +472,7 @@ button{font-family:inherit}
       <button type="button" onclick="lpLoginMob()" class="lp-go">ENTRAR</button>
       <div class="lp-err " id="lErr_m"></div>
       <div class="lp-links"><span onclick="document.getElementById('lpDicaM').style.display='block'">Esqueci a senha</span><a href="/aluno">Sou aluno → app</a></div>
+      <div class="lp-links" style="margin-top:6px"><a href="financeiro.html#criar">Financeiro da academia: criar conta</a></div>
       <div class="lp-dica" id="lpDicaM">Peça ao gestor da sua academia para gerar uma senha nova (Portal → Alunos ou Equipe). Gestor: fale com o suporte ProRider.</div>
     </div>
   </div>
@@ -1033,81 +1035,6 @@ button{font-family:inherit}
   </div>
 
   <!-- FINANCEIRO -->
-  <div class="page content" id="page-financeiro">
-
-    <!-- Aviso para admin em modo suporte -->
-    <div id="finAdminNotice" style="display:none;background:rgba(41,95,232,.08);border:1px solid rgba(41,95,232,.25);border-radius:12px;padding:14px 18px;margin-bottom:20px;font-size:13px;color:#295fe8">
-      ⚡ <strong>Modo Suporte:</strong> Você está visualizando o financeiro desta academia. Dados do cartão são invisíveis por política de privacidade — apenas o responsável financeiro pode ver e editar essas informações.
-    </div>
-
-    <!-- Status de pagamento -->
-    <div id="finStatusCard" style="border-radius:14px;padding:24px;margin-bottom:20px;border:1px solid var(--border);background:var(--card)">
-      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
-        <div>
-          <div style="font-size:11px;font-weight:700;letter-spacing:2px;color:var(--muted);text-transform:uppercase;margin-bottom:6px">Status do plano</div>
-          <div id="finStatusDot" style="font-size:20px;font-weight:700"></div>
-        </div>
-        <div style="text-align:right">
-          <div style="font-size:11px;color:var(--muted)">Mensalidade</div>
-          <div id="finValor" style="font-family:'Barlow Condensed',sans-serif;font-size:36px;font-weight:900;color:var(--green)">—</div>
-        </div>
-        <div style="text-align:right">
-          <div style="font-size:11px;color:var(--muted)">Vencimento</div>
-          <div id="finVenc" style="font-size:22px;font-weight:700">Dia —</div>
-        </div>
-        <div style="text-align:right">
-          <div style="font-size:11px;color:var(--muted)">Último pagamento</div>
-          <div id="finUltimoPgto" style="font-size:15px;font-weight:600">—</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Cartão cadastrado -->
-    <div class="tcard" style="margin-bottom:20px">
-      <div class="thead-row">
-        <h2>💳 Forma de pagamento</h2>
-        <div id="finCartaoEditBtn"></div>
-      </div>
-      <div style="padding:20px" id="finCartaoArea"></div>
-    </div>
-
-    <!-- Histórico de pagamentos -->
-    <div class="tcard">
-      <div class="thead-row"><h2>📋 Histórico de pagamentos</h2></div>
-      <table>
-        <thead><tr><th>Data</th><th>Referência</th><th>Valor</th><th>Método</th><th>Status</th></tr></thead>
-        <tbody id="finPgtosTable"></tbody>
-      </table>
-    </div>
-  </div>
-
-  <!-- MODAL CADASTRAR CARTÃO -->
-  <div id="cartaoModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:400;align-items:center;justify-content:center">
-    <div style="background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:28px;width:100%;max-width:400px;margin:16px">
-      <div style="font-size:16px;font-weight:700;margin-bottom:6px">💳 Dados do cartão</div>
-      <div style="background:rgba(214,45,45,.06);border:1px solid rgba(214,45,45,.2);border-radius:10px;padding:10px 14px;font-size:12px;color:rgba(255,255,255,.6);margin-bottom:18px;line-height:1.6">
-        🔒 Para sua segurança, informe <strong>apenas os últimos 4 dígitos</strong> e a validade.<br>
-        Número completo e CVV são processados diretamente pelo gateway de pagamento.
-      </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
-        <div class="fg"><label>Bandeira</label>
-          <select id="cBandeira" style="padding:10px 13px;border-radius:8px;border:1px solid var(--border);background:rgba(255,255,255,.05);color:#fff;font-size:14px;outline:none">
-            <option value="Visa">Visa</option><option value="Mastercard">Mastercard</option>
-            <option value="Elo">Elo</option><option value="Amex">Amex</option><option value="Hipercard">Hipercard</option>
-          </select>
-        </div>
-        <div class="fg"><label>Últimos 4 dígitos</label><input id="cFinal" maxlength="4" placeholder="0000" style="letter-spacing:4px;font-size:18px"></div>
-        <div class="fg"><label>Validade (MM/AAAA)</label><input id="cValidade" placeholder="12/2028" maxlength="7"></div>
-        <div class="fg"><label>Nome no cartão</label><input id="cTitular" placeholder="MARIO SILVA"></div>
-      </div>
-      <div id="cartaoErr" style="color:#d62d2d;font-size:12px;margin-bottom:10px;display:none"></div>
-      <div style="display:flex;gap:10px">
-        <button onclick="salvarCartao()" style="flex:1;padding:11px;border-radius:10px;border:none;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;font-size:14px;font-weight:700;cursor:pointer">Salvar</button>
-        <button onclick="fecharCartaoModal()" style="padding:11px 18px;border-radius:10px;border:1px solid var(--border);background:transparent;color:var(--muted);font-size:14px;cursor:pointer">Cancelar</button>
-      </div>
-    </div>
-  </div>
-
   <!-- LEADERBOARD -->
   <div class="page content" id="page-leaderboard">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
@@ -1358,7 +1285,7 @@ const PR_NAV = [
     ['qrcodes','🔲','QR das bikes',['gestor','coordenador','admin','super_admin']],
     ['totem','📲','Totem na porta',['gestor','coordenador','admin','super_admin']],
     ['pagina','🌐','Página no site',['gestor','coordenador','admin','super_admin']],
-    ['financeiro','💳','Financeiro',['gestor','financeiro','admin','super_admin']],
+    ['financeiro','💳','Financeiro (suporte)',['suporte']],
   ]],
   ['Conta', [
     ['perfil','👤','Meu perfil',[]],
@@ -1371,6 +1298,7 @@ function prInicial(){ return prPapel()==='professor' ? 'criar' : 'dashboard'; }
 function prPode(tab){
   const r = prPapel();
   if (r === 'professor') return PROF_ABAS.includes(tab);
+  if (tab === 'financeiro') return !!(user && (user.impersonated_by || ['admin','super_admin'].includes(user.role)));   // 02/10h: o financeiro tem página própria
   for (const [, itens] of PR_NAV) for (const it of itens) if (it[0] === tab) return !it[3].length || it[3].includes(r);
   return true;
 }
@@ -2143,6 +2071,12 @@ async function doLogin() {
       localStorage.setItem('pr_admin_token', d.token); localStorage.setItem('pr_admin_user', JSON.stringify(d.user));
       window.location.href = 'index.html'; return;
     }
+    // 02/10h: o e-mail cadastrado como financeiro da licença vai para a página de pagamento
+    if (d.user.financeiro) {
+      localStorage.setItem('pr_fin_token', d.token); localStorage.setItem('pr_fin_user', JSON.stringify(d.user));
+      if (!['financeiro','aluno'].includes(d.user.role)) { localStorage.setItem('pr_gestor_token', d.token); localStorage.setItem('pr_gestor_user', JSON.stringify(d.user)); }
+      window.location.href = 'financeiro.html'; return;
+    }
     if (d.user.role === 'aluno') { window.location.href = 'aluno.html'; return; }
     if (!PORTAL_ROLES.includes(d.user.role)) {
       err.textContent = 'Seu usuário não tem acesso ao Portal.'; err.style.display = 'block'; return;
@@ -2355,111 +2289,9 @@ function fmtSeg(s) {
   return m+'m '+(sec<10?'0':'')+sec+'s';
 }
 
-// ── Financeiro ──────────────────────────────────────────────
-const PGTO_LABELS = {
-  em_dia:   { cor:'#5db13d', txt:'🟢 Pagamento em dia' },
-  atrasado: { cor:'#d7c414', txt:'🟡 Pagamento atrasado' },
-  bloqueado:{ cor:'#d62d2d', txt:'🔴 Acesso bloqueado — pagamento pendente' },
-  pendente: { cor:'#888',    txt:'⚪ Aguardando primeiro pagamento' },
-};
-// Determina se o usuário atual pode ver/editar cartão
-// Admin em modo suporte NÃO pode — apenas financeiro ou gestor titular
-function podeVerCartao() {
-  return user && (user.role === 'financeiro' || (user.role === 'gestor' && !user.impersonated_by));
-}
-
-async function loadFinanceiro() {
-  // Mostrar aviso para admin
-  const notice = document.getElementById('finAdminNotice');
-  if (notice) notice.style.display = (user && (user.role === 'admin' || user.impersonated_by)) ? 'block' : 'none';
-  try {
-    const r = await fetch(SERVER + '/academia/financeiro', { headers:{'Authorization':'Bearer '+token} });
-    const d = await r.json();
-    if (!r.ok) { console.error(d.error); return; }
-    // Status
-    const st = PGTO_LABELS[d.status_pagamento] || PGTO_LABELS.pendente;
-    document.getElementById('finStatusDot').innerHTML = `<span style="color:${st.cor}">${st.txt}</span>`;
-    document.getElementById('finValor').textContent = 'R$ ' + parseFloat(d.valor_mensal||0).toFixed(2);
-    document.getElementById('finVenc').textContent = 'Dia ' + (d.dia_vencimento||10);
-    document.getElementById('finUltimoPgto').textContent = d.ultimo_pagamento
-      ? new Date(d.ultimo_pagamento+'T00:00').toLocaleDateString('pt-BR') : 'Nenhum';
-    // Cartão
-    const cartaoArea = document.getElementById('finCartaoArea');
-    const cartaoBtn  = document.getElementById('finCartaoEditBtn');
-    if (podeVerCartao()) {
-      if (d.cartao && d.cartao.final) {
-        cartaoArea.innerHTML = `
-          <div style="display:flex;align-items:center;gap:16px">
-            <div style="background:linear-gradient(135deg,rgba(41,95,232,.2),rgba(155,48,255,.2));border:1px solid rgba(41,95,232,.2);border-radius:12px;padding:14px 18px;min-width:200px">
-              <div style="font-size:11px;color:var(--muted);margin-bottom:6px">${d.cartao.bandeira||'Cartão'}</div>
-              <div style="font-family:monospace;font-size:18px;letter-spacing:4px;font-weight:700">•••• •••• •••• ${d.cartao.final}</div>
-              <div style="display:flex;justify-content:space-between;margin-top:8px;font-size:12px;color:var(--muted)">
-                <span>${d.cartao.titular||''}</span><span>${d.cartao.validade||''}</span>
-              </div>
-            </div>
-            <div style="font-size:12px;color:var(--green)">✅ Cartão cadastrado</div>
-          </div>`;
-        cartaoBtn.innerHTML = `<button onclick="abrirCartaoModal('${d.cartao.bandeira||''}','${d.cartao.final}','${d.cartao.validade||''}','${d.cartao.titular||''}')" style="padding:6px 14px;border-radius:8px;border:1px solid var(--border);background:rgba(255,255,255,.04);color:var(--muted);font-size:12px;cursor:pointer">Alterar cartão</button>`;
-      } else {
-        cartaoArea.innerHTML = `<div style="text-align:center;padding:24px;color:var(--muted)">Nenhum cartão cadastrado ainda.</div>`;
-        cartaoBtn.innerHTML = `<button onclick="abrirCartaoModal()" style="padding:6px 14px;border-radius:8px;border:none;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;font-size:12px;font-weight:700;cursor:pointer">+ Cadastrar cartão</button>`;
-      }
-    } else {
-      // Admin / modo suporte — mostra apenas se há cartão, sem dados
-      cartaoArea.innerHTML = d.cartao_cadastrado
-        ? `<div style="display:flex;align-items:center;gap:10px;color:var(--muted)"><span style="font-size:20px">💳</span> Cartão cadastrado — <em>dados ocultos por privacidade</em></div>`
-        : `<div style="color:var(--muted);font-size:13px">Nenhum cartão cadastrado.</div>`;
-      cartaoBtn.innerHTML = '';
-    }
-    // Histórico
-    const tb = document.getElementById('finPgtosTable');
-    if (!d.pagamentos || !d.pagamentos.length) {
-      tb.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:24px;color:var(--muted)">Nenhum pagamento registrado.</td></tr>';
-    } else {
-      tb.innerHTML = d.pagamentos.map(p => `<tr>
-        <td style="font-size:12px">${new Date(p.data_pgto+'T00:00').toLocaleDateString('pt-BR')}</td>
-        <td>${p.referencia||'—'}</td>
-        <td style="color:var(--green);font-weight:700">R$ ${parseFloat(p.valor).toFixed(2)}</td>
-        <td style="font-size:12px;color:var(--muted)">${p.metodo}</td>
-        <td><span class="badge badge-ativo">${p.status}</span></td>
-      </tr>`).join('');
-    }
-  } catch(e) { console.error(e); }
-}
-
-function abrirCartaoModal(bandeira='Visa', final='', validade='', titular='') {
-  document.getElementById('cBandeira').value  = bandeira;
-  document.getElementById('cFinal').value     = final;
-  document.getElementById('cValidade').value  = validade;
-  document.getElementById('cTitular').value   = titular.toUpperCase();
-  document.getElementById('cartaoErr').style.display = 'none';
-  document.getElementById('cartaoModal').style.display = 'flex';
-}
-function fecharCartaoModal() { document.getElementById('cartaoModal').style.display = 'none'; }
-
-async function salvarCartao() {
-  const final    = document.getElementById('cFinal').value.trim();
-  const validade = document.getElementById('cValidade').value.trim();
-  const err      = document.getElementById('cartaoErr');
-  if (!/^\d{4}$/.test(final))              { err.textContent='Informe os últimos 4 dígitos.'; err.style.display='block'; return; }
-  if (!/^\d{2}\/\d{4}$/.test(validade))    { err.textContent='Validade no formato MM/AAAA.'; err.style.display='block'; return; }
-  const body = {
-    bandeira: document.getElementById('cBandeira').value,
-    final, validade,
-    titular: document.getElementById('cTitular').value.trim().toUpperCase(),
-  };
-  try {
-    const r = await fetch(SERVER + '/academia/financeiro/cartao', {
-      method: 'PUT', headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
-      body: JSON.stringify(body)
-    });
-    const d = await r.json();
-    if (!r.ok) { err.textContent = d.error || 'Erro ao salvar.'; err.style.display='block'; return; }
-    fecharCartaoModal();
-    toast('💳 Cartão atualizado!');
-    loadFinanceiro();
-  } catch(e) { err.textContent = 'Erro de conexão.'; err.style.display='block'; }
-}
+// ── Financeiro (02/10h): página própria (financeiro.html), só do responsável
+// financeiro da licença. Aqui fica só o atalho do modo suporte.
+function loadFinanceiro(){ location.href = 'financeiro.html'; }
 
 // ── Grade ──
 const DIAS = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];

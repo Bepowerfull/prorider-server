@@ -809,6 +809,7 @@ async function runMigrations() {
     await daMigrar().catch(e => log('Migração 02/10a (desafio entre academias) ERRO: ' + e.message));
     await gvMigrar().catch(e => log('Migração 02/10b (gravar e transmitir) ERRO: ' + e.message));
     await esMigrar().catch(e => log('Migração 02/10c (lista de espera e lembretes) ERRO: ' + e.message));
+    await db.query(`ALTER TABLE licencas ADD COLUMN IF NOT EXISTS asaas_customer TEXT, ADD COLUMN IF NOT EXISTS asaas_sub TEXT`).catch(e => log('Migração 02/10h (Asaas) ERRO: ' + e.message));
     setTimeout(() => geoPreencherFaltando().catch(e => log('geo backfill: ' + e.message)), 15000);
 
   } catch(e) {
@@ -925,7 +926,10 @@ app.post('/user/register', async (req, res) => {
       [email.toLowerCase(), name, hash, peso, ftp, altura, idade, sexo, tmb]
     );
     const user = r.rows[0];
-    const token = jwt.sign({ id: user.id, email: user.email, role: user.role }, JWT_SECRET, { expiresIn: '30d' });
+    // 02/10h: e-mail já cadastrado como financeiro de uma licença → vira o financeiro dela
+    const finLic = await finLicencaDe(user.email).catch(() => null);
+    if (finLic) { await finVincular(finLic, user.email, null); user.role = 'financeiro'; user.license_id = finLic; user.financeiro = true; }
+    const token = jwt.sign({ id: user.id, email: user.email, role: user.role, license_id: user.license_id || undefined }, JWT_SECRET, { expiresIn: '30d' });
     res.json({ user, token });
   } catch(e) {
     if (e.code === '23505') return res.status(409).json({ error: 'Email já cadastrado' });
@@ -947,7 +951,8 @@ app.post('/user/login', async (req, res) => {
     const ok = await bcrypt.compare(password, user.password_hash);
     if (!ok) return res.status(401).json({ error: 'Email ou senha incorretos' });
     const token = jwt.sign({ id: user.id, email: user.email, role: user.role, license_id: user.license_id || undefined }, JWT_SECRET, { expiresIn: '30d' });
-    res.json({ user: { id: user.id, email: user.email, name: user.name, role: user.role, license_id: user.license_id || null, points: user.points, level: user.level, sexo: user.sexo || null }, token }); // 26/09b: sexo
+    const financeiro = !!(await finLicencaDe(user.email).catch(() => null));   // 02/10h: o e-mail do financeiro vai para a página de pagamento
+    res.json({ user: { id: user.id, email: user.email, name: user.name, role: user.role, license_id: user.license_id || null, points: user.points, level: user.level, sexo: user.sexo || null, financeiro }, token }); // 26/09b: sexo
   } catch(e) {
     log('login error: ' + e.message);
     res.status(500).json({ error: 'Erro interno' });
@@ -2286,12 +2291,14 @@ app.patch('/admin/licencas/:id/financeiro', adminAuth, async (req, res) => {
   if (!db) return res.status(503).json({ error: 'Banco indisponível' });
   const { financeiro_email, financeiro_nome, dia_vencimento, valor_mensal } = req.body;
   try {
+    const ant = (await db.query('SELECT financeiro_email FROM licencas WHERE id=$1', [req.params.id])).rows[0] || {};
     const r = await db.query(`
       UPDATE licencas SET
         financeiro_email=$1, financeiro_nome=$2,
         dia_vencimento=$3, valor_mensal=$4, updated_at=NOW()
       WHERE id=$5 RETURNING *
     `, [financeiro_email||null, financeiro_nome||null, dia_vencimento||10, valor_mensal||0, req.params.id]);
+    if (r.rows[0]) await finVincular(r.rows[0].codigo, financeiro_email, ant.financeiro_email);   // 02/10h
     res.json(r.rows[0]);
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
@@ -3025,79 +3032,105 @@ app.post('/onboarding/:token', async (req, res) => {
 // FINANCEIRO DA ACADEMIA (role: financeiro ou gestor ou admin)
 // ══════════════════════════════════════════════════════════════
 
-function finAuth(req, res, next) {
+// 02/10h (regra do Mario): a página de pagamento é SÓ do responsável financeiro.
+// Vale o e-mail do login igual ao licencas.financeiro_email da licença — o papel
+// não importa (num estúdio pequeno o gestor pode ser também o financeiro).
+// Gestor e coordenador ficam de fora. Admin e super admin (modo suporte) só leem.
+// A licença de quem é o financeiro: o e-mail do login igual ao financeiro_email
+// (vale para quem se cadastrou pelo app ou pelo Portal, com qualquer papel).
+async function finLicencaDe(email) {
+  const e = String(email || '').trim().toLowerCase(); if (!e || !db) return null;
+  const r = await db.query('SELECT codigo FROM licencas WHERE LOWER(TRIM(financeiro_email))=$1 ORDER BY id LIMIT 1', [e]);
+  return r.rows.length ? r.rows[0].codigo : null;
+}
+// O admin pôs (ou trocou) o e-mail do financeiro: o cadastro com esse e-mail
+// vira "financeiro" da licença; o anterior volta a ser aluno. Gestor e outros
+// papéis não são rebaixados (a página vale pelo e-mail).
+async function finVincular(codigo, novo, antigo) {
+  novo = String(novo || '').trim().toLowerCase(); antigo = String(antigo || '').trim().toLowerCase();
+  if (antigo && antigo !== novo) await db.query(`UPDATE users SET role='aluno' WHERE LOWER(email)=$1 AND role='financeiro'`, [antigo]);
+  if (novo) await db.query(`UPDATE users SET role='financeiro', license_id=$2 WHERE LOWER(email)=$1 AND role IN ('aluno','financeiro')`, [novo, codigo]);
+}
+async function finAuth(req, res, next) {
   const token = (req.headers.authorization || '').replace('Bearer ', '');
   if (!token) return res.status(401).json({ error: 'Token necessário' });
-  try {
-    const p = jwt.verify(token, JWT_SECRET);
-    if (!['financeiro','gestor','admin'].includes(p.role))
-      return res.status(403).json({ error: 'Acesso negado' });
-    req.user = p;
-    next();
-  } catch(e) { return res.status(401).json({ error: 'Token inválido' }); }
+  let p; try { p = jwt.verify(token, JWT_SECRET); } catch(e) { return res.status(401).json({ error: 'Token inválido' }); }
+  const suporte = ['admin', 'super_admin'].includes(p.role) || !!p.impersonated_by;
+  let lic = null;
+  try { if (!suporte) lic = await finLicencaDe(p.email); } catch (e) { return res.status(500).json({ error: 'Erro interno' }); }
+  if (!suporte && !lic) return res.status(403).json({ error: 'Esta página é só do responsável financeiro da academia (o e-mail cadastrado como financeiro na licença).' });
+  if (suporte && req.method !== 'GET') return res.status(403).json({ error: 'Modo suporte: só o responsável financeiro mexe no pagamento.' });
+  req.user = suporte ? p : Object.assign({}, p, { license_id: lic }); req.finSuporte = suporte;
+  next();
 }
 
-// Ver situação financeira da própria academia
+// Situação da licença + faturas do Asaas (a página financeiro.html)
+function finSituacao(l) {
+  const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
+  if (l.status === 'suspensa' || l.status_pagamento === 'inadimplente' && l.pagamento_ok_ate && (hoje - new Date(l.pagamento_ok_ate)) / 86400000 > 5) return 'suspenso';
+  if (l.pagamento_ok_ate) {
+    const ate = new Date(l.pagamento_ok_ate);
+    if (ate >= hoje) return 'em_dia';
+    return (hoje - ate) / 86400000 > 5 ? 'suspenso' : 'vencido';
+  }
+  return l.asaas_sub ? 'pendente' : 'sem_cobranca';
+}
 app.get('/academia/financeiro', finAuth, async (req, res) => {
   if (!db) return res.status(503).json({ error: 'Banco indisponível' });
   const licId = req.user.license_id;
   if (!licId) return res.status(403).json({ error: 'Sem licença associada' });
   try {
-    const [lic, pgs] = await Promise.all([
-      db.query('SELECT * FROM licencas WHERE codigo=$1', [licId]),
-      db.query('SELECT id,data_pgto,referencia,valor,metodo,status FROM pagamentos WHERE license_id=$1 ORDER BY data_pgto DESC LIMIT 24', [licId]),
-    ]);
-    if (!lic.rows.length) return res.status(404).json({ error: 'Licença não encontrada' });
-    const l = lic.rows[0];
-    const isAdmin = req.user.role === 'admin' || req.user.impersonated_by;
-    // ⚠️ SEGURANÇA: dados do cartão são INVISÍVEIS para admin e gestor em modo suporte.
-    // Apenas o role 'financeiro' ou o gestor titular (sem impersonação) vê dados mascarados.
-    // Número completo e CVV NUNCA são armazenados — apenas últimos 4 dígitos e bandeira.
-    const podeVerCartao = req.user.role === 'financeiro' ||
-                          (req.user.role === 'gestor' && !req.user.impersonated_by);
-    res.json({
-      status_pagamento: calcStatusPagamento(l.ultimo_pagamento, l.dia_vencimento),
-      valor_mensal: l.valor_mensal,
-      dia_vencimento: l.dia_vencimento,
-      ultimo_pagamento: l.ultimo_pagamento,
-      financeiro_nome: l.financeiro_nome,
-      financeiro_email: l.financeiro_email,
-      // Cartão — apenas para financeiro/gestor titular; admin vê null
-      cartao: podeVerCartao ? {
-        bandeira:  l.cartao_bandeira,
-        final:     l.cartao_final,      // apenas últimos 4 dígitos
-        validade:  l.cartao_validade,   // MM/AAAA
-        titular:   l.cartao_titular,
-      } : null,
-      cartao_cadastrado: !!(l.cartao_final), // admin vê só se há cartão, mas não os dados
-      pagamentos: pgs.rows,
-    });
-  } catch(e) { res.status(500).json({ error: e.message }); }
+    const l = (await db.query('SELECT * FROM licencas WHERE codigo=$1', [licId])).rows[0];
+    if (!l) return res.status(404).json({ error: 'Licença não encontrada' });
+    let faturas = [], erroAsaas = null;
+    if (ASAAS_API_KEY) {
+      try {
+        const d = await asaasApi('GET', '/payments?externalReference=' + encodeURIComponent(licId) + '&limit=12');
+        faturas = (d.data || []).map(x => ({ id: x.id, valor: x.value, status: x.status, vencimento: x.dueDate, pago_em: x.paymentDate || x.clientPaymentDate || null,
+          url: x.invoiceUrl || null, recibo: x.transactionReceiptUrl || null,
+          cartao: x.creditCard && x.creditCard.creditCardNumber ? { final: String(x.creditCard.creditCardNumber).slice(-4), bandeira: x.creditCard.creditCardBrand || '' } : null }));
+      } catch (e) { erroAsaas = 'Não consegui ler as faturas agora (' + e.message + ').'; }
+    } else erroAsaas = 'Cobrança automática ainda não ligada no servidor.';
+    const aberta = faturas.find(x => ['PENDING', 'OVERDUE'].includes(x.status)) || null;
+    const cartao = (faturas.find(x => x.cartao) || {}).cartao || null;
+    res.json({ academia: l.nome_fantasia || l.nome, codigo: l.codigo, situacao: finSituacao(l), valor_mensal: Number(l.valor_mensal) || 0,
+      dia_vencimento: l.dia_vencimento, pago_ate: l.pagamento_ok_ate, ultimo_pagamento: l.ultimo_pagamento,
+      financeiro_nome: l.financeiro_nome, financeiro_email: l.financeiro_email, tem_assinatura: !!l.asaas_sub,
+      fatura_aberta: aberta, cartao, faturas, erro_asaas: erroAsaas, suporte: !!req.finSuporte });
+  } catch (e) { log('financeiro: ' + e.message); res.status(500).json({ error: 'Erro interno' }); }
 });
-
-// Salvar dados do cartão (apenas financeiro ou gestor titular — NUNCA admin)
-app.put('/academia/financeiro/cartao', finAuth, async (req, res) => {
+// Pagar: na 1ª vez cria o cliente e a assinatura mensal no Asaas (cartão de
+// crédito, valor da licença); depois devolve a fatura em aberto. O cartão é
+// digitado na página do próprio Asaas — nunca passa por aqui.
+app.post('/academia/financeiro/pagar', finAuth, async (req, res) => {
   if (!db) return res.status(503).json({ error: 'Banco indisponível' });
-  // ⚠️ SEGURANÇA: admin e modo suporte não podem salvar nem ver dados completos do cartão.
-  // Qualquer tentativa de acesso via impersonação é bloqueada aqui no servidor.
-  if (req.user.role === 'admin' || req.user.impersonated_by)
-    return res.status(403).json({ error: 'Administradores não têm acesso a dados de cartão. Use o login do responsável financeiro.' });
-  const { bandeira, final, validade, titular } = req.body;
-  // Validação: final deve ser exatamente 4 dígitos
-  if (!final || !/^\d{4}$/.test(final))
-    return res.status(400).json({ error: 'Informe os últimos 4 dígitos do cartão.' });
-  if (!validade || !/^\d{2}\/\d{4}$/.test(validade))
-    return res.status(400).json({ error: 'Validade no formato MM/AAAA.' });
-  // IMPORTANTE: número completo e CVV NUNCA chegam aqui.
-  // O formulário do cliente envia APENAS estes campos seguros.
+  if (!ASAAS_API_KEY) return res.status(503).json({ error: 'Cobrança automática ainda não ligada no servidor. Fale com a ProRider.' });
+  const licId = req.user.license_id;
   try {
-    await db.query(`
-      UPDATE licencas SET
-        cartao_bandeira=$1, cartao_final=$2, cartao_validade=$3, cartao_titular=$4, updated_at=NOW()
-      WHERE codigo=$5
-    `, [bandeira||null, final, validade, titular||null, req.user.license_id]);
-    res.json({ ok: true });
-  } catch(e) { res.status(500).json({ error: e.message }); }
+    const l = (await db.query('SELECT * FROM licencas WHERE codigo=$1', [licId])).rows[0];
+    if (!l) return res.status(404).json({ error: 'Licença não encontrada' });
+    const valor = Number(l.valor_mensal) || 0;
+    if (valor <= 0) return res.status(400).json({ error: 'O valor da licença ainda não foi definido. Fale com a ProRider.' });
+    const b = req.body || {}, doc = String(b.cpf_cnpj || '').replace(/\D/g, '');
+    if (!l.asaas_sub) {
+      if (!(doc.length === 11 || doc.length === 14)) return res.status(400).json({ error: 'Informe o CPF ou CNPJ de quem paga (só números).' });
+      let cust = l.asaas_customer;
+      if (!cust) {
+        const c = await asaasApi('POST', '/customers', { name: String(b.nome || l.financeiro_nome || l.nome).slice(0, 100), email: l.financeiro_email, cpfCnpj: doc, externalReference: licId });
+        cust = c.id; await db.query('UPDATE licencas SET asaas_customer=$1, updated_at=NOW() WHERE codigo=$2', [cust, licId]);
+      }
+      const hoje = new Date(Date.now() - 3 * 3600000).toISOString().slice(0, 10);   // dia de hoje em São Paulo
+      const sub = await asaasApi('POST', '/subscriptions', { customer: cust, billingType: 'CREDIT_CARD', value: valor, nextDueDate: hoje, cycle: 'MONTHLY',
+        description: 'ProRider — licença ' + (l.nome_fantasia || l.nome) + ' (' + licId + ')', externalReference: licId });
+      await db.query(`UPDATE licencas SET asaas_sub=$1, status_pagamento=CASE WHEN pagamento_ok_ate IS NULL THEN 'pendente' ELSE status_pagamento END, updated_at=NOW() WHERE codigo=$2`, [sub.id, licId]);
+      log(`[Asaas] assinatura ${sub.id} criada para ${licId} (R$ ${valor}) pelo financeiro ${req.user.email}`);
+      l.asaas_sub = sub.id;
+    }
+    const d = await asaasApi('GET', '/payments?subscription=' + encodeURIComponent(l.asaas_sub) + '&limit=20');
+    const ab = (d.data || []).filter(x => ['PENDING', 'OVERDUE'].includes(x.status)).sort((a, b) => String(a.dueDate).localeCompare(String(b.dueDate)))[0];
+    if (!ab) return res.json({ ok: true, url: null, msg: 'Nenhuma fatura em aberto agora. A próxima chega perto do vencimento.' });
+    res.json({ ok: true, url: ab.invoiceUrl, vencimento: ab.dueDate, valor: ab.value });
+  } catch (e) { log('financeiro pagar: ' + e.message); res.status(502).json({ error: 'O Asaas recusou: ' + e.message }); }
 });
 
 // ══════════════════════════════════════════════════════════════
@@ -6326,7 +6359,13 @@ app.post('/gestor/sumidos/:id/avisar', gestorAuth, async (req, res) => {
 // ASAAS — WEBHOOK DE PAGAMENTOS
 // ══════════════════════════════════════════════════════════════
 const ASAAS_API_KEY = process.env.ASAAS_API_KEY || null;
-const ASAAS_BASE    = 'https://api.asaas.com/v3';
+const ASAAS_BASE    = process.env.ASAAS_URL || 'https://api.asaas.com/v3';   // ASAAS_URL só para teste (sandbox)
+async function asaasApi(metodo, caminho, corpo) {
+  const r = await fetch(ASAAS_BASE + caminho, { method: metodo, headers: { 'Content-Type': 'application/json', 'access_token': ASAAS_API_KEY, 'User-Agent': 'ProRider' }, body: corpo ? JSON.stringify(corpo) : undefined });
+  const d = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error((d.errors && d.errors[0] && d.errors[0].description) || ('HTTP ' + r.status));
+  return d;
+}
 
 // 02/10g: o Asaas manda o token do webhook no cabeçalho 'asaas-access-token'.
 // Sem a variável ASAAS_WEBHOOK_TOKEN (o mesmo valor do painel do Asaas), o
@@ -6396,7 +6435,7 @@ app.post('/admin/asaas/assinatura', adminAuth, async (req, res) => {
     });
     const sub = await subRes.json();
     if (!sub.id) return res.status(400).json({ error: 'Erro ao criar assinatura Asaas', detalhe: sub });
-    await db.query(`UPDATE licencas SET obs=COALESCE(obs,'')||' | asaas_sub='||$1, updated_at=NOW() WHERE codigo=$2`, [sub.id, license_id]);
+    await db.query(`UPDATE licencas SET obs=COALESCE(obs,'')||' | asaas_sub='||$1, asaas_sub=$1, asaas_customer=$3, updated_at=NOW() WHERE codigo=$2`, [sub.id, license_id, cust.id]);
     res.json({ ok: true, customer_id: cust.id, subscription_id: sub.id });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });

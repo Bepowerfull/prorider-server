@@ -33,12 +33,14 @@ Lista do que foi combinado com o Mario e ainda não foi feito. Quem fizer um ite
 - [x] **Painel do gestor:** ocupação por dia e horário e alunos sumidos (com e-mail na hora).
 
 ## Pendências abertas
+- [ ] **Pagamento da licença: testar no sandbox do Asaas** antes da 1ª cobrança real (feito na 02/10h com Asaas simulado). Conferir se a assinatura guarda o cartão pago pela página do Asaas para os meses seguintes, e como trocar o cartão.
+- [ ] **Desafio ao vivo: "convite" com a aula já no Portal** (hoje a aula vai às outras academias quando a TV da mãe abre a tela do QR).
+- [ ] **Músicas pela conta do Dropbox** (escolher direto da conta, como o Spivi): precisa criar um app gratuito no Dropbox e usar a chave dele. Hoje é colar o link (02/10f).
 - [ ] **Venda das aulas gravadas na Loja (decisão do Mario, 02/10):** a mensalidade da academia saiu do app; a venda é aula por aula, por professor, na Loja. Falta o meio de pagamento (PIX/cartão) para liberar a aula depois da compra.
 - [ ] **Nuvem para as aulas gravadas:** a tela do app já existe (02/10b) e hoje toca do servidor de TESTE (5 por academia, 72 h). Falta contratar o armazenamento de vídeo (ex.: Cloudflare R2/Stream) para guardar de vez e aguentar muita gente.
 - [ ] **Envio automático ao Strava:** hoje o aluno baixa o .tcx e envia. Para mandar sozinho, falta registrar o app ProRider no Strava (gratuito, mas exige conta e aprovação) e o login com Strava.
 - [ ] **Transmissão no app para muita gente / redes difíceis:** WebRTC direto da TV aguenta ~15 pessoas e usa só STUN (grátis). Em algumas redes de celular o vídeo não chega sem um servidor TURN (pago). Para 3 mil pessoas (Guinness): YouTube Live, ou um serviço de vídeo (LiveKit/Cloudflare) quando for contratar.
 - [ ] **ffmpeg junto no instalador do Ginásio** (hoje o LEIA-ME manda baixar e pôr em C:\ProRider\ffmpeg).
-- [ ] **Desafio ao vivo com a mesma aula nas duas TVs começando juntas** (fase seguinte: START sincronizado pelo servidor; hoje cada academia dá a sua aula no mesmo horário).
 - [ ] **YouTube na TV: teste numa TV de verdade** (feito no 30/09e; falta conferir, com a internet da academia, o anúncio com e sem YouTube Premium e vídeos que não deixam incorporar).
 - [ ] **Mapa na lupinha** (ver as academias num mapa, além da lista). Dá para fazer com o OpenStreetMap, sem custo.
 - [ ] **Localização também no totem e na página pública** (link "como chegar").

@@ -33,6 +33,33 @@ Componentes: `servidor` · `app` · `ginasio` · `portal` · `banco`.
 
 ---
 
+## 2026-10-02 · servidor + portal · 02/10h — página do financeiro (pagamento da licença pelo Asaas)
+
+**O que mudou**
+- **Regra do Mario:** a página de pagamento é **só do responsável financeiro** da academia — o login cujo e-mail é o `financeiro_email` da licença (cadastrado pela ProRider no painel do admin). Gestor e coordenador não entram (nem menu, nem rota). Super admin em modo suporte só lê.
+- **Portal (`academia.html`):** mesma tela de entrada; o e-mail do financeiro vai direto para **`financeiro.html`**. Link "Financeiro da academia: criar conta". O antigo "Financeiro" do gestor (com o formulário dos 4 últimos dígitos) saiu; no modo suporte fica o atalho "Financeiro (suporte)".
+- **Nova página `financeiro.html`:** entrar ou criar conta (nome, e-mail, senha — sem dados de performance; a mesma conta vale no app); situação (em dia até / vencido / suspenso / aguardando o 1º pagamento), mensalidade, vencimento, cartão em uso (bandeira e final, lidos do Asaas), botão de pagar e lista de faturas (pagar / recibo). Celular e computador.
+- **Servidor:**
+  - `finAuth` novo: vale o e-mail do login igual ao `financeiro_email` (qualquer papel); modo suporte só GET;
+  - `GET /academia/financeiro` (situação + faturas do Asaas) e `POST /academia/financeiro/pagar` (1ª vez: cria cliente + assinatura mensal no cartão com o valor da licença e o CPF/CNPJ informado; depois: devolve a fatura em aberto). O cartão é digitado na página do Asaas (`invoiceUrl`) — nunca passa pelo servidor;
+  - removida a rota antiga `PUT /academia/financeiro/cartao` (últimos 4 dígitos digitados à mão);
+  - login devolve `financeiro: true`; cadastro com e-mail já registrado como financeiro vira o financeiro da licença;
+  - `PATCH /admin/licencas/:id/financeiro`: trocar o e-mail passa o papel para o novo cadastro e devolve o antigo a aluno (gestor e outros papéis não são rebaixados);
+  - colunas `licencas.asaas_customer` e `asaas_sub`; a rota de assinatura do admin também grava nelas;
+  - `ASAAS_URL` opcional (só para teste no sandbox).
+
+**Por quê**
+- Pedido do Mario: só a pessoa do financeiro paga e vê o pagamento; cadastro igual ao do app; trocar a pessoa = trocar o e-mail na licença.
+
+**Como confirmar**
+- Admin cadastra `financeiro@…` na licença → essa pessoa entra pelo Portal (ou cria conta) → cai em `financeiro.html` → "Cadastrar cartão e pagar" (CPF/CNPJ) → abre a página do Asaas.
+- Gestor da mesma academia: sem o menu e `GET /academia/financeiro` = 403.
+- Trocar o e-mail no admin → o antigo perde o acesso (403), o novo ganha.
+
+**Cuidados**
+- Testado com um Asaas simulado. Antes da 1ª cobrança real, testar no **sandbox** do Asaas (`ASAAS_URL=https://api-sandbox.asaas.com/v3` + chave do sandbox) e conferir se a assinatura guarda o cartão pago pela página para os meses seguintes.
+- O valor cobrado é o `valor_mensal` da licença (definido no admin).
+
 ## 2026-10-02 · servidor · 02/10g — rotas do Asaas no pacote e webhook com token
 
 **O que mudou**
