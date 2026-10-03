@@ -719,6 +719,23 @@ async function runMigrations() {
       if (fix.rowCount > 0) log(`Emails demo01 corrigidos: ${fix.rowCount}`);
     } catch(e) { log('fix demo01 emails: ' + e.message); }
 
+    // Criar licenças e contas financeiro Demo 01 e Demo 02
+    try {
+      const bcryptSeed = require('bcrypt');
+      const senhaHash = await bcryptSeed.hash('ProRider@2024', 10);
+      // Demo 01
+      await db.query(`INSERT INTO licencas (codigo, nome, status, max_bikes) VALUES ('PRDR-DEMO-001','ProRider Demo 01','ativa',20) ON CONFLICT (codigo) DO UPDATE SET status='ativa'`);
+      await db.query(`INSERT INTO users (email, name, password_hash, role) VALUES ('prorider.demo01.financeiro@hotmail.com','Financeiro Demo 01',$1,'financeiro') ON CONFLICT (email) DO NOTHING`, [senhaHash]);
+      await db.query(`UPDATE users SET role='financeiro', license_id='PRDR-DEMO-001' WHERE email='prorider.demo01.financeiro@hotmail.com' AND role IN ('aluno','financeiro')`);
+      await db.query(`UPDATE licencas SET financeiro_email='prorider.demo01.financeiro@hotmail.com', financeiro_nome='Financeiro Demo 01' WHERE codigo='PRDR-DEMO-001'`);
+      // Demo 02
+      await db.query(`INSERT INTO licencas (codigo, nome, status, max_bikes) VALUES ('PRDR-DEMO-002','ProRider Demo 02','ativa',20) ON CONFLICT (codigo) DO NOTHING`);
+      await db.query(`INSERT INTO users (email, name, password_hash, role) VALUES ('prorider.demo02.financeiro@hotmail.com','Financeiro Demo 02',$1,'financeiro') ON CONFLICT (email) DO NOTHING`, [senhaHash]);
+      await db.query(`UPDATE users SET role='financeiro', license_id='PRDR-DEMO-002' WHERE email='prorider.demo02.financeiro@hotmail.com' AND role IN ('aluno','financeiro')`);
+      await db.query(`UPDATE licencas SET financeiro_email='prorider.demo02.financeiro@hotmail.com', financeiro_nome='Financeiro Demo 02' WHERE codigo='PRDR-DEMO-002'`);
+      log('Demo 01/02 financeiro OK');
+    } catch(e) { log('demo financeiro seed: ' + e.message); }
+
     // ── Licenças: campos de endereço e contacto ────────────────────
     await db.query(`
       ALTER TABLE licencas
