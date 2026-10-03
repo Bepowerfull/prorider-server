@@ -49,6 +49,7 @@ td{white-space:nowrap}
 @media (max-width:760px){.shell{flex-direction:column}.sb{width:auto;display:flex;gap:6px;overflow-x:auto;border-right:0;border-bottom:1px solid var(--border);padding:8px}.sb .it{margin:0;white-space:nowrap;padding:8px 10px}}
 @media (max-width:600px){.top .who{display:none}h1{font-size:25px}td:nth-child(4),th:nth-child(4){display:none}.card{padding:14px}td,th{padding:8px 4px;font-size:13px}.pill{padding:2px 7px}}
 </style>
+<script src="pr-suporte.js"></script>
 </head>
 <body>
 <div class="top"><div class="logo">PRO <i>RIDER</i></div><span class="note">Financeiro</span>
@@ -59,6 +60,7 @@ td{white-space:nowrap}
   <div class="it on" id="mPag" onclick="aba('pag')">💳 Pagamento</div>
   <div class="it" id="mDados" onclick="aba('dados')">👤 Meus dados</div>
   <div class="it" id="mPortal" style="display:none" onclick="location.href='academia.html'">🏠 Portal da academia</div>
+  <div class="it" onclick="prReportar(SERVER, token, 'financeiro', 'financeiro.html', 'Financeiro')">🛟 Reportar um problema</div>
   <div class="it" onclick="sair()">↩ Sair</div>
 </nav>
 <main class="wrap">

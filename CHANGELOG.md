@@ -33,6 +33,33 @@ Componentes: `servidor` · `app` · `ginasio` · `portal` · `banco`.
 
 ---
 
+## 2026-10-03 · servidor + site + app · 03/10e — segurança, saúde do sistema, testes automáticos e backup
+
+**O que mudou**
+- **Limite de tentativas:** 8 senhas erradas no mesmo e-mail (ou 40 no mesmo IP) em 15 min → espera 15 min; cadastro 15/h por IP; ativação da TV 20 códigos errados por IP em 15 min; "esqueci a senha" 3/h por e-mail.
+- **Esqueci minha senha:** link por e-mail (vale 1 h, uma vez só) → página `redefinir.html`. Nas entradas do Portal, do admin, do app e do portal do aluno. Não revela quem tem conta.
+- **Modo suporte (Entrar → academia) não abre mais as rotas /admin.** O token do modo suporte vai na URL; antes ele também dava acesso a todas as licenças, pagamentos e usuários.
+- **Reportar um problema:** no Perfil do app, no menu do Portal e na página do financeiro. Chega com a tela, a versão e o aparelho.
+- **Excluir minha conta (LGPD):** no Perfil do app, com a senha; apaga os dados pessoais e deixa só números anônimos. Gestor/financeiro não se excluem sozinhos.
+- **Saúde do sistema (admin):** alertas (e-mail desligado, Asaas sem token, gravações sem Volume, pouco espaço), servidor, banco, e-mail, Asaas (último aviso recebido), TVs online, licenças, loja, problemas reportados e a lista de erros/avisos do servidor (guardados 30 dias). Número vermelho no menu quando há erro.
+- **`/ping` responde 503 quando o banco cai** (para o monitor de queda avisar).
+- **Instalação nova/restauração:** as tabelas dos grupos de desafio eram criadas antes de `users` existir e ficavam faltando num banco vazio. Corrigido (achado pelos testes automáticos).
+- **Testes automáticos** (`testes/rodar.js`): sobe o servidor contra um banco de TESTE vazio, com Asaas e Resend simulados, e roda pagamento, loja, desafios e segurança. Só roda em banco com "test" no nome.
+- **Backup fora do Railway** (`ferramentas/backup.sh`) e **prova de restauração** (`ferramentas/restaurar-teste.sh`).
+
+**Como confirmar**
+- `TEST_DATABASE_URL=postgres://…/prorider_teste node testes/rodar.js` → "TUDO OK — pode subir." (pagamento, loja, desafios, segurança).
+
+## 2026-10-03 · admin · 03/10d — "Nova senha" que não respondia e caixas apertadas
+
+**O que mudou**
+- **Nova senha p/ financeiro / gestor:** a confirmação agora é no próprio botão (clicar de novo). Antes usava a janelinha "confirmar" do navegador; se o navegador bloqueia essas janelas, o clique não fazia nada. Mostra "Gerando…", o resultado (senha provisória, e-mail enviado ou motivo, copiar p/ WhatsApp) e avisa que não precisa salvar.
+- **Página de pagamentos:** coluna da esquerda mais larga (Situação e Acessos) e e-mail longo quebra linha em vez de passar por cima da caixa.
+- **Desfazer** não aparece mais em lançamento já desfeito.
+
+**Como confirmar**
+- `tnova.js`: gera a senha nova e mostra o resultado; e-mail longo cabe na caixa.
+
 ## 2026-10-03 · servidor + app + admin + Ginásio · 03/10c — Loja (venda de aulas), desafios reais, pré-treino e Bluetooth
 
 **O que mudou**

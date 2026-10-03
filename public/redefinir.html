@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ProRider · Criar senha nova</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@700;900&family=Barlow:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;background:#0b0b0e;color:#fff;font-family:Barlow,Arial,sans-serif}
+.bx{width:100%;max-width:420px;background:#16161a;border:1px solid #26262d;border-radius:20px;padding:26px 22px}
+.logo{display:block;height:46px;margin:0 auto 18px}
+h1{font:900 26px 'Barlow Condensed',sans-serif;letter-spacing:1px;margin:0 0 6px;text-align:center}
+p{font-size:14px;line-height:1.55;color:rgba(255,255,255,.65);margin:0 0 16px;text-align:center}
+label{display:block;font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:rgba(255,255,255,.5);margin:12px 0 6px}
+input{width:100%;padding:13px 14px;border-radius:12px;border:1px solid rgba(255,255,255,.16);background:rgba(255,255,255,.06);color:#fff;font:16px Barlow,Arial,sans-serif;outline:none}
+button{width:100%;margin-top:18px;padding:15px;border:none;border-radius:14px;background:linear-gradient(135deg,#ffb02e,#ea860c);color:#16161a;font:900 19px 'Barlow Condensed',sans-serif;letter-spacing:1.5px;cursor:pointer}
+button:disabled{opacity:.5}
+.msg{margin-top:14px;font-size:14px;line-height:1.5;text-align:center;min-height:20px}
+.err{color:#ff9a9a}.ok{color:#9ee39e}
+a{color:#ffb45a;font-weight:700}
+</style>
+</head>
+<body>
+<div class="bx">
+  <img class="logo" src="img/logo-prorider.png" alt="ProRider" onerror="this.style.display='none'">
+  <h1>CRIAR SENHA NOVA</h1>
+  <p id="sub">Escolha uma senha com pelo menos 6 caracteres.</p>
+  <div id="form">
+    <label for="s1">Senha nova</label><input id="s1" type="password" autocomplete="new-password">
+    <label for="s2">Repita a senha</label><input id="s2" type="password" autocomplete="new-password">
+    <button id="bt" onclick="salvar()">SALVAR SENHA</button>
+  </div>
+  <div class="msg" id="msg"></div>
+</div>
+<script>
+var SERVER = location.hostname === 'localhost' || location.hostname === '127.0.0.1' || location.protocol === 'file:' ? '' : '';
+var tok = new URLSearchParams(location.search).get('t') || '';
+if (!/^[a-f0-9]{64}$/.test(tok)) { document.getElementById('form').style.display = 'none'; document.getElementById('msg').innerHTML = '<span class="err">Link incompleto. Abra o link do e-mail de novo ou peça outro em "Esqueci minha senha".</span>'; }
+async function salvar() {
+  var a = document.getElementById('s1').value, b = document.getElementById('s2').value, m = document.getElementById('msg'), bt = document.getElementById('bt');
+  if (a.length < 6) { m.innerHTML = '<span class="err">A senha precisa de pelo menos 6 caracteres.</span>'; return; }
+  if (a !== b) { m.innerHTML = '<span class="err">As duas senhas não são iguais.</span>'; return; }
+  bt.disabled = true; m.textContent = 'Salvando…';
+  try {
+    var r = await fetch(SERVER + '/user/redefinir-senha', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token: tok, senha: a }) }), d = await r.json();
+    if (!r.ok) { m.innerHTML = '<span class="err">' + (d.error || 'Não deu certo.') + '</span>'; bt.disabled = false; return; }
+    document.getElementById('form').style.display = 'none'; document.getElementById('sub').textContent = 'Tudo certo!';
+    m.innerHTML = '<span class="ok">Senha nova salva para <b>' + (d.email || 'a sua conta') + '</b>.</span><br><br><a href="academia.html">Entrar no Portal</a> &nbsp;·&nbsp; <a href="aluno/">Abrir o app</a>';
+  } catch (e) { m.innerHTML = '<span class="err">Sem conexão. Tente de novo.</span>'; bt.disabled = false; }
+}
+</script>
+</body>
+</html>

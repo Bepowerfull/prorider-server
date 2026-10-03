@@ -119,7 +119,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
 .detail-grid{display:grid;grid-template-columns:300px 1fr;gap:20px;align-items:start}
 .detail-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:20px}
 .detail-row{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px}
-.detail-row:last-of-type{border-bottom:0}.detail-lbl{color:var(--muted);flex-shrink:0}.detail-val{text-align:right;color:#fff}
+.detail-row:last-of-type{border-bottom:0}.detail-lbl{color:var(--muted);flex-shrink:0}.detail-val{text-align:right;color:#fff;min-width:0;overflow-wrap:anywhere}
 .detail-card h3{font-size:13px;font-weight:700;letter-spacing:1px;color:var(--muted);text-transform:uppercase;margin-bottom:16px}
 .info-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.05);font-size:13px}
 .info-row:last-child{border-bottom:none}
@@ -425,6 +425,7 @@ button{font-family:inherit}
 .lj-ok{color:#5db13d;font-weight:700}.lj-no{color:#d7c414;font-weight:700}
 </style>
 <link href="https://fonts.googleapis.com/css2?family=Permanent+Marker&family=Barlow:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="pr-suporte.js"></script>
 </head>
 <body>
 
@@ -435,7 +436,7 @@ button{font-family:inherit}
     <input class="lpx-o lpx-in" style="left:77.112%;top:43.548%;width:18.916%;height:5.040%" type="email" id="loginEmail" placeholder="voce@academia.com" autocomplete="username">
     <input class="lpx-o lpx-in" style="left:77.112%;top:52.117%;width:18.916%;height:5.040%" type="password" id="loginPass" placeholder="••••••••" autocomplete="current-password">
     <button type="button" class="lpx-o lpx-hit bt login-btn" style="left:77.112%;top:59.173%;width:18.916%;height:5.040%" onclick="doLogin()" aria-label="Entrar"></button>
-    <button type="button" class="lpx-o lpx-hit" style="left:76.923%;top:65.323%;width:8.953%;height:3.226%" onclick="var d=document.getElementById('lpDica');d.style.display=d.style.display==='block'?'none':'block'" aria-label="Esqueci a senha"></button>
+    <button type="button" class="lpx-o lpx-hit" style="left:76.923%;top:65.323%;width:8.953%;height:3.226%" onclick="prEsqueciSenha(SERVER,(document.getElementById('loginEmail')||{}).value)" aria-label="Esqueci a senha"></button>
     <a class="lpx-o lpx-hit" style="left:89.029%;top:65.323%;width:7.188%;height:3.226%" href="/aluno" aria-label="Sou aluno: abrir o app"></a>
     <a class="lpx-o" href="academia.html#criar" style="left:77.112%;top:68.6%;width:18.916%;height:auto;padding:7px 0;border:1px solid rgba(234,134,12,.55);border-radius:9px;background:rgba(234,134,12,.12);font:700 13px Barlow,sans-serif;color:#ffb45a;text-align:center;text-decoration:none">Primeiro acesso? Criar conta</a>
     <button type="button" class="lpx-o lpx-hit" style="left:2.774%;top:62.903%;width:41.488%;height:12.500%" onclick="lpVideo()" aria-label="Assista ao vídeo"></button>
@@ -478,7 +479,7 @@ button{font-family:inherit}
       <input type="password" id="loginPass_m" placeholder="••••••••" autocomplete="current-password">
       <button type="button" onclick="lpLoginMob()" class="lp-go">ENTRAR</button>
       <div class="lp-err " id="loginErr_m"></div>
-      <div class="lp-links"><span onclick="document.getElementById('lpDicaM').style.display='block'">Esqueci a senha</span><a href="/aluno">Sou aluno → app</a></div>
+      <div class="lp-links"><span onclick="prEsqueciSenha(SERVER,(document.getElementById('loginEmail_m')||{}).value)">Esqueci a senha</span><a href="/aluno">Sou aluno → app</a></div>
       <div class="lp-links" style="margin-top:6px"><a href="academia.html#criar" style="color:#ffb45a;font-weight:700">Primeiro acesso? Criar conta</a></div>
       <div class="lp-dica" id="lpDicaM">Peça ao gestor da sua academia para gerar uma senha nova (Portal → Alunos ou Equipe). Gestor: fale com o suporte ProRider.</div>
     </div>
@@ -517,6 +518,7 @@ button{font-family:inherit}
     <div class="pr-it" onclick="showPage('alunos')" id="nav-alunos"><i>👥</i>Usuários</div>
     <div class="pr-it" onclick="showPage('financeiro')" id="nav-financeiro"><i>💳</i>Financeiro</div>
     <div class="pr-it" onclick="showPage('loja')" id="nav-loja"><i>🛒</i>Loja do app</div>
+    <div class="pr-it" onclick="showPage('saude')" id="nav-saude"><i>🩺</i>Saúde do sistema<span class="n" id="nbSaude" style="display:none"></span></div>
     <div class="pr-sbh">Conta</div>
     <div class="pr-it" onclick="showPage('perfil')" id="nav-perfil"><i>👤</i>Meu perfil</div>
   </nav>
@@ -673,7 +675,7 @@ button{font-family:inherit}
       </div>
     </div>
     <div class="content">
-      <div style="display:grid;grid-template-columns:300px 1fr;gap:16px">
+      <div style="display:grid;grid-template-columns:minmax(380px,430px) 1fr;gap:16px">
         <!-- Card licença -->
         <div>
           <div class="detail-card" style="margin-bottom:16px" id="pgtoLicCard"></div>
@@ -710,6 +712,12 @@ button{font-family:inherit}
       <div id="ljAdm"></div>
     </div>
   </div>
+  <!-- SAÚDE DO SISTEMA (03/10e) -->
+  <div class="page" id="page-saude">
+    <div class="topbar"><h1>Saúde do sistema</h1><div class="actions"><span id="sdHora" style="font-size:12px;color:var(--muted)"></span> <button class="btn btn-outline btn-sm" onclick="loadSaude()">↻ Atualizar</button></div></div>
+    <div class="content"><div id="sdConteudo"><div class="pr-warn">Carregando…</div></div></div>
+  </div>
+
   <!-- MEU PERFIL (26/09e) -->
   <div class="page" id="page-perfil">
     <div class="topbar"><h1>Meu perfil</h1></div>
@@ -1014,6 +1022,7 @@ function doLogout() {
 }
 
 function showApp() {
+  setTimeout(() => { try { loadSaude(); } catch (e) {} }, 1500);   // 03/10e: número vermelho em "Saúde do sistema" se houver erro
   document.getElementById('loginScreen').style.display = 'none';
   document.getElementById('sbUserName').textContent = adminUser.name || 'Admin';
   document.getElementById('sbUserEmail').textContent = adminUser.email || '';
@@ -1037,6 +1046,8 @@ function showPage(page) {
   if (page === 'alunos')     loadAlunos();
   if (page === 'financeiro') loadFinanceiro();
   if (page === 'loja')       loadLoja();   // 03/10c
+  clearInterval(window._saudeT);
+  if (page === 'saude')      { loadSaude(); window._saudeT = setInterval(loadSaude, 60000); }   // 03/10e
 }
 
 // ── Meu perfil (26/09e) ───────────────────────────────────────
@@ -1289,8 +1300,8 @@ async function abrirPagamentos(licId, nome) {
       [['Financeiro', (l.financeiro_nome||'—') + '<br><span style="font-size:11px;color:var(--muted)">' + (l.financeiro_email||'sem e-mail') + '</span>'],
        ['Gestor', (l.contato_nome||'—') + '<br><span style="font-size:11px;color:var(--muted)">' + (l.email_gestor||'sem e-mail') + '</span>']].map(row).join('') +
       `<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:12px">
-        ${l.financeiro_email ? `<button class="btn btn-outline btn-sm" onclick="reenviarAcesso(${l.id},'financeiro')">Nova senha p/ financeiro</button>` : ''}
-        ${l.email_gestor ? `<button class="btn btn-outline btn-sm" onclick="reenviarAcesso(${l.id},'gestor')">Nova senha p/ gestor</button>` : ''}
+        ${l.financeiro_email ? `<button class="btn btn-outline btn-sm" onclick="reenviarAcesso(${l.id},'financeiro',this)">Nova senha p/ financeiro</button>` : ''}
+        ${l.email_gestor ? `<button class="btn btn-outline btn-sm" onclick="reenviarAcesso(${l.id},'gestor',this)">Nova senha p/ gestor</button>` : ''}
       </div><div id="pgAcessoRes" style="margin-top:10px"></div>`;
     const hist = d.pagamentos || [];
     const tb = document.getElementById('pgtoHistTable');
@@ -1305,7 +1316,7 @@ async function abrirPagamentos(licId, nome) {
         <td style="color:var(--green);font-weight:700">R$ ${parseFloat(p.valor).toFixed(2)}</td>
         <td style="font-size:12px;color:var(--muted)">${p.metodo||'—'}<div style="font-size:10px">${manual ? 'lançado à mão' + (p.registrado_por && p.registrado_por !== 'asaas' ? ' por ' + p.registrado_por : '') : 'Asaas (automático)'}</div></td>
         <td><span class="badge ${ok ? 'badge-ativa' : 'badge-suspensa'}">${ok ? 'confirmado' : p.status}</span></td>
-        <td>${manual ? `<button class="btn btn-danger btn-sm" title="Apaga este lançamento e volta o vencimento" onclick="desfazerPagamento(${p.id}, '${fmtDate(p.data_pgto)}', '${parseFloat(p.valor).toFixed(2)}')">Desfazer</button>` : (ok ? '<span style="font-size:10px;color:var(--muted)">estorne no Asaas</span>' : '')}</td>
+        <td>${manual && ok ? `<button class="btn btn-danger btn-sm" title="Apaga este lançamento e volta o vencimento" onclick="desfazerPagamento(${p.id}, '${fmtDate(p.data_pgto)}', '${parseFloat(p.valor).toFixed(2)}')">Desfazer</button>` : (ok ? '<span style="font-size:10px;color:var(--muted)">estorne no Asaas</span>' : '')}</td>
       </tr>`; }).join('');
     }
   } catch(e) { console.error(e); }
@@ -1341,12 +1352,22 @@ function acessoHtml(titulo, a, academia) {
     + (a.email_enviado ? '<span style="color:#7fd67f">✓ e-mail com a senha enviado</span>' : `<span style="color:#ff8a8a">✗ e-mail NÃO enviado</span>${a.email_motivo ? ' — ' + a.email_motivo : ''}`)
     + ` <button class="btn btn-outline btn-sm" style="margin:4px 0" onclick="copiarAcesso(${k})">📋 Copiar acesso p/ WhatsApp</button><br>`;
 }
-async function reenviarAcesso(licDbId, papel) {
-  if (!confirm(`Gerar uma senha provisória NOVA para o ${papel} e mandar por e-mail?\n\nA senha atual dele deixa de valer.`)) return;
-  const r = await api('/admin/licencas/' + licDbId + '/reenviar-acesso', { method: 'POST', body: JSON.stringify({ papel }) });
+// 03/10d: confirmação no próprio botão (o navegador pode bloquear a janelinha de confirmar e aí nada acontecia)
+async function reenviarAcesso(licDbId, papel, btn) {
   const box = document.getElementById('pgAcessoRes');
-  if (r.error) { box.innerHTML = `<div class="pr-warn">${r.error}</div>`; return; }
-  box.innerHTML = `<div class="pr-warn">${acessoHtml(papel === 'financeiro' ? 'Financeiro' : 'Gestor', r, _pgNome())}</div>`;
+  if (btn && !btn.dataset.conf) {
+    btn.dataset.conf = '1'; btn.dataset.txt = btn.textContent;
+    btn.textContent = 'Clique de novo para gerar a senha nova'; btn.className = 'btn btn-primary btn-sm';
+    setTimeout(() => { if (btn.dataset.conf) { delete btn.dataset.conf; btn.textContent = btn.dataset.txt; btn.className = 'btn btn-outline btn-sm'; } }, 6000);
+    return;
+  }
+  if (btn) { delete btn.dataset.conf; btn.disabled = true; btn.textContent = 'Gerando…'; }
+  try {
+    const r = await api('/admin/licencas/' + licDbId + '/reenviar-acesso', { method: 'POST', body: JSON.stringify({ papel }) });
+    box.innerHTML = r.error ? `<div class="pr-warn">${r.error}</div>` : `<div class="pr-warn">${acessoHtml(papel === 'financeiro' ? 'Financeiro' : 'Gestor', r, _pgNome())}<span style="color:var(--muted)">A senha antiga deixou de valer. Não precisa salvar nada.</span></div>`;
+  } catch (e) { box.innerHTML = '<div class="pr-warn">Sem conexão com o servidor. Tente de novo.</div>'; }
+  if (btn) { btn.disabled = false; btn.textContent = btn.dataset.txt || 'Nova senha'; btn.className = 'btn btn-outline btn-sm'; }
+  box.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 }
 
 // Registrar pagamento RECEBIDO POR FORA — não cobra cartão
@@ -1829,6 +1850,42 @@ async function ljCortesia(tipo,id){
   const r=await api('/admin/loja/cortesia',{method:'POST',body:JSON.stringify({email,tipo,id})});
   if(r.error) alert(r.error); else { toast('🎁 Liberado para '+email); loadLoja(); }
 }
+
+
+// ═══ 03/10e — SAÚDE DO SISTEMA ════════════════════════════════
+function sdEsc(s){ return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function sdQuando(t){ if(!t) return '—'; const m=Math.round((Date.now()-new Date(t))/60000); return m<1?'agora':m<60?m+' min':m<1440?Math.round(m/60)+' h':Math.round(m/1440)+' d'; }
+async function loadSaude(){
+  let d; try{ d=await api('/admin/saude'); }catch(e){ d={error:'sem conexão com o servidor'}; }
+  const el=document.getElementById('sdConteudo'); if(!el) return;
+  if(!d||d.error){ el.innerHTML='<div class="pr-warn" style="border-color:#d62d2d;color:#ff9a9a">⛔ Não consegui falar com o servidor: '+sdEsc((d&&d.error)||'')+'</div>'; return; }
+  document.getElementById('sdHora').textContent='atualizado '+new Date().toLocaleTimeString('pt-BR')+' · servidor '+d.versao;
+  const nb=document.getElementById('nbSaude'), nErr=d.alertas.filter(a=>a.nivel==='erro').length; if(nb){ nb.textContent=nErr||''; nb.style.display=nErr?'':'none'; }
+  const card=(t,v,ok,sub)=>'<div class="stat-card"><div class="label">'+t+'</div><div class="value" style="color:'+(ok===true?'#5db13d':ok===false?'#d62d2d':'#fff')+';font-size:26px">'+v+'</div>'+(sub?'<div style="font-size:11.5px;color:var(--muted);margin-top:4px">'+sub+'</div>':'')+'</div>';
+  const sit=(d.licencas||{}).por_situacao||{};
+  let h=(d.alertas.length?d.alertas.map(a=>'<div class="pr-warn" style="margin-bottom:8px;'+(a.nivel==='erro'?'border-color:rgba(214,45,45,.5);background:rgba(214,45,45,.08);color:#ff9a9a':'')+'">'+(a.nivel==='erro'?'⛔ ':'⚠️ ')+sdEsc(a.txt)+'</div>').join(''):'<div class="pr-warn" style="border-color:rgba(93,177,61,.45);background:rgba(93,177,61,.08);color:#8fe06a">✅ Tudo certo — nenhum alerta.</div>');
+  h+='<div class="stats-grid" style="margin:14px 0">'
+    +card('Servidor', d.servidor.horas_no_ar+' h no ar', true, 'versão '+sdEsc(d.versao)+' · '+d.servidor.memoria_mb+' MB')
+    +card('Banco de dados', d.banco.ok?d.banco.ms+' ms':'FORA', d.banco.ok, d.banco.ok?d.banco.tamanho_mb+' MB':sdEsc(d.banco.erro))
+    +card('E-mail', d.email.provedor?'ligado':'desligado', !!d.email.provedor, (d.email.enviados_24h||0)+' enviados · '+(d.email.falhas_24h||0)+' falhas (24 h)')
+    +card('Asaas', d.asaas.chave&&d.asaas.webhook_token?'ok':'atenção', !!(d.asaas.chave&&d.asaas.webhook_token), 'último aviso: '+(d.asaas.ultimo_webhook?sdQuando(d.asaas.ultimo_webhook.em)+' ('+sdEsc(d.asaas.ultimo_webhook.evento)+')':'nenhum desde que o servidor ligou'))
+    +card('TVs online', (d.tvs.online||0)+' / '+((d.tvs.lista||[]).length), null, 'vistas nos últimos 5 min')
+    +card('Gravações', (d.gravacoes.arquivos||0)+' arquivos', !d.gravacoes.pasta_temporaria, (d.gravacoes.tamanho_mb||0)+' MB'+(d.gravacoes.livre_gb!=null?' · '+d.gravacoes.livre_gb+' GB livres':''))
+    +card('Licenças', d.licencas.total||0, null, ['em_dia','a_vencer','vencido','suspenso'].filter(k=>sit[k]).map(k=>sit[k]+' '+k.replace('_',' ')).join(' · ')||'—')
+    +card('Loja', (d.loja.pagos_24h||0)+' vendas (24 h)', null, (d.loja.pendentes_velhos||0)+' pagamento(s) pendente(s) há +1 dia')
+    +'</div>';
+  h+='<div class="table-wrap" style="margin-bottom:16px"><div class="table-header"><h2>Problemas reportados ('+d.relatos.length+')</h2></div><table><thead><tr><th>Quando</th><th>Quem</th><th>Onde</th><th>O que aconteceu</th><th></th></tr></thead><tbody>'
+    +(d.relatos.length?d.relatos.map(r=>'<tr><td style="white-space:nowrap;font-size:12px">'+new Date(r.created_at).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})+'</td><td>'+sdEsc(r.nome||'—')+'<div style="font-size:11px;color:var(--muted)">'+sdEsc(r.email||'')+(r.license_id?' · '+sdEsc(r.license_id):'')+'</div></td><td style="font-size:12px">'+sdEsc(r.origem)+'<div style="font-size:11px;color:var(--muted)">'+sdEsc(r.tela)+' · '+sdEsc(r.versao)+'</div></td><td style="max-width:520px">'+sdEsc(r.texto)+'</td><td><button class="btn btn-outline btn-sm" onclick="sdResolver('+r.id+')">Resolvido</button></td></tr>').join('')
+      :'<tr><td colspan="5" style="text-align:center;padding:22px;color:var(--muted)">Nenhum problema reportado em aberto.</td></tr>')+'</tbody></table></div>';
+  h+='<div class="table-wrap" style="margin-bottom:16px"><div class="table-header"><h2>TVs (Ginásio)</h2></div><table><thead><tr><th>Academia</th><th>Computador</th><th>Versão</th><th>Visto</th></tr></thead><tbody>'
+    +((d.tvs.lista||[]).map(t=>{ const on=Date.now()-new Date(t.visto_em)<300000; return '<tr><td>'+sdEsc(t.academia||t.license_codigo)+'</td><td>'+sdEsc(t.nome_computador||'—')+'</td><td>'+sdEsc(t.build||'—')+'</td><td><span style="color:'+(on?'#5db13d':'var(--muted)')+'">'+(on?'● online':sdQuando(t.visto_em)+' atrás')+'</span></td></tr>'; }).join('')||'<tr><td colspan="4" style="text-align:center;padding:20px;color:var(--muted)">Nenhuma TV ativada.</td></tr>')+'</tbody></table></div>';
+  h+='<div class="table-wrap"><div class="table-header" style="display:flex;justify-content:space-between;align-items:center"><h2>Erros e avisos do servidor (últimos 80)</h2><button class="btn btn-outline btn-sm" onclick="sdLimpar()">Limpar lista</button></div><table><thead><tr><th>Quando</th><th>Tipo</th><th>Mensagem</th></tr></thead><tbody>'
+    +(d.eventos.length?d.eventos.map(e=>'<tr><td style="white-space:nowrap;font-size:12px">'+new Date(e.created_at).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})+'</td><td>'+(e.nivel==='erro'?'<span style="color:#ff8a8a;font-weight:700">erro</span>':'<span style="color:#ffc27a">aviso</span>')+'</td><td style="font-size:12px;font-family:monospace;white-space:pre-wrap;word-break:break-word">'+sdEsc(e.msg)+'</td></tr>').join('')
+      :'<tr><td colspan="3" style="text-align:center;padding:22px;color:var(--muted)">Nenhum erro registrado.</td></tr>')+'</tbody></table></div>';
+  el.innerHTML=h;
+}
+async function sdResolver(id){ await api('/admin/saude/relatos/'+id+'/resolver',{method:'POST'}); loadSaude(); }
+async function sdLimpar(){ if(!confirm('Limpar a lista de erros e avisos?')) return; await api('/admin/saude/eventos/limpar',{method:'POST'}); loadSaude(); }
 
 init();
 </script>

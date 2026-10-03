@@ -471,6 +471,7 @@ input[type=file]{display:none}
 #dsModalConvite input[type=radio]{appearance:auto;-webkit-appearance:radio;width:18px;height:18px;margin:0;accent-color:#ea860c;flex-shrink:0}
 .ds-btn-top{padding:10px 14px;border-radius:999px;border:none;background:linear-gradient(135deg,#ffb02e,#ea860c);color:#16161a;font-size:13px;font-weight:900;cursor:pointer;white-space:nowrap}
 </style>
+<script src="/pr-suporte.js"></script>
 </head>
 <body>
 
@@ -1500,6 +1501,7 @@ input[type=file]{display:none}
       <!-- Erro -->
       <div id="lgErr" style="display:none;background:rgba(214,45,45,.15);border:1px solid rgba(214,45,45,.3);border-radius:10px;padding:10px 14px;font-size:13px;color:#ff6b6b;"></div>
       <!-- Submit -->
+      <div style="text-align:center;margin:-2px 0 10px;"><span onclick="prEsqueciSenha(SERVER_HTTP,(document.getElementById('lgEmail')||{}).value)" style="font-size:13px;font-weight:700;color:#ffb45a;cursor:pointer;">Esqueci minha senha</span></div>
       <button id="lgBtn" onclick="lgSubmit()" style="width:100%;padding:16px;border-radius:30px;border:none;background:linear-gradient(135deg,#ffb02e,#ea860c);font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:900;letter-spacing:2px;color:#fff;cursor:pointer;margin-top:4px;">ENTRAR</button>
       <!-- Pular -->
       <button onclick="go('sHome')" style="width:100%;padding:13px;border-radius:30px;background:transparent;border:1px solid rgba(255,255,255,.1);font-size:14px;font-weight:600;color:rgba(255,255,255,.3);cursor:pointer;">Continuar sem login</button>
@@ -7131,8 +7133,9 @@ function entrarSemLogin() {
 }
 
 // Esqueci senha (placeholder)
-function spEsqueci() {
-  showToast('📧 Envie um e-mail para suporte@prorider.com.br para redefinir sua senha.');
+function spEsqueci() {   // 03/10e: link por e-mail para criar senha nova
+  var e=document.getElementById('spEmail')||document.getElementById('lgEmail');
+  prEsqueciSenha(SERVER_HTTP,(e&&e.value)||'');
 }
 
 // Guard para ações que precisam de login
@@ -8526,7 +8529,7 @@ updateProfileUI = function() {
          + ' fill="none" stroke="'+col(fm)+'" stroke-width="30" stroke-linecap="'+cap+'"/>';
     }
     g.innerHTML=out;
-    try{ console.log('%c[ProRider Aluno] BUILD 02/10f — aula recomeçada zera os números da largada + 02/10d: caixas da aula gravada mais justas e nas pontas da tela; aulas gravadas abertas a qualquer login na fase de teste + 02/10b: aula gravada na Loja (vídeo do professor + gráfico e números do próprio aluno, ranking com quem fez ao vivo) + lista de espera na reserva, assistir a aula ao vivo, arquivo .tcx para Strava/Garmin, desafio entre academias no início + 01/10b: reserva com escolha da bike (mapa das bikes, a reservada aparece como SUA na hora de entrar) + 01/10a: campeonato no app (posição, camisas, próxima etapa) + camisas conquistadas no perfil + logo original no início + 30/09e: Construtor do celular = o mesmo Construtor online do computador (mesmas funções, mesma conta) + Perto de mim na lupinha (GPS do celular, distância até a academia, aula ao vivo no topo) + faixa verde da aula ao vivo na academia + aulas de hoje na grade + brasões novos (subiu de nível) + Criar aula do Portal abre direto o Construtor (/aluno#construtor) + FC da cinta do celular vai para o Ginasio; Avg. HR = media da aula; aula termina quando a sala some + resultado do teste de FTP da aula no celular (1 min; automatico grava, senao pergunta) + home do professor: sai o Build Workout antigo (com senha), fica Agenda + Treino do Treinador + Construtor de Treino + voltar para a propria bike depois de reabrir o app + relogio do bloco anda sem bike transmitindo + vigia: reentra na sala se a aula parar de chegar + resultado do desafio no celular (10 s, toque fecha) + sexo enviado na entrada da sala (desafio Homens x Mulheres) + aluno sem nome nao entra mais como "-" na sala + leitor do app aceita o QR de Minhas Aulas do Ginasio + aula anterior nao fica mais grudada (fim da aula fecha o socket em qualquer tela; QR de outra sala troca de sala) + gauge com FTP e BLOCO simetricos + marcha e FC na aula da academia + %FTP com o FTP da gaveta na hora + FTP da gaveta vai para a sala na hora + FTP tambem na entrada pela reserva + Revisar o treino mostra a aula do Ginasio + caloria por watt (kJ/eficiencia) + basal Mifflin-St Jeor no cadastro + historico gravado no aparelho + FTP na gaveta + card 1080x1920 reposicionado + 6 protocolos de FTP + TSS + teste de 3 min + fator do teste de 5 min corrigido (era 1,05) + explicacao de FTP em cada teste + gaveta esconde pela propria altura + importacao de treino do TrainingPeaks (grade 2x2 na tela inicial + construtor) com tela de conferencia (botoes acima da navegacao) + corrigido: aula aberta por objeto agora e a que roda + botao Revisar o treino na gaveta + FTP e peso persistem no aparelho + gauge reequilibrado + textos do Brasil + codigo de sala normalizado (QR do navegador deixava a sala inexistente) + faixa de voltar corrigida + reconexao nao trava mais + sala encerrada limpa o codigo guardado + VISTA DA SALA + card comprido de Construtor para professor + fim da corrida no login','color:#ea860c;font-weight:700;'); }catch(e){}
+    try{ console.log('%c[ProRider Aluno] BUILD 03/10e — esqueci a senha por e-mail, reportar problema, excluir conta + 03/10c: loja (comprar aulas, pacotes, assinatura), desafios reais (21 dias, Quebra FTP, ranking, grupos), pré-treino igual ao da TV, Bluetooth novo + 02/10f: aula recomeçada zera os números da largada + 02/10d: caixas da aula gravada mais justas e nas pontas da tela; aulas gravadas abertas a qualquer login na fase de teste + 02/10b: aula gravada na Loja (vídeo do professor + gráfico e números do próprio aluno, ranking com quem fez ao vivo) + lista de espera na reserva, assistir a aula ao vivo, arquivo .tcx para Strava/Garmin, desafio entre academias no início + 01/10b: reserva com escolha da bike (mapa das bikes, a reservada aparece como SUA na hora de entrar) + 01/10a: campeonato no app (posição, camisas, próxima etapa) + camisas conquistadas no perfil + logo original no início + 30/09e: Construtor do celular = o mesmo Construtor online do computador (mesmas funções, mesma conta) + Perto de mim na lupinha (GPS do celular, distância até a academia, aula ao vivo no topo) + faixa verde da aula ao vivo na academia + aulas de hoje na grade + brasões novos (subiu de nível) + Criar aula do Portal abre direto o Construtor (/aluno#construtor) + FC da cinta do celular vai para o Ginasio; Avg. HR = media da aula; aula termina quando a sala some + resultado do teste de FTP da aula no celular (1 min; automatico grava, senao pergunta) + home do professor: sai o Build Workout antigo (com senha), fica Agenda + Treino do Treinador + Construtor de Treino + voltar para a propria bike depois de reabrir o app + relogio do bloco anda sem bike transmitindo + vigia: reentra na sala se a aula parar de chegar + resultado do desafio no celular (10 s, toque fecha) + sexo enviado na entrada da sala (desafio Homens x Mulheres) + aluno sem nome nao entra mais como "-" na sala + leitor do app aceita o QR de Minhas Aulas do Ginasio + aula anterior nao fica mais grudada (fim da aula fecha o socket em qualquer tela; QR de outra sala troca de sala) + gauge com FTP e BLOCO simetricos + marcha e FC na aula da academia + %FTP com o FTP da gaveta na hora + FTP da gaveta vai para a sala na hora + FTP tambem na entrada pela reserva + Revisar o treino mostra a aula do Ginasio + caloria por watt (kJ/eficiencia) + basal Mifflin-St Jeor no cadastro + historico gravado no aparelho + FTP na gaveta + card 1080x1920 reposicionado + 6 protocolos de FTP + TSS + teste de 3 min + fator do teste de 5 min corrigido (era 1,05) + explicacao de FTP em cada teste + gaveta esconde pela propria altura + importacao de treino do TrainingPeaks (grade 2x2 na tela inicial + construtor) com tela de conferencia (botoes acima da navegacao) + corrigido: aula aberta por objeto agora e a que roda + botao Revisar o treino na gaveta + FTP e peso persistem no aparelho + gauge reequilibrado + textos do Brasil + codigo de sala normalizado (QR do navegador deixava a sala inexistente) + faixa de voltar corrigida + reconexao nao trava mais + sala encerrada limpa o codigo guardado + VISTA DA SALA + card comprido de Construtor para professor + fim da corrida no login','color:#ea860c;font-weight:700;'); }catch(e){}
   }
   if(document.readyState!=='loading') buildGaugeArc();
   else document.addEventListener('DOMContentLoaded', buildGaugeArc);
@@ -9308,6 +9311,33 @@ go=function(id){
   _goAntigo03c(id);
   if(id==='sDetail'||id==='sConnect'){ var n=document.getElementById('bNav'); if(n) n.style.display='none'; }
 };
+
+var APP_BUILD='03/10e';
+// ── 03/10e: no Perfil — reportar um problema e excluir a conta (LGPD) ──
+(function(){
+  function montar(){
+    var c=document.getElementById('profUserCard'); if(!c||document.getElementById('profSup')) return;
+    var d=document.createElement('div'); d.id='profSup'; d.style.cssText='display:flex;gap:8px;margin-top:14px;';
+    d.innerHTML='<button onclick="prReportar(SERVER_HTTP,prToken,\'app\',(document.querySelector(\'.screen.active\')||{}).id,(typeof APP_BUILD!==\'undefined\'?APP_BUILD:\'app\'))" style="flex:1;padding:10px;border-radius:12px;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.05);color:rgba(255,255,255,.8);font-size:12.5px;font-weight:800;cursor:pointer;">🛟 Reportar um problema</button>'
+      +'<button onclick="contaExcluirAbrir()" style="padding:10px 12px;border-radius:12px;border:1px solid rgba(214,45,45,.35);background:rgba(214,45,45,.08);color:#ff9a9a;font-size:12.5px;font-weight:800;cursor:pointer;">Excluir conta</button>';
+    c.appendChild(d);
+  }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',montar); else montar();
+})();
+function contaExcluirAbrir(){
+  _ljSheet('<h3>EXCLUIR MINHA CONTA</h3><div class="sub">Apaga seu nome, e-mail, peso, FTP e foto. Suas aulas ficam só como números anônimos nos rankings. Não dá para desfazer.</div>'
+    +'<div class="pd-lbl" style="margin-top:14px">Confirme com a sua senha</div><input id="cxSenha" type="password" class="lj-in" autocomplete="current-password">'
+    +'<div id="cxMsg" class="ds-txt" style="color:#ff9a9a"></div>'
+    +'<button class="pd-go" style="margin-top:12px;justify-content:center;background:linear-gradient(135deg,#d62d2d,#a51f1f);color:#fff" onclick="contaExcluir()"><b>EXCLUIR DE VEZ</b></button>'
+    +'<button class="pd-sec2" style="margin-top:8px" onclick="lojaFechar()">Cancelar</button>');
+}
+async function contaExcluir(){
+  var m=document.getElementById('cxMsg');
+  try{ var r=await fetch(SERVER_HTTP+'/user/conta',{method:'DELETE',headers:{'Content-Type':'application/json','Authorization':'Bearer '+prToken},body:JSON.stringify({senha:document.getElementById('cxSenha').value})}), d=await r.json();
+    if(!r.ok){ m.textContent=d.error||'Não deu.'; return; }
+    lojaFechar(); try{ localStorage.clear(); }catch(e){} lgLogout(); showToast('Conta excluída. Até logo!','#444'); go('sSplash');
+  }catch(e){ m.textContent='Sem conexão.'; }
+}
 </script>
 </body>
 </html><!-- QR Scan screen -->

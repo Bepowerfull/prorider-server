@@ -129,6 +129,7 @@ header{background:var(--panel);border-bottom:1px solid var(--border);padding:14p
 .empty p{font-size:13px}
 </style>
 <script src="brasoes.js"></script>
+<script src="pr-suporte.js"></script>
 </head>
 <body>
 
@@ -143,6 +144,7 @@ header{background:var(--panel);border-bottom:1px solid var(--border);padding:14p
     <div class="fg"><label>E-mail</label><input type="email" id="lEmail" placeholder="aluno@email.com"></div>
     <div class="fg"><label>Senha</label><input type="password" id="lPass" placeholder="••••••••"></div>
     <button class="login-btn" onclick="doLogin()">ENTRAR</button>
+    <div style="text-align:center;margin-top:12px;"><span onclick="prEsqueciSenha(SERVER,(document.getElementById('lEmail')||{}).value)" style="color:#ffb45a;font-weight:700;font-size:13px;cursor:pointer;">Esqueci minha senha</span></div>
     <div class="login-err" id="lErr"></div>
   </div>
 </div>

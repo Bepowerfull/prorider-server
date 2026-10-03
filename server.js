@@ -59,7 +59,30 @@ if (poolConfig) {
 function log(msg) {
   const now = new Date().toLocaleTimeString('pt-BR');
   console.log(`[${now}] ${msg}`);
+  try { eventoDoLog(String(msg)); } catch (e) {}
 }
+// 03/10e — SAÚDE DO SISTEMA: todo log de erro/falha também vai para a tabela sistema_eventos
+// (a página "Saúde do sistema" do admin mostra). Mesmo texto repetido em 60 s conta uma vez só.
+const _evUlt = new Map();
+function eventoDoLog(msg) {
+  if (typeof db === 'undefined' || !db || !_evPronto) return;
+  const nivel = /\bERRO\b|erro:|error|não tratado|falhou|caiu/i.test(msg) ? 'erro' : (/recusad|negad|bloquead|suspens|estorn|desfeit|parou/i.test(msg) ? 'aviso' : null);
+  if (!nivel) return;
+  const chave = msg.replace(/\d+/g, '#').slice(0, 120), ag = Date.now();
+  if (_evUlt.get(chave) > ag - 60000) return; _evUlt.set(chave, ag);
+  if (_evUlt.size > 2000) _evUlt.clear();
+  db.query('INSERT INTO sistema_eventos (nivel, msg) VALUES ($1,$2)', [nivel, msg.slice(0, 1000)]).catch(() => {});
+}
+let _evPronto = false;
+// ── limite de tentativas (login, cadastro, TV, esqueci a senha) ──
+const _lim = new Map();
+function ipDe(req) { const x = String(req.headers['x-forwarded-for'] || '').split(',').map(v => v.trim()).filter(Boolean); return x[x.length - 1] || req.ip || 'ip?'; }   // o último é o que o proxy do Railway pôs (o primeiro o próprio cliente pode inventar)
+function limBloqueado(chave, max) { const x = _lim.get(chave); return (x && x.ate > Date.now() && x.n >= max) ? Math.max(1, Math.ceil((x.ate - Date.now()) / 60000)) : 0; }
+function limConta(chave, janelaMin) { const ag = Date.now(); let x = _lim.get(chave); if (!x || x.ate < ag) { x = { n: 0, ate: ag + janelaMin * 60000 }; _lim.set(chave, x); } x.n++; return x.n; }
+function limZera(chave) { _lim.delete(chave); }
+setInterval(() => { const ag = Date.now(); for (const [k, x] of _lim) if (x.ate < ag) _lim.delete(k); }, 600000);
+process.on('unhandledRejection', e => { log('ERRO não tratado (promise): ' + ((e && e.stack) || e)); });
+process.on('uncaughtException', e => { log('ERRO não tratado: ' + ((e && e.stack) || e)); setTimeout(() => process.exit(1), 1500); });
 
 function authMiddleware(req, res, next) {
   const header = req.headers.authorization || '';
@@ -822,6 +845,7 @@ async function runMigrations() {
     await daMigrar().catch(e => log('Migração 02/10a (desafio entre academias) ERRO: ' + e.message));
     await gvMigrar().catch(e => log('Migração 02/10b (gravar e transmitir) ERRO: ' + e.message));
     await lojaMigrar().catch(e => log('Migração 03/10c (loja e desafios) ERRO: ' + e.message));
+    await segMigrar().catch(e => log('Migração 03/10e (segurança e saúde) ERRO: ' + e.message));
     await esMigrar().catch(e => log('Migração 02/10c (lista de espera e lembretes) ERRO: ' + e.message));
     await db.query(`ALTER TABLE licencas ADD COLUMN IF NOT EXISTS asaas_customer TEXT, ADD COLUMN IF NOT EXISTS asaas_sub TEXT`).catch(e => log('Migração 02/10h (Asaas) ERRO: ' + e.message));
     // 02/10l: licença criada sem situação (status NULL) não ativava a TV ("Licença não encontrada ou inativa")
@@ -917,8 +941,8 @@ app.get('/ping', async (req, res) => {
   if (db) {
     try { const c = await db.query('SELECT 1'); dbOk = true; } catch(e) {}
   }
-  res.json({
-    status: 'ok',
+  res.status(dbOk ? 200 : 503).json({   // 03/10e: 503 sem banco → o monitor de queda avisa
+    status: dbOk ? 'ok' : 'sem_banco',
     version: '2.3',
     db: dbOk,
     // 26/09g (dev): db_url_preview, db_url_set e db_pool removidos — a
@@ -931,6 +955,7 @@ app.get('/ping', async (req, res) => {
 
 // Cadastro
 app.post('/user/register', async (req, res) => {
+  if (limConta('reg:ip:' + ipDe(req), 60) > 15) return res.status(429).json({ error: 'Muitos cadastros deste aparelho/rede. Tente de novo mais tarde.' });   // 03/10e
   if (!db) return res.status(503).json({ error: 'Banco não disponível' });
   // Aceita tanto inglês (name/password) quanto português (nome/senha)
   const email    = req.body.email;
@@ -980,12 +1005,16 @@ app.post('/user/login', async (req, res) => {
   const { email, password } = req.body;
   if (!email || !password)
     return res.status(400).json({ error: 'email e password obrigatórios' });
+  // 03/10e: 8 senhas erradas no mesmo e-mail (ou 40 no mesmo IP) em 15 min → espera
+  const kE = 'login:e:' + String(email).toLowerCase().trim(), kI = 'login:ip:' + ipDe(req);
+  const espera = limBloqueado(kE, 8) || limBloqueado(kI, 40);
+  if (espera) return res.status(429).json({ error: `Muitas tentativas com senha errada. Tente de novo em ${espera} min ou use "Esqueci minha senha".` });
   try {
-    const r = await db.query('SELECT * FROM users WHERE email=$1', [email.toLowerCase()]);
-    if (!r.rows.length) return res.status(401).json({ error: 'Email ou senha incorretos' });
+    const r = await db.query('SELECT * FROM users WHERE email=$1', [email.toLowerCase().trim()]);
     const user = r.rows[0];
-    const ok = await bcrypt.compare(password, user.password_hash);
-    if (!ok) return res.status(401).json({ error: 'Email ou senha incorretos' });
+    const ok = user ? await bcrypt.compare(password, user.password_hash) : false;
+    if (!ok) { limConta(kE, 15); limConta(kI, 15); if (limBloqueado(kE, 8)) log(`[Segurança] login bloqueado 15 min: ${String(email).toLowerCase()} (IP ${ipDe(req)})`); return res.status(401).json({ error: 'Email ou senha incorretos' }); }
+    limZera(kE);
     const token = jwt.sign({ id: user.id, email: user.email, role: user.role, license_id: user.license_id || undefined }, JWT_SECRET, { expiresIn: '30d' });
     const financeiro = !!(await finLicencaDe(user.email).catch(() => null));   // 02/10h: o e-mail do financeiro vai para a página de pagamento
     res.json({ user: { id: user.id, email: user.email, name: user.name, role: user.role, license_id: user.license_id || null, points: user.points, level: user.level, sexo: user.sexo || null, financeiro, senha_provisoria: !!user.senha_provisoria }, token }); // 26/09b: sexo
@@ -2028,7 +2057,9 @@ function adminAuth(req, res, next) {
   if (!token) return res.status(401).json({ error: 'Token necessário' });
   try {
     const payload = jwt.verify(token, JWT_SECRET);
-    if (payload.role !== 'admin' && payload.role !== 'super_admin' && !payload.impersonated_by)
+    // 03/10e: o token do "modo suporte" (Entrar → numa academia, vai na URL) é de GESTOR daquela academia;
+    // antes ele também abria todas as rotas /admin (todas as licenças, pagamentos e usuários).
+    if ((payload.role !== 'admin' && payload.role !== 'super_admin') || payload.impersonated_by)
       return res.status(403).json({ error: 'Acesso negado' });
     req.user = payload;
     next();
@@ -2494,12 +2525,14 @@ app.post('/display/ativar', async (req, res) => {
   const { codigo, device_id, nome_computador } = req.body;
   const _build = String(req.body.build || req.headers['x-pr-build'] || '').slice(0, 40) || null;  // 26/09e
   if (!codigo) return res.status(400).json({ error: 'Código da licença obrigatório' });
+  const kTv = 'tv:ip:' + ipDe(req), esperaTv = limBloqueado(kTv, 20);   // 03/10e: ninguém fica chutando códigos de licença
+  if (esperaTv) return res.status(429).json({ error: `Muitos códigos errados. Tente de novo em ${esperaTv} min.` });
   try {
     const r = await db.query(
       "SELECT * FROM licencas WHERE UPPER(codigo)=UPPER($1) AND status='ativa'",
       [codigo.trim()]
     );
-    if (!r.rows.length) return res.status(404).json({ error: 'Licença não encontrada ou inativa' });
+    if (!r.rows.length) { limConta(kTv, 15); return res.status(404).json({ error: 'Licença não encontrada ou inativa' }); }
     const lic = r.rows[0];
     if (licTvSuspensa(lic)) return res.status(403).json({ error: 'LICENÇA SUSPENSA — pagamento vencido. Fale com o financeiro da academia.' });
     const devId = device_id || null;
@@ -5198,27 +5231,7 @@ setInterval(() => {
 // DESAFIOS — Grupos de amigos e ranking
 // ══════════════════════════════════════════════════════════════
 
-// Criação das tabelas se não existirem
-if (db) {
-  db.query(`
-    CREATE TABLE IF NOT EXISTS desafio_grupos (
-      id          SERIAL PRIMARY KEY,
-      codigo      TEXT UNIQUE NOT NULL,
-      nome        TEXT NOT NULL,
-      desafio_id  TEXT NOT NULL DEFAULT '21dias',
-      criador_id  INTEGER REFERENCES users(id),
-      license_id  TEXT,
-      created_at  TIMESTAMPTZ DEFAULT NOW()
-    );
-    CREATE TABLE IF NOT EXISTS desafio_grupo_membros (
-      id         SERIAL PRIMARY KEY,
-      grupo_id   INTEGER REFERENCES desafio_grupos(id) ON DELETE CASCADE,
-      user_id    INTEGER REFERENCES users(id),
-      joined_at  TIMESTAMPTZ DEFAULT NOW(),
-      UNIQUE(grupo_id, user_id)
-    );
-  `).catch(e => log('desafio_grupos migration: ' + e.message));
-}
+// 03/10e: as tabelas dos grupos são criadas em lojaMigrar() (depois de "users")
 
 function gerarCodigoGrupo() {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -6346,6 +6359,175 @@ app.post('/display/gravacao/:id/enviar', displayAuth, async (req, res) => {
 
 
 // ══════════════════════════════════════════════════════════════
+// 03/10e — SEGURANÇA E SAÚDE: esqueci a senha, reportar problema,
+// excluir minha conta (LGPD) e a página "Saúde do sistema" do admin
+// ══════════════════════════════════════════════════════════════
+const SERVIDOR_VERSAO = '03/10e';
+const _inicioServidor = Date.now();
+let _ultWebhook = null;   // último aviso do Asaas recebido (hora e evento)
+async function segMigrar() {
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS sistema_eventos (id SERIAL PRIMARY KEY, nivel TEXT NOT NULL, msg TEXT NOT NULL, created_at TIMESTAMPTZ DEFAULT NOW());
+    CREATE INDEX IF NOT EXISTS sistema_eventos_t ON sistema_eventos(created_at DESC);
+    CREATE TABLE IF NOT EXISTS senha_reset (id SERIAL PRIMARY KEY, user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+      token_hash TEXT UNIQUE NOT NULL, expira TIMESTAMPTZ NOT NULL, usado_em TIMESTAMPTZ, ip TEXT, created_at TIMESTAMPTZ DEFAULT NOW());
+    CREATE TABLE IF NOT EXISTS suporte_relatos (id SERIAL PRIMARY KEY, user_id INTEGER REFERENCES users(id) ON DELETE SET NULL, email TEXT, nome TEXT,
+      license_id TEXT, origem TEXT, tela TEXT, versao TEXT, aparelho TEXT, texto TEXT NOT NULL, status TEXT DEFAULT 'aberto',
+      created_at TIMESTAMPTZ DEFAULT NOW(), resolvido_em TIMESTAMPTZ);
+  `);
+  _evPronto = true;
+  log('Migração 03/10e (segurança e saúde) OK');
+}
+// limpeza: eventos com mais de 30 dias e links de senha vencidos
+setInterval(() => { if (!db || !_evPronto) return;
+  db.query(`DELETE FROM sistema_eventos WHERE created_at < NOW() - INTERVAL '30 days'`).catch(() => {});
+  db.query(`DELETE FROM senha_reset WHERE expira < NOW() - INTERVAL '2 days'`).catch(() => {}); }, 3600000);
+
+// ── ESQUECI MINHA SENHA ────────────────────────────────────────
+// Sempre responde "se o e-mail existir, mandamos o link" (não revela quem tem conta).
+// Link vale 1 hora e uma vez só; pedir de novo invalida os anteriores.
+app.post('/user/esqueci-senha', async (req, res) => {
+  if (!db) return res.status(503).json({ error: 'Banco indisponível' });
+  const email = String((req.body || {}).email || '').trim().toLowerCase();
+  const resp = { ok: true, msg: 'Se este e-mail tiver conta, chega um link para criar uma senha nova em instantes. Olhe também o spam.' };
+  if (!/@/.test(email)) return res.status(400).json({ error: 'Digite o seu e-mail.' });
+  if (limConta('esq:e:' + email, 60) > 3 || limConta('esq:ip:' + ipDe(req), 60) > 10) return res.status(429).json({ error: 'Muitos pedidos. Tente de novo daqui a 1 hora.' });
+  try {
+    const u = (await db.query(`SELECT id, name, email, role FROM users WHERE LOWER(email)=$1 AND COALESCE(status,'ativo') <> 'excluido'`, [email])).rows[0];
+    if (!u) return res.json(resp);
+    if (!emailProvedor()) { log(`[Senha] pedido de nova senha para ${email}, mas o e-mail não está configurado no servidor`); return res.json(Object.assign({}, resp, { sem_email: true, msg: 'O envio de e-mail ainda não está ligado. Peça uma senha nova para a sua academia (ou para a ProRider).' })); }
+    const tok = crypto.randomBytes(32).toString('hex'), h = crypto.createHash('sha256').update(tok).digest('hex');
+    await db.query(`UPDATE senha_reset SET usado_em=NOW() WHERE user_id=$1 AND usado_em IS NULL`, [u.id]);
+    await db.query(`INSERT INTO senha_reset (user_id, token_hash, expira, ip) VALUES ($1,$2,NOW()+INTERVAL '1 hour',$3)`, [u.id, h, ipDe(req)]);
+    const link = PORTAL_URL + '/redefinir.html?t=' + tok;
+    const r = await enviarEmail({ to: u.email, subject: 'ProRider — criar uma senha nova',
+      html: emailLayout('Criar uma senha nova', `<p>Olá${u.name ? ', <b>' + _esc(String(u.name).split(' ')[0]) + '</b>' : ''}! Recebemos um pedido para trocar a senha da sua conta ProRider (<b>${_esc(u.email)}</b>).</p>
+        <p>O link vale por <b>1 hora</b> e funciona uma vez só. Se não foi você, ignore este e-mail: a senha atual continua a mesma.</p>`, 'Criar senha nova', link, '') });
+    if (!r.ok) log(`[Senha] e-mail de nova senha para ${u.email} falhou: ${r.erro}`);
+    else log(`[Senha] link de nova senha enviado para ${u.email}`);
+    res.json(resp);
+  } catch (e) { log('esqueci-senha erro: ' + e.message); res.status(500).json({ error: 'Erro interno' }); }
+});
+app.post('/user/redefinir-senha', async (req, res) => {
+  if (!db) return res.status(503).json({ error: 'Banco indisponível' });
+  const b = req.body || {}, tok = String(b.token || ''), senha = String(b.senha || '');
+  if (limConta('red:ip:' + ipDe(req), 15) > 20) return res.status(429).json({ error: 'Muitas tentativas. Tente de novo mais tarde.' });
+  if (senha.length < 6) return res.status(400).json({ error: 'A senha precisa de pelo menos 6 caracteres.' });
+  try {
+    const h = crypto.createHash('sha256').update(tok).digest('hex');
+    const r = (await db.query(`SELECT r.id, r.user_id, u.email FROM senha_reset r JOIN users u ON u.id=r.user_id WHERE r.token_hash=$1 AND r.usado_em IS NULL AND r.expira > NOW()`, [h])).rows[0];
+    if (!r) return res.status(400).json({ error: 'Este link venceu ou já foi usado. Peça um novo em "Esqueci minha senha".' });
+    await db.query(`UPDATE users SET password_hash=$1, senha_provisoria=FALSE, updated_at=NOW() WHERE id=$2`, [await bcrypt.hash(senha, 10), r.user_id]);
+    await db.query(`UPDATE senha_reset SET usado_em=NOW() WHERE user_id=$1 AND usado_em IS NULL`, [r.user_id]);
+    limZera('login:e:' + r.email);
+    log(`[Senha] senha trocada pelo link para ${r.email}`);
+    res.json({ ok: true, email: r.email });
+  } catch (e) { log('redefinir-senha erro: ' + e.message); res.status(500).json({ error: 'Erro interno' }); }
+});
+
+// ── REPORTAR PROBLEMA (app, Portal, página do financeiro) ──────
+app.post('/suporte/relato', async (req, res) => {
+  if (!db) return res.status(503).json({ error: 'Banco indisponível' });
+  const b = req.body || {}, texto = String(b.texto || '').trim();
+  if (texto.length < 5) return res.status(400).json({ error: 'Conte em poucas palavras o que aconteceu.' });
+  if (limConta('rel:ip:' + ipDe(req), 60) > 10) return res.status(429).json({ error: 'Muitos relatos seguidos. Tente de novo daqui a pouco.' });
+  try {
+    const p = _lojaUid(req) || {};
+    const u = p.id ? (await db.query('SELECT id, name, email, license_id FROM users WHERE id=$1', [p.id])).rows[0] || {} : {};
+    const r = await db.query(`INSERT INTO suporte_relatos (user_id, email, nome, license_id, origem, tela, versao, aparelho, texto) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING id`,
+      [u.id || null, u.email || String(b.email || '').slice(0, 120) || null, u.name || null, p.license_id || u.license_id || null,
+       String(b.origem || '').slice(0, 30), String(b.tela || '').slice(0, 60), String(b.versao || '').slice(0, 40), String(b.aparelho || req.headers['user-agent'] || '').slice(0, 300), texto.slice(0, 2000)]);
+    log(`[Suporte] relato ${r.rows[0].id} de ${u.email || 'visitante'} (${b.origem || '?'} · ${b.tela || '?'})`);
+    res.json({ ok: true, id: r.rows[0].id });
+  } catch (e) { log('relato erro: ' + e.message); res.status(500).json({ error: 'Erro interno' }); }
+});
+
+// ── EXCLUIR MINHA CONTA (LGPD) ─────────────────────────────────
+// Apaga os dados pessoais e deixa só números anônimos (aulas e rankings já feitos não quebram).
+app.delete('/user/conta', authMiddleware, async (req, res) => {
+  if (!db) return res.status(503).json({ error: 'Banco indisponível' });
+  if (req.user.impersonated_by) return res.status(403).json({ error: 'Modo suporte não exclui contas.' });
+  try {
+    const u = (await db.query('SELECT id, email, role, password_hash FROM users WHERE id=$1', [req.user.id])).rows[0];
+    if (!u) return res.status(404).json({ error: 'Conta não encontrada' });
+    if (!(await bcrypt.compare(String((req.body || {}).senha || ''), u.password_hash || ''))) return res.status(401).json({ error: 'Senha incorreta.' });
+    if (['gestor', 'admin', 'super_admin'].includes(u.role) || await finLicencaDe(u.email))
+      return res.status(400).json({ error: 'Esta conta cuida de uma academia (gestor ou financeiro). Para excluir, fale com a ProRider: antes é preciso passar a academia para outra pessoa.' });
+    await db.query(`UPDATE users SET name='Conta excluída', email=$2, password_hash=$3, peso=NULL, ftp=NULL, altura=NULL, idade=NULL, sexo=NULL, tmb=NULL,
+      nascimento=NULL, foto_url=NULL, asaas_customer=NULL, license_id=NULL, role='aluno', status='excluido', senha_provisoria=FALSE, updated_at=NOW() WHERE id=$1`,
+      [u.id, 'excluida-' + u.id + '@prorider.invalid', await bcrypt.hash(crypto.randomBytes(24).toString('hex'), 10)]);
+    await db.query('DELETE FROM desafio_grupo_membros WHERE user_id=$1', [u.id]).catch(() => {});
+    await db.query('DELETE FROM ftp_historico WHERE user_id=$1', [u.id]).catch(() => {});
+    await db.query('DELETE FROM senha_reset WHERE user_id=$1', [u.id]).catch(() => {});
+    log(`[LGPD] conta ${u.id} excluída a pedido do próprio usuário`);
+    res.json({ ok: true });
+  } catch (e) { log('excluir conta erro: ' + e.message); res.status(500).json({ error: 'Erro interno' }); }
+});
+
+// ── SAÚDE DO SISTEMA (admin) ───────────────────────────────────
+app.get('/admin/saude', adminAuth, async (req, res) => {
+  const out = { versao: SERVIDOR_VERSAO, agora: new Date().toISOString(), servidor: {}, banco: {}, email: {}, asaas: {}, gravacoes: {}, tvs: {}, licencas: {}, loja: {}, relatos: [], eventos: [], alertas: [] };
+  const al = (nivel, txt) => out.alertas.push({ nivel, txt });
+  const mem = process.memoryUsage();
+  out.servidor = { no_ar_desde: new Date(_inicioServidor).toISOString(), horas_no_ar: Math.round((Date.now() - _inicioServidor) / 360000) / 10, node: process.version, memoria_mb: Math.round(mem.rss / 1048576) };
+  try {
+    const t0 = Date.now(); const r = await db.query("SELECT pg_database_size(current_database()) AS b"); out.banco = { ok: true, ms: Date.now() - t0, tamanho_mb: Math.round(Number(r.rows[0].b) / 1048576) };
+  } catch (e) { out.banco = { ok: false, erro: e.message }; al('erro', 'Banco de dados fora do ar: ' + e.message); }
+  try {
+    const from = process.env.EMAIL_FROM || 'onboarding@resend.dev';
+    const env = (await db.query(`SELECT COUNT(*)::int AS n FROM email_log WHERE enviado_em > NOW() - INTERVAL '24 hours'`).catch(() => ({ rows: [{ n: null }] }))).rows[0].n;
+    const fal = (await db.query(`SELECT COUNT(*)::int AS n FROM sistema_eventos WHERE created_at > NOW() - INTERVAL '24 hours' AND msg ILIKE '%e-mail%' AND nivel='erro'`)).rows[0].n;
+    out.email = { provedor: emailProvedor(), remetente: from, enviados_24h: env, falhas_24h: fal };
+    if (!emailProvedor()) al('aviso', 'E-mail desligado: falta RESEND_API_KEY. Senhas e avisos não chegam por e-mail.');
+    else if (/resend\.dev/i.test(from)) al('aviso', 'E-mail sem domínio verificado (EMAIL_FROM é do resend.dev): só entrega para o dono da conta Resend.');
+    if (fal) al('erro', fal + ' e-mail(s) falharam nas últimas 24 h.');
+  } catch (e) {}
+  out.asaas = { chave: !!ASAAS_API_KEY, webhook_token: !!(process.env.ASAAS_WEBHOOK_TOKEN && process.env.ASAAS_WEBHOOK_TOKEN.length >= 12), ultimo_webhook: _ultWebhook, vendas_loja: !!(await cfgLer('loja_vendas', false)) };
+  if (!out.asaas.chave) al('aviso', 'Asaas sem chave: cobrança automática e loja desligadas.');
+  if (out.asaas.chave && !out.asaas.webhook_token) al('erro', 'Falta ASAAS_WEBHOOK_TOKEN: os avisos de pagamento do Asaas são recusados (nada é liberado sozinho).');
+  try {
+    const fs = require('fs'), os = require('os'); let n = 0, bytes = 0;
+    try { fs.readdirSync(GV_DIR).forEach(f => { try { const st = fs.statSync(path.join(GV_DIR, f)); n++; bytes += st.size; } catch (e) {} }); } catch (e) {}
+    const temp = GV_DIR.startsWith(os.tmpdir()) || !process.env.GRAVACOES_TESTE_DIR;
+    let livre = null; try { const sf = fs.statfsSync(GV_DIR); livre = Math.round(sf.bavail * sf.bsize / 1073741824 * 10) / 10; } catch (e) {}
+    out.gravacoes = { pasta: GV_DIR, arquivos: n, tamanho_mb: Math.round(bytes / 1048576), livre_gb: livre, pasta_temporaria: temp };
+    if (temp) al('aviso', 'Gravações numa pasta temporária: cada atualização do servidor apaga os vídeos. Falta o Volume do Railway (GRAVACOES_TESTE_DIR).');
+    if (livre !== null && livre < 2) al('erro', 'Pouco espaço para gravações: ' + livre + ' GB livres.');
+  } catch (e) {}
+  try {
+    const tv = (await db.query(`SELECT lc.license_codigo, COALESCE(l.nome_fantasia, l.nome) AS academia, lc.nome_computador, lc.build, lc.visto_em
+      FROM licenca_computadores lc LEFT JOIN licencas l ON l.codigo=lc.license_codigo ORDER BY lc.visto_em DESC LIMIT 40`)).rows;
+    out.tvs = { lista: tv, online: tv.filter(x => Date.now() - new Date(x.visto_em).getTime() < 5 * 60000).length };
+  } catch (e) {}
+  try {
+    const ls = (await db.query('SELECT * FROM licencas')).rows, sit = {};
+    ls.forEach(l => { const s = finSituacao(l); sit[s] = (sit[s] || 0) + 1; });
+    out.licencas = { total: ls.length, por_situacao: sit };
+    if (sit.suspenso) al('aviso', sit.suspenso + ' licença(s) suspensa(s) por pagamento (TV travada).');
+  } catch (e) {}
+  try {
+    out.loja = (await db.query(`SELECT COUNT(*) FILTER (WHERE status='pendente' AND created_at < NOW() - INTERVAL '1 day')::int AS pendentes_velhos,
+      COUNT(*) FILTER (WHERE status='pago' AND pago_em > NOW() - INTERVAL '24 hours')::int AS pagos_24h FROM loja_pedidos`)).rows[0];
+  } catch (e) {}
+  try {
+    out.relatos = (await db.query(`SELECT * FROM suporte_relatos WHERE status='aberto' ORDER BY id DESC LIMIT 50`)).rows;
+    if (out.relatos.length) al('aviso', out.relatos.length + ' problema(s) reportado(s) esperando resposta.');
+    out.eventos = (await db.query(`SELECT id, nivel, msg, created_at FROM sistema_eventos ORDER BY id DESC LIMIT 80`)).rows;
+    const e24 = (await db.query(`SELECT COUNT(*)::int AS n FROM sistema_eventos WHERE nivel='erro' AND created_at > NOW() - INTERVAL '24 hours'`)).rows[0].n;
+    out.erros_24h = e24; if (e24) al('erro', e24 + ' erro(s) do servidor nas últimas 24 h (lista abaixo).');
+  } catch (e) {}
+  res.json(out);
+});
+app.post('/admin/saude/relatos/:id/resolver', adminAuth, async (req, res) => {
+  try { await db.query(`UPDATE suporte_relatos SET status='resolvido', resolvido_em=NOW() WHERE id=$1`, [parseInt(req.params.id, 10) || 0]); res.json({ ok: true }); }
+  catch (e) { res.status(500).json({ error: e.message }); }
+});
+app.post('/admin/saude/eventos/limpar', adminAuth, async (req, res) => {
+  try { await db.query('DELETE FROM sistema_eventos'); log(`[Saúde] lista de eventos limpa por ${req.user.email}`); res.json({ ok: true }); }
+  catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ══════════════════════════════════════════════════════════════
 // 03/10c — LOJA: VENDA DE AULAS GRAVADAS (super admin abastece)
 // ══════════════════════════════════════════════════════════════
 // Professores, aulas e produtos são cadastrados SÓ pelo super admin.
@@ -6401,6 +6583,13 @@ async function lojaMigrar() {
   await db.query(`INSERT INTO ftp_historico (user_id, ftp, created_at)
     SELECT id, ROUND(ftp)::int, COALESCE(updated_at, created_at, NOW()) FROM users u
     WHERE ftp > 0 AND NOT EXISTS (SELECT 1 FROM ftp_historico h WHERE h.user_id=u.id)`).catch(() => {});
+  // 03/10e: as tabelas dos grupos eram criadas antes de "users" existir — num banco novo (instalação nova
+  // ou restauração de backup) ficavam sem ser criadas. Agora nascem aqui, na ordem certa.
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS desafio_grupos (id SERIAL PRIMARY KEY, codigo TEXT UNIQUE NOT NULL, nome TEXT NOT NULL, desafio_id TEXT NOT NULL DEFAULT '21dias',
+      criador_id INTEGER REFERENCES users(id) ON DELETE SET NULL, license_id TEXT, created_at TIMESTAMPTZ DEFAULT NOW());
+    CREATE TABLE IF NOT EXISTS desafio_grupo_membros (id SERIAL PRIMARY KEY, grupo_id INTEGER REFERENCES desafio_grupos(id) ON DELETE CASCADE,
+      user_id INTEGER REFERENCES users(id) ON DELETE CASCADE, joined_at TIMESTAMPTZ DEFAULT NOW(), UNIQUE(grupo_id, user_id));`);
   // apagar uma conta não pode travar por causa de grupo de desafio
   await db.query(`ALTER TABLE desafio_grupos DROP CONSTRAINT IF EXISTS desafio_grupos_criador_id_fkey;
     ALTER TABLE desafio_grupos ADD CONSTRAINT desafio_grupos_criador_id_fkey FOREIGN KEY (criador_id) REFERENCES users(id) ON DELETE SET NULL;
@@ -6951,6 +7140,7 @@ app.post('/webhook/asaas', express.json(), async (req, res) => {
   const ev = req.body;
   if (!ev || !ev.event) return res.status(400).json({ error: 'Evento inválido' });
   log(`[Asaas webhook] ${ev.event} payment=${ev.payment && ev.payment.id}`);
+  _ultWebhook = { em: new Date().toISOString(), evento: ev.event };   // 03/10e: aparece na Saúde do sistema
   try {
     const p = ev.payment || {};
     if (String(p.externalReference || '').startsWith('loja:')) { await lojaWebhook(ev, p); return res.json({ ok: true }); }   // 03/10c: venda de aulas

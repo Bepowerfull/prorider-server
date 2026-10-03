@@ -424,6 +424,7 @@ button{font-family:inherit}
 .cp-tb th{font-size:11px;letter-spacing:1.3px;color:var(--muted);text-transform:uppercase}
 </style>
 <link href="https://fonts.googleapis.com/css2?family=Permanent+Marker&family=Barlow:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="pr-suporte.js"></script>
 </head>
 <body>
 
@@ -434,7 +435,7 @@ button{font-family:inherit}
     <input class="lpx-o lpx-in" style="left:77.112%;top:43.548%;width:18.916%;height:5.040%" type="email" id="lEmail" placeholder="voce@academia.com" autocomplete="username">
     <input class="lpx-o lpx-in" style="left:77.112%;top:52.117%;width:18.916%;height:5.040%" type="password" id="lPass" placeholder="••••••••" autocomplete="current-password">
     <button type="button" class="lpx-o lpx-hit bt login-btn" style="left:77.112%;top:59.173%;width:18.916%;height:5.040%" onclick="doLogin()" aria-label="Entrar"></button>
-    <button type="button" class="lpx-o lpx-hit" style="left:76.923%;top:65.323%;width:8.953%;height:3.226%" onclick="var d=document.getElementById('lpDica');d.style.display=d.style.display==='block'?'none':'block'" aria-label="Esqueci a senha"></button>
+    <button type="button" class="lpx-o lpx-hit" style="left:76.923%;top:65.323%;width:8.953%;height:3.226%" onclick="prEsqueciSenha(SERVER,(document.getElementById('lEmail')||{}).value)" aria-label="Esqueci a senha"></button>
     <a class="lpx-o lpx-hit" style="left:89.029%;top:65.323%;width:7.188%;height:3.226%" href="/aluno" aria-label="Sou aluno: abrir o app"></a>
     <button type="button" class="lpx-o lpx-hit" style="left:2.774%;top:62.903%;width:41.488%;height:12.500%" onclick="lpVideo()" aria-label="Assista ao vídeo"></button>
     <a class="lpx-o" href="javascript:lpCriar()" style="left:77.112%;top:68.6%;width:18.916%;height:auto;padding:7px 0;border:1px solid rgba(234,134,12,.55);border-radius:9px;background:rgba(234,134,12,.12);font:700 13px Barlow,sans-serif;color:#ffb45a;text-align:center;text-decoration:none">Primeiro acesso? Criar conta</a>
@@ -477,7 +478,7 @@ button{font-family:inherit}
       <input type="password" id="lPass_m" placeholder="••••••••" autocomplete="current-password">
       <button type="button" onclick="lpLoginMob()" class="lp-go">ENTRAR</button>
       <div class="lp-err " id="lErr_m"></div>
-      <div class="lp-links"><span onclick="document.getElementById('lpDicaM').style.display='block'">Esqueci a senha</span><a href="/aluno">Sou aluno → app</a></div>
+      <div class="lp-links"><span onclick="prEsqueciSenha(SERVER,(document.getElementById('lEmail_m')||{}).value)">Esqueci a senha</span><a href="/aluno">Sou aluno → app</a></div>
       <div class="lp-links" style="margin-top:6px"><span onclick="lpCriar()" style="color:#ffb45a;font-weight:700">Primeiro acesso? Criar conta</span></div>
       <div class="lp-dica" id="lpDicaM">Peça ao gestor da sua academia para gerar uma senha nova (Portal → Alunos ou Equipe). Gestor: fale com o suporte ProRider.</div>
     </div>
@@ -1320,6 +1321,7 @@ const PR_NAV = [
   ['Conta', [
     ['pagfin','💳','Pagamento da licença',['financeiro_email']],   // 03/10a: e-mail que é o financeiro da licença
     ['perfil','👤','Meu perfil',[]],
+    ['reportar','🛟','Reportar um problema',[]],   // 03/10e
   ]],
 ];
 function prPapel(){ return (user && user.impersonated_by) ? 'gestor' : String((user && user.role) || ''); }
@@ -1790,6 +1792,7 @@ function irPagamento() {   // 03/10a: abre a página do financeiro com a mesma s
   location.href = 'financeiro.html';
 }
 function showTab(t) {
+  if (t === 'reportar') return prReportar(SERVER, token, 'portal', (document.querySelector('.page.active')||{}).id || '', 'Portal');   // 03/10e
   if (t === 'pagfin' && prPode('pagfin')) return irPagamento();
   if (!prPode(t)) t = prInicial();
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
