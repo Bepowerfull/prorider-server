@@ -6328,7 +6328,18 @@ app.post('/gestor/sumidos/:id/avisar', gestorAuth, async (req, res) => {
 const ASAAS_API_KEY = process.env.ASAAS_API_KEY || null;
 const ASAAS_BASE    = 'https://api.asaas.com/v3';
 
+// 02/10g: o Asaas manda o token do webhook no cabeçalho 'asaas-access-token'.
+// Sem a variável ASAAS_WEBHOOK_TOKEN (o mesmo valor do painel do Asaas), o
+// webhook recusa tudo — senão qualquer um que soubesse o endereço podia
+// mandar um "pagamento recebido" falso e liberar uma licença.
+function asaasTokenOk(req) {
+  const k = process.env.ASAAS_WEBHOOK_TOKEN;
+  if (!k || k.length < 12) return false;
+  const a = Buffer.from(String(req.headers['asaas-access-token'] || '')), b = Buffer.from(k);
+  return a.length === b.length && crypto.timingSafeEqual(a, b);
+}
 app.post('/webhook/asaas', express.json(), async (req, res) => {
+  if (!asaasTokenOk(req)) { log('[Asaas webhook] recusado: token ausente ou errado' + (process.env.ASAAS_WEBHOOK_TOKEN ? '' : ' (falta ASAAS_WEBHOOK_TOKEN no Railway)')); return res.status(401).json({ error: 'Token inválido' }); }
   if (!db) return res.status(503).json({ error: 'Banco indisponível' });
   const ev = req.body;
   if (!ev || !ev.event) return res.status(400).json({ error: 'Evento inválido' });
@@ -6351,7 +6362,7 @@ app.post('/webhook/asaas', express.json(), async (req, res) => {
       log(`[Asaas] Licença ${externalRef} → pendente (${ev.event})`);
     }
     res.json({ ok: true });
-  } catch (e) { log(`[Asaas webhook] erro: ${e.message}`); res.status(500).json({ error: e.message }); }
+  } catch (e) { log(`[Asaas webhook] erro: ${e.message}`); res.status(500).json({ error: 'Erro interno' }); }
 });
 
 app.post('/admin/asaas/assinatura', adminAuth, async (req, res) => {

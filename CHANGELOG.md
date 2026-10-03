@@ -33,6 +33,23 @@ Componentes: `servidor` · `app` · `ginasio` · `portal` · `banco`.
 
 ---
 
+## 2026-10-02 · servidor · 02/10g — rotas do Asaas no pacote e webhook com token
+
+**O que mudou**
+- As rotas `POST /webhook/asaas` e `POST /admin/asaas/assinatura`, que o desenvolvedor colocou direto no servidor (commits ba074e1 e 2c33a79), agora fazem parte do `server.js` do pacote — o próximo pacote não as apaga mais.
+- O webhook confere o cabeçalho `asaas-access-token` contra a variável **`ASAAS_WEBHOOK_TOKEN`** (comparação em tempo constante). Sem a variável, ou com token errado, responde 401 e registra no log.
+- Erro interno do webhook não devolve mais a mensagem do erro.
+
+**Por quê**
+- Sem a conferência, qualquer um que soubesse o endereço podia mandar um "pagamento recebido" falso e liberar uma licença por 35 dias.
+
+**Como confirmar**
+- Sem o cabeçalho → 401 "Token inválido". Com o token certo e `PAYMENT_RECEIVED` com `externalReference` = código da licença → 200 e a licença fica `em_dia`.
+
+**Cuidados**
+- Criar `ASAAS_WEBHOOK_TOKEN` no Railway **e** pôr o mesmo valor no painel do Asaas (configuração do webhook) no mesmo deploy; senão os avisos de pagamento são recusados.
+- Daqui para frente, mudança no servidor fora dos pacotes: me mandar para entrar no próximo pacote.
+
 ## 2026-10-02 · servidor + portal (Construtor) + app + ginasio · 02/10f — música por link, horário do START e recomeçar a aula em rede
 
 **O que mudou**
