@@ -6359,7 +6359,8 @@ app.post('/gestor/sumidos/:id/avisar', gestorAuth, async (req, res) => {
 // ASAAS — WEBHOOK DE PAGAMENTOS
 // ══════════════════════════════════════════════════════════════
 const ASAAS_API_KEY = process.env.ASAAS_API_KEY || null;
-const ASAAS_BASE    = process.env.ASAAS_URL || 'https://api.asaas.com/v3';   // ASAAS_URL só para teste (sandbox)
+const ASAAS_BASE    = process.env.ASAAS_URL || 'https://api.asaas.com/v3';
+console.log('[asaas] API_KEY:', ASAAS_API_KEY ? 'presente' : 'AUSENTE');
 async function asaasApi(metodo, caminho, corpo) {
   const r = await fetch(ASAAS_BASE + caminho, { method: metodo, headers: { 'Content-Type': 'application/json', 'access_token': ASAAS_API_KEY, 'User-Agent': 'ProRider' }, body: corpo ? JSON.stringify(corpo) : undefined });
   const d = await r.json().catch(() => ({}));
