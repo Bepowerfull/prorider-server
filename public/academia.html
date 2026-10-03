@@ -2101,7 +2101,7 @@ async function doLogin() {
       window.location.href = 'index.html'; return;
     }
     // 02/10h: o e-mail cadastrado como financeiro da licença vai para a página de pagamento
-    if (d.user.financeiro) {
+    if (d.user.financeiro || d.user.role === 'financeiro') {
       localStorage.setItem('pr_fin_token', d.token); localStorage.setItem('pr_fin_user', JSON.stringify(d.user));
       if (!['financeiro','aluno'].includes(d.user.role)) { localStorage.setItem('pr_gestor_token', d.token); localStorage.setItem('pr_gestor_user', JSON.stringify(d.user)); }
       window.location.href = 'financeiro.html'; return;
