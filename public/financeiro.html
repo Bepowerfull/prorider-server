@@ -39,6 +39,14 @@ td{padding:10px 6px;border-bottom:1px solid var(--border)}td a{color:var(--accen
 .cartao{display:inline-block;background:linear-gradient(135deg,rgba(41,95,232,.25),rgba(155,48,255,.2));border:1px solid rgba(41,95,232,.3);border-radius:12px;padding:12px 16px;font-family:monospace;font-size:17px;letter-spacing:3px}
 .row{display:flex;gap:10px;flex-wrap:wrap;align-items:end}.row>div{flex:1;min-width:200px}
 td{white-space:nowrap}
+/* 02/10m: menu lateral do financeiro (Pagamento · Meus dados) */
+.shell{display:flex;min-height:calc(100vh - 58px)}
+.sb{width:220px;flex-shrink:0;border-right:1px solid var(--border);padding:18px 10px;background:#0f0f18}
+.sb .it{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:9px;color:var(--muted);font-weight:600;cursor:pointer;margin-bottom:4px}
+.sb .it:hover{background:rgba(255,255,255,.04);color:#fff}.sb .it.on{background:rgba(234,134,12,.14);color:#fff;box-shadow:inset 3px 0 0 var(--accent)}
+.shell>main{flex:1;min-width:0}
+.prov{border-radius:10px;padding:12px 14px;font-size:14px;margin-bottom:16px;background:rgba(234,134,12,.12);border:1px solid rgba(234,134,12,.45);color:#ffcf8f;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+@media (max-width:760px){.shell{flex-direction:column}.sb{width:auto;display:flex;gap:6px;overflow-x:auto;border-right:0;border-bottom:1px solid var(--border);padding:8px}.sb .it{margin:0;white-space:nowrap;padding:8px 10px}}
 @media (max-width:600px){.top .who{display:none}h1{font-size:25px}td:nth-child(4),th:nth-child(4){display:none}.card{padding:14px}td,th{padding:8px 4px;font-size:13px}.pill{padding:2px 7px}}
 </style>
 </head>
@@ -46,9 +54,17 @@ td{white-space:nowrap}
 <div class="top"><div class="logo">PRO <i>RIDER</i></div><span class="note">Financeiro</span>
   <div class="who" id="who"></div><button class="btn gh" id="btSair" style="display:none;padding:8px 12px" onclick="sair()">Sair</button></div>
 
-<div class="wrap">
+<div class="shell" id="shell" style="display:none">
+<nav class="sb">
+  <div class="it on" id="mPag" onclick="aba('pag')">💳 Pagamento</div>
+  <div class="it" id="mDados" onclick="aba('dados')">👤 Meus dados</div>
+  <div class="it" id="mPortal" style="display:none" onclick="location.href='academia.html'">🏠 Portal da academia</div>
+  <div class="it" onclick="sair()">↩ Sair</div>
+</nav>
+<main class="wrap">
   <!-- PAINEL -->
   <div id="vPainel" style="display:none">
+    <div class="prov" id="avProv" style="display:none">🔑 Você está com a <b>senha provisória</b> que recebeu por e-mail. Crie a sua senha em Meus dados. <button class="btn" style="padding:7px 12px;font-size:13px" onclick="aba('dados')">Criar minha senha</button></div>
     <div class="aviso" id="avSup" style="display:none">⚡ <b>Modo suporte</b>: só leitura. Quem paga e mexe no cartão é o responsável financeiro da academia.</div>
     <h1 id="pAcad">—</h1>
     <p class="sub" id="pSub">Licença ProRider</p>
@@ -79,8 +95,28 @@ td{white-space:nowrap}
       <div class="note" id="pErroAsaas" style="display:none;margin-bottom:8px"></div>
       <div style="overflow-x:auto"><table><thead><tr><th>Vencimento</th><th>Valor</th><th>Situação</th><th>Pago em</th><th></th></tr></thead><tbody id="pFat"></tbody></table></div>
     </div>
-    <p class="note" id="pPortal" style="display:none"><a href="academia.html" style="color:var(--accent)">Abrir o Portal da academia →</a></p>
   </div>
+  <!-- MEUS DADOS -->
+  <div id="vDados" style="display:none">
+    <h1>Meus dados</h1>
+    <p class="sub">Responsável financeiro da academia</p>
+    <div class="card">
+      <label>Nome</label><input id="dNome" autocomplete="name">
+      <label>E-mail</label><input id="dEmail" disabled>
+      <p class="note" style="margin:6px 0 0">O e-mail é o que a academia informou à ProRider como financeiro. Para trocar, peça à ProRider.</p>
+      <button class="btn" style="margin-top:14px" onclick="salvarDados()">Salvar</button> <span class="note ok" id="dOk"></span>
+      <div class="err" id="eDados"></div>
+    </div>
+    <div class="card">
+      <div style="font-weight:700;font-size:17px;margin-bottom:4px">🔑 Senha</div>
+      <label>Senha atual (ou a provisória do e-mail)</label><input id="sAtual" type="password" autocomplete="current-password">
+      <label>Nova senha</label><input id="sNova" type="password" autocomplete="new-password">
+      <label>Repita a nova senha</label><input id="sNova2" type="password" autocomplete="new-password">
+      <button class="btn" style="margin-top:14px" onclick="trocarSenha()">Trocar a senha</button> <span class="note ok" id="sOk"></span>
+      <div class="err" id="eSenha"></div>
+    </div>
+  </div>
+</main>
 </div>
 
 <script>
@@ -102,8 +138,34 @@ function sair(){
 var SIT = { em_dia:['🟢 Em dia','var(--green)'], vencido:['🟡 Vencido','var(--yellow)'], suspenso:['🔴 Suspenso','var(--red)'], pendente:['⚪ Aguardando o 1º pagamento','var(--muted)'], sem_cobranca:['⚪ Cobrança ainda não cadastrada','var(--muted)'] };
 var FST = { PENDING:['Em aberto','rgba(215,196,20,.18)','#ffe033'], OVERDUE:['Vencida','rgba(255,90,90,.15)','#ff8a8a'], RECEIVED:['Paga','rgba(93,177,61,.18)','#8fe06a'], CONFIRMED:['Paga','rgba(93,177,61,.18)','#8fe06a'], RECEIVED_IN_CASH:['Paga','rgba(93,177,61,.18)','#8fe06a'], REFUNDED:['Estornada','rgba(255,255,255,.08)','#ccc'], REFUND_REQUESTED:['Estorno pedido','rgba(255,255,255,.08)','#ccc'], CHARGEBACK_REQUESTED:['Contestada','rgba(255,90,90,.15)','#ff8a8a'] };
 var _dados = null;
+function aba(a){
+  $('vPainel').style.display = a === 'pag' ? 'block' : 'none'; $('vDados').style.display = a === 'dados' ? 'block' : 'none';
+  $('mPag').classList.toggle('on', a === 'pag'); $('mDados').classList.toggle('on', a === 'dados');
+  if (a === 'dados') { $('dNome').value = (user && user.name) || ''; $('dEmail').value = (user && user.email) || ''; }
+}
+async function salvarDados(){
+  mostrarErro('eDados', ''); $('dOk').textContent = '';
+  var n = $('dNome').value.trim(); if (!n) return mostrarErro('eDados', 'Preencha o nome.');
+  try { var r = await fetch(SERVER + '/user/profile', { method: 'PUT', headers: { 'Content-Type':'application/json', 'Authorization': 'Bearer ' + token }, body: JSON.stringify({ name: n }) });
+    if (!r.ok) { var d = await r.json().catch(function(){ return {}; }); return mostrarErro('eDados', d.error || 'Não consegui salvar.'); }
+    user.name = n; if (!_sup) localStorage.setItem('pr_fin_user', JSON.stringify(user)); $('dOk').textContent = '✓ Salvo'; $('who').innerHTML = '<b>' + esc(n) + '</b>responsável financeiro';
+  } catch (e) { mostrarErro('eDados', 'Sem conexão com o servidor.'); }
+}
+async function trocarSenha(){
+  mostrarErro('eSenha', ''); $('sOk').textContent = '';
+  if ($('sNova').value.length < 6) return mostrarErro('eSenha', 'A nova senha precisa de pelo menos 6 caracteres.');
+  if ($('sNova').value !== $('sNova2').value) return mostrarErro('eSenha', 'As senhas novas não são iguais.');
+  try { var r = await fetch(SERVER + '/user/senha', { method: 'PUT', headers: { 'Content-Type':'application/json', 'Authorization': 'Bearer ' + token }, body: JSON.stringify({ senha_atual: $('sAtual').value, nova: $('sNova').value }) });
+    var d = await r.json().catch(function(){ return {}; });
+    if (!r.ok) return mostrarErro('eSenha', d.error || 'Não consegui trocar a senha.');
+    $('sOk').textContent = '✓ Senha trocada'; ['sAtual','sNova','sNova2'].forEach(function(i){ $(i).value = ''; });
+    user.senha_provisoria = false; if (!_sup) localStorage.setItem('pr_fin_user', JSON.stringify(user)); $('avProv').style.display = 'none';
+  } catch (e) { mostrarErro('eSenha', 'Sem conexão com o servidor.'); }
+}
 async function painel(){
-  $('vPainel').style.display = 'block'; $('btSair').style.display = '';
+  $('shell').style.display = 'flex'; $('vPainel').style.display = $('vDados').style.display === 'block' ? 'none' : 'block'; $('btSair').style.display = '';
+  $('avProv').style.display = (user && user.senha_provisoria && !_sup) ? 'flex' : 'none';
+  $('mPortal').style.display = (!_sup && user && !['financeiro','aluno'].includes(user.role)) ? 'flex' : 'none';
   $('who').innerHTML = '<b>' + esc((user && (user.name || user.email)) || '') + '</b>' + esc(_sup ? 'modo suporte' : 'responsável financeiro');
   try {
     var r = await fetch(SERVER + '/academia/financeiro', { headers: { 'Authorization': 'Bearer ' + token } });
@@ -123,7 +185,6 @@ async function painel(){
     $('btPagar').textContent = !d.tem_assinatura ? 'Cadastrar cartão e pagar' : d.fatura_aberta ? 'Pagar a fatura de ' + dt(d.fatura_aberta.vencimento) + ' · ' + brl(d.fatura_aberta.valor) : 'Nenhuma fatura em aberto';
     $('btPagar').disabled = !!(d.suporte || (d.tem_assinatura && !d.fatura_aberta));
     $('avSup').style.display = d.suporte ? 'block' : 'none';
-    $('pPortal').style.display = (!_sup && user && !['financeiro','aluno'].includes(user.role)) ? 'block' : 'none';
     $('pErroAsaas').style.display = d.erro_asaas ? 'block' : 'none'; $('pErroAsaas').textContent = d.erro_asaas || '';
     $('pFat').innerHTML = (d.faturas || []).length ? d.faturas.map(function(f){
       var st = FST[f.status] || [f.status, 'rgba(255,255,255,.08)', '#ccc'], aberta = f.status === 'PENDING' || f.status === 'OVERDUE';

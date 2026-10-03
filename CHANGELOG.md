@@ -33,6 +33,18 @@ Componentes: `servidor` · `app` · `ginasio` · `portal` · `banco`.
 
 ---
 
+## 2026-10-03 · servidor + portal · 02/10m — página do financeiro com menu (Pagamento · Meus dados) e senha provisória
+
+**O que mudou**
+- **`financeiro.html`:** menu lateral próprio, como o do gestor e o do admin, mas enxuto: **💳 Pagamento**, **👤 Meus dados** (nome; e-mail só leitura; trocar a senha), **🏠 Portal da academia** (só se a pessoa também for gestor) e **Sair**. No celular, o menu vira uma faixa no topo.
+- **Primeiro acesso:** conta criada pelo admin (gestor ou financeiro) nasce com `users.senha_provisoria = TRUE`; o login devolve `senha_provisoria`; a página do financeiro mostra "Você está com a senha provisória — Criar minha senha" até a troca (`PUT /user/senha` zera a marca).
+
+**Por quê**
+- Pedido do Mario: o e-mail definido como financeiro cai numa tela própria, com as opções dele (pagamento e os dados/senha).
+
+**Como confirmar**
+- Admin define um e-mail novo no Financeiro → senha provisória → entrar no Portal com ela → cai no Pagamento com o aviso laranja → Meus dados → trocar a senha → o aviso some.
+
 ## 2026-10-03 · servidor + admin · 02/10l — licença sem situação travava a TV; gestor e financeiro definidos na licença
 
 **O que mudou**

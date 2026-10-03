@@ -712,10 +712,7 @@ async function runMigrations() {
 
     // Corrigir emails demo01 com prefixo errado "provider" → "prorider"
     try {
-      const fix = await db.query(`
-        UPDATE users SET email = REPLACE(email, 'provider.demo01', 'prorider.demo01')
-        WHERE email LIKE 'provider.demo01%'
-      `);
+      const fix = await db.query(`UPDATE users SET email = REPLACE(email, 'provider.demo01', 'prorider.demo01') WHERE email LIKE 'provider.demo01%'`);
       if (fix.rowCount > 0) log(`Emails demo01 corrigidos: ${fix.rowCount}`);
     } catch(e) { log('fix demo01 emails: ' + e.message); }
 
@@ -723,12 +720,10 @@ async function runMigrations() {
     try {
       const bcryptSeed = require('bcrypt');
       const senhaHash = await bcryptSeed.hash('12345678', 10);
-      // Demo 01
       await db.query(`INSERT INTO licencas (codigo, nome, status, max_bikes) VALUES ('PRDR-DEMO-001','ProRider Demo 01','ativa',20) ON CONFLICT (codigo) DO UPDATE SET status='ativa'`);
       await db.query(`INSERT INTO users (email, name, password_hash, role) VALUES ('prorider.demo01.financeiro@hotmail.com','Financeiro Demo 01',$1,'financeiro') ON CONFLICT (email) DO UPDATE SET password_hash=$1, role='financeiro'`, [senhaHash]);
       await db.query(`UPDATE users SET role='financeiro', license_id='PRDR-DEMO-001' WHERE email='prorider.demo01.financeiro@hotmail.com'`);
       await db.query(`UPDATE licencas SET financeiro_email='prorider.demo01.financeiro@hotmail.com', financeiro_nome='Financeiro Demo 01' WHERE codigo='PRDR-DEMO-001'`);
-      // Demo 02
       await db.query(`INSERT INTO licencas (codigo, nome, status, max_bikes) VALUES ('PRDR-DEMO-002','ProRider Demo 02','ativa',20) ON CONFLICT (codigo) DO NOTHING`);
       await db.query(`INSERT INTO users (email, name, password_hash, role) VALUES ('prorider.demo02.financeiro@hotmail.com','Financeiro Demo 02',$1,'financeiro') ON CONFLICT (email) DO UPDATE SET password_hash=$1, role='financeiro'`, [senhaHash]);
       await db.query(`UPDATE users SET role='financeiro', license_id='PRDR-DEMO-002' WHERE email='prorider.demo02.financeiro@hotmail.com'`);
@@ -841,6 +836,7 @@ async function runMigrations() {
     // 02/10l: licença criada sem situação (status NULL) não ativava a TV ("Licença não encontrada ou inativa")
     await db.query(`UPDATE licencas SET status='ativa' WHERE status IS NULL OR status='trial'`).then(r => { if (r.rowCount) log('02/10l: ' + r.rowCount + ' licença(s) sem situação → ativa'); }).catch(e => log('Migração 02/10l ERRO: ' + e.message));
     await db.query(`ALTER TABLE licencas ALTER COLUMN status SET DEFAULT 'ativa'`).catch(() => {});
+    await db.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS senha_provisoria BOOLEAN DEFAULT FALSE`).catch(() => {});   // 02/10m: pede a troca no 1º acesso
     setTimeout(() => geoPreencherFaltando().catch(e => log('geo backfill: ' + e.message)), 15000);
 
   } catch(e) {
@@ -985,7 +981,7 @@ app.post('/user/login', async (req, res) => {
     if (!ok) return res.status(401).json({ error: 'Email ou senha incorretos' });
     const token = jwt.sign({ id: user.id, email: user.email, role: user.role, license_id: user.license_id || undefined }, JWT_SECRET, { expiresIn: '30d' });
     const financeiro = !!(await finLicencaDe(user.email).catch(() => null));   // 02/10h: o e-mail do financeiro vai para a página de pagamento
-    res.json({ user: { id: user.id, email: user.email, name: user.name, role: user.role, license_id: user.license_id || null, points: user.points, level: user.level, sexo: user.sexo || null, financeiro }, token }); // 26/09b: sexo
+    res.json({ user: { id: user.id, email: user.email, name: user.name, role: user.role, license_id: user.license_id || null, points: user.points, level: user.level, sexo: user.sexo || null, financeiro, senha_provisoria: !!user.senha_provisoria }, token }); // 26/09b: sexo
   } catch(e) {
     log('login error: ' + e.message);
     res.status(500).json({ error: 'Erro interno' });
@@ -1198,7 +1194,7 @@ app.put('/user/senha', authMiddleware, async (req, res) => {
     if (!r.rows.length) return res.status(404).json({ error: 'Usuário não encontrado' });
     if (!(await bcrypt.compare(String(senha_atual || ''), r.rows[0].password_hash || '')))
       return res.status(401).json({ error: 'Senha atual incorreta.' });
-    await db.query('UPDATE users SET password_hash=$1, updated_at=NOW() WHERE id=$2', [await bcrypt.hash(String(nova), 10), req.user.id]);
+    await db.query('UPDATE users SET password_hash=$1, senha_provisoria=FALSE, updated_at=NOW() WHERE id=$2', [await bcrypt.hash(String(nova), 10), req.user.id]);
     res.json({ ok: true });
   } catch (e) { res.status(500).json({ error: 'Erro interno' }); }
 });
@@ -2110,7 +2106,7 @@ app.post('/admin/licencas', adminAuth, async (req, res) => {
           out.gestor = { id: uid, email: gEmail, ja_existia: true };
         } else {
           senhaTemp = 'PR-' + crypto.randomBytes(4).toString('hex');
-          const ins = await db.query(`INSERT INTO users (email, name, password_hash, role, license_id) VALUES ($1,$2,$3,'gestor',$4) RETURNING id`,
+          const ins = await db.query(`INSERT INTO users (email, name, password_hash, role, license_id, senha_provisoria) VALUES ($1,$2,$3,'gestor',$4,TRUE) RETURNING id`,
             [gEmail, b.gestor_nome || contato_nome || 'Gestor', await bcrypt.hash(senhaTemp, 10), codigo]);
           uid = ins.rows[0].id;
           out.gestor = { id: uid, email: gEmail, senha_provisoria: senhaTemp };
@@ -3114,7 +3110,7 @@ async function acessoVincular(codigo, papel, email, nome, academia, antigo) {
     return { email, ja_existia: true };
   }
   const senhaTemp = 'PR-' + crypto.randomBytes(4).toString('hex');
-  const ins = await db.query(`INSERT INTO users (email, name, password_hash, role, license_id) VALUES ($1,$2,$3,$4,$5) RETURNING id`,
+  const ins = await db.query(`INSERT INTO users (email, name, password_hash, role, license_id, senha_provisoria) VALUES ($1,$2,$3,$4,$5,TRUE) RETURNING id`,
     [email, nome || (papel === 'gestor' ? 'Gestor' : 'Financeiro'), await bcrypt.hash(senhaTemp, 10), papel, codigo]);
   let enviado = false; try { enviado = await emailBoasVindas({ userId: ins.rows[0].id, email, nome, academia, licId: null, senhaTemp, papel }); } catch (e) {}
   return { email, senha_provisoria: senhaTemp, email_enviado: !!enviado };
