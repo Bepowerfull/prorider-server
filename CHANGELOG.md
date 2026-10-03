@@ -33,6 +33,35 @@ Componentes: `servidor` · `app` · `ginasio` · `portal` · `banco`.
 
 ---
 
+## 2026-10-03 · servidor + admin · 02/10l — licença sem situação travava a TV; gestor e financeiro definidos na licença
+
+**O que mudou**
+- **Causa do "Licença não encontrada ou inativa":** as licenças ProRider Demo 01 e Demo 02 estavam com `status` vazio (NULL — o "null" ao lado do código na lista do admin). A TV só ativa licença `ativa`. Na subida, o servidor passa para `ativa` toda licença sem situação ou em `trial`; o padrão da coluna passa a ser `ativa`; a edição nunca mais grava situação vazia (o admin mandava `trial` no plano Trial, o que também travava a TV).
+- **Admin → Editar/Nova licença:** duas seções, **Gestor da academia** (nome + e-mail, login do Portal) e **Financeiro** (nome + e-mail, login do pagamento). Pode ser o mesmo e-mail.
+- **Servidor (`acessoVincular`):** ao definir ou trocar o e-mail, a conta que existe vira gestor/financeiro da licença (admin nunca é mexido; o financeiro não rebaixa um gestor); conta que não existe é criada com senha provisória e recebe o e-mail de boas-vindas; o e-mail anterior volta a ser aluno. O admin vê a senha provisória na hora.
+- Cadastro ("Criar conta") com um e-mail já definido como gestor de uma licença já entra como gestor dela.
+
+**Por quê**
+- O Mario não conseguia ativar a TV da Demo 01 nem entrar com o e-mail do financeiro (a conta não existia).
+
+**Como confirmar**
+- Depois do deploy, o log mostra "02/10l: N licença(s) sem situação → ativa" e a TV ativa com o código.
+- Editar licença → e-mail novo no Financeiro → aparece "senha provisória"; essa pessoa entra e cai no pagamento.
+
+## 2026-10-03 · portal + construtor · 02/10k — "Criar conta" visível nas duas entradas e aviso de vídeo AVI
+
+**O que mudou**
+- **`academia.html`:** "Primeiro acesso? Criar conta" virou um botão destacado logo abaixo do Entrar (computador e celular); `academia.html#criar` já abre o cadastro.
+- **`index.html` (entrada do admin):** o mesmo botão, que leva ao cadastro do Portal.
+- **`studio.html`:** vídeo em AVI, WMV, MKV, FLV, MPG, 3GP, VOB ou TS mostra "⚠ Este vídeo é AVI e não roda na TV: converta para MP4".
+
+**Por quê**
+- O Mario não achou onde criar a conta do financeiro (o link era pequeno e só existia no Portal) e escolheu um vídeo AVI, que o navegador da TV não abre.
+
+**Como confirmar**
+- Entrada do admin → "Primeiro acesso? Criar conta" → abre o cadastro no Portal.
+- Construtor com um .AVI → aparece o aviso em vermelho.
+
 ## 2026-10-02 · servidor + portal (Construtor) + ginasio · 02/10j — professor da aula em rede no fundo ou no canto, vídeo por link e cache antes da aula
 
 **O que mudou**

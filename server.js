@@ -821,6 +821,9 @@ async function runMigrations() {
     await gvMigrar().catch(e => log('Migração 02/10b (gravar e transmitir) ERRO: ' + e.message));
     await esMigrar().catch(e => log('Migração 02/10c (lista de espera e lembretes) ERRO: ' + e.message));
     await db.query(`ALTER TABLE licencas ADD COLUMN IF NOT EXISTS asaas_customer TEXT, ADD COLUMN IF NOT EXISTS asaas_sub TEXT`).catch(e => log('Migração 02/10h (Asaas) ERRO: ' + e.message));
+    // 02/10l: licença criada sem situação (status NULL) não ativava a TV ("Licença não encontrada ou inativa")
+    await db.query(`UPDATE licencas SET status='ativa' WHERE status IS NULL OR status='trial'`).then(r => { if (r.rowCount) log('02/10l: ' + r.rowCount + ' licença(s) sem situação → ativa'); }).catch(e => log('Migração 02/10l ERRO: ' + e.message));
+    await db.query(`ALTER TABLE licencas ALTER COLUMN status SET DEFAULT 'ativa'`).catch(() => {});
     setTimeout(() => geoPreencherFaltando().catch(e => log('geo backfill: ' + e.message)), 15000);
 
   } catch(e) {
@@ -940,6 +943,8 @@ app.post('/user/register', async (req, res) => {
     // 02/10h: e-mail já cadastrado como financeiro de uma licença → vira o financeiro dela
     const finLic = await finLicencaDe(user.email).catch(() => null);
     if (finLic) { await finVincular(finLic, user.email, null); user.role = 'financeiro'; user.license_id = finLic; user.financeiro = true; }
+    else { const gl = (await db.query('SELECT codigo FROM licencas WHERE LOWER(TRIM(email_gestor))=$1 ORDER BY id LIMIT 1', [user.email]).catch(() => ({ rows: [] }))).rows[0];
+      if (gl) { await db.query(`UPDATE users SET role='gestor', license_id=$1 WHERE id=$2`, [gl.codigo, user.id]); user.role = 'gestor'; user.license_id = gl.codigo; } }
     const token = jwt.sign({ id: user.id, email: user.email, role: user.role, license_id: user.license_id || undefined }, JWT_SECRET, { expiresIn: '30d' });
     res.json({ user, token });
   } catch(e) {
@@ -2099,6 +2104,12 @@ app.post('/admin/licencas', adminAuth, async (req, res) => {
         }
       } catch(_e) { out.gestor_erro = _e.message; }
     }
+    // 02/10l: financeiro já na criação
+    const fEmail = String(b.financeiro_email || '').trim().toLowerCase();
+    if (fEmail) { try {
+      await db.query('UPDATE licencas SET financeiro_email=$1, financeiro_nome=$2 WHERE id=$3', [fEmail, b.financeiro_nome || null, out.id]);
+      out.financeiro = await acessoVincular(codigo, 'financeiro', fEmail, b.financeiro_nome, nome, null);
+    } catch (_e) { out.financeiro_erro = _e.message; } }
     res.json(out);
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
@@ -2115,7 +2126,7 @@ app.put('/admin/licencas/:id', adminAuth, async (req, res) => {
     const r = await db.query(
       `UPDATE licencas SET nome=$1, contato_nome=$2, contato_email=$3, contato_tel=$4,
        plano=$5, max_alunos=$6, max_profs=$7, valor_mensal=$8, vencimento=$9,
-       status=$10, obs=$11, max_bikes=COALESCE($12, max_bikes),
+       status=COALESCE(NULLIF($10,'trial'), status, 'ativa'), obs=$11, max_bikes=COALESCE($12, max_bikes),
        logradouro=$13, numero=$14, bairro=$15, cep=$16, cidade_lic=$17, estado=$18, pais=$19,
        cidade=COALESCE($17, cidade),
        updated_at=NOW() WHERE id=$20 RETURNING *`,
@@ -2126,6 +2137,19 @@ app.put('/admin/licencas/:id', adminAuth, async (req, res) => {
     );
     // disponiveis nunca acima do vendido (24/09)
     try { await db.query('UPDATE licencas SET bikes_disponiveis=LEAST(COALESCE(NULLIF(bikes_disponiveis,0), max_bikes), max_bikes) WHERE id=$1', [req.params.id]); } catch(_e) {}
+    // 02/10l: gestor e financeiro definidos aqui (cada um com o seu e-mail)
+    { const A = _antes.rows[0] || {}, N = r.rows[0] || {}, b2 = req.body || {}, low = v => String(v || '').trim().toLowerCase();
+      try {
+        if (N.codigo && b2.gestor_email !== undefined && low(b2.gestor_email) !== low(A.email_gestor)) {
+          await db.query('UPDATE licencas SET email_gestor=$1 WHERE id=$2', [low(b2.gestor_email) || null, N.id]);
+          N.gestor_acesso = await acessoVincular(N.codigo, 'gestor', b2.gestor_email, b2.gestor_nome || contato_nome, N.nome_fantasia || N.nome, A.email_gestor);
+        }
+        if (N.codigo && b2.financeiro_email !== undefined) {
+          await db.query('UPDATE licencas SET financeiro_email=$1, financeiro_nome=$2 WHERE id=$3', [low(b2.financeiro_email) || null, b2.financeiro_nome || null, N.id]);
+          if (low(b2.financeiro_email) !== low(A.financeiro_email))
+            N.financeiro_acesso = await acessoVincular(N.codigo, 'financeiro', b2.financeiro_email, b2.financeiro_nome, N.nome_fantasia || N.nome, A.financeiro_email);
+        }
+      } catch (e) { N.acesso_erro = e.message; } }
     // 29/09c: endereço mudou (ou ainda sem localização) -> procura no mapa
     { const A = _antes.rows[0] || {}, N = r.rows[0] || {};
       const mudou = ['logradouro', 'numero', 'bairro', 'cep', 'cidade_lic', 'estado'].some(k => String(A[k] || '') !== String(N[k] || ''));
@@ -2309,7 +2333,10 @@ app.patch('/admin/licencas/:id/financeiro', adminAuth, async (req, res) => {
         dia_vencimento=$3, valor_mensal=$4, updated_at=NOW()
       WHERE id=$5 RETURNING *
     `, [financeiro_email||null, financeiro_nome||null, dia_vencimento||10, valor_mensal||0, req.params.id]);
-    if (r.rows[0]) await finVincular(r.rows[0].codigo, financeiro_email, ant.financeiro_email);   // 02/10h
+    let fin = null;
+    if (r.rows[0] && String(financeiro_email || '').trim().toLowerCase() !== String(ant.financeiro_email || '').trim().toLowerCase())
+      fin = await acessoVincular(r.rows[0].codigo, 'financeiro', financeiro_email, financeiro_nome, r.rows[0].nome_fantasia || r.rows[0].nome, ant.financeiro_email);   // 02/10l
+    if (fin) r.rows[0].financeiro_acesso = fin;
     res.json(r.rows[0]);
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
@@ -3053,6 +3080,27 @@ async function finLicencaDe(email) {
   const e = String(email || '').trim().toLowerCase(); if (!e || !db) return null;
   const r = await db.query('SELECT codigo FROM licencas WHERE LOWER(TRIM(financeiro_email))=$1 ORDER BY id LIMIT 1', [e]);
   return r.rows.length ? r.rows[0].codigo : null;
+}
+// 02/10l: o admin define (ou troca) o GESTOR ou o FINANCEIRO da licença pelo e-mail.
+// Conta que já existe vira gestor/financeiro desta licença (admin nunca é mexido;
+// o financeiro não rebaixa um gestor — a página do financeiro vale pelo e-mail).
+// Conta que não existe é criada com senha provisória e recebe o e-mail de boas-vindas.
+// O e-mail anterior perde o papel (volta a aluno).
+async function acessoVincular(codigo, papel, email, nome, academia, antigo) {
+  email = String(email || '').trim().toLowerCase(); antigo = String(antigo || '').trim().toLowerCase();
+  if (antigo && antigo !== email) await db.query(`UPDATE users SET role='aluno' WHERE LOWER(email)=$1 AND role=$2 AND license_id=$3`, [antigo, papel, codigo]);
+  if (!email) return null;
+  const ex = (await db.query('SELECT id, role FROM users WHERE LOWER(email)=$1', [email])).rows[0];
+  if (ex) {
+    const pode = papel === 'gestor' ? !['admin', 'super_admin'].includes(ex.role) : ['aluno', 'financeiro'].includes(ex.role);
+    if (pode) await db.query('UPDATE users SET role=$1, license_id=$2, updated_at=NOW() WHERE id=$3', [papel, codigo, ex.id]);
+    return { email, ja_existia: true };
+  }
+  const senhaTemp = 'PR-' + crypto.randomBytes(4).toString('hex');
+  const ins = await db.query(`INSERT INTO users (email, name, password_hash, role, license_id) VALUES ($1,$2,$3,$4,$5) RETURNING id`,
+    [email, nome || (papel === 'gestor' ? 'Gestor' : 'Financeiro'), await bcrypt.hash(senhaTemp, 10), papel, codigo]);
+  let enviado = false; try { enviado = await emailBoasVindas({ userId: ins.rows[0].id, email, nome, academia, licId: null, senhaTemp, papel }); } catch (e) {}
+  return { email, senha_provisoria: senhaTemp, email_enviado: !!enviado };
 }
 // O admin pôs (ou trocou) o e-mail do financeiro: o cadastro com esse e-mail
 // vira "financeiro" da licença; o anterior volta a ser aluno. Gestor e outros
@@ -6369,7 +6417,7 @@ app.post('/gestor/sumidos/:id/avisar', gestorAuth, async (req, res) => {
 // ══════════════════════════════════════════════════════════════
 // ASAAS — WEBHOOK DE PAGAMENTOS
 // ══════════════════════════════════════════════════════════════
-const ASAAS_BASE    = process.env.ASAAS_URL || 'https://api.asaas.com/v3';
+const ASAAS_BASE    = process.env.ASAAS_URL || 'https://api.asaas.com/v3';   // ASAAS_URL só para teste (sandbox)
 async function asaasApi(metodo, caminho, corpo) {
   const r = await fetch(ASAAS_BASE + caminho, { method: metodo, headers: { 'Content-Type': 'application/json', 'access_token': ASAAS_API_KEY, 'User-Agent': 'ProRider' }, body: corpo ? JSON.stringify(corpo) : undefined });
   const d = await r.json().catch(() => ({}));

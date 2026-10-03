@@ -437,8 +437,8 @@ button{font-family:inherit}
     <button type="button" class="lpx-o lpx-hit" style="left:76.923%;top:65.323%;width:8.953%;height:3.226%" onclick="var d=document.getElementById('lpDica');d.style.display=d.style.display==='block'?'none':'block'" aria-label="Esqueci a senha"></button>
     <a class="lpx-o lpx-hit" style="left:89.029%;top:65.323%;width:7.188%;height:3.226%" href="/aluno" aria-label="Sou aluno: abrir o app"></a>
     <button type="button" class="lpx-o lpx-hit" style="left:2.774%;top:62.903%;width:41.488%;height:12.500%" onclick="lpVideo()" aria-label="Assista ao vídeo"></button>
-    <a class="lpx-o" href="javascript:lpCriar()" style="left:77.112%;top:68.6%;width:18.916%;height:auto;font:600 12px Barlow,sans-serif;color:rgba(255,255,255,.6);text-align:center;text-decoration:none">Primeiro acesso? <u>Criar conta</u></a>
-    <div class="lpx-o lpx-err login-err" id="lErr" style="left:77.112%;top:70.968%;width:18.916%;height:4.032%;height:auto"></div>
+    <a class="lpx-o" href="javascript:lpCriar()" style="left:77.112%;top:68.6%;width:18.916%;height:auto;padding:7px 0;border:1px solid rgba(234,134,12,.55);border-radius:9px;background:rgba(234,134,12,.12);font:700 13px Barlow,sans-serif;color:#ffb45a;text-align:center;text-decoration:none">Primeiro acesso? Criar conta</a>
+    <div class="lpx-o lpx-err login-err" id="lErr" style="left:77.112%;top:73.6%;width:18.916%;height:4.032%;height:auto"></div>
     <div class="lpx-o lpx-dica" id="lpDica" style="left:75.662%;top:70.968%;width:21.942%;height:9.073%;height:auto">Peça ao gestor da sua academia uma senha nova (Portal → Alunos ou Equipe). Gestor: fale com o suporte ProRider.</div>
     <div class="lpx-o lpx-k" style="left:9.836%;top:80.343%;width:8.575%;height:5.645%"><b data-lp="atl">—</b><small data-lpd="atl">&nbsp;</small></div><div class="lpx-o lpx-k" style="left:24.968%;top:80.343%;width:8.575%;height:5.645%"><b data-lp="km">—</b><small data-lpd="km">&nbsp;</small></div><div class="lpx-o lpx-k" style="left:40.101%;top:80.343%;width:9.079%;height:5.645%"><b data-lp="kcal">—</b><small data-lpd="kcal">&nbsp;</small></div><div class="lpx-o lpx-k" style="left:55.612%;top:80.343%;width:9.332%;height:5.645%"><b data-lp="aulas">—</b><small data-lpd="aulas">&nbsp;</small></div><div class="lpx-o lpx-k" style="left:71.627%;top:80.343%;width:8.827%;height:5.645%"><b data-lp="horas">—</b><small data-lpd="horas">&nbsp;</small></div><div class="lpx-o lpx-k" style="left:87.201%;top:80.343%;width:8.197%;height:5.645%"><b data-lp="wpp">—</b><small data-lpd="wpp">&nbsp;</small></div>
   </div>
@@ -478,7 +478,7 @@ button{font-family:inherit}
       <button type="button" onclick="lpLoginMob()" class="lp-go">ENTRAR</button>
       <div class="lp-err " id="lErr_m"></div>
       <div class="lp-links"><span onclick="document.getElementById('lpDicaM').style.display='block'">Esqueci a senha</span><a href="/aluno">Sou aluno → app</a></div>
-      <div class="lp-links" style="margin-top:6px"><span onclick="lpCriar()">Primeiro acesso? Criar conta</span></div>
+      <div class="lp-links" style="margin-top:6px"><span onclick="lpCriar()" style="color:#ffb45a;font-weight:700">Primeiro acesso? Criar conta</span></div>
       <div class="lp-dica" id="lpDicaM">Peça ao gestor da sua academia para gerar uma senha nova (Portal → Alunos ou Equipe). Gestor: fale com o suporte ProRider.</div>
     </div>
   </div>
@@ -1264,6 +1264,7 @@ async function lpCriarEnviar(){
     document.getElementById('lpModalIn').innerHTML='<h3>Conta criada ✓</h3><p style="font-size:15px;color:rgba(255,255,255,.8);line-height:1.6">Se você é o <b>financeiro</b> da academia, peça à ProRider para cadastrar este e-mail na licença; depois é só entrar aqui.<br><br>Se você é <b>aluno</b>, a conta já vale no <a href="/aluno" style="color:#ea860c">app ProRider</a>.</p>';
   }catch(e){ er.textContent='Sem conexão com o servidor.'; }
 }
+if(location.hash==='#criar') setTimeout(function(){ try{ lpCriar(); }catch(e){} },400);   // vindo do link "Criar conta" do admin
 function lpVideo(){
   var m=document.getElementById('lpModal'), box=document.getElementById('lpModalIn'); box.parentNode.classList.remove('fm');
   var u=String(PR_VIDEO_URL||''), id=(u.match(/(?:youtu\.be\/|v=|embed\/)([\w-]{11})/)||[])[1];

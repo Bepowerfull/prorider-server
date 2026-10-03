@@ -428,8 +428,9 @@ button{font-family:inherit}
     <button type="button" class="lpx-o lpx-hit bt login-btn" style="left:77.112%;top:59.173%;width:18.916%;height:5.040%" onclick="doLogin()" aria-label="Entrar"></button>
     <button type="button" class="lpx-o lpx-hit" style="left:76.923%;top:65.323%;width:8.953%;height:3.226%" onclick="var d=document.getElementById('lpDica');d.style.display=d.style.display==='block'?'none':'block'" aria-label="Esqueci a senha"></button>
     <a class="lpx-o lpx-hit" style="left:89.029%;top:65.323%;width:7.188%;height:3.226%" href="/aluno" aria-label="Sou aluno: abrir o app"></a>
+    <a class="lpx-o" href="academia.html#criar" style="left:77.112%;top:68.6%;width:18.916%;height:auto;padding:7px 0;border:1px solid rgba(234,134,12,.55);border-radius:9px;background:rgba(234,134,12,.12);font:700 13px Barlow,sans-serif;color:#ffb45a;text-align:center;text-decoration:none">Primeiro acesso? Criar conta</a>
     <button type="button" class="lpx-o lpx-hit" style="left:2.774%;top:62.903%;width:41.488%;height:12.500%" onclick="lpVideo()" aria-label="Assista ao vídeo"></button>
-    <div class="lpx-o lpx-err login-err" id="loginErr" style="left:77.112%;top:70.968%;width:18.916%;height:4.032%;height:auto"></div>
+    <div class="lpx-o lpx-err login-err" id="loginErr" style="left:77.112%;top:73.6%;width:18.916%;height:4.032%;height:auto"></div>
     <div class="lpx-o lpx-dica" id="lpDica" style="left:75.662%;top:70.968%;width:21.942%;height:9.073%;height:auto">Peça ao gestor da sua academia uma senha nova (Portal → Alunos ou Equipe). Gestor: fale com o suporte ProRider.</div>
     <div class="lpx-o lpx-k" style="left:9.836%;top:80.343%;width:8.575%;height:5.645%"><b data-lp="atl">—</b><small data-lpd="atl">&nbsp;</small></div><div class="lpx-o lpx-k" style="left:24.968%;top:80.343%;width:8.575%;height:5.645%"><b data-lp="km">—</b><small data-lpd="km">&nbsp;</small></div><div class="lpx-o lpx-k" style="left:40.101%;top:80.343%;width:9.079%;height:5.645%"><b data-lp="kcal">—</b><small data-lpd="kcal">&nbsp;</small></div><div class="lpx-o lpx-k" style="left:55.612%;top:80.343%;width:9.332%;height:5.645%"><b data-lp="aulas">—</b><small data-lpd="aulas">&nbsp;</small></div><div class="lpx-o lpx-k" style="left:71.627%;top:80.343%;width:8.827%;height:5.645%"><b data-lp="horas">—</b><small data-lpd="horas">&nbsp;</small></div><div class="lpx-o lpx-k" style="left:87.201%;top:80.343%;width:8.197%;height:5.645%"><b data-lp="wpp">—</b><small data-lpd="wpp">&nbsp;</small></div>
   </div>
@@ -469,6 +470,7 @@ button{font-family:inherit}
       <button type="button" onclick="lpLoginMob()" class="lp-go">ENTRAR</button>
       <div class="lp-err " id="loginErr_m"></div>
       <div class="lp-links"><span onclick="document.getElementById('lpDicaM').style.display='block'">Esqueci a senha</span><a href="/aluno">Sou aluno → app</a></div>
+      <div class="lp-links" style="margin-top:6px"><a href="academia.html#criar" style="color:#ffb45a;font-weight:700">Primeiro acesso? Criar conta</a></div>
       <div class="lp-dica" id="lpDicaM">Peça ao gestor da sua academia para gerar uma senha nova (Portal → Alunos ou Equipe). Gestor: fale com o suporte ProRider.</div>
     </div>
   </div>
@@ -772,7 +774,7 @@ button{font-family:inherit}
         </select>
       </div>
     </div>
-    <div class="form-row">
+    <div class="form-row" id="licContatoRow" style="display:none"><!-- 02/10l: o contato é o gestor (seção abaixo) -->
       <div class="form-group">
         <label>Nome do contato</label>
         <input type="text" id="licContatoNome" placeholder="Nome do responsável">
@@ -816,12 +818,18 @@ button{font-family:inherit}
       <div class="form-group"><label>UF</label><input type="text" id="licUf" maxlength="2" placeholder="SP" style="text-transform:uppercase"></div>
     </div>
     <div id="licGestorBox">
-      <div class="lic-sec">Gestor da academia</div>
+      <div class="lic-sec">Gestor da academia <small style="font-weight:500;text-transform:none;letter-spacing:0;color:var(--muted)">· cuida da academia no Portal (agenda, alunos, TV)</small></div>
       <div class="form-row">
         <div class="form-group"><label>Nome do gestor</label><input type="text" id="licGestorNome" placeholder="Paula Souza"></div>
-        <div class="form-group"><label>E-mail do gestor (login)</label><input type="email" id="licGestorEmail" placeholder="paula@academia.com"></div>
+        <div class="form-group"><label>E-mail do gestor (login do Portal)</label><input type="email" id="licGestorEmail" placeholder="paula@academia.com"></div>
       </div>
-      <label class="pr-chk" style="margin-bottom:12px"><input type="checkbox" id="licEnviarEmail" checked> Enviar e-mail de boas-vindas com o acesso ao Portal</label>
+      <div class="lic-sec">Financeiro <small style="font-weight:500;text-transform:none;letter-spacing:0;color:var(--muted)">· só ele paga a licença e vê as faturas</small></div>
+      <div class="form-row">
+        <div class="form-group"><label>Nome do financeiro</label><input type="text" id="licFinNome" placeholder="João Silva"></div>
+        <div class="form-group"><label>E-mail do financeiro (login do pagamento)</label><input type="email" id="licFinEmail" placeholder="financeiro@academia.com"></div>
+      </div>
+      <small style="color:var(--muted);font-size:11px;display:block;margin:-4px 0 10px">Pode ser o mesmo e-mail do gestor. E-mail sem conta: a conta é criada com senha provisória e a pessoa recebe o acesso por e-mail. Trocar um e-mail tira o acesso do anterior.</small>
+      <label class="pr-chk" id="licEnviarEmailBox" style="margin-bottom:12px"><input type="checkbox" id="licEnviarEmail" checked> Enviar e-mail de boas-vindas com o acesso ao Portal</label>
     </div>
     <div class="lic-sec">Sala</div>
     <div class="form-row full">
@@ -1315,7 +1323,8 @@ function openNovaLicenca() {
   document.getElementById('licMaxAlunos').value = '30';
   document.getElementById('licMaxBikes').value = '10';
   document.getElementById('licObs').value = '';
-  ['licLogradouro','licNumero','licBairro','licCep','licCidade','licUf','licGestorNome','licGestorEmail'].forEach(k => document.getElementById(k).value = '');
+  ['licLogradouro','licNumero','licBairro','licCep','licCidade','licUf','licGestorNome','licGestorEmail','licFinNome','licFinEmail'].forEach(k => document.getElementById(k).value = '');
+  document.getElementById('licEnviarEmailBox').style.display = '';
   document.getElementById('licEnviarEmail').checked = true;
   document.getElementById('licGestorBox').style.display = '';
   document.getElementById('licResultado').style.display = 'none';
@@ -1342,7 +1351,13 @@ function editLicenca(id) {
   document.getElementById('licLogradouro').value = l.logradouro||''; document.getElementById('licNumero').value = l.numero||'';
   document.getElementById('licBairro').value = l.bairro||''; document.getElementById('licCep').value = l.cep||'';
   document.getElementById('licCidade').value = l.cidade_lic||l.cidade||''; document.getElementById('licUf').value = l.estado||'';
-  document.getElementById('licGestorBox').style.display = 'none';
+  // 02/10l: gestor e financeiro também na edição
+  document.getElementById('licGestorBox').style.display = '';
+  document.getElementById('licEnviarEmailBox').style.display = 'none';
+  document.getElementById('licGestorNome').value = l.contato_nome || l.gestor_nome || '';
+  document.getElementById('licGestorEmail').value = l.email_gestor || l.contato_email || '';
+  document.getElementById('licFinNome').value = l.financeiro_nome || '';
+  document.getElementById('licFinEmail').value = l.financeiro_email || '';
   document.getElementById('licResultado').style.display = 'none';
   document.getElementById('licVencimento').value = l.vencimento ? l.vencimento.split('T')[0] : '';
   document.getElementById('licObs').value = l.obs||'';
@@ -1365,19 +1380,18 @@ async function salvarLicenca() {
     max_bikes:     parseInt(document.getElementById('licMaxBikes').value)||0,
     vencimento:    document.getElementById('licVencimento').value||null,
     obs:           document.getElementById('licObs').value,
-    status:        document.getElementById('licPlano').value === 'trial' ? 'trial' : 'ativa',
+    status:        'ativa',   // 02/10l: 'trial' travava a TV ("Licença não encontrada ou inativa")
+    gestor_nome:   document.getElementById('licGestorNome').value.trim(),
+    gestor_email:  document.getElementById('licGestorEmail').value.trim(),
+    financeiro_nome:  document.getElementById('licFinNome').value.trim(),
+    financeiro_email: document.getElementById('licFinEmail').value.trim(),
     // 26/09e: endereço e gestor já na criação
     logradouro: document.getElementById('licLogradouro').value.trim(), numero: document.getElementById('licNumero').value.trim(),
     bairro: document.getElementById('licBairro').value.trim(), cep: document.getElementById('licCep').value.trim(),
     cidade_lic: document.getElementById('licCidade').value.trim(), estado: document.getElementById('licUf').value.trim().toUpperCase(),
   };
-  if (!id) {
-    body.gestor_nome = document.getElementById('licGestorNome').value.trim();
-    body.gestor_email = document.getElementById('licGestorEmail').value.trim();
-    body.enviar_email = document.getElementById('licEnviarEmail').checked;
-    if (!body.contato_nome) body.contato_nome = body.gestor_nome;
-    if (!body.contato_email) body.contato_email = body.gestor_email;
-  }
+  body.contato_nome = body.gestor_nome || body.contato_nome; body.contato_email = body.gestor_email || body.contato_email;   // o contato é o gestor
+  if (!id) body.enviar_email = document.getElementById('licEnviarEmail').checked;
   if ((parseInt(body.max_bikes)||0) < 10) { err.textContent = 'A licença precisa de pelo menos 10 bikes.'; err.style.display = 'block'; return; }
   try {
     const method = id ? 'PUT' : 'POST';
@@ -1389,12 +1403,21 @@ async function salvarLicenca() {
       const g = r.gestor, box = document.getElementById('licResultado');
       box.innerHTML = `<div class="pr-warn"><b style="color:#fff">Licença criada: ${r.nome} (código ${r.codigo})</b><br>`
         + (g.senha_provisoria ? `Login do gestor: <b style="color:#fff">${g.email}</b> · senha provisória <b style="color:#fff;user-select:all">${g.senha_provisoria}</b><br>` : `A conta ${g.email} já existia e virou gestor desta licença (senha dela não mudou).<br>`)
+        + (r.financeiro ? (r.financeiro.senha_provisoria ? `Login do financeiro: <b style="color:#fff">${r.financeiro.email}</b> · senha provisória <b style="color:#fff;user-select:all">${r.financeiro.senha_provisoria}</b><br>` : `A conta ${r.financeiro.email} já existia e virou o financeiro desta licença.<br>`) : '')
         + (r.email_enviado ? 'E-mail de boas-vindas enviado.' : (r.email_aviso || 'E-mail não enviado.')) + `</div>`;
       box.style.display = 'block';
       box.scrollIntoView({behavior:'smooth', block:'end'});
       document.getElementById('licEditId').value = r.id;
       toast('✅ Licença criada!'); loadLicencas(); loadDashboard();
       return;
+    }
+    // 02/10l: conta nova de gestor/financeiro -> mostra a senha provisória antes de fechar
+    if (id && (r.gestor_acesso || r.financeiro_acesso)) {
+      const lin = (t, g) => !g ? '' : (g.senha_provisoria ? `${t}: <b style="color:#fff">${g.email}</b> · senha provisória <b style="color:#fff;user-select:all">${g.senha_provisoria}</b>${g.email_enviado ? ' (enviada por e-mail)' : ''}<br>` : `${t}: a conta ${g.email} já existia e ganhou o acesso (a senha dela não mudou).<br>`);
+      const box = document.getElementById('licResultado');
+      box.innerHTML = `<div class="pr-warn"><b style="color:#fff">Licença salva.</b><br>${lin('Gestor', r.gestor_acesso)}${lin('Financeiro', r.financeiro_acesso)}</div>`;
+      box.style.display = 'block'; box.scrollIntoView({behavior:'smooth', block:'end'});
+      toast('✅ Licença salva'); loadLicencas(); loadDashboard(); return;
     }
     closeModal('modalLicenca');
     toast('✅ Licença salva com sucesso!');

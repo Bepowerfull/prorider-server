@@ -738,7 +738,7 @@ function pintarVideo(){
       +' <button class="btn bg bs" style="padding:3px 8px;'+(video.link?'background:rgba(93,177,61,.35)':'')+'" title="'+(video.link?'Toca pelo link (baixado antes): '+esc(video.link):'Sem link: só pelo pendrive')+'" onclick="vidLink()">🔗</button></div>';
   el.innerHTML=cab+
     '<label class="lbl">Chegada (fim do principal) no vídeo</label><div style="display:flex;gap:8px;align-items:center"><input class="in" style="width:110px" value="'+mmss(video.chegada)+'" onchange="vidChegada(this.value)"><button class="btn bd bs" onclick="video=null;pintarVideo();rascunho()">Tirar</button></div>'+
-    '<div class="note" style="margin-top:6px">'+(ws?(ini<0?'<span style="color:#ff8a8a">⚠ O vídeo é '+mmss(-ini)+' mais curto que aquecimento + principal.</span>':'O vídeo começa em '+mmss(ini)+' para chegar junto com o fim do bloco principal.'):'')+'</div>';
+    '<div class="note" style="margin-top:6px">'+(vidFormatoRuim()?'<span style="color:#ff8a8a">⚠ Este vídeo é '+vidFormatoRuim()+' e não roda na TV: converta para MP4 (por exemplo no HandBrake, grátis) e escolha de novo.</span>':ws?(ini<0?'<span style="color:#ff8a8a">⚠ O vídeo é '+mmss(-ini)+' mais curto que aquecimento + principal.</span>':'O vídeo começa em '+mmss(ini)+' para chegar junto com o fim do bloco principal.'):'')+'</div>';
 }
 // ── YouTube (30/09d): o link fica gravado na aula (video.fonte='youtube').
 // A duração vem da API do YouTube quando o navegador consegue carregá-la;
@@ -757,6 +757,8 @@ async function vidLink(){
   video={arquivo:muNomeDoLink(u)||'video.mp4',link:u,dur:dur,chegada:Math.round(dur)}; pintarVideo(); rascunho();
   toast(dur?'🔗 Vídeo pelo link: '+mmss(dur):'🔗 Link guardado (não consegui ler a duração: digite a chegada)',5000);
 }
+// 02/10k: formatos que o navegador da TV não abre
+function vidFormatoRuim(){ if(!video||video.yt) return ''; var e=(String(video.arquivo||'').match(/\.([a-z0-9]+)$/i)||[])[1]||''; e=e.toLowerCase(); return /^(avi|wmv|mkv|flv|mpg|mpeg|3gp|vob|ts)$/.test(e)?e.toUpperCase():''; }
 function ytPedir(){ var b=$('ytBox'); b.style.display=b.style.display==='none'?'block':'none'; if(b.style.display==='block') $('ytUrl').focus(); }
 function ytUsar(){
   var id=ytId($('ytUrl').value); if(!id){ toast('⚠ Esse link não parece ser de um vídeo do YouTube'); return; }
