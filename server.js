@@ -710,6 +710,15 @@ async function runMigrations() {
     `);
     log('Migração licenca_computadores OK');
 
+    // Corrigir emails demo01 com prefixo errado "provider" → "prorider"
+    try {
+      const fix = await db.query(`
+        UPDATE users SET email = REPLACE(email, 'provider.demo01', 'prorider.demo01')
+        WHERE email LIKE 'provider.demo01%'
+      `);
+      if (fix.rowCount > 0) log(`Emails demo01 corrigidos: ${fix.rowCount}`);
+    } catch(e) { log('fix demo01 emails: ' + e.message); }
+
     // ── Licenças: campos de endereço e contacto ────────────────────
     await db.query(`
       ALTER TABLE licencas
