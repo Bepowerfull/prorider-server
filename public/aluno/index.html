@@ -7082,7 +7082,23 @@ async function salaLiberar(id, btn){
 }
 
 // Rota pós-login baseada no role
+// 03/10a: o e-mail que é o FINANCEIRO da licença vê um atalho para o pagamento
+function finAtalho(u){
+  try{
+    var b=document.getElementById('finAtalho');
+    if(!(u && u.financeiro)){ if(b) b.remove(); return; }
+    if(!b){
+      b=document.createElement('button'); b.id='finAtalho'; b.type='button';
+      b.textContent='💳 Pagamento da licença';
+      b.textContent='💳 Você é o financeiro da academia — abrir o pagamento da licença';
+      b.style.cssText='display:block;width:calc(100% - 32px);margin:14px 16px 0;position:relative;z-index:3;background:rgba(255,224,51,.12);color:#ffe033;border:1px solid rgba(255,224,51,.45);border-radius:12px;padding:11px 14px;font-weight:800;font-size:13px;text-align:left;cursor:pointer';
+      b.onclick=function(){ try{ localStorage.setItem('pr_fin_token',prToken); localStorage.setItem('pr_fin_user',JSON.stringify(prUser)); }catch(e){} location.href='/financeiro.html'; };
+      var h=document.getElementById('sHome'); if(h) h.insertBefore(b, h.firstChild); else return;
+    }
+  }catch(e){}
+}
 function rotearPorRole(user) {
+  finAtalho(user);
   // A home e sempre a mesma para todos (decisao do Mario): o que muda para
   // o professor e o card roxo e a gaveta. Entao vamos para a home ja, e a
   // interface de professor liga-se quando a lista de unidades chegar.
@@ -7331,7 +7347,7 @@ function _lgErr(msg){
 }
 
 function lgLogout(){
-  prToken=null; prUser=null;
+  prToken=null; prUser=null; finAtalho(null);
   localStorage.removeItem('pr_token');
   updateProfileUI();
   _toast('Sessão encerrada','#888');

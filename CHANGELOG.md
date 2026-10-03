@@ -33,6 +33,29 @@ Componentes: `servidor` · `app` · `ginasio` · `portal` · `banco`.
 
 ---
 
+## 2026-10-03 · servidor + admin + financeiro + app + Ginásio · 03/10a — revisão completa do pagamento
+
+**O que mudou**
+- **Vencimento certo no Asaas:** a 1ª fatura vence no **próximo vencimento da licença** (antes: sempre "hoje" — o caso do Demo 2, dia 3 em vez de 4). Mudou o vencimento ou o valor no admin → a fatura em aberto e a assinatura do Asaas mudam juntas (`PUT /payments/{id}` e `PUT /subscriptions/{id}`). Botão "Acertar Asaas".
+- **Uma regra só para a situação** (`finSituacao`): Em dia · A vencer (nunca pagou, 1º vencimento ainda não chegou) · Vencido · Suspenso (pago antes e +5 dias vencido → TV trava, inclusive na ativação). Admin (lista, Financeiro, Pagamentos), página do financeiro e TV usam a mesma.
+- `licencas.vencimento` = **próximo vencimento** (editável); `pagamento_ok_ate` = pago até. O "dia X" vira consequência da data.
+- **Livro-caixa único** (`pagamentos`): colunas `origem`, `asaas_id` (único), `venc_ref`, `cobre_ate`. Cada pagamento confirmado cobre 1 mês a partir do vencimento que pagou; `pgRecalc` recalcula a licença.
+- **Webhook reescrito:** acha a licença pela referência, pela assinatura ou pelo cliente; CONFIRMED/RECEIVED gravam no livro (sem duplicar); **desfazer no Asaas** (RECEIVED_IN_CASH_UNDONE, REFUNDED, DELETED, CHARGEBACK…) volta o vencimento; cartão recusado vira aviso na página do financeiro.
+- **Registro manual = "recebido por fora"** (PIX, transferência, dinheiro, boleto avulso, cortesia). Não aceita "cartão", exige "Confirmo que o dinheiro já entrou", mostra o que vai cobrir, pula a fatura do cartão no Asaas. Botão **Desfazer** (fica riscado no histórico).
+- **Fim do efeito colateral:** abrir a página de pagamentos punha a licença como `bloqueada` (travava a TV). Removido, e as `bloqueada` voltam a `ativa` na subida.
+- **Datas sem fuso:** 04/10 aparecia 03/10 no admin (`fmtDate`).
+- **Acesso com senha:** gestor e financeiro pela mesma função; a tela diz se o e-mail com a senha saiu e, se não, **o motivo** (sem RESEND_API_KEY / Resend sem domínio verificado) e um botão **Copiar acesso p/ WhatsApp**. Novo: **Nova senha p/ financeiro / gestor** (gera provisória e reenvia).
+- **E-mail do financeiro** com texto próprio ("Entrar e pagar").
+- **Excluir licença cancela a assinatura** no Asaas.
+- **Financeiro em qualquer entrada:** menu "Pagamento da licença" no Portal e faixa amarela no app quando o e-mail é o financeiro; `/user/me` traz `financeiro`.
+- **Ginásio:** tela de transição de segmento entra cobrindo tudo (sem o "corte" do gráfico/vídeo).
+
+**Como confirmar**
+- `tpg2.js` (39 verificações com Asaas simulado) e `tpgui.js` (telas): tudo OK.
+
+**Cuidados**
+- `ASAAS_WEBHOOK_TOKEN` continua obrigatório. E-mail só sai com `RESEND_API_KEY` + domínio verificado + `EMAIL_FROM`.
+
 ## 2026-10-03 · servidor + portal · 02/10m — página do financeiro com menu (Pagamento · Meus dados) e senha provisória
 
 **O que mudou**

@@ -32,7 +32,12 @@ Lista do que foi combinado com o Mario e ainda não foi feito. Quem fizer um ite
 - [x] **Arquivo .tcx** da aula para Strava/Garmin.
 - [x] **Painel do gestor:** ocupação por dia e horário e alunos sumidos (com e-mail na hora).
 
+## Feito na 03/10a
+- [x] Revisão do pagamento: vencimento certo no Asaas, situação única, livro-caixa, desfazer, e-mail com motivo e senha nova.
+
 ## Pendências abertas
+- [ ] **Resend com domínio verificado** (prorider.com.br) e `EMAIL_FROM` no Railway — sem isso o e-mail com a senha só chega no dono da conta Resend.
+- [ ] **Trocar o cartão da cobrança automática** pela página do financeiro (hoje: falar com a ProRider).
 - [ ] **Pagamento da licença: testar no sandbox do Asaas** antes da 1ª cobrança real (feito na 02/10h com Asaas simulado). Conferir se a assinatura guarda o cartão pago pela página do Asaas para os meses seguintes, e como trocar o cartão.
 - [ ] **Desafio ao vivo: "convite" com a aula já no Portal** (hoje a aula vai às outras academias quando a TV da mãe abre a tela do QR).
 - [ ] **Músicas pela conta do Dropbox** (escolher direto da conta, como o Spivi): precisa criar um app gratuito no Dropbox e usar a chave dele. Hoje é colar o link (02/10f).

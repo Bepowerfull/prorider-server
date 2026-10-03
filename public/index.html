@@ -118,6 +118,8 @@ tr:hover td{background:rgba(255,255,255,.02)}
 /* ── Aluno detail ── */
 .detail-grid{display:grid;grid-template-columns:300px 1fr;gap:20px;align-items:start}
 .detail-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:20px}
+.detail-row{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px}
+.detail-row:last-of-type{border-bottom:0}.detail-lbl{color:var(--muted);flex-shrink:0}.detail-val{text-align:right;color:#fff}
 .detail-card h3{font-size:13px;font-weight:700;letter-spacing:1px;color:var(--muted);text-transform:uppercase;margin-bottom:16px}
 .info-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.05);font-size:13px}
 .info-row:last-child{border-bottom:none}
@@ -646,7 +648,7 @@ button{font-family:inherit}
       <div class="table-wrap">
         <div class="table-header"><h2>Status de pagamento por academia</h2></div>
         <table>
-          <thead><tr><th>Status</th><th>Academia</th><th>Valor/mês</th><th>Último pagto</th><th>Vencimento</th><th>Financeiro</th><th>Ações</th></tr></thead>
+          <thead><tr><th>Situação</th><th>Academia</th><th>Valor/mês</th><th>Último pagto</th><th>Próximo vencimento</th><th>Financeiro</th><th>Ações</th></tr></thead>
           <tbody id="finTable"></tbody>
         </table>
       </div>
@@ -659,7 +661,7 @@ button{font-family:inherit}
       <h1 id="pgtoTitle">Pagamentos</h1>
       <div class="actions">
         <button class="btn btn-outline btn-sm" onclick="showPage('financeiro')">← Voltar</button>
-        <button class="btn btn-primary" onclick="openRegistrarPagto()">+ Registrar Pagamento</button>
+        <button class="btn btn-primary" title="Só para dinheiro que já entrou por fora (PIX, dinheiro, transferência). Não cobra cartão." onclick="openRegistrarPagto()">+ Registrar recebido por fora</button>
       </div>
     </div>
     <div class="content">
@@ -673,7 +675,7 @@ button{font-family:inherit}
         <div class="table-wrap">
           <div class="table-header"><h2>Histórico de pagamentos</h2></div>
           <table>
-            <thead><tr><th>Data</th><th>Referência</th><th>Valor</th><th>Método</th><th>Status</th></tr></thead>
+            <thead><tr><th>Pago em</th><th>Referência</th><th>Valor</th><th>Método</th><th>Status</th><th></th></tr></thead>
             <tbody id="pgtoHistTable"></tbody>
           </table>
         </div>
@@ -708,30 +710,38 @@ button{font-family:inherit}
 
 </div><!-- /main -->
 
-<!-- MODAL REGISTRAR PAGAMENTO -->
+<!-- MODAL REGISTRAR PAGAMENTO (03/10a: só dinheiro recebido por fora — NÃO cobra cartão) -->
 <div class="modal-overlay" id="modalPagto" style="display:none">
-  <div class="modal" style="max-width:400px">
-    <h2>Registrar Pagamento</h2>
+  <div class="modal" style="max-width:440px">
+    <h2>Registrar pagamento recebido por fora</h2>
+    <div class="pr-warn" style="margin-bottom:12px"><b style="color:#fff">Isto NÃO cobra o cartão.</b> Use só quando o dinheiro já entrou por PIX, dinheiro ou transferência.<br>Pagamento com cartão é feito pelo financeiro da academia (página dele) e aparece aqui sozinho.</div>
     <input type="hidden" id="pgtoLicId">
     <div class="form-row">
-      <div class="form-group"><label>Valor (R$)</label><input type="number" id="pgtoValor" step="0.01" placeholder="0,00"></div>
-      <div class="form-group"><label>Data do pagamento</label><input type="date" id="pgtoData"></div>
+      <div class="form-group"><label>Como recebeu</label>
+        <select id="pgtoMetodo" style="width:100%;padding:8px 12px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:#fff">
+          <option value="pix">PIX</option>
+          <option value="transferencia">Transferência</option>
+          <option value="dinheiro">Dinheiro</option>
+          <option value="boleto">Boleto avulso</option>
+          <option value="cortesia">Cortesia (sem cobrança)</option>
+        </select>
+      </div>
+      <div class="form-group"><label>Valor recebido (R$)</label><input type="number" id="pgtoValor" step="0.01" placeholder="0,00"></div>
     </div>
     <div class="form-row">
-      <div class="form-group"><label>Referência</label><input type="text" id="pgtoRef" placeholder="Junho/2026"></div>
-      <div class="form-group"><label>Método</label>
-        <select id="pgtoMetodo" style="width:100%;padding:8px 12px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:#fff">
-          <option value="cartao">Cartão</option>
-          <option value="pix">PIX</option>
-          <option value="boleto">Boleto</option>
-          <option value="dinheiro">Dinheiro</option>
+      <div class="form-group"><label>Data em que recebeu</label><input type="date" id="pgtoData"></div>
+      <div class="form-group"><label>Quantos meses cobre</label>
+        <select id="pgtoMeses" onchange="pgtoPrevia()" style="width:100%;padding:8px 12px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:#fff">
+          <option value="1">1 mês</option><option value="2">2 meses</option><option value="3">3 meses</option><option value="6">6 meses</option><option value="12">12 meses</option>
         </select>
       </div>
     </div>
-    <div class="form-group"><label>Observação</label><input type="text" id="pgtoObs" placeholder="Opcional"></div>
+    <div id="pgtoPrevia" style="font-size:12px;color:var(--muted);margin:2px 0 10px"></div>
+    <div class="form-group"><label>Observação</label><input type="text" id="pgtoObs" placeholder="Opcional (ex.: comprovante no WhatsApp)"></div>
+    <label class="pr-chk" style="margin:6px 0 4px"><input type="checkbox" id="pgtoConfirmo"> Confirmo que o dinheiro já entrou na conta</label>
     <div class="modal-actions">
       <button class="btn btn-outline" onclick="closePagtoModal()">Cancelar</button>
-      <button class="btn btn-primary" onclick="salvarPagamento()">Confirmar Pagamento</button>
+      <button class="btn btn-primary" onclick="salvarPagamento()">Registrar</button>
     </div>
   </div>
 </div>
@@ -744,7 +754,7 @@ button{font-family:inherit}
     <div class="form-group"><label>Email financeiro (responsável pelo pagamento)</label><input type="email" id="finEmail" placeholder="financeiro@academia.com.br"></div>
     <div class="form-group"><label>Nome do responsável financeiro</label><input type="text" id="finNome" placeholder="João Silva - Financeiro"></div>
     <div class="form-row">
-      <div class="form-group"><label>Dia de vencimento</label><input type="number" id="finDiaVenc" min="1" max="28" value="10"></div>
+      <div class="form-group"><label>Próximo vencimento</label><input type="date" id="finVenc"></div>
       <div class="form-group"><label>Valor mensal (R$)</label><input type="number" id="finValor" step="0.01"></div>
     </div>
     <div class="modal-actions">
@@ -800,8 +810,8 @@ button{font-family:inherit}
         <input type="number" id="licMaxAlunos" value="30">
       </div>
       <div class="form-group">
-        <label>Vencimento</label>
-        <input type="date" id="licVencimento">
+        <label>Próximo vencimento</label>
+        <input type="date" id="licVencimento" title="A data que a academia tem que pagar. Mudou aqui, a fatura do cartão no Asaas muda junto.">
       </div>
     </div>
     <div class="lic-sec">Endereço</div>
@@ -1056,11 +1066,13 @@ async function loadDashboard() {
 
 // ── Licenças ──────────────────────────────────────────────────
 // Status de pagamento → dot colorido
+// 03/10a: a mesma situação do servidor (admin, financeiro e TV usam a mesma regra)
 const PGTO_STATUS = {
-  em_dia:   { cor:'#5db13d', label:'Em dia',   title:'Pagamento em dia' },
-  atrasado: { cor:'#d7c414', label:'Atrasado', title:'Pagamento em atraso' },
-  bloqueado:{ cor:'#d62d2d', label:'Bloqueado',title:'Bloqueado — +15 dias de atraso' },
-  pendente: { cor:'#888',    label:'Pendente', title:'Sem pagamento registrado' },
+  em_dia:   { cor:'#5db13d', label:'Em dia',   title:'Pago até depois de hoje' },
+  a_vencer: { cor:'#5b8cff', label:'A vencer', title:'Ainda não pagou nenhuma vez — o 1º vencimento ainda não chegou' },
+  vencido:  { cor:'#d7c414', label:'Vencido',  title:'Passou do vencimento (a TV trava 5 dias depois, se já pagou alguma vez)' },
+  suspenso: { cor:'#d62d2d', label:'Suspenso', title:'Mais de 5 dias vencido — a TV está travada' },
+  pendente: { cor:'#888',    label:'—',        title:'Sem vencimento definido' },
 };
 function pgtoDot(status) {
   const s = PGTO_STATUS[status] || PGTO_STATUS.pendente;
@@ -1089,7 +1101,7 @@ function renderLicencas(list) {
     const nm = (l.nome_fantasia||l.nome), nmq = nm.replace(/'/g,'');
     return `
     <tr>
-      <td>${pgtoDot(l.status_pagamento||'pendente')}</td>
+      <td>${pgtoDot(l.situacao||'pendente')}<div class="lic-sub" title="Próximo vencimento">vence ${fmtDate(l.proximo_vencimento)}</div></td>
       <td><strong>${nm}</strong><div class="lic-sub">${[l.cidade_lic||l.cidade, l.estado].filter(Boolean).join(' · ') || '—'} · <span style="font-family:monospace">${l.codigo}</span>${l.status!=='ativa'?` · <span class="badge badge-${l.status}">${l.status}</span>`:''}</div></td>
       <td>${l.gestor_nome||l.contato_nome||'<span style="color:var(--muted)">—</span>'}</td>
       <td>${l.max_bikes||'—'}</td>
@@ -1186,102 +1198,163 @@ async function loadFinanceiro() {
     const r = d.resumo || {};
     document.getElementById('finKpis').innerHTML = [
       ['Receita Mensal', 'R$ '+parseFloat(r.receita_mensal||0).toLocaleString('pt-BR',{minimumFractionDigits:2}), 'var(--green)'],
-      ['Em Dia', r.em_dia||0, '#5db13d'],
-      ['Atrasadas', r.atrasado||0, '#d7c414'],
-      ['Bloqueadas', r.bloqueado||0, '#d62d2d'],
+      ['Em dia', r.em_dia||0, '#5db13d'],
+      ['A vencer (1º pagamento)', r.a_vencer||0, '#5b8cff'],
+      ['Vencidas', r.vencido||0, '#d7c414'],
+      ['Suspensas (TV travada)', r.suspenso||0, '#d62d2d'],
     ].map(([k,v,c]) => `<div class="stat-card"><div class="label">${k}</div><div class="value" style="color:${c}">${v}</div></div>`).join('');
     const tb = document.getElementById('finTable');
     const list = d.licencas || [];
     if (!list.length) { tb.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:32px;color:var(--muted)">Sem licenças.</td></tr>'; return; }
     tb.innerHTML = list.map(l => `
       <tr>
-        <td>${pgtoDot(l.status_pagamento)}</td>
+        <td>${pgtoDot(l.situacao)}</td>
         <td><strong>${l.nome_fantasia||l.nome}</strong></td>
         <td style="color:var(--green)">R$ ${parseFloat(l.valor_mensal||0).toFixed(2)}</td>
         <td style="font-size:12px;color:var(--muted)">${l.ultimo_pagamento ? fmtDate(l.ultimo_pagamento) : '—'}</td>
-        <td style="font-size:12px;color:var(--muted)">Dia ${l.dia_vencimento||10}</td>
+        <td style="font-size:12px">${fmtDate(l.proximo_vencimento)}${l.pago_ate ? `<br><span style="font-size:11px;color:var(--muted)">pago até ${fmtDate(l.pago_ate)}</span>` : ''}</td>
         <td style="font-size:12px;color:var(--muted)">${l.financeiro_nome||'—'}<br><span style="font-size:11px">${l.financeiro_email||''}</span></td>
         <td>
           <div style="display:flex;gap:6px">
             <button class="btn btn-primary btn-sm" onclick="abrirPagamentos('${l.codigo}','${(l.nome_fantasia||l.nome).replace(/'/g,'')}')">Ver pagamentos</button>
-            <button class="btn btn-outline btn-sm" onclick="openFinModal(${l.id},'${l.financeiro_email||''}','${l.financeiro_nome||''}',${l.dia_vencimento||10},${l.valor_mensal||0})">⚙️</button>
+            <button class="btn btn-outline btn-sm" onclick="openFinModal(${l.id},'${l.financeiro_email||''}','${(l.financeiro_nome||'').replace(/'/g,'')}','${l.proximo_vencimento||''}',${l.valor_mensal||0})">⚙️</button>
           </div>
         </td>
       </tr>`).join('');
   } catch(e) { console.error(e); }
 }
 
+// 03/10a: página de pagamentos de uma licença — situação única, livro-caixa e "Desfazer"
+var _pgLic = null;
+const _pgNome = () => document.getElementById('pgtoTitle').textContent.replace('Pagamentos — ','');
 async function abrirPagamentos(licId, nome) {
   currentPgtoLicId = licId;
   document.getElementById('pgtoTitle').textContent = 'Pagamentos — ' + nome;
   showPage('pagamentos');
   try {
     const d = await api('/admin/pagamentos/' + licId);
-    const l = d.licenca || {};
+    const l = _pgLic = d.licenca || {}, az = d.asaas || {};
+    const row = ([k,v]) => `<div class="detail-row"><span class="detail-lbl">${k}</span><span class="detail-val">${v}</span></div>`;
     document.getElementById('pgtoLicCard').innerHTML =
-      `<h3 style="margin-bottom:12px">Academia</h3>` +
-      [['Nome', l.nome_fantasia||l.nome||'—'],['Código',l.codigo],['Status', `<span class="badge badge-${l.status}">${l.status}</span>`],
-       ['Plano',l.plano],['Valor/mês','R$ '+parseFloat(l.valor_mensal||0).toFixed(2)]
-      ].map(([k,v])=>`<div class="detail-row"><span class="detail-lbl">${k}</span><span class="detail-val">${v}</span></div>`).join('');
+      `<h3 style="margin-bottom:12px">Situação</h3>` +
+      [['Situação', pgtoDot(l.situacao)],
+       ['Próximo vencimento', `<b>${fmtDate(l.proximo_vencimento)}</b>`],
+       ['Pago até', l.pago_ate ? fmtDate(l.pago_ate) : 'nunca pagou'],
+       ['Valor/mês','R$ '+parseFloat(l.valor_mensal||0).toFixed(2)],
+       ['Cartão (Asaas)', !az.ligado ? '<span style="color:var(--muted)">Asaas não ligado no servidor</span>' : (az.assinatura ? `assinatura <span style="font-family:monospace;font-size:11px">${az.assinatura}</span>` : '<span style="color:var(--muted)">o financeiro ainda não cadastrou o cartão</span>')],
+      ].map(row).join('') +
+      (az.aviso ? `<div class="pr-warn" style="margin-top:10px">${az.aviso}</div>` : '') +
+      `<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:12px">
+         <button class="btn btn-outline btn-sm" onclick="openFinModal(${l.id},'${l.financeiro_email||''}','${(l.financeiro_nome||'').replace(/'/g,'')}','${l.proximo_vencimento||''}',${l.valor_mensal||0})">Mudar vencimento / valor</button>
+         ${az.assinatura ? `<button class="btn btn-outline btn-sm" title="Põe a fatura em aberto do Asaas no próximo vencimento e no valor da licença" onclick="pgSyncAsaas()">Acertar Asaas</button>` : ''}
+       </div>`;
     document.getElementById('pgtoFinCard').innerHTML =
-      `<h3 style="margin-bottom:12px">Financeiro <button class="btn btn-outline btn-sm" style="float:right;margin-top:-4px" onclick="openFinModal(${l.id},'${l.financeiro_email||''}','${l.financeiro_nome||''}',${l.dia_vencimento||10},${l.valor_mensal||0})">Editar</button></h3>` +
-      [['Responsável',l.financeiro_nome||'—'],['E-mail',l.financeiro_email||'—'],
-       ['Vencimento','Dia '+( l.dia_vencimento||10)],['Status pagto', pgtoDot(l.status_pagamento||'pendente')]
-      ].map(([k,v])=>`<div class="detail-row"><span class="detail-lbl">${k}</span><span class="detail-val">${v}</span></div>`).join('');
+      `<h3 style="margin-bottom:12px">Acessos</h3>` +
+      [['Financeiro', (l.financeiro_nome||'—') + '<br><span style="font-size:11px;color:var(--muted)">' + (l.financeiro_email||'sem e-mail') + '</span>'],
+       ['Gestor', (l.contato_nome||'—') + '<br><span style="font-size:11px;color:var(--muted)">' + (l.email_gestor||'sem e-mail') + '</span>']].map(row).join('') +
+      `<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:12px">
+        ${l.financeiro_email ? `<button class="btn btn-outline btn-sm" onclick="reenviarAcesso(${l.id},'financeiro')">Nova senha p/ financeiro</button>` : ''}
+        ${l.email_gestor ? `<button class="btn btn-outline btn-sm" onclick="reenviarAcesso(${l.id},'gestor')">Nova senha p/ gestor</button>` : ''}
+      </div><div id="pgAcessoRes" style="margin-top:10px"></div>`;
     const hist = d.pagamentos || [];
     const tb = document.getElementById('pgtoHistTable');
     if (!hist.length) {
-      tb.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:32px;color:var(--muted)">Nenhum pagamento registrado ainda.</td></tr>';
+      tb.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:32px;color:var(--muted)">Nenhum pagamento ainda. Pagamento com cartão (Asaas) aparece aqui sozinho.</td></tr>';
     } else {
-      tb.innerHTML = hist.map(p => `<tr>
+      tb.innerHTML = hist.map(p => {
+        const ok = p.status === 'confirmado', manual = p.origem === 'manual';
+        return `<tr style="${ok ? '' : 'opacity:.55'}">
         <td style="font-size:12px">${fmtDate(p.data_pgto)}</td>
-        <td>${p.referencia||'—'}</td>
+        <td>${p.referencia||'—'}${p.cobre_ate ? `<div style="font-size:11px;color:var(--muted)">cobre até ${fmtDate(p.cobre_ate)}</div>` : ''}</td>
         <td style="color:var(--green);font-weight:700">R$ ${parseFloat(p.valor).toFixed(2)}</td>
-        <td style="font-size:12px;color:var(--muted)">${p.metodo}</td>
-        <td><span class="badge badge-ativa">${p.status}</span></td>
-      </tr>`).join('');
+        <td style="font-size:12px;color:var(--muted)">${p.metodo||'—'}<div style="font-size:10px">${manual ? 'lançado à mão' + (p.registrado_por && p.registrado_por !== 'asaas' ? ' por ' + p.registrado_por : '') : 'Asaas (automático)'}</div></td>
+        <td><span class="badge ${ok ? 'badge-ativa' : 'badge-suspensa'}">${ok ? 'confirmado' : p.status}</span></td>
+        <td>${manual ? `<button class="btn btn-danger btn-sm" title="Apaga este lançamento e volta o vencimento" onclick="desfazerPagamento(${p.id}, '${fmtDate(p.data_pgto)}', '${parseFloat(p.valor).toFixed(2)}')">Desfazer</button>` : (ok ? '<span style="font-size:10px;color:var(--muted)">estorne no Asaas</span>' : '')}</td>
+      </tr>`; }).join('');
     }
   } catch(e) { console.error(e); }
 }
+async function desfazerPagamento(id, data, valor) {
+  if (!confirm(`Desfazer o lançamento de R$ ${valor} (${data})?\n\nO vencimento volta para a data que ele cobria. Use quando foi registrado por engano.`)) return;
+  const r = await api('/admin/pagamentos/' + currentPgtoLicId + '/' + id, { method: 'DELETE' });
+  if (r.error) return alert(r.error);
+  toast('Lançamento desfeito — próximo vencimento ' + fmtDate(r.proximo_vencimento));
+  abrirPagamentos(currentPgtoLicId, _pgNome());
+}
+async function pgSyncAsaas() {
+  const r = await api('/admin/pagamentos/' + currentPgtoLicId + '/sync-asaas', { method: 'POST' });
+  alert(r.ok ? 'Asaas acertado: ' + r.msg : 'Não deu: ' + (r.msg || r.error));
+}
+// Texto pronto para mandar pelo WhatsApp (quando o e-mail não sai)
+function acessoTexto(a, academia) {
+  const fin = a.papel === 'financeiro';
+  return `Olá${a.nome ? ', ' + a.nome.split(' ')[0] : ''}! Seu acesso ${fin ? 'ao pagamento da licença' : 'ao Portal'} ProRider${academia ? ' — ' + academia : ''}:\n`
+    + `Site: https://www.prorider.com.br/academia.html\nE-mail: ${a.email}\nSenha provisória: ${a.senha_provisoria}\n`
+    + `No primeiro acesso o sistema pede para trocar a senha.`;
+}
+var _acTx = [];
+function copiarAcesso(k) {
+  const t = _acTx[k];
+  (navigator.clipboard ? navigator.clipboard.writeText(t) : Promise.reject()).then(() => toast('Copiado — cole no WhatsApp')).catch(() => prompt('Copie o texto:', t));
+}
+function acessoHtml(titulo, a, academia) {
+  if (!a) return '';
+  if (a.ja_existia) return `${titulo}: a conta <b style="color:#fff">${a.email}</b> já existia e ganhou o acesso (a senha dela não mudou — se ela não lembra, use "Nova senha" na página de Pagamentos).<br>`;
+  const k = _acTx.push(acessoTexto(a, academia)) - 1;
+  return `${titulo}: <b style="color:#fff">${a.email}</b> · senha provisória <b style="color:#fff;user-select:all">${a.senha_provisoria}</b><br>`
+    + (a.email_enviado ? '<span style="color:#7fd67f">✓ e-mail com a senha enviado</span>' : `<span style="color:#ff8a8a">✗ e-mail NÃO enviado</span>${a.email_motivo ? ' — ' + a.email_motivo : ''}`)
+    + ` <button class="btn btn-outline btn-sm" style="margin:4px 0" onclick="copiarAcesso(${k})">📋 Copiar acesso p/ WhatsApp</button><br>`;
+}
+async function reenviarAcesso(licDbId, papel) {
+  if (!confirm(`Gerar uma senha provisória NOVA para o ${papel} e mandar por e-mail?\n\nA senha atual dele deixa de valer.`)) return;
+  const r = await api('/admin/licencas/' + licDbId + '/reenviar-acesso', { method: 'POST', body: JSON.stringify({ papel }) });
+  const box = document.getElementById('pgAcessoRes');
+  if (r.error) { box.innerHTML = `<div class="pr-warn">${r.error}</div>`; return; }
+  box.innerHTML = `<div class="pr-warn">${acessoHtml(papel === 'financeiro' ? 'Financeiro' : 'Gestor', r, _pgNome())}</div>`;
+}
 
+// Registrar pagamento RECEBIDO POR FORA — não cobra cartão
 function openRegistrarPagto() {
+  const l = _pgLic || {};
   document.getElementById('pgtoLicId').value = currentPgtoLicId;
-  document.getElementById('pgtoValor').value = '';
-  document.getElementById('pgtoData').value = new Date().toISOString().split('T')[0];
-  const now = new Date();
-  document.getElementById('pgtoRef').value = now.toLocaleDateString('pt-BR',{month:'long',year:'numeric'});
-  document.getElementById('pgtoMetodo').value = 'cartao';
+  document.getElementById('pgtoValor').value = l.valor_mensal ? parseFloat(l.valor_mensal).toFixed(2) : '';
+  document.getElementById('pgtoData').value = hojeSP();
+  document.getElementById('pgtoMeses').value = '1';
+  document.getElementById('pgtoMetodo').value = 'pix';
   document.getElementById('pgtoObs').value = '';
+  document.getElementById('pgtoConfirmo').checked = false;
+  pgtoPrevia();
   document.getElementById('modalPagto').style.display = 'flex';
+}
+function pgtoPrevia() {
+  const l = _pgLic || {}, v = l.proximo_vencimento, n = parseInt(document.getElementById('pgtoMeses').value) || 1;
+  document.getElementById('pgtoPrevia').innerHTML = v
+    ? `Vai cobrir o vencimento de <b>${fmtDate(v)}</b> — o próximo passa a ser <b>${fmtDate(maisMesJS(v, n))}</b>.` + (l.asaas_sub ? '<br>A fatura do cartão no Asaas pula junto (não cobra este mês de novo).' : '')
+    : 'Esta licença ainda não tem vencimento definido.';
 }
 function closePagtoModal() { document.getElementById('modalPagto').style.display = 'none'; }
 
 async function salvarPagamento() {
   const licId = document.getElementById('pgtoLicId').value;
+  const metodo = document.getElementById('pgtoMetodo').value;
   const valor = parseFloat(document.getElementById('pgtoValor').value);
-  if (!valor || valor <= 0) { alert('Informe o valor.'); return; }
-  const body = {
-    valor, data_pgto: document.getElementById('pgtoData').value,
-    referencia: document.getElementById('pgtoRef').value,
-    metodo: document.getElementById('pgtoMetodo').value,
-    obs: document.getElementById('pgtoObs').value,
-  };
-  const r = await fetch(SERVER+'/admin/pagamentos/'+licId, {
-    method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+adminToken},
-    body: JSON.stringify(body)
-  });
-  if (r.ok) {
-    closePagtoModal();
-    toast('Pagamento registrado! ✅');
-    abrirPagamentos(licId, document.getElementById('pgtoTitle').textContent.replace('Pagamentos — ',''));
-  } else { alert('Erro ao salvar.'); }
+  if (metodo !== 'cortesia' && (!valor || valor <= 0)) { alert('Informe o valor recebido.'); return; }
+  if (!document.getElementById('pgtoConfirmo').checked) { alert('Marque a confirmação de que o dinheiro já entrou na conta.'); return; }
+  const r = await api('/admin/pagamentos/'+licId, { method: 'POST', body: JSON.stringify({
+    valor: valor || 0, data_pgto: document.getElementById('pgtoData').value, metodo,
+    meses: parseInt(document.getElementById('pgtoMeses').value) || 1,
+    obs: document.getElementById('pgtoObs').value, confirmo: true }) });
+  if (r.error) { alert(r.error); return; }
+  closePagtoModal();
+  toast('Registrado ✅ — próximo vencimento ' + fmtDate(r.proximo_vencimento));
+  abrirPagamentos(licId, _pgNome());
 }
 
-function openFinModal(id, email, nome, dia, valor) {
+function openFinModal(id, email, nome, venc, valor) {
   document.getElementById('finLicDbId').value = id;
   document.getElementById('finEmail').value = email||'';
   document.getElementById('finNome').value = nome||'';
-  document.getElementById('finDiaVenc').value = dia||10;
+  document.getElementById('finVenc').value = /^\d{4}-\d{2}-\d{2}$/.test(venc||'') ? venc : '';
   document.getElementById('finValor').value = valor||0;
   document.getElementById('modalFinanceiro').style.display = 'flex';
 }
@@ -1292,18 +1365,16 @@ async function salvarFinanceiro() {
   const body = {
     financeiro_email: document.getElementById('finEmail').value,
     financeiro_nome:  document.getElementById('finNome').value,
-    dia_vencimento:   parseInt(document.getElementById('finDiaVenc').value)||10,
+    vencimento:       document.getElementById('finVenc').value || null,
     valor_mensal:     parseFloat(document.getElementById('finValor').value)||0,
   };
-  const r = await fetch(SERVER+'/admin/licencas/'+id+'/financeiro', {
-    method:'PATCH', headers:{'Content-Type':'application/json','Authorization':'Bearer '+adminToken},
-    body: JSON.stringify(body)
-  });
-  if (r.ok) {
-    closeFinModal(); toast('Dados financeiros salvos!');
-    if (document.getElementById('page-financeiro').classList.contains('active')) loadFinanceiro();
-    else if (document.getElementById('page-pagamentos').classList.contains('active')) abrirPagamentos(currentPgtoLicId, document.getElementById('pgtoTitle').textContent.replace('Pagamentos — ',''));
-  } else { alert('Erro ao salvar.'); }
+  const r = await api('/admin/licencas/'+id+'/financeiro', { method: 'PATCH', body: JSON.stringify(body) });
+  if (r.error) { alert(r.error); return; }
+  closeFinModal();
+  toast('Salvo — próximo vencimento ' + fmtDate(r.proximo_vencimento) + (r.asaas && r.asaas.ok ? ' (Asaas acertado)' : ''));
+  if (r.financeiro_acesso && !r.financeiro_acesso.ja_existia) alert(acessoTexto(r.financeiro_acesso, r.nome) + (r.financeiro_acesso.email_enviado ? '\n\n(e-mail enviado)' : '\n\nE-mail NÃO enviado: ' + (r.financeiro_acesso.email_motivo || '') + '\nPasse este texto pelo WhatsApp.'));
+  if (document.getElementById('page-financeiro').classList.contains('active')) loadFinanceiro();
+  else if (document.getElementById('page-pagamentos').classList.contains('active')) abrirPagamentos(currentPgtoLicId, _pgNome());
 }
 
 function filterLicencas(q) {
@@ -1329,8 +1400,7 @@ function openNovaLicenca() {
   document.getElementById('licGestorBox').style.display = '';
   document.getElementById('licResultado').style.display = 'none';
   // Default vencimento = 30 dias
-  var d = new Date(); d.setDate(d.getDate()+30);
-  document.getElementById('licVencimento').value = d.toISOString().split('T')[0];
+  document.getElementById('licVencimento').value = maisMesJS(hojeSP(), 1);
   document.getElementById('licErrMsg').style.display = 'none';
   openModal('modalLicenca');
 }
@@ -1359,7 +1429,7 @@ function editLicenca(id) {
   document.getElementById('licFinNome').value = l.financeiro_nome || '';
   document.getElementById('licFinEmail').value = l.financeiro_email || '';
   document.getElementById('licResultado').style.display = 'none';
-  document.getElementById('licVencimento').value = l.vencimento ? l.vencimento.split('T')[0] : '';
+  document.getElementById('licVencimento').value = l.vencimento ? String(l.vencimento).slice(0,10) : '';
   document.getElementById('licObs').value = l.obs||'';
   document.getElementById('licErrMsg').style.display = 'none';
   openModal('modalLicenca');
@@ -1399,25 +1469,19 @@ async function salvarLicenca() {
     const r = await api(path, { method, body: JSON.stringify(body) });
     if (r.error) { err.textContent = r.error; err.style.display = 'block'; return; }
     // 26/09e: licença nova com gestor -> mostra o acesso criado antes de fechar
-    if (!id && r.gestor) {
-      const g = r.gestor, box = document.getElementById('licResultado');
-      box.innerHTML = `<div class="pr-warn"><b style="color:#fff">Licença criada: ${r.nome} (código ${r.codigo})</b><br>`
-        + (g.senha_provisoria ? `Login do gestor: <b style="color:#fff">${g.email}</b> · senha provisória <b style="color:#fff;user-select:all">${g.senha_provisoria}</b><br>` : `A conta ${g.email} já existia e virou gestor desta licença (senha dela não mudou).<br>`)
-        + (r.financeiro ? (r.financeiro.senha_provisoria ? `Login do financeiro: <b style="color:#fff">${r.financeiro.email}</b> · senha provisória <b style="color:#fff;user-select:all">${r.financeiro.senha_provisoria}</b><br>` : `A conta ${r.financeiro.email} já existia e virou o financeiro desta licença.<br>`) : '')
-        + (r.email_enviado ? 'E-mail de boas-vindas enviado.' : (r.email_aviso || 'E-mail não enviado.')) + `</div>`;
-      box.style.display = 'block';
-      box.scrollIntoView({behavior:'smooth', block:'end'});
-      document.getElementById('licEditId').value = r.id;
-      toast('✅ Licença criada!'); loadLicencas(); loadDashboard();
-      return;
-    }
-    // 02/10l: conta nova de gestor/financeiro -> mostra a senha provisória antes de fechar
-    if (id && (r.gestor_acesso || r.financeiro_acesso)) {
-      const lin = (t, g) => !g ? '' : (g.senha_provisoria ? `${t}: <b style="color:#fff">${g.email}</b> · senha provisória <b style="color:#fff;user-select:all">${g.senha_provisoria}</b>${g.email_enviado ? ' (enviada por e-mail)' : ''}<br>` : `${t}: a conta ${g.email} já existia e ganhou o acesso (a senha dela não mudou).<br>`);
-      const box = document.getElementById('licResultado');
-      box.innerHTML = `<div class="pr-warn"><b style="color:#fff">Licença salva.</b><br>${lin('Gestor', r.gestor_acesso)}${lin('Financeiro', r.financeiro_acesso)}</div>`;
+    // 03/10a: mostra o acesso criado (senha provisória), se o e-mail saiu e, se não, o motivo + botão de copiar p/ WhatsApp
+    const ga = id ? r.gestor_acesso : r.gestor, fa = id ? r.financeiro_acesso : r.financeiro;
+    if (!id || ga || fa) {
+      const box = document.getElementById('licResultado'), acad = r.nome_fantasia || r.nome;
+      box.innerHTML = `<div class="pr-warn"><b style="color:#fff">${id ? 'Licença salva.' : `Licença criada: ${r.nome} (código ${r.codigo})`}</b><br>`
+        + acessoHtml('Gestor', ga, acad) + (fa && fa.mesmo_do_gestor ? 'Financeiro: o mesmo e-mail do gestor.<br>' : acessoHtml('Financeiro', fa, acad))
+        + (!id && !ga && !fa ? 'Sem e-mail de gestor/financeiro — dá para pôr depois, editando a licença.' : '')
+        + (r.gestor_erro || r.financeiro_erro || r.acesso_erro ? `<br><span style="color:#ff8a8a">Erro no acesso: ${r.gestor_erro || r.financeiro_erro || r.acesso_erro}</span>` : '')
+        + `</div>`;
       box.style.display = 'block'; box.scrollIntoView({behavior:'smooth', block:'end'});
-      toast('✅ Licença salva'); loadLicencas(); loadDashboard(); return;
+      if (!id) document.getElementById('licEditId').value = r.id;
+      toast(id ? '✅ Licença salva' : '✅ Licença criada!'); loadLicencas(); loadDashboard();
+      return;
     }
     closeModal('modalLicenca');
     toast('✅ Licença salva com sucesso!');
@@ -1427,10 +1491,10 @@ async function salvarLicenca() {
 }
 
 async function deleteLicenca(id, nome) {
-  if (!confirm('Excluir licença "'+nome+'"? Esta ação não pode ser desfeita.')) return;
+  if (!confirm('Excluir licença "'+nome+'"? Esta ação não pode ser desfeita.\n\nSe o cartão estiver cadastrado, a assinatura no Asaas é cancelada junto.')) return;
   const r = await api('/admin/licencas/'+id, { method: 'DELETE' });
-  if (r.ok) { toast('🗑️ Licença removida.'); loadLicencas(); loadDashboard(); }
-  else toast('❌ Erro ao remover.');
+  if (r.ok) { toast('🗑️ Licença removida.' + (r.asaas ? ' ' + r.asaas + '.' : '')); loadLicencas(); loadDashboard(); }
+  else alert(r.error || 'Erro ao remover.');
 }
 
 // ── Alunos ────────────────────────────────────────────────────
@@ -1595,8 +1659,13 @@ document.querySelectorAll('.modal-overlay').forEach(m => {
 // ── Utilitários ───────────────────────────────────────────────
 function fmtDate(d) {
   if (!d) return '—';
+  // 03/10a: data pura (vencimento, pagamento) não passa pelo fuso — antes 04/10 aparecia 03/10
+  const m = String(d).match(/^(\d{4})-(\d{2})-(\d{2})(T00:00:00(\.000)?Z)?$/);
+  if (m) return m[3] + '/' + m[2] + '/' + m[1];
   return new Date(d).toLocaleDateString('pt-BR');
 }
+function hojeSP() { return new Date(Date.now() - 3*3600000).toISOString().slice(0,10); }
+function maisMesJS(iso, n) { const [y,m,d] = iso.split('-').map(Number); const t = new Date(Date.UTC(y, m-1+(n||1), 1)); const u = new Date(Date.UTC(t.getUTCFullYear(), t.getUTCMonth()+1, 0)).getUTCDate(); t.setUTCDate(Math.min(d,u)); return t.toISOString().slice(0,10); }
 function fmtSeg(s) {
   if (!s) return '—';
   var m = Math.floor(s/60), sec = s%60;

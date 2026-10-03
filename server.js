@@ -173,7 +173,17 @@ async function enviarEmail({ to, subject, html }) {
   } catch (e) { return { ok: false, erro: e.message }; }
 }
 // Manda uma vez só por (tipo, ref). Se já foi, não manda de novo.
+let _emailUltimoErro = null;
+// 03/10a: por que o e-mail não saiu (o admin vê isto e passa o acesso pelo WhatsApp)
+function emailMotivo(erro) {
+  if (!emailProvedor()) return 'O servidor não tem e-mail configurado (falta RESEND_API_KEY no Railway).';
+  const from = process.env.EMAIL_FROM || 'onboarding@resend.dev';
+  if (/resend\.dev/i.test(from) || /verify a domain|testing emails|only send/i.test(String(erro || '')))
+    return 'O Resend está sem domínio verificado (remetente ' + from + '): ele só entrega para o dono da conta Resend. Falta verificar o domínio e pôr EMAIL_FROM.';
+  return 'O provedor de e-mail recusou: ' + String(erro || 'erro desconhecido').slice(0, 160);
+}
 async function emailUmaVez(tipo, ref, userId, to, subject, html) {
+  _emailUltimoErro = null;
   if (!db || !emailProvedor() || !to) return false;
   try {
     const ins = await db.query(
@@ -184,6 +194,7 @@ async function emailUmaVez(tipo, ref, userId, to, subject, html) {
     if (!r.ok) {
       // falhou: libera para tentar de novo mais tarde
       await db.query('DELETE FROM email_log WHERE id=$1', [ins.rows[0].id]);
+      _emailUltimoErro = r.erro || 'falhou';
       log(`E-mail ${tipo} para ${to} falhou: ${r.erro}`);
       return false;
     }
@@ -257,7 +268,7 @@ async function emailBoasVindas({ userId, email, nome, academia, licId, senhaTemp
     ? `<p>Olá, <b>${_esc(nome || '')}</b>! A licença <b>${_esc(academia || '')}</b> está pronta no ProRider.</p>
        <p>Entre no Portal com:</p>
        <p style="background:#0b0b0e;border-radius:8px;padding:12px 14px">E-mail: <b>${_esc(email)}</b>${senhaTemp ? `<br>Senha provisória: <b>${_esc(senhaTemp)}</b>` : ''}</p>
-       <p>No Portal você monta a agenda, acompanha os alunos, escolhe o que aparece no ranking da TV e muito mais.${senhaTemp ? ' Troque a senha no primeiro acesso.' : ''}</p>`
+       <p>${papel === 'financeiro' ? 'Ao entrar, abre a página de <b>pagamento da licença</b>: lá você cadastra o cartão (na página segura do Asaas) e vê as faturas e recibos.' : 'No Portal você monta a agenda, acompanha os alunos, escolhe o que aparece no ranking da TV e muito mais.'}${senhaTemp ? ' Troque a senha no primeiro acesso.' : ''}</p>`
     : null;
   if (!gestor) {
     const cfgA = licId ? await emailsCfgDe(licId) : {};
@@ -266,9 +277,9 @@ async function emailBoasVindas({ userId, email, nome, academia, licId, senhaTemp
     return emailUmaVez('boas_vindas', 'u' + (userId || email), userId, email, m.subject, m.html);
   }
   return emailUmaVez('boas_vindas', 'u' + (userId || email), userId, email,
-    gestor ? `Sua licença ProRider está pronta — ${academia || ''}` : `Bem-vindo(a) ao ProRider${academia ? ' — ' + academia : ''}`,
-    emailLayout(gestor ? 'Bem-vindo ao Portal ProRider' : 'Bem-vindo(a)!', corpo,
-      gestor ? 'Abrir o Portal' : null, PORTAL_URL + '/academia.html', academia));
+    papel === 'financeiro' ? `Seu acesso ao pagamento da licença ProRider — ${academia || ''}` : `Sua licença ProRider está pronta — ${academia || ''}`,
+    emailLayout(papel === 'financeiro' ? 'Acesso do financeiro' : 'Bem-vindo ao Portal ProRider', corpo,
+      papel === 'financeiro' ? 'Entrar e pagar' : 'Abrir o Portal', PORTAL_URL + '/academia.html', academia));
 }
 async function emailResumoAula(uid, a) {
   if (!db || !emailProvedor()) return;
@@ -710,27 +721,6 @@ async function runMigrations() {
     `);
     log('Migração licenca_computadores OK');
 
-    // Corrigir emails demo01 com prefixo errado "provider" → "prorider"
-    try {
-      const fix = await db.query(`UPDATE users SET email = REPLACE(email, 'provider.demo01', 'prorider.demo01') WHERE email LIKE 'provider.demo01%'`);
-      if (fix.rowCount > 0) log(`Emails demo01 corrigidos: ${fix.rowCount}`);
-    } catch(e) { log('fix demo01 emails: ' + e.message); }
-
-    // Criar licenças e contas financeiro Demo 01 e Demo 02
-    try {
-      const bcryptSeed = require('bcrypt');
-      const senhaHash = await bcryptSeed.hash('12345678', 10);
-      await db.query(`INSERT INTO licencas (codigo, nome, status, max_bikes) VALUES ('PRDR-DEMO-001','ProRider Demo 01','ativa',20) ON CONFLICT (codigo) DO UPDATE SET status='ativa'`);
-      await db.query(`INSERT INTO users (email, name, password_hash, role) VALUES ('prorider.demo01.financeiro@hotmail.com','Financeiro Demo 01',$1,'financeiro') ON CONFLICT (email) DO UPDATE SET password_hash=$1, role='financeiro'`, [senhaHash]);
-      await db.query(`UPDATE users SET role='financeiro', license_id='PRDR-DEMO-001' WHERE email='prorider.demo01.financeiro@hotmail.com'`);
-      await db.query(`UPDATE licencas SET financeiro_email='prorider.demo01.financeiro@hotmail.com', financeiro_nome='Financeiro Demo 01' WHERE codigo='PRDR-DEMO-001'`);
-      await db.query(`INSERT INTO licencas (codigo, nome, status, max_bikes) VALUES ('PRDR-DEMO-002','ProRider Demo 02','ativa',20) ON CONFLICT (codigo) DO NOTHING`);
-      await db.query(`INSERT INTO users (email, name, password_hash, role) VALUES ('prorider.demo02.financeiro@hotmail.com','Financeiro Demo 02',$1,'financeiro') ON CONFLICT (email) DO UPDATE SET password_hash=$1, role='financeiro'`, [senhaHash]);
-      await db.query(`UPDATE users SET role='financeiro', license_id='PRDR-DEMO-002' WHERE email='prorider.demo02.financeiro@hotmail.com'`);
-      await db.query(`UPDATE licencas SET financeiro_email='prorider.demo02.financeiro@hotmail.com', financeiro_nome='Financeiro Demo 02' WHERE codigo='PRDR-DEMO-002'`);
-      log('Demo 01/02 financeiro OK');
-    } catch(e) { log('demo financeiro seed: ' + e.message); }
-
     // ── Licenças: campos de endereço e contacto ────────────────────
     await db.query(`
       ALTER TABLE licencas
@@ -837,6 +827,11 @@ async function runMigrations() {
     await db.query(`UPDATE licencas SET status='ativa' WHERE status IS NULL OR status='trial'`).then(r => { if (r.rowCount) log('02/10l: ' + r.rowCount + ' licença(s) sem situação → ativa'); }).catch(e => log('Migração 02/10l ERRO: ' + e.message));
     await db.query(`ALTER TABLE licencas ALTER COLUMN status SET DEFAULT 'ativa'`).catch(() => {});
     await db.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS senha_provisoria BOOLEAN DEFAULT FALSE`).catch(() => {});   // 02/10m: pede a troca no 1º acesso
+    // 03/10a: livro-caixa único (manual + Asaas) e fim do "bloqueada" automático
+    await db.query(`ALTER TABLE pagamentos ADD COLUMN IF NOT EXISTS origem TEXT, ADD COLUMN IF NOT EXISTS asaas_id TEXT, ADD COLUMN IF NOT EXISTS venc_ref DATE, ADD COLUMN IF NOT EXISTS cobre_ate DATE`).catch(e => log('Migração 03/10a ERRO: ' + e.message));
+    await db.query(`CREATE UNIQUE INDEX IF NOT EXISTS pagamentos_asaas_id_uq ON pagamentos(asaas_id)`).catch(e => log('Migração 03/10a índice ERRO: ' + e.message));
+    await db.query(`ALTER TABLE licencas ADD COLUMN IF NOT EXISTS asaas_aviso TEXT`).catch(() => {});
+    await db.query(`UPDATE licencas SET status='ativa' WHERE status='bloqueada'`).then(r => { if (r.rowCount) log('03/10a: ' + r.rowCount + ' licença(s) "bloqueada" (efeito colateral antigo) → ativa'); }).catch(() => {});
     setTimeout(() => geoPreencherFaltando().catch(e => log('geo backfill: ' + e.message)), 15000);
 
   } catch(e) {
@@ -997,7 +992,8 @@ app.get('/user/me', authMiddleware, async (req, res) => {
       [req.user.id]
     );
     if (!r.rows.length) return res.status(404).json({ error: 'Usuário não encontrado' });
-    res.json(r.rows[0]);
+    const fin = await finLicencaDe(r.rows[0].email).catch(() => null);   // 03/10a: o app e o Portal mostram o atalho do pagamento
+    res.json(Object.assign(r.rows[0], { financeiro: !!fin, financeiro_licenca: fin || null }));
   } catch(e) {
     res.status(500).json({ error: 'Erro interno' });
   }
@@ -2059,7 +2055,7 @@ app.get('/admin/licencas', adminAuth, async (req, res) => {
         (SELECT u.name FROM users u WHERE u.license_id=l.codigo AND u.role='gestor' ORDER BY u.id LIMIT 1) AS gestor_nome
       FROM licencas l ORDER BY l.created_at DESC
     `);
-    res.json(r.rows);
+    res.json(r.rows.map(l => ({ ...l, ...finResumo(l), status_pagamento: finSituacao(l), vencimento: isoDia(l.vencimento) })));   // 03/10a: situação única
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
@@ -2090,39 +2086,18 @@ app.post('/admin/licencas', adminAuth, async (req, res) => {
          (b.gestor_email||'').trim().toLowerCase() || null, r.rows[0].id]);
     } catch(_e) { log('licenca endereço: ' + _e.message); }
     geoAtualizarPorEndereco(r.rows[0].id, false).catch(() => {}); // 29/09c
-    // 26/09e: cria o login do gestor e manda o e-mail de boas-vindas
+    // 26/09e → 03/10a: gestor e financeiro pela mesma função (conta nova = senha provisória + e-mail com a senha)
     const out = { ...r.rows[0] };
+    try { await db.query('UPDATE licencas SET dia_vencimento=COALESCE(EXTRACT(DAY FROM vencimento)::smallint, dia_vencimento) WHERE id=$1', [out.id]); } catch (_e) {}
+    const enviar = b.enviar_email !== false;
     const gEmail = String(b.gestor_email || '').trim().toLowerCase();
-    if (gEmail) {
-      try {
-        const ex = await db.query('SELECT id, role, license_id FROM users WHERE email=$1', [gEmail]);
-        let senhaTemp = null, uid;
-        if (ex.rows.length) {
-          uid = ex.rows[0].id;
-          // conta que já existe: vira gestor desta licença (sem mexer na senha),
-          // a não ser que seja admin/super admin
-          if (!['admin', 'super_admin'].includes(ex.rows[0].role))
-            await db.query("UPDATE users SET role='gestor', license_id=$1, updated_at=NOW() WHERE id=$2", [codigo, uid]);
-          out.gestor = { id: uid, email: gEmail, ja_existia: true };
-        } else {
-          senhaTemp = 'PR-' + crypto.randomBytes(4).toString('hex');
-          const ins = await db.query(`INSERT INTO users (email, name, password_hash, role, license_id, senha_provisoria) VALUES ($1,$2,$3,'gestor',$4,TRUE) RETURNING id`,
-            [gEmail, b.gestor_nome || contato_nome || 'Gestor', await bcrypt.hash(senhaTemp, 10), codigo]);
-          uid = ins.rows[0].id;
-          out.gestor = { id: uid, email: gEmail, senha_provisoria: senhaTemp };
-        }
-        if (b.enviar_email !== false) {
-          out.email_enviado = await emailBoasVindas({ userId: uid, email: gEmail, nome: b.gestor_nome || contato_nome, academia: nome, licId: null, senhaTemp, papel: 'gestor' });
-          if (!emailProvedor()) out.email_aviso = 'E-mail não configurado no servidor — passe a senha ao gestor manualmente.';
-        }
-      } catch(_e) { out.gestor_erro = _e.message; }
-    }
-    // 02/10l: financeiro já na criação
+    if (gEmail) { try { out.gestor = await acessoVincular(codigo, 'gestor', gEmail, b.gestor_nome || contato_nome, nome, null, enviar); } catch (_e) { out.gestor_erro = _e.message; } }
     const fEmail = String(b.financeiro_email || '').trim().toLowerCase();
     if (fEmail) { try {
       await db.query('UPDATE licencas SET financeiro_email=$1, financeiro_nome=$2 WHERE id=$3', [fEmail, b.financeiro_nome || null, out.id]);
-      out.financeiro = await acessoVincular(codigo, 'financeiro', fEmail, b.financeiro_nome, nome, null);
+      out.financeiro = (fEmail === gEmail && out.gestor) ? Object.assign({}, out.gestor, { mesmo_do_gestor: true }) : await acessoVincular(codigo, 'financeiro', fEmail, b.financeiro_nome, nome, null, enviar);
     } catch (_e) { out.financeiro_erro = _e.message; } }
+    out.email_enviado = !!((out.gestor && out.gestor.email_enviado) || (out.financeiro && out.financeiro.email_enviado));
     res.json(out);
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
@@ -2150,6 +2125,15 @@ app.put('/admin/licencas/:id', adminAuth, async (req, res) => {
     );
     // disponiveis nunca acima do vendido (24/09)
     try { await db.query('UPDATE licencas SET bikes_disponiveis=LEAST(COALESCE(NULLIF(bikes_disponiveis,0), max_bikes), max_bikes) WHERE id=$1', [req.params.id]); } catch(_e) {}
+    // 03/10a: mudou o vencimento ou o valor -> a situação e a fatura do Asaas acompanham
+    { const A = _antes.rows[0] || {}, N = r.rows[0] || {};
+      const vMudou = isoDia(A.vencimento) !== isoDia(N.vencimento), $Mudou = Number(A.valor_mensal) !== Number(N.valor_mensal);
+      if (N.codigo && vMudou && N.vencimento) {
+        await db.query('UPDATE licencas SET pagamento_ok_ate=CASE WHEN pagamento_ok_ate IS NOT NULL THEN vencimento ELSE NULL END WHERE id=$1', [N.id]);
+        log(`[Pagamento] ${N.codigo}: vencimento mudado pelo admin ${isoDia(A.vencimento)} → ${isoDia(N.vencimento)}`);
+      }
+      if (N.codigo && (vMudou || $Mudou)) { Object.assign(N, await pgSituacao(N.codigo)); N.asaas = await asaasSyncLic(N.codigo); }
+      if (N.codigo) Object.assign(N, finResumo(N), { vencimento: isoDia(N.vencimento) }); }
     // 02/10l: gestor e financeiro definidos aqui (cada um com o seu e-mail)
     { const A = _antes.rows[0] || {}, N = r.rows[0] || {}, b2 = req.body || {}, low = v => String(v || '').trim().toLowerCase();
       try {
@@ -2160,7 +2144,8 @@ app.put('/admin/licencas/:id', adminAuth, async (req, res) => {
         if (N.codigo && b2.financeiro_email !== undefined) {
           await db.query('UPDATE licencas SET financeiro_email=$1, financeiro_nome=$2 WHERE id=$3', [low(b2.financeiro_email) || null, b2.financeiro_nome || null, N.id]);
           if (low(b2.financeiro_email) !== low(A.financeiro_email))
-            N.financeiro_acesso = await acessoVincular(N.codigo, 'financeiro', b2.financeiro_email, b2.financeiro_nome, N.nome_fantasia || N.nome, A.financeiro_email);
+            N.financeiro_acesso = (N.gestor_acesso && low(b2.financeiro_email) === low(b2.gestor_email)) ? Object.assign({}, N.gestor_acesso, { mesmo_do_gestor: true })
+              : await acessoVincular(N.codigo, 'financeiro', b2.financeiro_email, b2.financeiro_nome, N.nome_fantasia || N.nome, A.financeiro_email);
         }
       } catch (e) { N.acesso_erro = e.message; } }
     // 29/09c: endereço mudou (ou ainda sem localização) -> procura no mapa
@@ -2174,8 +2159,15 @@ app.put('/admin/licencas/:id', adminAuth, async (req, res) => {
 app.delete('/admin/licencas/:id', adminAuth, async (req, res) => {
   if (!db) return res.status(503).json({ error: 'Banco indisponível' });
   try {
+    // 03/10a: licença apagada não pode continuar cobrando o cartão
+    const l = (await db.query('SELECT codigo, asaas_sub FROM licencas WHERE id=$1', [req.params.id])).rows[0];
+    let asaas = null;
+    if (l && l.asaas_sub && ASAAS_API_KEY) {
+      try { await asaasApi('DELETE', '/subscriptions/' + l.asaas_sub); asaas = 'assinatura cancelada no Asaas'; log(`[Asaas] assinatura ${l.asaas_sub} cancelada (licença ${l.codigo} excluída)`); }
+      catch (e) { return res.status(502).json({ error: 'Não consegui cancelar a assinatura no Asaas (' + e.message + '). Cancele lá e tente excluir de novo.' }); }
+    }
     await db.query('DELETE FROM licencas WHERE id=$1', [req.params.id]);
-    res.json({ ok: true });
+    res.json({ ok: true, asaas });
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
@@ -2275,82 +2267,185 @@ app.post('/admin/impersonate/:license_id', adminAuth, async (req, res) => {
 // PAGAMENTOS — admin gerencia pagamentos de todas as licenças
 // ══════════════════════════════════════════════════════════════
 
-// Helper — calcula status de pagamento automático
-function calcStatusPagamento(ultimoPagamento, diaVenc) {
-  if (!ultimoPagamento) return 'pendente';
-  const hoje  = new Date(); hoje.setHours(0,0,0,0);
-  const pgto  = new Date(ultimoPagamento);
-  const mesAtual = hoje.getMonth(), anoAtual = hoje.getFullYear();
-  // Data de vencimento do mês atual
-  const vencMesAtual = new Date(anoAtual, mesAtual, diaVenc || 10);
-  // Se já pagou neste mês ou no mês passado e ainda não venceu
-  const mesUltimoPgto  = pgto.getMonth();
-  const anoUltimoPgto  = pgto.getFullYear();
-  const diffMeses = (anoAtual - anoUltimoPgto) * 12 + (mesAtual - mesUltimoPgto);
-  if (diffMeses === 0) return 'em_dia';
-  const diasAtraso = Math.floor((hoje - vencMesAtual) / 86400000);
-  if (diasAtraso < 0)  return 'em_dia';    // ainda não venceu
-  if (diasAtraso < 15) return 'atrasado';  // amarelo
-  return 'bloqueado';                       // vermelho — corta acesso
+// ── 03/10a: PAGAMENTO — UMA REGRA SÓ ─────────────────────────────────
+// licencas.vencimento       = PRÓXIMO vencimento (a data que falta pagar). O admin edita.
+// licencas.pagamento_ok_ate = pago até (NULL = nunca pagou). É o que trava a TV (+5 dias).
+// pagamentos                = livro-caixa: cada linha confirmada cobre [venc_ref, cobre_ate).
+//   origem 'asaas'  → veio do webhook (cartão, ou "recebido em dinheiro" marcado no Asaas)
+//   origem 'manual' → dinheiro recebido POR FORA (PIX/dinheiro/transferência). Não cobra cartão.
+// Qualquer mudança no livro chama pgRecalc(), que recalcula a licença inteira.
+function dataSP(d) { return new Date((d ? new Date(d).getTime() : Date.now()) - 3 * 3600000).toISOString().slice(0, 10); }  // "hoje" em São Paulo
+function isoDia(v) {
+  if (!v) return null;
+  if (v instanceof Date) return isNaN(v) ? null : `${v.getFullYear()}-${String(v.getMonth() + 1).padStart(2, '0')}-${String(v.getDate()).padStart(2, '0')}`;  // o pg monta DATE à meia-noite local
+  const m = String(v).match(/^(\d{4}-\d{2}-\d{2})/); return m ? m[1] : null;
+}
+function maisMes(iso, n = 1) {   // 31/01 + 1 mês = 28/02 (nunca pula mês)
+  const [y, m, d] = iso.split('-').map(Number);
+  const t = new Date(Date.UTC(y, m - 1 + n, 1)), ult = new Date(Date.UTC(t.getUTCFullYear(), t.getUTCMonth() + 1, 0)).getUTCDate();
+  t.setUTCDate(Math.min(d, ult)); return t.toISOString().slice(0, 10);
+}
+function diasEntre(a, b) { return Math.round((Date.parse(b) - Date.parse(a)) / 86400000); }
+// Próximo vencimento: o que o admin pôs na licença; senão "pago até"; senão o próximo "dia X".
+function proxVenc(l) {
+  const v = isoDia(l.vencimento) || isoDia(l.pagamento_ok_ate);
+  if (v) return v;
+  const hoje = dataSP(), dia = Math.min(28, Math.max(1, parseInt(l.dia_vencimento) || 10));
+  let c = hoje.slice(0, 8) + String(dia).padStart(2, '0');
+  return c < hoje ? maisMes(c) : c;
+}
+const SUSPENDE_APOS_DIAS = 5;
+// Situação única (admin, dashboard, página do financeiro e TV usam esta):
+//  em_dia · a_vencer (nunca pagou, 1º vencimento ainda não chegou) · vencido (até 5 dias) · suspenso (TV trava)
+function finSituacao(l) {
+  if (l.status === 'suspensa') return 'suspenso';
+  const hoje = dataSP(), ok = isoDia(l.pagamento_ok_ate), pv = proxVenc(l);
+  if (ok && ok > hoje) return 'em_dia';
+  if (pv >= hoje) return ok ? 'em_dia' : 'a_vencer';
+  return (ok && diasEntre(pv, hoje) > SUSPENDE_APOS_DIAS) ? 'suspenso' : 'vencido';
+}
+function licTvSuspensa(l) { return finSituacao(l) === 'suspenso'; }
+function finResumo(l) {
+  return { situacao: finSituacao(l), proximo_vencimento: proxVenc(l), pago_ate: isoDia(l.pagamento_ok_ate), ultimo_pagamento: isoDia(l.ultimo_pagamento) };
+}
+// Recalcula a licença a partir do livro. vencDevolvido = vencimento que voltou a ficar em aberto (pagamento desfeito).
+async function pgRecalc(codigo, vencDevolvido) {
+  const r = (await db.query(`SELECT MAX(cobre_ate) FILTER (WHERE status='confirmado') AS ok, MAX(data_pgto) FILTER (WHERE status='confirmado') AS ult,
+                                    COUNT(cobre_ate) AS novos FROM pagamentos WHERE license_id=$1`, [codigo])).rows[0];
+  const ok = isoDia(r.ok);
+  // linhas antigas (antes de 03/10a) não têm cobre_ate: se a licença só tem dessas, não mexe no "pago até"
+  if (parseInt(r.novos) > 0) {
+    await db.query(`UPDATE licencas SET pagamento_ok_ate=$1::date, ultimo_pagamento=$2, vencimento=COALESCE($1::date, $3::date, vencimento), updated_at=NOW() WHERE codigo=$4`,
+      [ok, r.ult, vencDevolvido || null, codigo]);
+  } else {
+    await db.query(`UPDATE licencas SET ultimo_pagamento=$1, vencimento=COALESCE($2::date, vencimento), updated_at=NOW() WHERE codigo=$3`, [r.ult, vencDevolvido || null, codigo]);
+  }
+  return pgSituacao(codigo);
+}
+// Só recalcula a situação (e o "dia X") a partir do que está na licença
+async function pgSituacao(codigo) {
+  const l = (await db.query('SELECT * FROM licencas WHERE codigo=$1', [codigo])).rows[0];
+  if (l) {
+    const s = finSituacao(l);
+    await db.query('UPDATE licencas SET status_pagamento=$1, dia_vencimento=COALESCE(EXTRACT(DAY FROM vencimento)::smallint, dia_vencimento) WHERE codigo=$2', [s, codigo]);
+    l.status_pagamento = s;
+  }
+  return l;
+}
+// Deixa a assinatura do Asaas igual à licença: valor e data da fatura em aberto.
+// (A fatura em aberto vai para o próximo vencimento; a assinatura gera as seguintes a partir daí.)
+async function asaasSyncLic(codigo) {
+  if (!ASAAS_API_KEY || !db) return { ok: false, msg: 'Asaas não ligado' };
+  const l = (await db.query('SELECT * FROM licencas WHERE codigo=$1', [codigo])).rows[0];
+  if (!l || !l.asaas_sub) return { ok: false, msg: 'sem assinatura no Asaas' };
+  try {
+    const valor = Number(l.valor_mensal) || 0, hoje = dataSP();
+    let alvo = proxVenc(l); if (alvo < hoje) alvo = hoje;   // o Asaas não aceita vencimento no passado
+    const d = await asaasApi('GET', '/payments?subscription=' + encodeURIComponent(l.asaas_sub) + '&limit=50');
+    const abertas = (d.data || []).filter(x => ['PENDING', 'OVERDUE'].includes(x.status) && !x.deleted).sort((a, b) => String(a.dueDate).localeCompare(String(b.dueDate)));
+    const feito = [];
+    if (abertas[0] && (abertas[0].dueDate !== alvo || (valor > 0 && Number(abertas[0].value) !== valor))) {
+      await asaasApi('PUT', '/payments/' + abertas[0].id, { billingType: abertas[0].billingType || 'CREDIT_CARD', value: valor > 0 ? valor : abertas[0].value, dueDate: alvo });
+      feito.push('fatura ' + abertas[0].id + ' → ' + alvo);
+    }
+    const ultimaAberta = abertas.length ? (abertas.length > 1 ? abertas[abertas.length - 1].dueDate : alvo) : null;
+    const prox = ultimaAberta ? maisMes(ultimaAberta) : alvo;
+    await asaasApi('PUT', '/subscriptions/' + l.asaas_sub, Object.assign({ nextDueDate: prox }, valor > 0 ? { value: valor, updatePendingPayments: true } : {}));
+    feito.push('assinatura: próxima ' + prox + (valor > 0 ? ', R$ ' + valor : ''));
+    log(`[Asaas] sync ${codigo}: ${feito.join('; ')}`);
+    return { ok: true, msg: feito.join('; ') };
+  } catch (e) { log(`[Asaas] sync ${codigo} falhou: ${e.message}`); return { ok: false, msg: e.message }; }
 }
 
-// Listar pagamentos de uma licença
+// Listar pagamentos de uma licença (só lê — não mexe em nada)
 app.get('/admin/pagamentos/:license_id', adminAuth, async (req, res) => {
   if (!db) return res.status(503).json({ error: 'Banco indisponível' });
   try {
     const [lic, pgs] = await Promise.all([
       db.query('SELECT * FROM licencas WHERE codigo=$1', [req.params.license_id]),
-      db.query('SELECT * FROM pagamentos WHERE license_id=$1 ORDER BY data_pgto DESC LIMIT 24', [req.params.license_id]),
+      db.query("SELECT *, COALESCE(origem, CASE WHEN asaas_id IS NULL THEN 'manual' ELSE 'asaas' END) AS origem FROM pagamentos WHERE license_id=$1 ORDER BY data_pgto DESC, id DESC LIMIT 36", [req.params.license_id]),
     ]);
     if (!lic.rows.length) return res.status(404).json({ error: 'Licença não encontrada' });
     const l = lic.rows[0];
-    const status = calcStatusPagamento(l.ultimo_pagamento, l.dia_vencimento);
-    // Atualiza status_pagamento se mudou
-    if (status !== l.status_pagamento) {
-      await db.query('UPDATE licencas SET status_pagamento=$1, status=$2 WHERE codigo=$3',
-        [status, status === 'bloqueado' ? 'bloqueada' : 'ativa', req.params.license_id]);
-    }
-    res.json({ licenca: { ...l, status_pagamento: status }, pagamentos: pgs.rows });
+    res.json({ licenca: { ...l, ...finResumo(l), status_pagamento: finSituacao(l) }, pagamentos: pgs.rows.map(p => ({ ...p, data_pgto: isoDia(p.data_pgto), venc_ref: isoDia(p.venc_ref), cobre_ate: isoDia(p.cobre_ate) })),
+      asaas: { ligado: !!ASAAS_API_KEY, assinatura: l.asaas_sub || null, cliente: l.asaas_customer || null, aviso: l.asaas_aviso || null } });
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
-// Registrar pagamento
+// Registrar pagamento RECEBIDO POR FORA (PIX, dinheiro, transferência).
+// NÃO cobra cartão. Cobre o próximo vencimento em aberto por 1 mês.
+// Cartão é sempre pelo Asaas (o webhook registra sozinho).
+const METODOS_MANUAIS = { pix: 'PIX', dinheiro: 'Dinheiro', transferencia: 'Transferência', boleto: 'Boleto avulso', cortesia: 'Cortesia (sem cobrança)' };
 app.post('/admin/pagamentos/:license_id', adminAuth, async (req, res) => {
   if (!db) return res.status(503).json({ error: 'Banco indisponível' });
-  const { valor, data_pgto, referencia, metodo, obs } = req.body;
-  if (!valor) return res.status(400).json({ error: 'Valor obrigatório' });
+  const b = req.body || {}, metodo = String(b.metodo || '').toLowerCase();
+  if (!METODOS_MANUAIS[metodo]) return res.status(400).json({ error: 'Cartão é cobrado só pelo Asaas (a confirmação chega sozinha). Aqui registre apenas dinheiro recebido por fora: PIX, dinheiro, transferência, boleto avulso ou cortesia.' });
+  if (b.confirmo !== true) return res.status(400).json({ error: 'Confirme que o dinheiro já entrou na conta.' });
+  const valor = Number(b.valor);
+  if (!(valor >= 0) || (metodo !== 'cortesia' && !(valor > 0))) return res.status(400).json({ error: 'Valor obrigatório' });
   try {
-    const dataPgto = data_pgto || new Date().toISOString().split('T')[0];
-    await db.query(`
-      INSERT INTO pagamentos (license_id, valor, data_pgto, referencia, metodo, obs, registrado_por)
-      VALUES ($1,$2,$3,$4,$5,$6,$7)
-    `, [req.params.license_id, valor, dataPgto, referencia||null, metodo||'cartao', obs||null, req.user.email]);
-    // Atualiza ultimo_pagamento e status
-    await db.query(`
-      UPDATE licencas SET ultimo_pagamento=$1, status_pagamento='em_dia', status='ativa', updated_at=NOW()
-      WHERE codigo=$2
-    `, [dataPgto, req.params.license_id]);
-    res.json({ ok: true });
+    const l = (await db.query('SELECT * FROM licencas WHERE codigo=$1', [req.params.license_id])).rows[0];
+    if (!l) return res.status(404).json({ error: 'Licença não encontrada' });
+    const meses = Math.min(12, Math.max(1, parseInt(b.meses) || 1));
+    const venc = proxVenc(l), cobre = maisMes(venc, meses);
+    const dataPgto = isoDia(b.data_pgto) || dataSP();
+    const ref = b.referencia || ('Vencimento ' + venc.split('-').reverse().join('/') + (meses > 1 ? ` (+${meses} meses)` : ''));
+    const ins = await db.query(`INSERT INTO pagamentos (license_id, valor, data_pgto, referencia, metodo, obs, registrado_por, status, origem, venc_ref, cobre_ate)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,'confirmado','manual',$8,$9) RETURNING id`,
+      [l.codigo, valor, dataPgto, ref, METODOS_MANUAIS[metodo], b.obs || null, req.user.email, venc, cobre]);
+    const n = await pgRecalc(l.codigo);
+    const sync = await asaasSyncLic(l.codigo);   // a fatura do cartão pula para o novo vencimento (não cobra o mês já pago)
+    log(`[Pagamento manual] ${l.codigo} ${METODOS_MANUAIS[metodo]} R$ ${valor} cobre ${venc} → ${cobre} por ${req.user.email}`);
+    res.json({ ok: true, id: ins.rows[0].id, cobre_de: venc, cobre_ate: cobre, ...finResumo(n), asaas: sync });
   } catch(e) { res.status(500).json({ error: e.message }); }
+});
+// Desfazer um registro manual (lançado por engano). Pagamento do Asaas se desfaz no Asaas.
+app.delete('/admin/pagamentos/:license_id/:id', adminAuth, async (req, res) => {
+  if (!db) return res.status(503).json({ error: 'Banco indisponível' });
+  try {
+    const p = (await db.query('SELECT * FROM pagamentos WHERE id=$1 AND license_id=$2', [req.params.id, req.params.license_id])).rows[0];
+    if (!p) return res.status(404).json({ error: 'Registro não encontrado' });
+    if (p.asaas_id) return res.status(400).json({ error: 'Este pagamento veio do Asaas. Desfaça (estorne) lá no Asaas — o sistema atualiza sozinho.' });
+    if (p.status !== 'confirmado') return res.status(400).json({ error: 'Este lançamento já foi desfeito.' });
+    await db.query("UPDATE pagamentos SET status='desfeito', obs=COALESCE(obs||' · ','')||$2 WHERE id=$1", [p.id, 'desfeito por ' + req.user.email + ' em ' + dataSP()]);   // fica no histórico, riscado
+    const n = await pgRecalc(p.license_id, isoDia(p.venc_ref));
+    const sync = await asaasSyncLic(p.license_id);
+    log(`[Pagamento manual] ${p.license_id} registro ${p.id} (R$ ${p.valor}) DESFEITO por ${req.user.email}`);
+    res.json({ ok: true, ...finResumo(n), asaas: sync });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+// Acertar a assinatura do Asaas na mão (botão "Acertar Asaas")
+app.post('/admin/pagamentos/:license_id/sync-asaas', adminAuth, async (req, res) => {
+  res.json(await asaasSyncLic(req.params.license_id));
 });
 
 // Atualizar dados financeiros da licença (email financeiro, dia vencimento, valor)
 app.patch('/admin/licencas/:id/financeiro', adminAuth, async (req, res) => {
   if (!db) return res.status(503).json({ error: 'Banco indisponível' });
-  const { financeiro_email, financeiro_nome, dia_vencimento, valor_mensal } = req.body;
+  const { financeiro_email, financeiro_nome, valor_mensal } = req.body;
   try {
-    const ant = (await db.query('SELECT financeiro_email FROM licencas WHERE id=$1', [req.params.id])).rows[0] || {};
+    const ant = (await db.query('SELECT * FROM licencas WHERE id=$1', [req.params.id])).rows[0];
+    if (!ant) return res.status(404).json({ error: 'Licença não encontrada' });
+    // 03/10a: o vencimento é uma data (próximo vencimento). "dia" antigo ainda é aceito: muda só o dia.
+    let venc = isoDia(req.body.vencimento);
+    if (!venc && req.body.dia_vencimento && parseInt(req.body.dia_vencimento) !== parseInt(ant.dia_vencimento)) {
+      const pv = proxVenc(ant), dia = Math.min(28, Math.max(1, parseInt(req.body.dia_vencimento)));
+      venc = pv.slice(0, 8) + String(dia).padStart(2, '0');
+    }
     const r = await db.query(`
-      UPDATE licencas SET
-        financeiro_email=$1, financeiro_nome=$2,
-        dia_vencimento=$3, valor_mensal=$4, updated_at=NOW()
+      UPDATE licencas SET financeiro_email=$1, financeiro_nome=$2, valor_mensal=$3,
+        vencimento=COALESCE($4::date, vencimento),
+        pagamento_ok_ate=CASE WHEN $4::date IS NOT NULL AND pagamento_ok_ate IS NOT NULL THEN $4::date ELSE pagamento_ok_ate END,
+        dia_vencimento=COALESCE(EXTRACT(DAY FROM $4::date)::smallint, dia_vencimento), updated_at=NOW()
       WHERE id=$5 RETURNING *
-    `, [financeiro_email||null, financeiro_nome||null, dia_vencimento||10, valor_mensal||0, req.params.id]);
+    `, [String(financeiro_email || '').trim().toLowerCase() || null, financeiro_nome || null, Number(valor_mensal) || 0, venc, req.params.id]);
+    const N = r.rows[0];
     let fin = null;
-    if (r.rows[0] && String(financeiro_email || '').trim().toLowerCase() !== String(ant.financeiro_email || '').trim().toLowerCase())
-      fin = await acessoVincular(r.rows[0].codigo, 'financeiro', financeiro_email, financeiro_nome, r.rows[0].nome_fantasia || r.rows[0].nome, ant.financeiro_email);   // 02/10l
-    if (fin) r.rows[0].financeiro_acesso = fin;
-    res.json(r.rows[0]);
+    if (String(financeiro_email || '').trim().toLowerCase() !== String(ant.financeiro_email || '').trim().toLowerCase())
+      fin = await acessoVincular(N.codigo, 'financeiro', financeiro_email, financeiro_nome, N.nome_fantasia || N.nome, ant.financeiro_email);   // 02/10l
+    if (fin) N.financeiro_acesso = fin;
+    if (venc || Number(ant.valor_mensal) !== Number(N.valor_mensal)) { Object.assign(N, await pgSituacao(N.codigo)); N.asaas = await asaasSyncLic(N.codigo); }
+    res.json(Object.assign(N, finResumo(N)));
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
@@ -2360,21 +2455,13 @@ app.get('/admin/financeiro/dashboard', adminAuth, async (req, res) => {
   try {
     const r = await db.query(`
       SELECT l.*,
-        (SELECT COUNT(*) FROM users WHERE license_id=l.codigo AND role='aluno') as total_alunos,
-        (SELECT data_pgto FROM pagamentos WHERE license_id=l.codigo ORDER BY data_pgto DESC LIMIT 1) as ultimo_pgto_data
+        (SELECT COUNT(*) FROM users WHERE license_id=l.codigo AND role='aluno') as total_alunos
       FROM licencas l ORDER BY l.nome
     `);
-    // Recalcular status de cada licença
-    const licencas = r.rows.map(l => ({
-      ...l,
-      status_pagamento: calcStatusPagamento(l.ultimo_pagamento || l.ultimo_pgto_data, l.dia_vencimento)
-    }));
+    const licencas = r.rows.map(l => ({ ...l, ...finResumo(l), status_pagamento: finSituacao(l) }));
+    const conta = s => licencas.filter(l => l.situacao === s).length;
     const resumo = {
-      total: licencas.length,
-      em_dia:   licencas.filter(l => l.status_pagamento === 'em_dia').length,
-      atrasado: licencas.filter(l => l.status_pagamento === 'atrasado').length,
-      bloqueado:licencas.filter(l => l.status_pagamento === 'bloqueado').length,
-      pendente: licencas.filter(l => l.status_pagamento === 'pendente').length,
+      total: licencas.length, em_dia: conta('em_dia'), a_vencer: conta('a_vencer'), vencido: conta('vencido'), suspenso: conta('suspenso'),
       receita_mensal: licencas.reduce((s,l) => s + parseFloat(l.valor_mensal||0), 0),
     };
     res.json({ licencas, resumo });
@@ -2398,6 +2485,7 @@ app.post('/display/ativar', async (req, res) => {
     );
     if (!r.rows.length) return res.status(404).json({ error: 'Licença não encontrada ou inativa' });
     const lic = r.rows[0];
+    if (licTvSuspensa(lic)) return res.status(403).json({ error: 'LICENÇA SUSPENSA — pagamento vencido. Fale com o financeiro da academia.' });
     const devId = device_id || null;
     if (devId) {
       // Registar/atualizar computador; se passar o limite, remove os mais antigos
@@ -2444,11 +2532,7 @@ app.post('/display/renovar', async (req, res) => {
     if (!lic.rows.length) return res.status(403).json({ motivo: 'Licença inativa ou não encontrada' });
     const l = lic.rows[0];
     // Verificar pagamento (5 dias de tolerância)
-    if (l.pagamento_ok_ate) {
-      const tolerance = new Date(l.pagamento_ok_ate);
-      tolerance.setDate(tolerance.getDate() + 5);
-      if (new Date() > tolerance) return res.status(403).json({ motivo: 'LICENÇA SUSPENSA — pagamento vencido' });
-    }
+    if (licTvSuspensa(l)) return res.status(403).json({ motivo: 'LICENÇA SUSPENSA — pagamento vencido' });   // 03/10a: mesma regra do admin
     const devId = device_id || p.device_id || null;
     if (devId) {
       // Verificar se device_id ainda está na lista (tokens antigos sem device_id: aceitar por 30 dias)
@@ -3099,7 +3183,7 @@ async function finLicencaDe(email) {
 // o financeiro não rebaixa um gestor — a página do financeiro vale pelo e-mail).
 // Conta que não existe é criada com senha provisória e recebe o e-mail de boas-vindas.
 // O e-mail anterior perde o papel (volta a aluno).
-async function acessoVincular(codigo, papel, email, nome, academia, antigo) {
+async function acessoVincular(codigo, papel, email, nome, academia, antigo, enviar = true) {
   email = String(email || '').trim().toLowerCase(); antigo = String(antigo || '').trim().toLowerCase();
   if (antigo && antigo !== email) await db.query(`UPDATE users SET role='aluno' WHERE LOWER(email)=$1 AND role=$2 AND license_id=$3`, [antigo, papel, codigo]);
   if (!email) return null;
@@ -3107,14 +3191,42 @@ async function acessoVincular(codigo, papel, email, nome, academia, antigo) {
   if (ex) {
     const pode = papel === 'gestor' ? !['admin', 'super_admin'].includes(ex.role) : ['aluno', 'financeiro'].includes(ex.role);
     if (pode) await db.query('UPDATE users SET role=$1, license_id=$2, updated_at=NOW() WHERE id=$3', [papel, codigo, ex.id]);
-    return { email, ja_existia: true };
+    return { email, papel, ja_existia: true };
   }
   const senhaTemp = 'PR-' + crypto.randomBytes(4).toString('hex');
   const ins = await db.query(`INSERT INTO users (email, name, password_hash, role, license_id, senha_provisoria) VALUES ($1,$2,$3,$4,$5,TRUE) RETURNING id`,
     [email, nome || (papel === 'gestor' ? 'Gestor' : 'Financeiro'), await bcrypt.hash(senhaTemp, 10), papel, codigo]);
-  let enviado = false; try { enviado = await emailBoasVindas({ userId: ins.rows[0].id, email, nome, academia, licId: null, senhaTemp, papel }); } catch (e) {}
-  return { email, senha_provisoria: senhaTemp, email_enviado: !!enviado };
+  let enviado = false, motivo = null;
+  if (enviar) { try { enviado = await emailBoasVindas({ userId: ins.rows[0].id, email, nome, academia, licId: null, senhaTemp, papel }); } catch (e) { _emailUltimoErro = e.message; } }
+  if (enviar && !enviado) motivo = emailMotivo(_emailUltimoErro);
+  log(`[Acesso] ${papel} ${email} criado na licença ${codigo} — e-mail ${enviado ? 'enviado' : 'NÃO enviado' + (motivo ? ' (' + motivo + ')' : '')}`);
+  return { email, papel, nome: nome || '', senha_provisoria: senhaTemp, email_enviado: !!enviado, email_motivo: motivo };
 }
+// 03/10a: "Gerar nova senha e reenviar" — para quando o e-mail não chegou ou a pessoa esqueceu.
+// Gera senha provisória nova (a pessoa troca no 1º acesso) e tenta mandar o e-mail de novo.
+app.post('/admin/licencas/:id/reenviar-acesso', adminAuth, async (req, res) => {
+  if (!db) return res.status(503).json({ error: 'Banco indisponível' });
+  try {
+    const l = (await db.query('SELECT * FROM licencas WHERE id=$1', [req.params.id])).rows[0];
+    if (!l) return res.status(404).json({ error: 'Licença não encontrada' });
+    const papel = req.body && req.body.papel === 'financeiro' ? 'financeiro' : 'gestor';
+    const email = String(papel === 'financeiro' ? l.financeiro_email : l.email_gestor || '').trim().toLowerCase();
+    if (!email) return res.status(400).json({ error: 'Esta licença não tem e-mail de ' + papel + '.' });
+    const u = (await db.query('SELECT id, name, role FROM users WHERE LOWER(email)=$1', [email])).rows[0];
+    if (!u) {   // não tem conta ainda: cria agora
+      const r = await acessoVincular(l.codigo, papel, email, papel === 'financeiro' ? l.financeiro_nome : l.contato_nome, l.nome_fantasia || l.nome, null, true);
+      return res.json(r);
+    }
+    if (['admin', 'super_admin'].includes(u.role)) return res.status(400).json({ error: 'Essa conta é de administrador — a senha dela não é trocada por aqui.' });
+    const senhaTemp = 'PR-' + crypto.randomBytes(4).toString('hex');
+    await db.query('UPDATE users SET password_hash=$1, senha_provisoria=TRUE, updated_at=NOW() WHERE id=$2', [await bcrypt.hash(senhaTemp, 10), u.id]);
+    await db.query("DELETE FROM email_log WHERE tipo='boas_vindas' AND ref=$1", ['u' + u.id]).catch(() => {});
+    let enviado = false; _emailUltimoErro = null;
+    try { enviado = await emailBoasVindas({ userId: u.id, email, nome: u.name, academia: l.nome_fantasia || l.nome, licId: null, senhaTemp, papel }); } catch (e) { _emailUltimoErro = e.message; }
+    log(`[Acesso] nova senha provisória para ${papel} ${email} (licença ${l.codigo}) por ${req.user.email} — e-mail ${enviado ? 'enviado' : 'NÃO enviado'}`);
+    res.json({ email, papel, nome: u.name || '', senha_provisoria: senhaTemp, email_enviado: !!enviado, email_motivo: enviado ? null : emailMotivo(_emailUltimoErro) });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
 // O admin pôs (ou trocou) o e-mail do financeiro: o cadastro com esse e-mail
 // vira "financeiro" da licença; o anterior volta a ser aluno. Gestor e outros
 // papéis não são rebaixados (a página vale pelo e-mail).
@@ -3137,16 +3249,6 @@ async function finAuth(req, res, next) {
 }
 
 // Situação da licença + faturas do Asaas (a página financeiro.html)
-function finSituacao(l) {
-  const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
-  if (l.status === 'suspensa' || l.status_pagamento === 'inadimplente' && l.pagamento_ok_ate && (hoje - new Date(l.pagamento_ok_ate)) / 86400000 > 5) return 'suspenso';
-  if (l.pagamento_ok_ate) {
-    const ate = new Date(l.pagamento_ok_ate);
-    if (ate >= hoje) return 'em_dia';
-    return (hoje - ate) / 86400000 > 5 ? 'suspenso' : 'vencido';
-  }
-  return l.asaas_sub ? 'pendente' : 'sem_cobranca';
-}
 app.get('/academia/financeiro', finAuth, async (req, res) => {
   if (!db) return res.status(503).json({ error: 'Banco indisponível' });
   const licId = req.user.license_id;
@@ -3163,12 +3265,11 @@ app.get('/academia/financeiro', finAuth, async (req, res) => {
           cartao: x.creditCard && x.creditCard.creditCardNumber ? { final: String(x.creditCard.creditCardNumber).slice(-4), bandeira: x.creditCard.creditCardBrand || '' } : null }));
       } catch (e) { erroAsaas = 'Não consegui ler as faturas agora (' + e.message + ').'; }
     } else erroAsaas = 'Cobrança automática ainda não ligada no servidor.';
-    const aberta = faturas.find(x => ['PENDING', 'OVERDUE'].includes(x.status)) || null;
+    const aberta = faturas.filter(x => ['PENDING', 'OVERDUE'].includes(x.status)).sort((a, b) => String(a.vencimento).localeCompare(String(b.vencimento)))[0] || null;
     const cartao = (faturas.find(x => x.cartao) || {}).cartao || null;
-    res.json({ academia: l.nome_fantasia || l.nome, codigo: l.codigo, situacao: finSituacao(l), valor_mensal: Number(l.valor_mensal) || 0,
-      dia_vencimento: l.dia_vencimento, pago_ate: l.pagamento_ok_ate, ultimo_pagamento: l.ultimo_pagamento,
-      financeiro_nome: l.financeiro_nome, financeiro_email: l.financeiro_email, tem_assinatura: !!l.asaas_sub,
-      fatura_aberta: aberta, cartao, faturas, erro_asaas: erroAsaas, suporte: !!req.finSuporte });
+    res.json({ academia: l.nome_fantasia || l.nome, codigo: l.codigo, ...finResumo(l), valor_mensal: Number(l.valor_mensal) || 0,
+      dia_vencimento: l.dia_vencimento, financeiro_nome: l.financeiro_nome, financeiro_email: l.financeiro_email, tem_assinatura: !!l.asaas_sub,
+      aviso: l.asaas_aviso || null, fatura_aberta: aberta, cartao, faturas, erro_asaas: erroAsaas, suporte: !!req.finSuporte });
   } catch (e) { log('financeiro: ' + e.message); res.status(500).json({ error: 'Erro interno' }); }
 });
 // Pagar: na 1ª vez cria o cliente e a assinatura mensal no Asaas (cartão de
@@ -3188,17 +3289,18 @@ app.post('/academia/financeiro/pagar', finAuth, async (req, res) => {
       if (!(doc.length === 11 || doc.length === 14)) return res.status(400).json({ error: 'Informe o CPF ou CNPJ de quem paga (só números).' });
       let cust = l.asaas_customer;
       if (!cust) {
-        const c = await asaasApi('POST', '/customers', { name: String(b.nome || l.financeiro_nome || l.nome).slice(0, 100), email: l.financeiro_email, cpfCnpj: doc, externalReference: licId });
+        const c = await asaasApi('POST', '/customers', { name: String(b.nome || l.financeiro_nome || l.nome).slice(0, 100), email: l.financeiro_email, cpfCnpj: doc, externalReference: licId, notificationDisabled: false });
         cust = c.id; await db.query('UPDATE licencas SET asaas_customer=$1, updated_at=NOW() WHERE codigo=$2', [cust, licId]);
       }
-      const hoje = new Date(Date.now() - 3 * 3600000).toISOString().slice(0, 10);   // dia de hoje em São Paulo
-      const sub = await asaasApi('POST', '/subscriptions', { customer: cust, billingType: 'CREDIT_CARD', value: valor, nextDueDate: hoje, cycle: 'MONTHLY',
+      // 03/10a: a 1ª fatura vence no PRÓXIMO VENCIMENTO da licença (antes: sempre "hoje" — o erro do dia 3 em vez do dia 4)
+      const hoje = dataSP(); let venc = proxVenc(l); if (venc < hoje) venc = hoje;
+      const sub = await asaasApi('POST', '/subscriptions', { customer: cust, billingType: 'CREDIT_CARD', value: valor, nextDueDate: venc, cycle: 'MONTHLY',
         description: 'ProRider — licença ' + (l.nome_fantasia || l.nome) + ' (' + licId + ')', externalReference: licId });
-      await db.query(`UPDATE licencas SET asaas_sub=$1, status_pagamento=CASE WHEN pagamento_ok_ate IS NULL THEN 'pendente' ELSE status_pagamento END, updated_at=NOW() WHERE codigo=$2`, [sub.id, licId]);
-      log(`[Asaas] assinatura ${sub.id} criada para ${licId} (R$ ${valor}) pelo financeiro ${req.user.email}`);
+      await db.query(`UPDATE licencas SET asaas_sub=$1, vencimento=COALESCE(vencimento, $3::date), updated_at=NOW() WHERE codigo=$2`, [sub.id, licId, venc]);
+      log(`[Asaas] assinatura ${sub.id} criada para ${licId} (R$ ${valor}, 1º vencimento ${venc}) pelo financeiro ${req.user.email}`);
       l.asaas_sub = sub.id;
-    }
-    const d = await asaasApi('GET', '/payments?subscription=' + encodeURIComponent(l.asaas_sub) + '&limit=20');
+    } else await asaasSyncLic(licId);   // garante que a fatura em aberto está na data e no valor certos
+    const d = await asaasApi('GET', '/payments?subscription=' + encodeURIComponent(l.asaas_sub) + '&limit=50');
     const ab = (d.data || []).filter(x => ['PENDING', 'OVERDUE'].includes(x.status)).sort((a, b) => String(a.dueDate).localeCompare(String(b.dueDate)))[0];
     if (!ab) return res.json({ ok: true, url: null, msg: 'Nenhuma fatura em aberto agora. A próxima chega perto do vencimento.' });
     res.json({ ok: true, url: ab.invoiceUrl, vencimento: ab.dueDate, valor: ab.value });
@@ -6456,20 +6558,35 @@ app.post('/webhook/asaas', express.json(), async (req, res) => {
   log(`[Asaas webhook] ${ev.event} payment=${ev.payment && ev.payment.id}`);
   try {
     const p = ev.payment || {};
-    const externalRef = p.externalReference || '';
-    if (!externalRef) return res.json({ ok: true, ignorado: 'sem externalReference' });
-    if (ev.event === 'PAYMENT_RECEIVED' || ev.event === 'PAYMENT_CONFIRMED') {
-      await db.query(
-        `UPDATE licencas SET status_pagamento='em_dia', ultimo_pagamento=NOW(),
-         pagamento_ok_ate=NOW() + INTERVAL '35 days', status='ativa', updated_at=NOW()
-         WHERE codigo=$1`, [externalRef]);
-      log(`[Asaas] Licença ${externalRef} paga → em_dia`);
-    } else if (ev.event === 'PAYMENT_OVERDUE') {
-      await db.query(`UPDATE licencas SET status_pagamento='inadimplente', updated_at=NOW() WHERE codigo=$1`, [externalRef]);
-      log(`[Asaas] Licença ${externalRef} → inadimplente`);
-    } else if (ev.event === 'PAYMENT_DELETED' || ev.event === 'PAYMENT_REFUNDED') {
-      await db.query(`UPDATE licencas SET status_pagamento='pendente', updated_at=NOW() WHERE codigo=$1`, [externalRef]);
-      log(`[Asaas] Licença ${externalRef} → pendente (${ev.event})`);
+    // 03/10a: acha a licença pela referência; senão pela assinatura; senão pelo cliente
+    let l = null;
+    if (p.externalReference) l = (await db.query('SELECT * FROM licencas WHERE codigo=$1', [p.externalReference])).rows[0];
+    if (!l && p.subscription) l = (await db.query('SELECT * FROM licencas WHERE asaas_sub=$1', [p.subscription])).rows[0];
+    if (!l && p.customer) l = (await db.query('SELECT * FROM licencas WHERE asaas_customer=$1 ORDER BY id LIMIT 1', [p.customer])).rows[0];
+    if (!l || !p.id) return res.json({ ok: true, ignorado: 'licença não encontrada' });
+    const cod = l.codigo, venc = isoDia(p.dueDate) || proxVenc(l);
+    const PAGO = ['PAYMENT_CONFIRMED', 'PAYMENT_RECEIVED'], DESFEITO = ['PAYMENT_RECEIVED_IN_CASH_UNDONE', 'PAYMENT_REFUNDED', 'PAYMENT_DELETED',
+      'PAYMENT_CHARGEBACK_REQUESTED', 'PAYMENT_CHARGEBACK_DISPUTE', 'PAYMENT_AWAITING_CHARGEBACK_REVERSAL', 'PAYMENT_REFUND_IN_PROGRESS'];
+    const pagoAgora = PAGO.includes(ev.event) || (ev.event === 'PAYMENT_RESTORED' && ['CONFIRMED', 'RECEIVED', 'RECEIVED_IN_CASH'].includes(p.status));
+    if (pagoAgora) {
+      const metodo = p.status === 'RECEIVED_IN_CASH' ? 'Asaas — marcado como recebido em dinheiro' : ({ CREDIT_CARD: 'Cartão (Asaas)', PIX: 'PIX (Asaas)', BOLETO: 'Boleto (Asaas)' }[p.billingType] || 'Asaas');
+      const dataPg = isoDia(p.clientPaymentDate || p.paymentDate || p.confirmedDate) || dataSP();
+      const cobre = maisMes(venc);
+      await db.query(`INSERT INTO pagamentos (license_id, valor, data_pgto, referencia, metodo, status, origem, asaas_id, venc_ref, cobre_ate, registrado_por)
+        VALUES ($1,$2,$3,$4,$5,'confirmado','asaas',$6,$7,$8,'asaas')
+        ON CONFLICT (asaas_id) DO UPDATE SET status='confirmado', license_id=EXCLUDED.license_id, valor=EXCLUDED.valor, data_pgto=EXCLUDED.data_pgto, metodo=EXCLUDED.metodo, venc_ref=EXCLUDED.venc_ref, cobre_ate=EXCLUDED.cobre_ate`,
+        [cod, Number(p.value) || 0, dataPg, 'Vencimento ' + venc.split('-').reverse().join('/'), metodo, p.id, venc, cobre]);
+      await db.query("UPDATE licencas SET asaas_aviso=NULL, status=CASE WHEN status='suspensa' THEN 'ativa' ELSE status END WHERE codigo=$1", [cod]);
+      await pgRecalc(cod);
+      log(`[Asaas] ${cod} pago (${p.id}, ${metodo}) cobre ${venc} → ${cobre}`);
+    } else if (DESFEITO.includes(ev.event)) {
+      const u = await db.query("UPDATE pagamentos SET status='estornado', obs=COALESCE(obs||' · ','')||$2 WHERE asaas_id=$1 AND status='confirmado' RETURNING venc_ref", [p.id, ev.event]);
+      if (u.rows.length) { await pgRecalc(cod, isoDia(u.rows[0].venc_ref)); log(`[Asaas] ${cod} pagamento ${p.id} desfeito (${ev.event})`); }
+    } else if (ev.event === 'PAYMENT_CREDIT_CARD_CAPTURE_REFUSED' || ev.event === 'PAYMENT_REPROVED_BY_RISK_ANALYSIS') {
+      await db.query('UPDATE licencas SET asaas_aviso=$1 WHERE codigo=$2', ['O cartão foi recusado na fatura de ' + venc.split('-').reverse().join('/') + '. Pague de novo com outro cartão.', cod]);
+      log(`[Asaas] ${cod} cartão recusado (${p.id})`);
+    } else {
+      await pgRecalc(cod);   // OVERDUE, UPDATED, CREATED…: só recalcula a situação
     }
     res.json({ ok: true });
   } catch (e) { log(`[Asaas webhook] erro: ${e.message}`); res.status(500).json({ error: 'Erro interno' }); }
@@ -6493,8 +6610,7 @@ app.post('/admin/asaas/assinatura', adminAuth, async (req, res) => {
     });
     const cust = await custRes.json();
     if (!cust.id) return res.status(400).json({ error: 'Erro ao criar customer Asaas', detalhe: cust });
-    const hoje = new Date();
-    const dataInicio = `${hoje.getFullYear()}-${String(hoje.getMonth()+1).padStart(2,'0')}-${String(hoje.getDate()).padStart(2,'0')}`;
+    let dataInicio = proxVenc(lic); if (dataInicio < dataSP()) dataInicio = dataSP();   // 03/10a: vencimento da licença, não "hoje" 
     const subBody = { customer: cust.id, billingType: 'CREDIT_CARD', value: parseFloat(valor),
       nextDueDate: dataInicio, cycle: ciclo || 'MONTHLY',
       description: `ProRider — licença ${license_id}`, externalReference: license_id };
