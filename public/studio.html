@@ -225,9 +225,10 @@ td .zb{display:inline-block;width:10px;height:10px;border-radius:3px;margin-righ
 
     <div class="card">
       <h3>Vídeo de fundo <small>opcional</small></h3>
-      <div class="note" style="margin-bottom:10px">Um arquivo que vai estar no pendrive (pasta <b>prorider/video</b>; o Ginásio acha pelo nome) ou um vídeo do YouTube.</div>
+      <div class="note" style="margin-bottom:10px">Um arquivo do pendrive (pasta <b>prorider/video</b>; o Ginásio acha pelo nome), um link (Dropbox, Google Drive ou nuvem — o Ginásio baixa antes da aula) ou um vídeo do YouTube.</div>
       <div style="display:flex;gap:8px;flex-wrap:wrap">
         <button class="btn bg bs" onclick="document.getElementById('fVid').click()">🎬 Arquivo de vídeo</button>
+        <button class="btn bg bs" onclick="vidLink()">🔗 Link do vídeo</button>
         <button class="btn bg bs" onclick="ytPedir()">▶ Link do YouTube</button>
       </div>
       <div id="ytBox" style="display:none;margin-top:10px"><div style="display:flex;gap:8px"><input class="in" id="ytUrl" placeholder="Cole o link do YouTube" style="flex:1" onkeydown="if(event.key==='Enter')ytUsar()"><button class="btn bp bs" onclick="ytUsar()">OK</button></div></div>
@@ -724,8 +725,8 @@ window.addEventListener('resize',function(){ pintarPerfil(); muDesenhar(); });
 $('fVid').addEventListener('change',function(){
   var f=this.files[0]; this.value=''; if(!f) return;
   var v=document.createElement('video'); v.preload='metadata'; v.src=URL.createObjectURL(f);
-  v.onloadedmetadata=function(){ video={arquivo:f.name,dur:v.duration,chegada:Math.round(v.duration)}; URL.revokeObjectURL(v.src); pintarVideo(); rascunho(); };
-  v.onerror=function(){ video={arquivo:f.name,dur:0,chegada:0}; pintarVideo(); rascunho(); };
+  var lk=(video&&video.arquivo===f.name&&video.link)||''; v.onloadedmetadata=function(){ video={arquivo:f.name,link:lk,dur:v.duration,chegada:Math.round(v.duration)}; URL.revokeObjectURL(v.src); pintarVideo(); rascunho(); };
+  v.onerror=function(){ video={arquivo:f.name,link:lk,dur:0,chegada:0}; pintarVideo(); rascunho(); };
 });
 function pintarVideo(){
   var el=$('vidInfo'); if(!video){ el.innerHTML=''; return; }
@@ -733,7 +734,8 @@ function pintarVideo(){
   var ini=video.chegada-ws;
   var cab = video.yt
     ? '<div style="display:flex;gap:10px;align-items:center;margin-bottom:8px"><img src="https://img.youtube.com/vi/'+video.yt+'/mqdefault.jpg" alt="" style="width:112px;border-radius:8px;flex-shrink:0"><div style="min-width:0"><div style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">▶ '+esc(video.titulo||'YouTube')+'</div><div class="note">'+(video.dur?mmss(video.dur)+' · ':'')+'<a href="https://www.youtube.com/watch?v='+video.yt+'" target="_blank" rel="noopener" style="color:var(--accent)">abrir ↗</a></div></div></div>'
-    : '<div style="font-weight:600;margin-bottom:8px">🎬 '+esc(video.arquivo)+(video.dur?' <span class="note">· '+mmss(video.dur)+'</span>':'')+'</div>';
+    : '<div style="font-weight:600;margin-bottom:8px">🎬 '+esc(video.arquivo)+(video.dur?' <span class="note">· '+mmss(video.dur)+'</span>':'')
+      +' <button class="btn bg bs" style="padding:3px 8px;'+(video.link?'background:rgba(93,177,61,.35)':'')+'" title="'+(video.link?'Toca pelo link (baixado antes): '+esc(video.link):'Sem link: só pelo pendrive')+'" onclick="vidLink()">🔗</button></div>';
   el.innerHTML=cab+
     '<label class="lbl">Chegada (fim do principal) no vídeo</label><div style="display:flex;gap:8px;align-items:center"><input class="in" style="width:110px" value="'+mmss(video.chegada)+'" onchange="vidChegada(this.value)"><button class="btn bd bs" onclick="video=null;pintarVideo();rascunho()">Tirar</button></div>'+
     '<div class="note" style="margin-top:6px">'+(ws?(ini<0?'<span style="color:#ff8a8a">⚠ O vídeo é '+mmss(-ini)+' mais curto que aquecimento + principal.</span>':'O vídeo começa em '+mmss(ini)+' para chegar junto com o fim do bloco principal.'):'')+'</div>';
@@ -742,6 +744,19 @@ function pintarVideo(){
 // A duração vem da API do YouTube quando o navegador consegue carregá-la;
 // se não, o professor digita a chegada.
 function ytId(u){ var m=String(u||'').match(/(?:youtu\.be\/|[?&]v=|\/embed\/|\/shorts\/|\/live\/)([\w-]{11})/); if(m) return m[1]; return /^[\w-]{11}$/.test(String(u||'').trim())?String(u).trim():null; }
+// 02/10j: vídeo por link (Dropbox, Google Drive, nuvem). Sem arquivo escolhido, o nome vem do link.
+async function vidLink(){
+  var u=prompt('Link de compartilhamento do vídeo (Dropbox, Google Drive ou nuvem).'+(video&&video.arquivo?'\nVazio = só pelo pendrive.':''),(video&&video.link)||''); if(u===null) return;
+  u=u.trim();
+  if(!u){ if(video){ video.link=''; pintarVideo(); rascunho(); } return; }
+  var d=muLinkDireto(u); if(!d){ toast('⚠ Isso não parece um link'); return; }
+  if(video&&video.arquivo&&!video.yt){ video.link=u; pintarVideo(); rascunho(); toast('🔗 O vídeo toca pelo link (o Ginásio baixa antes da aula)'); return; }
+  toast('Abrindo o vídeo do link…',6000);
+  var v=document.createElement('video'); v.preload='metadata';
+  var dur=await new Promise(function(ok){ v.onloadedmetadata=function(){ ok(isFinite(v.duration)?v.duration:0); }; v.onerror=function(){ ok(0); }; setTimeout(function(){ ok(0); },15000); v.src=d; });
+  video={arquivo:muNomeDoLink(u)||'video.mp4',link:u,dur:dur,chegada:Math.round(dur)}; pintarVideo(); rascunho();
+  toast(dur?'🔗 Vídeo pelo link: '+mmss(dur):'🔗 Link guardado (não consegui ler a duração: digite a chegada)',5000);
+}
 function ytPedir(){ var b=$('ytBox'); b.style.display=b.style.display==='none'?'block':'none'; if(b.style.display==='block') $('ytUrl').focus(); }
 function ytUsar(){
   var id=ytId($('ytUrl').value); if(!id){ toast('⚠ Esse link não parece ser de um vídeo do YouTube'); return; }
@@ -774,7 +789,7 @@ function montar(){
   var out={versao:'1.1', gerado_por:'ProRider Construtor online', origem:'construtor-online', nome:nome, savedAt:new Date().toISOString(),
     duracaoTotal:Math.round(tot/60*100)/100, duracaoTotalSec:tot, segments:segments.filter(function(s){return usados[s.id];}), mainCounter:mainCounter, workout:wk, blocks:wk};
   if(video&&video.yt) out.video={fonte:'youtube',youtubeId:video.yt,url:video.url,titulo:video.titulo||'',duracao:Math.round(video.dur||0),arquivo:null,syncOffset:Math.max(0,Math.round(video.chegada||0))};
-  else if(video) out.video={fonte:'local',arquivo:video.arquivo,syncOffset:Math.max(0,Math.round(video.chegada||0))};
+  else if(video){ out.video={fonte:'local',arquivo:video.arquivo,syncOffset:Math.max(0,Math.round(video.chegada||0))}; if(video.link) out.video.link=video.link; }   // 02/10j: pendrive pelo nome; senão o link
   var link=$('muLink').value.trim();
   if(trilha.length){ out.musica={fonte:'mp3',arquivo:trilha[0].nome,arquivos:trilha.map(function(t){return t.nome;}),syncOffset:0,
       // 02/10: a ordem, o trecho de cada música (ini → fim) e a duração; o Ginásio toca na sequência
@@ -847,7 +862,7 @@ function carregar(d){
   mainCounter=Math.max(d.mainCounter||1, segments.filter(function(s){return s.type==='main';}).length);
   $('nomeAula').value=d.nome||d.name||'';
   video=d.video&&d.video.fonte==='youtube'&&(d.video.youtubeId||ytId(d.video.url))?{yt:d.video.youtubeId||ytId(d.video.url),url:d.video.url,titulo:d.video.titulo||'',dur:+d.video.duracao||0,chegada:+d.video.syncOffset||0,arquivo:null}
-       :d.video&&d.video.arquivo?{arquivo:d.video.arquivo,dur:0,chegada:+d.video.syncOffset||0}:null;
+       :d.video&&d.video.arquivo?{arquivo:d.video.arquivo,link:d.video.link||'',dur:0,chegada:+d.video.syncOffset||0}:null;
   $('muLink').value=(d.musica&&(d.musica.playlist||d.musica.link||(d.musica.fonte==='spotify'&&d.musica.spotifyUri)))||'';
   window._muCortes={}; ((d.musica&&d.musica.trilha)||[]).forEach(function(x){ if(x&&x.arquivo) window._muCortes[String(x.arquivo).toLowerCase()]={ini:+x.ini||0,fim:x.fim!=null?+x.fim:null,link:x.link||''}; });
   // 02/10f: as músicas com link voltam sozinhas (sem a onda; pondo o MP3 de novo ela aparece)

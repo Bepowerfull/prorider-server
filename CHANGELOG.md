@@ -33,6 +33,26 @@ Componentes: `servidor` · `app` · `ginasio` · `portal` · `banco`.
 
 ---
 
+## 2026-10-02 · servidor + portal (Construtor) + ginasio · 02/10j — professor da aula em rede no fundo ou no canto, vídeo por link e cache antes da aula
+
+**O que mudou**
+- **Ginásio — academia principal:** em "Gravar" ou "Gravar e transmitir" **com vídeo escolhido**, o fundo é o vídeo e a câmera só grava e transmite (`_bgCamFundo()`); sem vídeo, a câmera continua no fundo.
+- **Ginásio — outras academias:** recebem a **câmera limpa** + a voz (o servidor marca `tv:true` no `tx_ver` → `tx_novo`); com vídeo na aula → vídeo de fundo + rosto do professor num quadrinho no canto; sem vídeo → o professor é o fundo (`cameraLive`). O vídeo da aula vai junto no convite (`aula.video`). Placar das academias, quadrinho e selo de gravação ficam acima do vídeo (z-index).
+- **Cache (`servidor-local.js`):** `/cache/baixar`, `/cache/status`, `/cache/arquivo` (Range). Baixa os links (segue redirecionamentos) para `C:\ProRider\Cache`; apaga o que está sem uso há 2 dias (ao iniciar e a cada hora). Só aceita pedidos do próprio computador.
+- **Ginásio:** a cada 60 s fora da aula, se há aula em rede de outra academia, pede o download de todas as músicas e do vídeo por link. Ordem para tocar: pendrive (pelo nome) → já baixado → internet; se falhar, tenta o seguinte.
+- **Construtor:** vídeo de fundo por **link** (Dropbox, Google Drive, nuvem) — botão "🔗 Link do vídeo" ou 🔗 no vídeo escolhido; salva `video.link`.
+
+**Por quê**
+- Pedido do Mario: na principal o professor está ao vivo (fundo = vídeo); nas outras, o professor de fundo ou no canto; tudo baixado antes para não travar.
+
+**Como confirmar**
+- Aula com vídeo por link: na tela de configurar aparece "🔗 nome do vídeo"; no console "vídeo da aula: … (já baixado)" e a pasta `C:\ProRider\Cache` com o arquivo.
+- Aula em rede com a principal em "Gravar e transmitir": nas outras, com vídeo → quadrinho no canto; sem vídeo → professor de fundo.
+
+**Cuidados**
+- Trocar o `servidor-local.js` junto (rotas do cache).
+- Vídeo em boa qualidade: 1080p com taxa moderada baixa bem com antecedência; o download começa quando a principal abre a aula na tela do QR.
+
 ## 2026-10-02 · portal · 02/10i — financeiro entra e cria a conta na própria entrada do Portal
 
 **O que mudou**

@@ -1725,7 +1725,7 @@ wss.on('connection', (ws) => {
         if (sala.txv.size >= sala.tx.max) { ws.send(JSON.stringify({ tipo: 'tx_erro', msg: `A transmissão está cheia (${sala.tx.max} pessoas). Tente daqui a pouco.` })); break; }
         ws._txSala = cod; ws._txId = 'v' + Math.random().toString(36).slice(2, 10);
         sala.txv.set(ws._txId, ws);
-        sala.professor.send(JSON.stringify({ tipo: 'tx_novo', vid: ws._txId, nome: String(msg.nome || '').slice(0, 40) }));
+        sala.professor.send(JSON.stringify({ tipo: 'tx_novo', vid: ws._txId, nome: String(msg.nome || '').slice(0, 40), tv: !!msg.tv }));   // 02/10j: TV de outra academia recebe a câmera limpa
         ws.send(JSON.stringify({ tipo: 'tx_ok', vid: ws._txId }));
         break;
       }
@@ -3120,7 +3120,7 @@ app.post('/academia/financeiro/pagar', finAuth, async (req, res) => {
         cust = c.id; await db.query('UPDATE licencas SET asaas_customer=$1, updated_at=NOW() WHERE codigo=$2', [cust, licId]);
       }
       const hoje = new Date(Date.now() - 3 * 3600000).toISOString().slice(0, 10);   // dia de hoje em São Paulo
-      const sub = await asaasApi('POST', '/subscriptions', { customer: cust, billingType: 'CREDIT_CARD', value: valor, nextDueDate: hoje, cycle: 'BIWEEKLY',
+      const sub = await asaasApi('POST', '/subscriptions', { customer: cust, billingType: 'CREDIT_CARD', value: valor, nextDueDate: hoje, cycle: 'MONTHLY',
         description: 'ProRider — licença ' + (l.nome_fantasia || l.nome) + ' (' + licId + ')', externalReference: licId });
       await db.query(`UPDATE licencas SET asaas_sub=$1, status_pagamento=CASE WHEN pagamento_ok_ate IS NULL THEN 'pendente' ELSE status_pagamento END, updated_at=NOW() WHERE codigo=$2`, [sub.id, licId]);
       log(`[Asaas] assinatura ${sub.id} criada para ${licId} (R$ ${valor}) pelo financeiro ${req.user.email}`);
