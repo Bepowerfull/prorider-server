@@ -3120,7 +3120,7 @@ app.post('/academia/financeiro/pagar', finAuth, async (req, res) => {
         cust = c.id; await db.query('UPDATE licencas SET asaas_customer=$1, updated_at=NOW() WHERE codigo=$2', [cust, licId]);
       }
       const hoje = new Date(Date.now() - 3 * 3600000).toISOString().slice(0, 10);   // dia de hoje em São Paulo
-      const sub = await asaasApi('POST', '/subscriptions', { customer: cust, billingType: 'CREDIT_CARD', value: valor, nextDueDate: hoje, cycle: 'MONTHLY',
+      const sub = await asaasApi('POST', '/subscriptions', { customer: cust, billingType: 'CREDIT_CARD', value: valor, nextDueDate: hoje, cycle: 'BIWEEKLY',
         description: 'ProRider — licença ' + (l.nome_fantasia || l.nome) + ' (' + licId + ')', externalReference: licId });
       await db.query(`UPDATE licencas SET asaas_sub=$1, status_pagamento=CASE WHEN pagamento_ok_ate IS NULL THEN 'pendente' ELSE status_pagamento END, updated_at=NOW() WHERE codigo=$2`, [sub.id, licId]);
       log(`[Asaas] assinatura ${sub.id} criada para ${licId} (R$ ${valor}) pelo financeiro ${req.user.email}`);
