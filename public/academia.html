@@ -331,6 +331,12 @@ button{font-family:inherit}
 .lp-modal .box{width:min(960px,100%);aspect-ratio:16/9;background:#000;border-radius:14px;overflow:hidden;position:relative}
 .lp-modal .box iframe{width:100%;height:100%;border:0}
 .lp-modal .x{position:absolute;top:-44px;right:0;color:#fff;font-size:30px;cursor:pointer;background:none;border:0}
+.lp-modal .box.fm{aspect-ratio:auto;width:min(420px,100%);background:#15151f;border:1px solid rgba(255,255,255,.1);padding:22px;overflow:visible}
+.lp-modal .fm h3{margin:0 0 4px;font:900 24px 'Barlow Condensed',sans-serif;color:#fff}.lp-modal .fm p{margin:0 0 10px;font-size:13px;color:rgba(255,255,255,.55)}
+.lp-modal .fm label{display:block;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:rgba(255,255,255,.55);margin:10px 0 4px}
+.lp-modal .fm input{width:100%;box-sizing:border-box;padding:11px 12px;border-radius:9px;border:1px solid rgba(255,255,255,.12);background:#1c1c28;color:#fff;font-size:15px;outline:none}
+.lp-modal .fm button.go{width:100%;margin-top:16px;padding:12px;border:0;border-radius:10px;font-weight:700;font-size:15px;color:#fff;cursor:pointer;background:linear-gradient(135deg,#ea860c,#d62d2d)}
+.lp-modal .fm .er{color:#ff6b6b;font-size:13px;margin-top:10px;min-height:1px}
 .lp-modal .emb{display:flex;align-items:center;justify-content:center;height:100%;color:rgba(255,255,255,.75);font-size:18px;text-align:center;padding:30px;line-height:1.6}
 @media(min-width:1181px) and (max-height:960px){.lp-video{padding:11px 18px}.lp-video .pl{width:52px;height:52px}.lp-video .tv{height:66px}.lp-feat svg{width:28px;height:28px;margin-bottom:6px}.lp-k{padding:10px 14px}.lp-k .v{font-size:30px}.lp-login{padding:24px 26px 20px}.lp-login .lp-logo{margin-bottom:14px}.lp-login label{margin:10px 0 6px}.lp-login input{padding:12px 14px}.lp-login .lp-go{margin-top:16px;padding:14px}.lp-stage{padding-bottom:100px}.lp-zonas{height:96px}.lp-zlab{height:70px}.lp-zlab div{padding-top:18px}}
 @media(max-width:1180px){
@@ -431,7 +437,7 @@ button{font-family:inherit}
     <button type="button" class="lpx-o lpx-hit" style="left:76.923%;top:65.323%;width:8.953%;height:3.226%" onclick="var d=document.getElementById('lpDica');d.style.display=d.style.display==='block'?'none':'block'" aria-label="Esqueci a senha"></button>
     <a class="lpx-o lpx-hit" style="left:89.029%;top:65.323%;width:7.188%;height:3.226%" href="/aluno" aria-label="Sou aluno: abrir o app"></a>
     <button type="button" class="lpx-o lpx-hit" style="left:2.774%;top:62.903%;width:41.488%;height:12.500%" onclick="lpVideo()" aria-label="Assista ao vídeo"></button>
-    <a class="lpx-o" href="financeiro.html#criar" style="left:77.112%;top:68.6%;width:18.916%;height:auto;font:600 12px Barlow,sans-serif;color:rgba(255,255,255,.6);text-align:center;text-decoration:none">Financeiro da academia: criar conta</a>
+    <a class="lpx-o" href="javascript:lpCriar()" style="left:77.112%;top:68.6%;width:18.916%;height:auto;font:600 12px Barlow,sans-serif;color:rgba(255,255,255,.6);text-align:center;text-decoration:none">Primeiro acesso? <u>Criar conta</u></a>
     <div class="lpx-o lpx-err login-err" id="lErr" style="left:77.112%;top:70.968%;width:18.916%;height:4.032%;height:auto"></div>
     <div class="lpx-o lpx-dica" id="lpDica" style="left:75.662%;top:70.968%;width:21.942%;height:9.073%;height:auto">Peça ao gestor da sua academia uma senha nova (Portal → Alunos ou Equipe). Gestor: fale com o suporte ProRider.</div>
     <div class="lpx-o lpx-k" style="left:9.836%;top:80.343%;width:8.575%;height:5.645%"><b data-lp="atl">—</b><small data-lpd="atl">&nbsp;</small></div><div class="lpx-o lpx-k" style="left:24.968%;top:80.343%;width:8.575%;height:5.645%"><b data-lp="km">—</b><small data-lpd="km">&nbsp;</small></div><div class="lpx-o lpx-k" style="left:40.101%;top:80.343%;width:9.079%;height:5.645%"><b data-lp="kcal">—</b><small data-lpd="kcal">&nbsp;</small></div><div class="lpx-o lpx-k" style="left:55.612%;top:80.343%;width:9.332%;height:5.645%"><b data-lp="aulas">—</b><small data-lpd="aulas">&nbsp;</small></div><div class="lpx-o lpx-k" style="left:71.627%;top:80.343%;width:8.827%;height:5.645%"><b data-lp="horas">—</b><small data-lpd="horas">&nbsp;</small></div><div class="lpx-o lpx-k" style="left:87.201%;top:80.343%;width:8.197%;height:5.645%"><b data-lp="wpp">—</b><small data-lpd="wpp">&nbsp;</small></div>
@@ -472,7 +478,7 @@ button{font-family:inherit}
       <button type="button" onclick="lpLoginMob()" class="lp-go">ENTRAR</button>
       <div class="lp-err " id="lErr_m"></div>
       <div class="lp-links"><span onclick="document.getElementById('lpDicaM').style.display='block'">Esqueci a senha</span><a href="/aluno">Sou aluno → app</a></div>
-      <div class="lp-links" style="margin-top:6px"><a href="financeiro.html#criar">Financeiro da academia: criar conta</a></div>
+      <div class="lp-links" style="margin-top:6px"><span onclick="lpCriar()">Primeiro acesso? Criar conta</span></div>
       <div class="lp-dica" id="lpDicaM">Peça ao gestor da sua academia para gerar uma senha nova (Portal → Alunos ou Equipe). Gestor: fale com o suporte ProRider.</div>
     </div>
   </div>
@@ -1235,8 +1241,31 @@ async function lpStats(){
 function lpSync(){ ['lEmail','lPass'].forEach(function(id){ var m=document.getElementById(id+'_m'), p=document.getElementById(id); if(m&&p) p.value=m.value; }); }
 function lpLoginMob(){ lpSync(); doLogin(); var e=document.getElementById('lErr'), em=document.getElementById('lErr_m'); if(e&&em){ setTimeout(function(){ em.textContent=e.textContent; em.style.display=e.style.display; },900); } }
 document.addEventListener('input', function(ev){ if(ev.target && /_m$/.test(ev.target.id||'')) lpSync(); }, true);
+// 02/10h: criar conta na própria entrada do Portal (mesmo cadastro do app, sem os dados de pedalar).
+// O e-mail que a ProRider cadastrou como financeiro da licença cai direto no pagamento.
+function lpCriar(){
+  var m=document.getElementById('lpModal'), box=document.getElementById('lpModalIn'); box.parentNode.classList.add('fm');
+  box.innerHTML='<h3>Criar conta</h3><p>A mesma conta vale no app ProRider. Financeiro da academia: use o e-mail que a academia informou à ProRider.</p>'
+    +'<label>Nome</label><input id="cNome" autocomplete="name"><label>E-mail</label><input id="cEmail" type="email" autocomplete="username">'
+    +'<label>Senha</label><input id="cSenha" type="password" autocomplete="new-password"><label>Repita a senha</label><input id="cSenha2" type="password" autocomplete="new-password">'
+    +'<button class="go" onclick="lpCriarEnviar()">Criar conta e entrar</button><div class="er" id="cErr"></div>';
+  m.classList.add('open'); setTimeout(function(){ var i=document.getElementById('cNome'); if(i) i.focus(); },50);
+}
+async function lpCriarEnviar(){
+  var g=function(id){ return document.getElementById(id).value; }, er=document.getElementById('cErr'), nome=g('cNome').trim(), email=g('cEmail').trim(), s1=g('cSenha');
+  er.textContent='';
+  if(!nome||!email) return er.textContent='Preencha nome e e-mail.';
+  if(s1.length<6) return er.textContent='A senha precisa de pelo menos 6 caracteres.';
+  if(s1!==g('cSenha2')) return er.textContent='As senhas não são iguais.';
+  try{
+    var r=await fetch(SERVER+'/user/register',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:nome,email:email,password:s1})}), d=await r.json();
+    if(!r.ok) return er.textContent=r.status===409?'Este e-mail já tem conta (do app ou do Portal): feche e use Entrar.':(d.error||'Não consegui criar a conta.');
+    if(d.user.financeiro){ localStorage.setItem('pr_fin_token',d.token); localStorage.setItem('pr_fin_user',JSON.stringify(d.user)); location.href='financeiro.html'; return; }
+    document.getElementById('lpModalIn').innerHTML='<h3>Conta criada ✓</h3><p style="font-size:15px;color:rgba(255,255,255,.8);line-height:1.6">Se você é o <b>financeiro</b> da academia, peça à ProRider para cadastrar este e-mail na licença; depois é só entrar aqui.<br><br>Se você é <b>aluno</b>, a conta já vale no <a href="/aluno" style="color:#ea860c">app ProRider</a>.</p>';
+  }catch(e){ er.textContent='Sem conexão com o servidor.'; }
+}
 function lpVideo(){
-  var m=document.getElementById('lpModal'), box=document.getElementById('lpModalIn');
+  var m=document.getElementById('lpModal'), box=document.getElementById('lpModalIn'); box.parentNode.classList.remove('fm');
   var u=String(PR_VIDEO_URL||''), id=(u.match(/(?:youtu\.be\/|v=|embed\/)([\w-]{11})/)||[])[1];
   box.innerHTML = id ? '<iframe src="https://www.youtube.com/embed/'+id+'?autoplay=1&rel=0" allow="autoplay; encrypted-media; fullscreen" allowfullscreen></iframe>'
                      : '<div class="emb">🎬 O vídeo de apresentação do ProRider chega em breve.</div>';

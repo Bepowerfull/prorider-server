@@ -33,6 +33,19 @@ Componentes: `servidor` · `app` · `ginasio` · `portal` · `banco`.
 
 ---
 
+## 2026-10-02 · portal · 02/10i — financeiro entra e cria a conta na própria entrada do Portal
+
+**O que mudou**
+- **`academia.html`:** "Primeiro acesso? Criar conta" na entrada do Portal (computador e celular) abre o cadastro ali mesmo (nome, e-mail, senha — o mesmo do app). Se o e-mail é o financeiro da licença, entra direto no pagamento; senão, avisa (financeiro: pedir à ProRider para cadastrar o e-mail; aluno: a conta já vale no app).
+- **`financeiro.html`:** saiu a tela de entrar/criar conta própria. Sem login, volta para a entrada do Portal; "Sair" também.
+
+**Por quê**
+- Pedido do Mario: uma entrada só. A academia manda para o financeiro o mesmo link do Portal.
+
+**Como confirmar**
+- Abrir o Portal → "Primeiro acesso? Criar conta" com o e-mail do financeiro → cai na página do financeiro.
+- Abrir `financeiro.html` sem login → vai para a entrada do Portal.
+
 ## 2026-10-02 · servidor + portal · 02/10h — página do financeiro (pagamento da licença pelo Asaas)
 
 **O que mudou**

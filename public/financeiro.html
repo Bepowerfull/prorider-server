@@ -36,7 +36,6 @@ input:focus{border-color:var(--accent)}
 table{width:100%;border-collapse:collapse;font-size:14px}th{text-align:left;font-size:11px;letter-spacing:1px;text-transform:uppercase;color:var(--muted);padding:8px 6px;border-bottom:1px solid var(--border)}
 td{padding:10px 6px;border-bottom:1px solid var(--border)}td a{color:var(--accent);font-weight:700;text-decoration:none}
 .pill{display:inline-block;border-radius:20px;padding:2px 10px;font-size:12px;font-weight:700}
-.tabs{display:flex;gap:6px;margin-bottom:6px}.tabs button{flex:1;background:var(--card2);border:1px solid var(--border);color:var(--muted);border-radius:9px;padding:10px;font:700 14px 'Barlow',sans-serif;cursor:pointer}.tabs button.on{border-color:var(--accent);color:#fff}
 .cartao{display:inline-block;background:linear-gradient(135deg,rgba(41,95,232,.25),rgba(155,48,255,.2));border:1px solid rgba(41,95,232,.3);border-radius:12px;padding:12px 16px;font-family:monospace;font-size:17px;letter-spacing:3px}
 .row{display:flex;gap:10px;flex-wrap:wrap;align-items:end}.row>div{flex:1;min-width:200px}
 td{white-space:nowrap}
@@ -48,23 +47,6 @@ td{white-space:nowrap}
   <div class="who" id="who"></div><button class="btn gh" id="btSair" style="display:none;padding:8px 12px" onclick="sair()">Sair</button></div>
 
 <div class="wrap">
-  <!-- ENTRAR / CRIAR CONTA -->
-  <div id="vLogin" style="display:none;max-width:420px;margin:30px auto 0">
-    <h1>Financeiro da academia</h1>
-    <p class="sub">Pagamento da licença ProRider. Só entra o e-mail que a academia informou como responsável financeiro.</p>
-    <div class="card">
-      <div class="tabs"><button id="tbE" class="on" onclick="aba('e')">Entrar</button><button id="tbC" onclick="aba('c')">Criar conta</button></div>
-      <div id="fNome" style="display:none"><label>Nome</label><input id="iNome" autocomplete="name"></div>
-      <label>E-mail</label><input id="iEmail" type="email" autocomplete="username" placeholder="financeiro@academia.com.br">
-      <label>Senha</label><input id="iSenha" type="password" autocomplete="current-password">
-      <div id="fSenha2" style="display:none"><label>Repita a senha</label><input id="iSenha2" type="password" autocomplete="new-password"></div>
-      <button class="btn" style="width:100%;margin-top:16px" id="btEntrar" onclick="entrar()">Entrar</button>
-      <div class="err" id="eLogin"></div>
-      <p class="note" style="margin-top:14px">A mesma conta serve no app ProRider. Quem já tem conta no app entra com ela.</p>
-    </div>
-    <p class="note" style="text-align:center"><a href="academia.html" style="color:var(--muted)">← Portal da academia</a></p>
-  </div>
-
   <!-- PAINEL -->
   <div id="vPainel" style="display:none">
     <div class="aviso" id="avSup" style="display:none">⚡ <b>Modo suporte</b>: só leitura. Quem paga e mexe no cartão é o responsável financeiro da academia.</div>
@@ -106,54 +88,22 @@ var SERVER = (location.hostname === 'localhost' || location.hostname === '127.0.
 var _sup = sessionStorage.getItem('pr_imp_token');   // super admin em modo suporte (mesma aba do Portal)
 var token = _sup || localStorage.getItem('pr_fin_token') || '';
 var user = _sup ? JSON.parse(sessionStorage.getItem('pr_imp_user') || 'null') : JSON.parse(localStorage.getItem('pr_fin_user') || 'null');
-var _aba = 'e';
 function $(id){ return document.getElementById(id); }
 function esc(t){ return String(t == null ? '' : t).replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
 function brl(v){ return 'R$ ' + Number(v || 0).toFixed(2).replace('.', ','); }
 function dt(s){ if (!s) return '—'; var p = String(s).slice(0, 10).split('-'); return p[2] + '/' + p[1] + '/' + p[0]; }
 function mostrarErro(id, t){ var e = $(id); e.textContent = t || ''; e.style.display = t ? 'block' : 'none'; }
 
-function aba(a){
-  _aba = a; $('tbE').classList.toggle('on', a === 'e'); $('tbC').classList.toggle('on', a === 'c');
-  $('fNome').style.display = $('fSenha2').style.display = a === 'c' ? 'block' : 'none';
-  $('btEntrar').textContent = a === 'c' ? 'Criar conta e entrar' : 'Entrar'; mostrarErro('eLogin', '');
-}
-async function entrar(){
-  var email = $('iEmail').value.trim(), senha = $('iSenha').value;
-  if (!email || !senha) return mostrarErro('eLogin', 'Preencha e-mail e senha.');
-  try {
-    var r, d;
-    if (_aba === 'c') {
-      var nome = $('iNome').value.trim();
-      if (!nome) return mostrarErro('eLogin', 'Preencha o nome.');
-      if (senha.length < 6) return mostrarErro('eLogin', 'A senha precisa de pelo menos 6 caracteres.');
-      if (senha !== $('iSenha2').value) return mostrarErro('eLogin', 'As senhas não são iguais.');
-      r = await fetch(SERVER + '/user/register', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ name: nome, email: email, password: senha }) });
-      d = await r.json();
-      if (!r.ok) return mostrarErro('eLogin', r.status === 409 ? 'Este e-mail já tem conta (do app ou do Portal): use "Entrar".' : (d.error || 'Não consegui criar a conta.'));
-    } else {
-      r = await fetch(SERVER + '/user/login', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ email: email, password: senha }) });
-      d = await r.json();
-      if (!r.ok) return mostrarErro('eLogin', d.error || 'E-mail ou senha incorretos.');
-    }
-    if (!d.user.financeiro) return mostrarErro('eLogin', 'Conta pronta, mas este e-mail ainda não está cadastrado como financeiro de nenhuma academia. Peça à ProRider para cadastrar este e-mail na licença e entre de novo.');
-    token = d.token; user = d.user;
-    localStorage.setItem('pr_fin_token', token); localStorage.setItem('pr_fin_user', JSON.stringify(user));
-    if (!['financeiro','aluno'].includes(user.role)) { localStorage.setItem('pr_gestor_token', token); localStorage.setItem('pr_gestor_user', JSON.stringify(user)); }
-    painel();
-  } catch (e) { mostrarErro('eLogin', 'Sem conexão com o servidor.'); }
-}
 function sair(){
   if (_sup) { location.href = 'academia.html'; return; }
-  localStorage.removeItem('pr_fin_token'); localStorage.removeItem('pr_fin_user'); token = ''; user = null; telaLogin();
+  localStorage.removeItem('pr_fin_token'); localStorage.removeItem('pr_fin_user'); location.href = 'academia.html';
 }
-function telaLogin(){ $('vPainel').style.display = 'none'; $('vLogin').style.display = 'block'; $('btSair').style.display = 'none'; $('who').innerHTML = ''; if (location.hash === '#criar') aba('c'); }
 
 var SIT = { em_dia:['🟢 Em dia','var(--green)'], vencido:['🟡 Vencido','var(--yellow)'], suspenso:['🔴 Suspenso','var(--red)'], pendente:['⚪ Aguardando o 1º pagamento','var(--muted)'], sem_cobranca:['⚪ Cobrança ainda não cadastrada','var(--muted)'] };
 var FST = { PENDING:['Em aberto','rgba(215,196,20,.18)','#ffe033'], OVERDUE:['Vencida','rgba(255,90,90,.15)','#ff8a8a'], RECEIVED:['Paga','rgba(93,177,61,.18)','#8fe06a'], CONFIRMED:['Paga','rgba(93,177,61,.18)','#8fe06a'], RECEIVED_IN_CASH:['Paga','rgba(93,177,61,.18)','#8fe06a'], REFUNDED:['Estornada','rgba(255,255,255,.08)','#ccc'], REFUND_REQUESTED:['Estorno pedido','rgba(255,255,255,.08)','#ccc'], CHARGEBACK_REQUESTED:['Contestada','rgba(255,90,90,.15)','#ff8a8a'] };
 var _dados = null;
 async function painel(){
-  $('vLogin').style.display = 'none'; $('vPainel').style.display = 'block'; $('btSair').style.display = '';
+  $('vPainel').style.display = 'block'; $('btSair').style.display = '';
   $('who').innerHTML = '<b>' + esc((user && (user.name || user.email)) || '') + '</b>' + esc(_sup ? 'modo suporte' : 'responsável financeiro');
   try {
     var r = await fetch(SERVER + '/academia/financeiro', { headers: { 'Authorization': 'Bearer ' + token } });
@@ -195,8 +145,8 @@ async function pagar(){
     painel();
   } catch (e) { if (w) w.close(); mostrarErro('ePagar', 'Sem conexão com o servidor.'); $('pPagNota').textContent = ''; bt.disabled = false; }
 }
-document.addEventListener('keydown', function(e){ if (e.key === 'Enter' && $('vLogin').style.display === 'block') entrar(); });
-if (token) painel(); else telaLogin();
+// 02/10h: a entrada é a do Portal (academia.html) — mesma tela para todos
+if (token) painel(); else location.replace('academia.html');
 </script>
 </body>
 </html>
