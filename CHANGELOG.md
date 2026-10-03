@@ -33,6 +33,17 @@ Componentes: `servidor` · `app` · `ginasio` · `portal` · `banco`.
 
 ---
 
+## 2026-10-03 · servidor + site · 03/10b — Demo 2: faturas no dia 3 com o admin no dia 4; login do financeiro caindo no lugar errado
+
+**O que mudou**
+- **Dia X × data:** o admin antigo guardava o "dia de vencimento" (modal Financeiro) separado da data "Vencimento" da licença (que nascia com +30 dias). Na subida, uma vez só: licença que nunca pagou e tem dia escolhido (≠ 10) passa a vencer no próximo "dia X" (`venc_migrado`).
+- **Faturas adiantadas do Asaas:** o Asaas gera os próximos meses antes (ex.: 03/10 e 03/11 em aberto). Ao acertar, a 1ª vai para o próximo vencimento e as outras seguem mês a mês (04/10, 04/11). A página do financeiro acerta sozinha quando abre, se as datas não batem.
+- **Página do financeiro:** só a 1ª fatura em aberto tem "Pagar"; as seguintes aparecem como "Próxima (automática)". (Antes o botão pegava a de 03/11.)
+- **Login do financeiro sempre no pagamento**, por qualquer entrada: Portal, entrada do admin (`index.html`) e portal do aluno no navegador (`aluno.html`, que abria com a sessão guardada como aluno). "Sair" do financeiro limpa todas as sessões guardadas.
+
+**Como confirmar**
+- `tpg3.js` (caso Demo 2), `tpg4.js` (entradas), `tpg2.js` (39 verificações): tudo OK.
+
 ## 2026-10-03 · servidor + admin + financeiro + app + Ginásio · 03/10a — revisão completa do pagamento
 
 **O que mudou**

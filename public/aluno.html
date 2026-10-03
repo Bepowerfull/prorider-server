@@ -304,7 +304,12 @@ function doLogout() {
   location.reload();
 }
 
-function showApp() {
+// 03/10b: o e-mail que é o FINANCEIRO da licença sempre vai para a página de pagamento
+// (antes: com a sessão guardada, às vezes abria esta página de aluno)
+function irFinanceiro(){ localStorage.setItem('pr_fin_token', token); localStorage.setItem('pr_fin_user', JSON.stringify(user)); location.href = 'financeiro.html'; }
+async function showApp() {
+  if (user && user.financeiro) return irFinanceiro();
+  try { const r = await fetch(SERVER + '/user/me', { headers: { 'Authorization': 'Bearer ' + token } }); const me = await r.json(); if (me && me.financeiro) { user.financeiro = true; return irFinanceiro(); } } catch(e) {}
   document.getElementById('loginScreen').style.display = 'none';
   document.getElementById('app').style.display = 'block';
   const ini = (user.name||user.email||'?')[0].toUpperCase();

@@ -32,6 +32,9 @@ Lista do que foi combinado com o Mario e ainda não foi feito. Quem fizer um ite
 - [x] **Arquivo .tcx** da aula para Strava/Garmin.
 - [x] **Painel do gestor:** ocupação por dia e horário e alunos sumidos (com e-mail na hora).
 
+## Feito na 03/10b
+- [x] Demo 2: faturas no dia certo, só a 1ª com "Pagar"; financeiro sempre cai no pagamento.
+
 ## Feito na 03/10a
 - [x] Revisão do pagamento: vencimento certo no Asaas, situação única, livro-caixa, desfazer, e-mail com motivo e senha nova.
 

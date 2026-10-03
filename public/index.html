@@ -951,6 +951,12 @@ async function doLogin() {
     if (!r.ok || !d.token) { err.textContent = d.error || 'Credenciais inválidas.'; err.style.display = 'block'; return; }
     // 26/09e: super_admin também entra (antes só 'admin' — o super admin era barrado aqui)
     if (d.user.role !== 'admin' && d.user.role !== 'super_admin') {
+      // 03/10b: mesma regra em todas as entradas — e-mail do financeiro da licença vai para o pagamento
+      if (d.user.financeiro) {
+        localStorage.setItem('pr_fin_token', d.token); localStorage.setItem('pr_fin_user', JSON.stringify(d.user));
+        if (!['financeiro','aluno'].includes(d.user.role)) { localStorage.setItem('pr_gestor_token', d.token); localStorage.setItem('pr_gestor_user', JSON.stringify(d.user)); }
+        window.location.href = 'financeiro.html'; return;
+      }
       if (['gestor','coordenador','financeiro'].includes(d.user.role)) {
         localStorage.setItem('pr_gestor_token', d.token); localStorage.setItem('pr_gestor_user', JSON.stringify(d.user));
         window.location.href = 'academia.html'; return;

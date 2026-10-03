@@ -134,7 +134,9 @@ function mostrarErro(id, t){ var e = $(id); e.textContent = t || ''; e.style.dis
 
 function sair(){
   if (_sup) { location.href = 'academia.html'; return; }
-  localStorage.removeItem('pr_fin_token'); localStorage.removeItem('pr_fin_user'); location.href = 'academia.html';
+  // 03/10b: sai de tudo (sessão de aluno ou do Portal guardada fazia o próximo login abrir no lugar errado)
+  ['pr_fin_token','pr_fin_user','pr_gestor_token','pr_gestor_user','pr_aluno_token','pr_aluno_user'].forEach(function(k){ localStorage.removeItem(k); });
+  location.href = 'academia.html';
 }
 
 var SIT = { em_dia:['🟢 Em dia','var(--green)'], vencido:['🟡 Vencido','var(--yellow)'], suspenso:['🔴 Suspenso','var(--red)'], a_vencer:['🔵 Aguardando o 1º pagamento','#9db8ff'], pendente:['⚪ Aguardando o 1º pagamento','var(--muted)'], sem_cobranca:['⚪ Cobrança ainda não cadastrada','var(--muted)'] };
@@ -194,7 +196,10 @@ async function painel(){
     $('pErroAsaas').style.display = d.erro_asaas ? 'block' : 'none'; $('pErroAsaas').textContent = d.erro_asaas || '';
     $('pFat').innerHTML = (d.faturas || []).length ? d.faturas.map(function(f){
       var st = FST[f.status] || [f.status, 'rgba(255,255,255,.08)', '#ccc'], aberta = f.status === 'PENDING' || f.status === 'OVERDUE';
-      var lk = aberta && f.url && !d.suporte ? '<a href="' + esc(f.url) + '" target="_blank" rel="noopener">Pagar</a>' : f.recibo ? '<a href="' + esc(f.recibo) + '" target="_blank" rel="noopener">Recibo</a>' : '';
+      // 03/10b: o Asaas gera os próximos meses com antecedência — só a 1ª em aberto se paga agora; as outras são cobradas sozinhas no cartão
+      var futura = aberta && d.fatura_aberta && f.id !== d.fatura_aberta.id;
+      if (futura) { st = ['Próxima (automática)', 'rgba(255,255,255,.08)', '#aaa']; aberta = false; }
+      var lk = futura ? '' : aberta && f.url && !d.suporte ? '<a href="' + esc(f.url) + '" target="_blank" rel="noopener">Pagar</a>' : f.recibo ? '<a href="' + esc(f.recibo) + '" target="_blank" rel="noopener">Recibo</a>' : '';
       return '<tr><td>' + dt(f.vencimento) + '</td><td>' + brl(f.valor) + '</td><td><span class="pill" style="background:' + st[1] + ';color:' + st[2] + '">' + st[0] + '</span></td><td>' + dt(f.pago_em) + '</td><td>' + lk + '</td></tr>';
     }).join('') : '<tr><td colspan="5" class="note" style="text-align:center;padding:20px">Nenhuma fatura ainda.</td></tr>';
   } catch (e) { $('pSub').textContent = 'Sem conexão com o servidor.'; }

@@ -831,6 +831,17 @@ async function runMigrations() {
     await db.query(`ALTER TABLE pagamentos ADD COLUMN IF NOT EXISTS origem TEXT, ADD COLUMN IF NOT EXISTS asaas_id TEXT, ADD COLUMN IF NOT EXISTS venc_ref DATE, ADD COLUMN IF NOT EXISTS cobre_ate DATE`).catch(e => log('Migração 03/10a ERRO: ' + e.message));
     await db.query(`CREATE UNIQUE INDEX IF NOT EXISTS pagamentos_asaas_id_uq ON pagamentos(asaas_id)`).catch(e => log('Migração 03/10a índice ERRO: ' + e.message));
     await db.query(`ALTER TABLE licencas ADD COLUMN IF NOT EXISTS asaas_aviso TEXT`).catch(() => {});
+    // 03/10b: o admin antigo guardava o "dia X" (modal Financeiro) separado da data "Vencimento" (que nascia com +30 dias).
+    // Uma vez só: licença que nunca pagou e tem um dia escolhido (≠ 10, o padrão) passa a vencer no próximo "dia X".
+    await db.query(`ALTER TABLE licencas ADD COLUMN IF NOT EXISTS venc_migrado BOOLEAN DEFAULT FALSE`).catch(() => {});
+    await db.query(`
+      WITH h AS (SELECT (NOW() AT TIME ZONE 'America/Sao_Paulo')::date AS d)
+      UPDATE licencas SET vencimento = (SELECT CASE WHEN x < h.d THEN (x + INTERVAL '1 month')::date ELSE x END
+             FROM h, LATERAL (SELECT make_date(EXTRACT(YEAR FROM h.d)::int, EXTRACT(MONTH FROM h.d)::int, LEAST(dia_vencimento, 28)) AS x) m)
+      WHERE venc_migrado IS NOT TRUE AND pagamento_ok_ate IS NULL AND dia_vencimento IS NOT NULL AND dia_vencimento BETWEEN 1 AND 28 AND dia_vencimento <> 10
+        AND (vencimento IS NULL OR EXTRACT(DAY FROM vencimento) <> dia_vencimento)`)
+      .then(r => { if (r.rowCount) log('03/10b: ' + r.rowCount + ' licença(s) com o vencimento acertado para o "dia X" escolhido'); }).catch(e => log('Migração 03/10b ERRO: ' + e.message));
+    await db.query(`UPDATE licencas SET venc_migrado=TRUE WHERE venc_migrado IS NOT TRUE`).catch(() => {});
     await db.query(`UPDATE licencas SET status='ativa' WHERE status='bloqueada'`).then(r => { if (r.rowCount) log('03/10a: ' + r.rowCount + ' licença(s) "bloqueada" (efeito colateral antigo) → ativa'); }).catch(() => {});
     setTimeout(() => geoPreencherFaltando().catch(e => log('geo backfill: ' + e.message)), 15000);
 
@@ -2344,12 +2355,16 @@ async function asaasSyncLic(codigo) {
     const d = await asaasApi('GET', '/payments?subscription=' + encodeURIComponent(l.asaas_sub) + '&limit=50');
     const abertas = (d.data || []).filter(x => ['PENDING', 'OVERDUE'].includes(x.status) && !x.deleted).sort((a, b) => String(a.dueDate).localeCompare(String(b.dueDate)));
     const feito = [];
-    if (abertas[0] && (abertas[0].dueDate !== alvo || (valor > 0 && Number(abertas[0].value) !== valor))) {
-      await asaasApi('PUT', '/payments/' + abertas[0].id, { billingType: abertas[0].billingType || 'CREDIT_CARD', value: valor > 0 ? valor : abertas[0].value, dueDate: alvo });
-      feito.push('fatura ' + abertas[0].id + ' → ' + alvo);
+    // O Asaas gera as mensalidades seguintes com antecedência (ex.: 03/10 e 03/11 em aberto).
+    // A 1ª em aberto vai para o próximo vencimento; as outras seguem mês a mês a partir dela.
+    for (let k = 0; k < abertas.length; k++) {
+      const a = abertas[k], d2 = maisMes(alvo, k), v2 = valor > 0 ? valor : Number(a.value);
+      if (a.dueDate !== d2 || Number(a.value) !== v2) {
+        await asaasApi('PUT', '/payments/' + a.id, { billingType: a.billingType || 'CREDIT_CARD', value: v2, dueDate: d2 });
+        feito.push('fatura ' + a.id + ' → ' + d2);
+      }
     }
-    const ultimaAberta = abertas.length ? (abertas.length > 1 ? abertas[abertas.length - 1].dueDate : alvo) : null;
-    const prox = ultimaAberta ? maisMes(ultimaAberta) : alvo;
+    const prox = maisMes(alvo, abertas.length);
     await asaasApi('PUT', '/subscriptions/' + l.asaas_sub, Object.assign({ nextDueDate: prox }, valor > 0 ? { value: valor, updatePendingPayments: true } : {}));
     feito.push('assinatura: próxima ' + prox + (valor > 0 ? ', R$ ' + valor : ''));
     log(`[Asaas] sync ${codigo}: ${feito.join('; ')}`);
@@ -3259,6 +3274,13 @@ app.get('/academia/financeiro', finAuth, async (req, res) => {
     let faturas = [], erroAsaas = null;
     if (ASAAS_API_KEY) {
       try {
+        // 03/10b: fatura em aberto fora da data da licença (ex.: dia 3 em vez de 4) → acerta no Asaas antes de mostrar
+        if (l.asaas_sub) {
+          const hoje = dataSP(); let alvo = proxVenc(l); if (alvo < hoje) alvo = hoje;
+          const ps = await asaasApi('GET', '/payments?subscription=' + encodeURIComponent(l.asaas_sub) + '&limit=50');
+          const ab = (ps.data || []).filter(x => ['PENDING', 'OVERDUE'].includes(x.status)).sort((a, b) => String(a.dueDate).localeCompare(String(b.dueDate)));
+          if (ab.length && (ab[0].dueDate !== alvo || ab.some((x, k) => x.dueDate !== maisMes(alvo, k)))) await asaasSyncLic(licId);
+        }
         const d = await asaasApi('GET', '/payments?externalReference=' + encodeURIComponent(licId) + '&limit=12');
         faturas = (d.data || []).map(x => ({ id: x.id, valor: x.value, status: x.status, vencimento: x.dueDate, pago_em: x.paymentDate || x.clientPaymentDate || null,
           url: x.invoiceUrl || null, recibo: x.transactionReceiptUrl || null,
