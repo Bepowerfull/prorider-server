@@ -335,7 +335,6 @@ input[type=file]{display:none}
   button, .btn, [onclick] { cursor: pointer; -webkit-appearance: none; }
   input { -webkit-appearance: none; border-radius: 0; }
 </style>
-<script src="/brasoes.js"></script>
 </head>
 <body>
 
@@ -355,7 +354,9 @@ input[type=file]{display:none}
         <path d="M30 4 L10 30 L20 30 L14 52 L34 26 L24 26Z" fill="url(#sG)" filter="url(#sg)"/>
       </svg>
     </div>
-    <div class="sp-name"><img src="/img/logo-prorider.png" alt="ProRider" style="height:64px;display:block;margin:0 auto"></div>
+    <div class="sp-name"><span class="sp-pro">PRO</span><span class="sp-rider">RIDER</span></div>
+    <div class="sp-bar"></div>
+    <div class="sp-tag">cycling performance</div>
     <div class="sp-form">
       <input class="sp-input" id="spEmail" type="email" placeholder="E-mail" autocomplete="email">
       <input class="sp-input" id="spPass" type="password" placeholder="Senha" autocomplete="current-password">
@@ -395,13 +396,28 @@ input[type=file]{display:none}
     <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:260px;height:260px;border-radius:50%;background:radial-gradient(circle,rgba(234,134,12,.12) 0%,transparent 70%);pointer-events:none;animation:spGlow 3s ease-in-out infinite alternate;"></div>
     <!-- Logo vertical centralizado igual ao splash -->
     <div style="position:relative;z-index:2;display:flex;flex-direction:column;align-items:center;gap:0;">
-      <!-- 01/10a: logo original (imagem) -->
-      <img src="/img/logo-prorider.png" alt="ProRider" style="width:230px;display:block;filter:drop-shadow(0 0 20px rgba(234,134,12,.25));">
+      <!-- Raio -->
+      <svg width="54" height="65" viewBox="0 0 44 56" fill="none">
+        <defs>
+          <linearGradient id="hBoltG2" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#ffe033"/>
+            <stop offset="45%" stop-color="#ea860c"/>
+            <stop offset="100%" stop-color="#d62d2d"/>
+          </linearGradient>
+        </defs>
+        <path d="M30 4 L10 30 L20 30 L14 52 L34 26 L24 26Z" fill="url(#hBoltG2)"/>
+      </svg>
+      <!-- PRO RIDER empilhado -->
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:56px;letter-spacing:5px;line-height:.88;text-align:center;margin-top:4px;">
+        <span style="color:#fff;display:block;">PRO</span>
+        <span style="background:linear-gradient(90deg,#ffe033,#ea860c,#d62d2d);-webkit-background-clip:text;-webkit-text-fill-color:transparent;display:block;">RIDER</span>
+      </div>
+      <!-- barra + tagline -->
+      <div style="height:2px;width:150px;background:linear-gradient(90deg,#ffe033,#ea860c,#d62d2d);border-radius:1px;margin-top:6px;"></div>
+      <div style="font-size:10px;font-weight:700;letter-spacing:5px;color:rgba(255,255,255,.28);text-transform:uppercase;margin-top:5px;">cycling performance</div>
     </div>
   </div>
 
-  <div id="homeCamp" style="display:none;margin:0 16px 14px;"></div>
-  <div id="homeDA" style="display:none;margin:0 16px 14px;"></div><!-- 02/10a: desafio entre academias -->
   <!-- Botoes principais 2x2 -->
   <div style="padding:0 16px 4px;display:flex;gap:10px;">
 
@@ -1060,25 +1076,18 @@ input[type=file]{display:none}
                dentro do espaco vazio) e os dois valores tem o mesmo corpo de
                letra e o mesmo rotulo embaixo. -->
 
-          <!-- 23/09c: colunas SIMETRICAS em torno do centro do gauge (x=180).
-               Antes o valor era ancorado pela direita em x=170, o separador
-               ficava em x=196 e o relogio centrado em x=272: o conjunto
-               pendia para a direita. Agora cada coluna e centrada no meio da
-               sua metade (120 e 240), o separador fica no eixo (180) e o
-               valor cresce para os dois lados, sem invadir o relogio. -->
-
-          <!-- ESQUERDA: valor + unidade, centrados em x=120 -->
-          <text x="120" y="180" text-anchor="middle" font-family="Barlow Condensed" font-weight="900" fill="#fff">
+          <!-- ESQUERDA: valor + unidade, ancorados pela direita em x=170 -->
+          <text x="170" y="180" text-anchor="end" font-family="Barlow Condensed" font-weight="900" fill="#fff">
             <tspan font-size="54" id="gValue">0</tspan><tspan font-size="30" fill="rgba(255,255,255,.85)" id="gValueUnit">%</tspan>
           </text>
-          <text x="120" y="201" text-anchor="middle" font-family="Barlow Condensed" font-size="12" font-weight="700" letter-spacing="3.5" fill="rgba(255,255,255,.38)" id="gModeLabel">FTP</text>
+          <text x="170" y="201" text-anchor="end" font-family="Barlow Condensed" font-size="12" font-weight="700" letter-spacing="3.5" fill="rgba(255,255,255,.38)" id="gModeLabel">FTP</text>
 
-          <!-- DIREITA: relogio do bloco, mesmo corpo e mesmo rotulo, centrado em x=240 -->
-          <text x="240" y="180" text-anchor="middle" font-family="Barlow Condensed" font-size="54" font-weight="900" fill="#fff" id="gBlocoTempo">0:00</text>
-          <text x="240" y="201" text-anchor="middle" font-family="Barlow Condensed" font-size="12" font-weight="700" letter-spacing="3.5" fill="rgba(255,255,255,.38)" id="gBlocoLbl">BLOCO</text>
+          <!-- DIREITA: relogio do bloco, mesmo corpo e mesmo rotulo -->
+          <text x="272" y="180" text-anchor="middle" font-family="Barlow Condensed" font-size="54" font-weight="900" fill="#fff" id="gBlocoTempo">0:00</text>
+          <text x="272" y="201" text-anchor="middle" font-family="Barlow Condensed" font-size="12" font-weight="700" letter-spacing="3.5" fill="rgba(255,255,255,.38)" id="gBlocoLbl">BLOCO</text>
 
-          <!-- separador no eixo do gauge -->
-          <line x1="180" y1="146" x2="180" y2="198" stroke="rgba(255,255,255,.12)" stroke-width="1"/>
+          <!-- separador entre as duas colunas -->
+          <line x1="196" y1="150" x2="196" y2="196" stroke="rgba(255,255,255,.10)" stroke-width="1"/>
 
           <!-- label 150+ no final do arco (segue o padrão de 140 rpm / 6.0) -->
           <text x="356" y="213" text-anchor="end" font-family="Barlow Condensed" font-size="11" fill="rgba(255,255,255,.28)" id="gMaxLbl">150+</text>
@@ -1286,7 +1295,6 @@ input[type=file]{display:none}
   <div style="padding:18px 18px;display:flex;flex-direction:column;gap:10px;">
     <button onclick="saveAndGoHistory()" style="width:100%;padding:15px;border-radius:30px;border:none;background:linear-gradient(135deg,#ea860c,#d62d2d);font-size:17px;font-weight:900;letter-spacing:2px;color:#fff;cursor:pointer;">SALVAR ATIVIDADE</button>
     <button onclick="shareCard()" style="width:100%;padding:15px;border-radius:30px;border:none;background:linear-gradient(135deg,#833ab4,#fd1d1d,#fcb045);font-size:17px;font-weight:900;letter-spacing:2px;color:#fff;cursor:pointer;">📸 COMPARTILHAR RESULTADO</button>
-    <button id="resTcxBtn" onclick="prExportarTCX()" style="width:100%;padding:13px;border-radius:30px;border:1.5px solid #fc4c02;background:rgba(252,76,2,.1);font-size:15px;font-weight:800;color:#fff;cursor:pointer;">⬇ Arquivo para Strava / Garmin</button>
     <button onclick="go('sHome')" style="width:100%;padding:13px;border-radius:30px;background:transparent;border:1px solid rgba(255,255,255,.14);font-size:14px;font-weight:700;color:rgba(255,255,255,.4);cursor:pointer;">Voltar ao inicio</button>
   </div>
 </div>
@@ -1350,7 +1358,7 @@ input[type=file]{display:none}
       <defs><linearGradient id="lgGr" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#ffe033"/><stop offset="45%" stop-color="#ea860c"/><stop offset="100%" stop-color="#d62d2d"/></linearGradient></defs>
       <path d="M30 4 L10 30 L20 30 L14 52 L34 26 L24 26Z" fill="url(#lgGr)"/>
     </svg>
-    <div style="margin-bottom:8px;"><img src="/img/logo-prorider.png" alt="ProRider" style="height:48px;display:block;margin:0 auto"></div>
+    <div style="font-family:'Bebas Neue',sans-serif;font-size:36px;letter-spacing:4px;color:#fff;margin-bottom:4px;">PRORIDER</div>
     <div style="font-size:12px;color:rgba(255,255,255,.3);letter-spacing:2px;text-transform:uppercase;margin-bottom:36px;">Aluno</div>
 
     <!-- Tabs -->
@@ -1441,7 +1449,7 @@ input[type=file]{display:none}
   <div class="prof-header">
     <div>
       <div style="font-size:11px;font-weight:700;letter-spacing:2px;color:rgba(255,255,255,.25);text-transform:uppercase;margin-bottom:4px;">Minha Conta</div>
-      <div class="prof-name-big"><img src="/img/logo-prorider.png" alt="ProRider" style="height:34px;display:block;"></div>
+      <div class="prof-name-big"><span class="prof-pro">PRO</span><span class="prof-rider">RIDER</span></div>
     </div>
     <svg width="44" height="54" viewBox="0 0 44 56" fill="none">
       <defs><filter id="pg"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter><linearGradient id="pG" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#ffe033"/><stop offset="50%" stop-color="#ea860c"/><stop offset="100%" stop-color="#d62d2d"/></linearGradient></defs>
@@ -1482,7 +1490,6 @@ input[type=file]{display:none}
     <button onclick="go('sLogin')" style="width:100%;padding:14px;border-radius:14px;border:none;background:linear-gradient(135deg,#ea860c,#d62d2d);font-family:'Barlow Condensed',sans-serif;font-size:17px;font-weight:900;letter-spacing:2px;color:#fff;cursor:pointer;">⚡ FAZER LOGIN / CRIAR CONTA</button>
   </div>
 
-  <div id="profCamisas" style="display:none;margin:0 16px 10px;"></div>
   <!-- Histórico -->
   <div class="prof-sec">
     <div class="prof-sec-title">Histórico recente</div>
@@ -1625,59 +1632,14 @@ input[type=file]{display:none}
 <!-- ══════════════════════════════════
      LOJA
 ══════════════════════════════════ -->
-
-<!-- 02/10b2: AULA GRAVADA — vídeo do professor no fundo, gráfico e números do PRÓPRIO aluno por cima (celular deitado) -->
-<div class="screen" id="sGravada" style="background:#000;">
-  <video id="grvVideo" playsinline preload="auto" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;background:#000;"></video>
-  <div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.55) 0%,rgba(0,0,0,0) 28%,rgba(0,0,0,0) 55%,rgba(0,0,0,.82) 100%);pointer-events:none;"></div>
-  <div id="grvTopo" style="position:absolute;left:0;right:0;top:0;display:flex;align-items:center;gap:10px;padding:8px 12px;">
-    <button onclick="grvSair()" style="width:34px;height:34px;border-radius:50%;border:none;background:rgba(0,0,0,.45);color:#fff;font-size:16px;">✕</button>
-    <div style="min-width:0;flex:1;"><div id="grvNome" style="font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:1px;color:#fff;line-height:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"></div><div id="grvProf" style="font-size:11px;color:rgba(255,255,255,.65);"></div></div>
-    <div id="grvZona" style="padding:5px 12px;border-radius:10px;font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:1px;color:#111;background:#888;"></div>
-    <div id="grvPos" style="padding:5px 10px;border-radius:10px;font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:1px;color:#fff;background:rgba(0,0,0,.45);border:1px solid rgba(255,255,255,.25);"></div>
-    <div style="text-align:center;min-width:86px;"><div id="grvBloco" style="font-family:'Bebas Neue',sans-serif;font-size:32px;color:#fff;line-height:1;">0:00</div><div style="font-size:9px;letter-spacing:1.5px;color:rgba(255,255,255,.6);">DO BLOCO</div></div>
-    <button id="grvPlay" onclick="grvPausa()" style="width:34px;height:34px;border-radius:50%;border:none;background:rgba(0,0,0,.45);color:#fff;font-size:14px;">⏸</button>
-  </div>
-  <!-- tela do gráfico: caixas grandes flutuando nas laterais (meio da tela) e o perfil embaixo, de ponta a ponta -->
-  <div id="grvGraf" style="position:absolute;inset:0;pointer-events:none;">
-    <div class="grv-cx" id="grvCxRpm" style="left:10px;"><div class="grv-cl">RPM</div><div class="grv-cv" id="grvRpm">—</div><div class="grv-ca" id="grvRpmAlvo"></div></div>
-    <div class="grv-cx" id="grvBolaFtp" style="right:10px;"><div class="grv-cl">% FTP</div><div class="grv-cv" id="grvPct">—</div><div class="grv-ca" id="grvFtpAlvo"></div><div class="grv-cw" id="grvW"></div></div>
-    <div style="position:absolute;left:10px;right:10px;bottom:6px;">
-      <div style="position:relative;height:54px;"><div id="grvPerfil" style="position:absolute;inset:0;"></div><div id="grvAgulha" style="position:absolute;top:-6px;bottom:0;width:3px;background:#fff;border-radius:2px;box-shadow:0 0 8px #fff;"></div></div>
-      <div style="display:flex;justify-content:space-between;font-size:13px;font-weight:700;color:rgba(255,255,255,.75);margin-top:3px;"><span id="grvProx"></span><span id="grvFalta"></span></div>
-    </div>
-  </div>
-  <!-- telas de cartões / ranking: o cartão do próprio aluno -->
-  <div id="grvCard" style="display:none;position:absolute;left:50%;top:54%;transform:translate(-50%,-50%);width:min(560px,78vw);border-radius:20px;padding:14px 18px;background:rgba(10,10,16,.82);border:3px solid #888;"></div>
-  <!-- desafio: o mesmo desafio, só com ele -->
-  <div id="grvDesafio" style="display:none;position:absolute;left:50%;top:56%;transform:translate(-50%,-50%);width:min(520px,74vw);border-radius:20px;padding:14px 18px;background:rgba(10,10,16,.86);border:2px solid #ffb45a;text-align:center;"></div>
-  <div id="grvAviso" style="display:none;position:absolute;left:50%;bottom:12px;transform:translateX(-50%);padding:7px 12px;border-radius:10px;background:rgba(214,45,45,.85);color:#fff;font-size:12px;font-weight:700;"></div>
-  <div id="grvGirar" style="display:none;position:absolute;inset:0;z-index:5;background:rgba(5,5,10,.94);flex-direction:column;align-items:center;justify-content:center;gap:14px;text-align:center;padding:24px;">
-    <div style="font-size:54px;transform:rotate(90deg);">📱</div>
-    <div style="font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:1px;color:#fff;">Vire o celular de lado</div>
-    <div style="font-size:13px;color:rgba(255,255,255,.6);max-width:260px;">A aula gravada fica melhor deitada: o professor grande e os seus números dos lados.</div>
-    <button onclick="document.getElementById('grvGirar').dataset.ok='1';grvGirarCheck()" style="border:1px solid rgba(255,255,255,.25);background:none;color:rgba(255,255,255,.7);border-radius:10px;padding:8px 14px;">Continuar assim</button>
-  </div>
-  <div id="grvFim" style="display:none;position:absolute;inset:0;z-index:6;background:rgba(5,5,10,.96);overflow-y:auto;padding:16px;"></div>
-</div>
-<style>
-#sGravada .grv-cx{position:absolute;top:50%;transform:translateY(-62%);width:auto;min-width:128px;max-width:34%;padding:4px 12px 7px;border-radius:18px;background:rgba(5,7,15,.55);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);border:3px solid rgba(255,255,255,.2);text-align:center;}
-#sGravada .grv-cl{font-size:14px;font-weight:800;letter-spacing:2px;color:rgba(255,255,255,.7);}
-#sGravada #grvCxRpm{left:max(4px,env(safe-area-inset-left))!important;} #sGravada #grvBolaFtp{right:max(4px,env(safe-area-inset-right))!important;}
-#sGravada .grv-cv{font-family:'Bebas Neue',sans-serif;font-size:min(22vh,96px);line-height:.95;color:#fff;font-weight:700;}
-#sGravada .grv-ca{font-size:17px;font-weight:800;color:rgba(255,255,255,.9);}
-#sGravada .grv-cw{font-size:16px;font-weight:700;color:rgba(255,255,255,.65);margin-top:2px;}
-@media (orientation:portrait){ #sGravada .grv-cx{min-width:0;max-width:46%;} #sGravada .grv-cv{font-size:64px;} }
-</style>
 <div class="screen" id="sLoja" style="background:#0d0810;overflow-y:auto;padding-bottom:80px;">
 
-  <div id="lojaGravadas" style="display:none;padding:18px 16px 0;"></div><!-- 02/10b2: aulas gravadas -->
   <!-- Hero -->
   <div style="position:relative;padding:48px 24px 36px;text-align:center;background:linear-gradient(180deg,rgba(214,45,45,.18) 0%,rgba(234,134,12,.08) 60%,transparent 100%);">
     <div style="position:absolute;top:0;left:0;right:0;bottom:0;background:radial-gradient(ellipse at 50% 0%,rgba(234,134,12,.15),transparent 70%);pointer-events:none;"></div>
-    <div style="display:inline-flex;align-items:center;gap:6px;background:rgba(234,134,12,.12);border:1px solid rgba(234,134,12,.3);border-radius:20px;padding:5px 14px;font-size:10px;font-weight:700;letter-spacing:2px;color:#ea860c;margin-bottom:18px;">⚡ PRORIDER CERTIFICADO</div>
+    <div style="display:inline-flex;align-items:center;gap:6px;background:rgba(234,134,12,.12);border:1px solid rgba(234,134,12,.3);border-radius:20px;padding:5px 14px;font-size:10px;font-weight:700;letter-spacing:2px;color:#ea860c;margin-bottom:18px;">⚡ PROHYDER CERTIFICADO</div>
     <div style="font-family:'Bebas Neue',sans-serif;font-size:42px;letter-spacing:3px;color:#fff;line-height:1.1;margin-bottom:12px;">TREINE COM OS<br/>MELHORES</div>
-    <div style="font-size:15px;color:rgba(255,255,255,.55);line-height:1.6;max-width:300px;margin:0 auto 24px;">Professores certificados ProRider, cada um com seu método, sua energia e seu estúdio. Escolha quem te motiva e pedala de onde quiser.</div>
+    <div style="font-size:15px;color:rgba(255,255,255,.55);line-height:1.6;max-width:300px;margin:0 auto 24px;">Professores certificados ProHyder, cada um com seu método, sua energia e seu estúdio. Escolha quem te motiva e pedala de onde quiser.</div>
     <div style="display:flex;justify-content:center;gap:20px;">
       <div style="text-align:center;"><div style="font-family:'Bebas Neue',sans-serif;font-size:32px;color:#ea860c;">12+</div><div style="font-size:10px;font-weight:700;letter-spacing:1px;color:rgba(255,255,255,.35);">PROFESSORES</div></div>
       <div style="width:1px;background:rgba(255,255,255,.1);"></div>
@@ -1697,11 +1659,11 @@ input[type=file]{display:none}
       </div>
       <div style="display:flex;align-items:flex-start;gap:12px;">
         <div style="width:36px;height:36px;border-radius:10px;background:rgba(29,185,84,.1);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:18px;">🎬</div>
-        <div><div style="font-size:14px;font-weight:700;color:#fff;margin-bottom:2px;">Seu professor na tela</div><div style="font-size:12px;color:rgba(255,255,255,.4);line-height:1.5;">Vídeo do professor no estúdio ProRider como fundo da sua aula. Presença real, energia real.</div></div>
+        <div><div style="font-size:14px;font-weight:700;color:#fff;margin-bottom:2px;">Seu professor na tela</div><div style="font-size:12px;color:rgba(255,255,255,.4);line-height:1.5;">Vídeo do professor no estúdio ProHyder como fundo da sua aula. Presença real, energia real.</div></div>
       </div>
       <div style="display:flex;align-items:flex-start;gap:12px;">
         <div style="width:36px;height:36px;border-radius:10px;background:rgba(155,48,255,.1);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:18px;">🏅</div>
-        <div><div style="font-size:14px;font-weight:700;color:#fff;margin-bottom:2px;">Certificação ProRider</div><div style="font-size:12px;color:rgba(255,255,255,.4);line-height:1.5;">Complete pacotes e conquiste selos digitais. Mostre sua evolução para o mundo.</div></div>
+        <div><div style="font-size:14px;font-weight:700;color:#fff;margin-bottom:2px;">Certificação ProHyder</div><div style="font-size:12px;color:rgba(255,255,255,.4);line-height:1.5;">Complete pacotes e conquiste selos digitais. Mostre sua evolução para o mundo.</div></div>
       </div>
       <div style="display:flex;align-items:flex-start;gap:12px;">
         <div style="width:36px;height:36px;border-radius:10px;background:rgba(41,95,232,.1);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:18px;">📅</div>
@@ -1774,7 +1736,7 @@ input[type=file]{display:none}
         <div style="font-size:32px;">🏆</div>
         <div><div style="font-size:16px;font-weight:700;color:#fff;">Desafio 21 Dias</div><div style="font-size:11px;color:rgba(255,255,255,.4);">com Prof. Lucas Mendes · HIIT</div></div>
       </div>
-      <div style="font-size:12px;color:rgba(255,255,255,.5);line-height:1.6;margin-bottom:14px;">21 aulas em 21 dias. Complete o desafio e ganhe seu Selo de Consistência ProRider. Ranking ao vivo com outros participantes.</div>
+      <div style="font-size:12px;color:rgba(255,255,255,.5);line-height:1.6;margin-bottom:14px;">21 aulas em 21 dias. Complete o desafio e ganhe seu Selo de Consistência ProHyder. Ranking ao vivo com outros participantes.</div>
       <div style="display:flex;gap:10px;align-items:center;">
         <div style="flex:1;height:4px;background:rgba(255,255,255,.08);border-radius:2px;"></div>
         <div style="font-size:11px;font-weight:700;color:rgba(255,255,255,.3);">EM BREVE</div>
@@ -1784,12 +1746,12 @@ input[type=file]{display:none}
 
   <!-- Certificação -->
   <div style="padding:20px 20px 8px;">
-    <div style="font-size:10px;font-weight:700;letter-spacing:3px;color:rgba(255,255,255,.3);text-transform:uppercase;margin-bottom:14px;">Certificação ProRider</div>
+    <div style="font-size:10px;font-weight:700;letter-spacing:3px;color:rgba(255,255,255,.3);text-transform:uppercase;margin-bottom:14px;">Certificação ProHyder</div>
     <div style="background:linear-gradient(135deg,rgba(234,134,12,.1),rgba(214,45,45,.06));border:1px solid rgba(234,134,12,.2);border-radius:16px;padding:20px;text-align:center;">
       <div style="width:70px;height:70px;margin:0 auto 14px;border-radius:50%;background:linear-gradient(135deg,#ea860c,#d62d2d);display:flex;align-items:center;justify-content:center;box-shadow:0 0 30px rgba(234,134,12,.3);">
         <svg width="36" height="44" viewBox="0 0 44 56" fill="none"><defs><filter id="lf2"><feGaussianBlur stdDeviation="2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs><path d="M30 4 L10 30 L20 30 L14 52 L34 26 L24 26Z" fill="#fff" filter="url(#lf2)"/></svg>
       </div>
-      <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:2px;color:#fff;margin-bottom:6px;">CERTIFICADO PRORIDER</div>
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:2px;color:#fff;margin-bottom:6px;">CERTIFICADO PROHYDER</div>
       <div style="font-size:12px;color:rgba(255,255,255,.45);line-height:1.6;margin-bottom:14px;">Complete pacotes de aulas com um professor certificado e receba seu selo digital. Compartilhe no Strava e Instagram.</div>
       <div style="display:inline-flex;align-items:center;gap:6px;background:rgba(234,134,12,.1);border:1px solid rgba(234,134,12,.2);border-radius:20px;padding:6px 16px;font-size:10px;font-weight:700;letter-spacing:2px;color:#ea860c;">EM BREVE</div>
     </div>
@@ -1909,12 +1871,9 @@ input[type=file]{display:none}
   <div style="padding:0 18px;">
     <div style="font-size:11px;font-weight:700;letter-spacing:2px;color:rgba(255,255,255,.35);text-transform:uppercase;margin-bottom:10px;">Buscar academia</div>
     <div style="position:relative;margin-bottom:14px;">
-      <input id="agCidadeInput" placeholder="Cidade, bairro ou academia..." oninput="filtrarAcademias(this.value)"
+      <input id="agCidadeInput" placeholder="Digite a cidade..." oninput="filtrarAcademias(this.value)"
         style="width:100%;padding:12px 16px;border-radius:12px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.06);color:#fff;font-size:14px;outline:none;">
     </div>
-    <button id="agPertoBtn" onclick="agPertoDeMim(true)" style="width:100%;display:flex;align-items:center;justify-content:center;gap:8px;padding:11px 14px;margin:-4px 0 14px;border-radius:12px;border:1px solid rgba(234,134,12,.45);background:rgba(234,134,12,.12);color:#ffb44a;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg><span>Perto de mim</span></button>
-    <div id="agPertoMsg" style="display:none;font-size:12px;color:rgba(255,255,255,.55);margin:-6px 0 12px;text-align:center;line-height:1.45"></div>
     <div id="agAcademias"></div>
   </div>
 
@@ -1943,18 +1902,7 @@ input[type=file]{display:none}
         <div><div style="font-family:'Barlow Condensed',sans-serif;font-size:24px;font-weight:900;color:#5db13d;" id="rcVagas">—</div><div style="font-size:9px;color:rgba(255,255,255,.4);letter-spacing:1px;">VAGAS</div></div>
       </div>
     </div>
-    <!-- 01/10b: escolher a BIKE antes de reservar -->
-    <div style="display:flex;align-items:baseline;justify-content:space-between;margin:0 0 10px;">
-      <div style="font-size:11px;font-weight:800;letter-spacing:2px;color:rgba(255,255,255,.45);text-transform:uppercase;">Escolha a sua bike</div>
-      <div id="rcBikeInfo" style="font-size:11px;color:rgba(255,255,255,.35);"></div>
-    </div>
-    <div id="rcBikes" style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:10px;max-height:42vh;overflow-y:auto;"></div>
-    <div style="display:flex;gap:14px;justify-content:center;font-size:11px;color:rgba(255,255,255,.4);margin-bottom:16px;">
-      <span><b style="display:inline-block;width:10px;height:10px;border-radius:3px;background:rgba(255,255,255,.12);vertical-align:-1px;"></b> livre</span>
-      <span><b style="display:inline-block;width:10px;height:10px;border-radius:3px;background:#ea860c;vertical-align:-1px;"></b> sua</span>
-      <span><b style="display:inline-block;width:10px;height:10px;border-radius:3px;background:rgba(214,45,45,.5);vertical-align:-1px;"></b> reservada</span>
-    </div>
-    <button id="rcBtn" disabled style="width:100%;padding:14px;border-radius:12px;border:none;background:linear-gradient(135deg,#ea860c,#d62d2d);color:#fff;font-size:16px;font-weight:700;cursor:pointer;opacity:.45;" onclick="confirmarReserva()">ESCOLHA A BIKE</button>
+    <button id="rcBtn" style="width:100%;padding:14px;border-radius:12px;border:none;background:linear-gradient(135deg,#ea860c,#d62d2d);color:#fff;font-size:16px;font-weight:700;cursor:pointer;" onclick="confirmarReserva()">RESERVAR VAGA</button>
     <button onclick="closeReservaModal()" style="width:100%;padding:12px;border-radius:12px;border:none;background:transparent;color:rgba(255,255,255,.4);font-size:14px;cursor:pointer;margin-top:8px;">Cancelar</button>
   </div>
 </div>
@@ -2205,95 +2153,6 @@ var lastCode='';
 // Fluxo: scan QR → assinar_sala (observa o mapa ao vivo) → escolhe a bike → entrar_sala
 // Fonte de dados na aula: relay do ginásio (iOS sem BLE) ou BLE do próprio celular (Android)
 // ════════════════════════════════════════════════════════════
-// 26/09b: o campo profNome comeca com "–" (travessao curto) e o teste antigo
-// comparava com "—" (travessao longo). Sem o nome carregado, o app entrava na
-// sala com o nome "–" e a TV mostrava um aluno "-" a 0 W. Qualquer tracinho
-// sozinho agora conta como "sem nome".
-function _prNomeAluno(){
-  var _limpo=function(v){ v=String(v||'').trim(); return /^[-–—\s]*$/.test(v)?'':v; };
-  var el=document.getElementById('profNome');
-  var v=_limpo(el&&el.textContent);
-  if(!v){ try{ v=_limpo(typeof prUser!=='undefined'&&prUser&&prUser.name); }catch(e){} }
-  if(!v){ try{ v=_limpo(localStorage.getItem('pr_nome')); }catch(e){} }
-  return v||'Aluno';
-}
-// 26/09b: sexo do aluno para o desafio Homens x Mulheres do Ginasio.
-// Vem da conta (prUser.sexo); sem ela, do que a pessoa marcou no cadastro.
-function _prSexoAluno(){
-  var v='';
-  try{ v=(typeof prUser!=='undefined'&&prUser&&prUser.sexo)||''; }catch(e){}
-  if(!v){ try{ v=localStorage.getItem('pr_sexo')||''; }catch(e){} }
-  if(!v){ try{ v=(typeof obData!=='undefined'&&obData&&obData.sexo)||''; }catch(e){} }
-  v=String(v).toUpperCase();
-  if(v==='M'||v==='F'){ try{ localStorage.setItem('pr_sexo',v); }catch(e){} return v; }
-  return null;
-}
-// 26/09b: RESULTADO DO DESAFIO NO CELULAR. O Ginasio manda o ranking no fim
-// do desafio; cada celular procura o proprio nome e mostra a colocacao por
-// 10 s. Um toque fecha antes.
-function _desafioResultadoApp(d){
-  try{
-    if(!d || !Array.isArray(d.ranking)) return;
-    var eu=_entrarNome||_prNomeAluno();
-    var r=null; for(var i=0;i<d.ranking.length;i++){ if(String(d.ranking[i].nome)===String(eu)){ r=d.ranking[i]; break; } }
-    if(!r) return;
-    var modo=d.desafioModo||'geral', un=d.unidade||'', nomeD=d.nomeDesafio||'Desafio';
-    var fmt=function(v){ v=Number(v)||0; return un==='km'?v.toFixed(2).replace('.',','):String(Math.round(v)); };
-    var pos=r.pos, de=r.de||d.ranking.length, ctx='de '+de+' participantes', extra='', cor='#ea860c', venc='';
-    if(modo==='mvsf' && r.posGrupo){
-      pos=r.posGrupo; de=r.deGrupo;
-      ctx=(r.genero==='F'?'entre as mulheres':'entre os homens')+' · de '+de;
-      cor=(r.genero==='F')?'#ff4fb8':'#2f8bff';
-      extra='Geral: '+r.pos+'º de '+(r.de||d.ranking.length);
-      if(d.vencedor==='empate') venc='Empate entre homens e mulheres!';
-      else if(d.vencedor) venc=(d.vencedor==='F'?'As mulheres':'Os homens')+' venceram! 🏆';
-    } else if(modo==='equipes' && r.posGrupo){
-      pos=r.posGrupo; de=r.deGrupo;
-      ctx='na equipe '+(r.equipe==='azul'?'azul':'laranja')+' · de '+de;
-      cor=(r.equipe==='azul')?'#2f8bff':'#ea860c';
-      extra='Geral: '+r.pos+'º de '+(r.de||d.ranking.length);
-      if(d.vencedor==='empate') venc='Empate entre as equipes!';
-      else if(d.vencedor) venc=(d.vencedor===r.equipe?'Sua equipe venceu! 🏆':'A equipe '+(d.vencedor==='azul'?'azul':'laranja')+' venceu.');
-    }
-    var med=pos===1?'🥇':pos===2?'🥈':pos===3?'🥉':'🏁';
-    var velho=document.getElementById('prDesafioRes'); if(velho) velho.remove();
-    var el=document.createElement('div'); el.id='prDesafioRes';
-    el.style.cssText='position:fixed;inset:0;z-index:99999;background:rgba(4,4,10,.86);display:flex;align-items:center;justify-content:center;padding:24px;box-sizing:border-box;-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);';
-    el.innerHTML='<div style="width:100%;max-width:360px;border-radius:24px;padding:26px 22px 20px;text-align:center;background:linear-gradient(180deg,#141222,#0a0913);border:1px solid '+cor+'66;box-shadow:0 0 40px '+cor+'44;font-family:inherit;color:#fff;">'
-      +'<div style="font-size:12px;font-weight:800;letter-spacing:2.5px;color:rgba(255,255,255,.55);text-transform:uppercase;">Desafio · '+nomeD+'</div>'
-      +(modo!=='geral'?'<div style="font-size:11px;font-weight:700;letter-spacing:2px;color:'+cor+';text-transform:uppercase;margin-top:4px;">'+(modo==='mvsf'?'Homens × Mulheres':'Equipes')+'</div>':'')
-      +'<div style="font-size:54px;line-height:1;margin-top:16px;">'+med+'</div>'
-      +'<div style="font-size:14px;font-weight:700;letter-spacing:2px;color:rgba(255,255,255,.6);margin-top:10px;text-transform:uppercase;">Você ficou em</div>'
-      +'<div style="font-size:84px;font-weight:900;line-height:1;color:'+cor+';margin-top:4px;">'+pos+'º</div>'
-      +'<div style="font-size:15px;color:rgba(255,255,255,.75);margin-top:6px;">'+ctx+'</div>'
-      +'<div style="font-size:30px;font-weight:900;margin-top:14px;">'+fmt(r.val)+' <span style="font-size:15px;color:rgba(255,255,255,.55);">'+un+'</span></div>'
-      +(extra?'<div style="font-size:13px;color:rgba(255,255,255,.5);margin-top:6px;">'+extra+'</div>':'')
-      +(d.regra?'<div style="font-size:11px;color:rgba(255,255,255,.4);margin-top:4px;">'+String(d.regra).replace(/[<>&]/g,'')+'</div>':'')
-      +(venc?'<div style="font-size:16px;font-weight:800;color:#ffd23f;margin-top:12px;">'+venc+'</div>':'')
-      +'<div style="height:4px;border-radius:2px;background:rgba(255,255,255,.1);margin-top:18px;overflow:hidden;"><div id="prDesafioResBar" style="height:100%;width:100%;background:'+cor+';transition:width 10s linear;"></div></div>'
-      +'<div style="font-size:11px;color:rgba(255,255,255,.35);margin-top:8px;">toque para fechar</div></div>';
-    var fechar=function(){ clearTimeout(el._t); if(el.parentNode) el.parentNode.removeChild(el); };
-    el.addEventListener('click',fechar);
-    document.body.appendChild(el);
-    requestAnimationFrame(function(){ requestAnimationFrame(function(){ var b=document.getElementById('prDesafioResBar'); if(b) b.style.width='0%'; }); });
-    el._t=setTimeout(fechar,10000);
-    try{ if(navigator.vibrate) navigator.vibrate([80,60,80]); }catch(e){}
-  }catch(e){ try{ console.warn('[ProRider] resultado do desafio:',e); }catch(_e){} }
-}
-
-// 26/09d — FC NO APP, UMA FONTE SO: o numero grande (BPM) mostra a FC atual e
-// "Avg. HR" passa a mostrar a MEDIA da aula (antes mostrava a FC do instante).
-var _hrAcc={s:0,n:0,t:0};
-function _appHr(v){
-  v=Math.round(v||0); if(!(v>0)) return;
-  var e=document.getElementById('bigHR'); if(e) e.textContent=v;
-  var sl=document.getElementById('sLive');
-  if(sl && sl.classList.contains('active')){
-    var ag=Date.now(); if(ag-_hrAcc.t>=900){ _hrAcc.s+=v; _hrAcc.n++; _hrAcc.t=ag; }   // ~1 amostra/s
-    var e2=document.getElementById('p2AHr'); if(e2) e2.textContent=Math.round(_hrAcc.s/_hrAcc.n);
-  }
-}
-function _appHrZerar(){ _hrAcc={s:0,n:0,t:0}; var e2=document.getElementById('p2AHr'); if(e2) e2.textContent='0'; }
 var _entrarCodigo = '', _entrarNome = '';            // 23/09c: codigo usado no ultimo entrar_sala (QR ou reserva)
 var _bikeSelNum = null;             // bike escolhida pelo aluno (null = ainda só observando)
 var _salaInfo   = null;             // {numBikes,bikes:[],ocupadas:[]} vindo do ginásio
@@ -2306,39 +2165,6 @@ function _bikeCacheLer(){ try{ var s=localStorage.getItem(_bikeCacheKey()); retu
 function _numBikesCacheSalvar(n){ try{ if(n) localStorage.setItem('pr_sala_nb_'+(lastCode||'_'), String(n)); }catch(e){} }
 function _numBikesCacheLer(){ try{ var s=localStorage.getItem('pr_sala_nb_'+(lastCode||'_')); return s?parseInt(s):0; }catch(e){ return 0; } }
 
-// 26/09b: a bike "ocupada" pode ser a MINHA — o app foi reaberto ou a
-// conexao caiu e a TV ainda me mostra nela. Nesse caso ela aparece livre
-// para mim (marcada SUA), e posso voltar para ela. Duas pistas: o nome de
-// quem ocupa (Ginasio novo manda 'ocupantes') e a ultima bike que escolhi
-// nesta sala, guardada no aparelho (funciona mesmo com Ginasio antigo).
-// 01/10b: id da conta (vai no entrar_sala: a reserva vira 'presente' e o campeonato liga à conta)
-function _prUid(){ try{ var t=localStorage.getItem('pr_token')||''; var p=t.split('.')[1]; if(!p) return null;
-  var j=JSON.parse(decodeURIComponent(escape(atob(p.replace(/-/g,'+').replace(/_/g,'/'))))); return j&&j.id?j.id:null; }catch(e){ return null; } }
-// 01/10b: bike que reservei para a aula de agora (hoje, de 90 min antes até o fim)
-var _prResvHoje=null;
-async function _prCarregarReservaHoje(){
-  try{
-    var tok=localStorage.getItem('pr_token')||''; if(!tok) return;
-    var r=await fetch(SERVER_HTTP+'/aluno/reservas',{headers:{'Authorization':'Bearer '+tok}}); if(!r.ok) return;
-    var l=await r.json(), ag=new Date(), iso=ag.getFullYear()+'-'+String(ag.getMonth()+1).padStart(2,'0')+'-'+String(ag.getDate()).padStart(2,'0'), min=ag.getHours()*60+ag.getMinutes();
-    _prResvHoje=null;
-    (Array.isArray(l)?l:[]).forEach(function(x){
-      if(String(x.data_aula).slice(0,10)!==iso||!x.bike_numero) return;
-      var p=String(x.hora||'').split(':'), h=parseInt(p[0],10)*60+parseInt(p[1]||0,10);
-      if(min>=h-90 && min<=h+(parseInt(x.duracao_min,10)||60)) _prResvHoje={bike:parseInt(x.bike_numero,10),aula:x.aula_nome,hora:String(x.hora||'').slice(0,5)};
-    });
-    try{ _renderBikeGrid(); }catch(e){}
-  }catch(e){}
-}
-function _bikeEhMinha(n){
-  try{
-    if(_prResvHoje && _prResvHoje.bike===parseInt(n,10)) return true;
-    var oc=(_salaInfo&&_salaInfo.ocupantes)||{}, quem=oc[n]||oc[String(n)];
-    if(quem){ var eu=_entrarNome||_prNomeAluno(); return String(quem)===String(eu); }
-    var ult=parseInt(localStorage.getItem('pr_ult_bike_'+(lastCode||''))||'0',10);
-    return ult>0 && ult===parseInt(n,10);
-  }catch(e){ return false; }
-}
 function _renderBikeGrid(){
   var grid=document.getElementById('bikeSelGrid'); if(!grid) return;
   // Mostra TODAS as posições da sala (numBikes configurado no ginásio) e marca as ocupadas.
@@ -2360,8 +2186,8 @@ function _renderBikeGrid(){
     grid.parentNode.insertBefore(topo,grid);
   }
   var tranc=(_salaInfo && _salaInfo.trancadas) ? _salaInfo.trancadas : [];
-  var p99 = ocup.indexOf(99)>=0 && _bikeSelNum!==99 && !_bikeEhMinha(99);
-  var sel99 = (_bikeSelNum===99) || (ocup.indexOf(99)>=0 && _bikeEhMinha(99));
+  var p99 = ocup.indexOf(99)>=0 && _bikeSelNum!==99;
+  var sel99 = (_bikeSelNum===99);
   topo.innerHTML='<button '+(p99?'disabled':'onclick="selectBike(99)"')
     +' style="width:100%;display:flex;align-items:center;gap:12px;padding:13px 16px;border-radius:14px;'
     +'background:'+(sel99?'rgba(234,134,12,.22)':(p99?'rgba(234,134,12,.06)':'rgba(234,134,12,.11)'))+';'
@@ -2391,34 +2217,24 @@ function _renderBikeGrid(){
         +'<span style="font-size:11px;letter-spacing:.5px;">'+i+'</span></button>';
       continue;
     }
-    var taken=ocup.indexOf(i)>=0 && i!==_bikeSelNum && !_bikeEhMinha(i);
+    var taken=ocup.indexOf(i)>=0 && i!==_bikeSelNum;
     var bg=taken?'rgba(214,45,45,.12)':'rgba(255,255,255,.06)';
     var bc=taken?'rgba(214,45,45,.4)':(i===_bikeSelNum?'#ea860c':'rgba(255,255,255,.1)');
     var op=taken?'opacity:.45;':'';
-    var _res=_prResvHoje&&_prResvHoje.bike===i&&!taken;
-    if(_res&&i!==_bikeSelNum){ bg='rgba(234,134,12,.16)'; bc='#ea860c'; }
-    html+='<button '+(taken?'disabled':'onclick="selectBike('+i+')"')+' style="padding:18px 0;border-radius:14px;background:'+bg+';border:2px solid '+bc+';color:#fff;font-family:\'Bebas Neue\',sans-serif;font-size:28px;cursor:'+(taken?'not-allowed':'pointer')+';transition:all .15s;'+op+'" id="bikeBtnSel'+i+'">'+i+(taken?'<div style="font-size:9px;letter-spacing:1px;">ocupada</div>':(_res?'<div style="font-size:9px;letter-spacing:1px;color:#ffb45a;">SUA RESERVA</div>':''))+'</button>';
+    html+='<button '+(taken?'disabled':'onclick="selectBike('+i+')"')+' style="padding:18px 0;border-radius:14px;background:'+bg+';border:2px solid '+bc+';color:#fff;font-family:\'Bebas Neue\',sans-serif;font-size:28px;cursor:'+(taken?'not-allowed':'pointer')+';transition:all .15s;'+op+'" id="bikeBtnSel'+i+'">'+i+(taken?'<div style="font-size:9px;letter-spacing:1px;">ocupada</div>':'')+'</button>';
   }
   grid.innerHTML=html;
-  // 01/10b: aviso da bike reservada, em cima da grade
-  var av=document.getElementById('bikeSelResv');
-  if(!av){ av=document.createElement('div'); av.id='bikeSelResv'; grid.parentNode.insertBefore(av,topo); }
-  if(_prResvHoje && _prResvHoje.bike<=n){
-    av.style.cssText='margin:0 0 14px;padding:12px 14px;border-radius:14px;background:rgba(234,134,12,.12);border:1.5px solid rgba(234,134,12,.55);font-size:13px;line-height:1.4;';
-    av.innerHTML='<b style="color:#ffb45a">Você reservou a bike '+_prResvHoje.bike+'</b>'+(_prResvHoje.aula?' · '+_salaEsc(_prResvHoje.aula)+' '+_prResvHoje.hora:'')+'<br><span style="color:rgba(255,255,255,.6)">Toque nela para entrar. Se sentou em outra, toque na outra.</span>';
-  } else { av.style.cssText='display:none'; av.innerHTML=''; }
 }
 
 function selectBike(num){
   _bikeSelNum=num;
-  try{ localStorage.setItem('pr_ult_bike_'+(lastCode||''), String(num)); }catch(e){}
   _renderBikeGrid();
   var nome=document.getElementById('profNome');
-  var nomeVal=_prNomeAluno();
+  var nomeVal=(nome&&nome.textContent.trim()&&nome.textContent.trim()!=='—')?nome.textContent.trim():(localStorage.getItem('pr_nome')||'Aluno');
   // Já estava observando (socket aberto) → vira participante de verdade na bike escolhida
   if(wsConn && wsConn.readyState===1){
     _entrarNome=nomeVal; _entrarCodigo=lastCode;
-    wsConn.send(JSON.stringify({tipo:'entrar_sala',user_id:_prUid(),codigo:lastCode,nome:nomeVal,genero:_prSexoAluno(),nivel:_prNivelAluno(),bike:num,
+    wsConn.send(JSON.stringify({tipo:'entrar_sala',codigo:lastCode,nome:nomeVal,bike:num,
       foto:(localStorage.getItem('pr_foto')||null),
       ftpBase:(function(){ try{ var f=parseInt(_ftpDoAluno(),10)||0; return f>0?f:null; }catch(e){ return null; } })()}));
   } else {
@@ -2469,27 +2285,17 @@ function connectQR(code){
     }
     return;
   }
-  // sala diferente da ultima: nada da aula anterior pode aparecer nesta (23/09e)
-  if(lastCode && lastCode!==code && !(wsConn && wsConn.readyState===1 && wsConn._prCodigo===code)){
-    if(!(wsConn && wsConn.readyState===1)) { try{ aulaGrafico=[]; aulaBlocoIdx=0; aulaGraficoNome=''; _blocoRest=0; _blocoRestTs=0; liveRelay=null; }catch(e){} }
-  }
   lastCode=code;
   try{ localStorage.setItem('pr_last_sala', JSON.stringify({code:code, bike:_bikeSelNum||0, ts:Date.now()})); }catch(e){}
-  // Se já está conectado NESTA sala, vai direto para sLive. Se o socket aberto
-  // e de OUTRA sala (aula anterior), fecha e entra na nova (23/09e).
-  if(wsConn && wsConn.readyState===1){
-    if(!wsConn._prCodigo || wsConn._prCodigo===code){ go('sLive'); return; }
-    _prLimparAulaAnterior('QR de outra sala: '+wsConn._prCodigo+' -> '+code);
-    try{ _bikeSelNum=null; }catch(e){}
-  }
+  // Se já está conectado, vai direto para sLive
+  if(wsConn && wsConn.readyState===1){ go('sLive'); return; }
   var statusEl=document.getElementById('qrStatus');
   if(statusEl){statusEl.textContent='Conectando...';statusEl.style.color='#ea860c';}
   try{
     wsConn=new WebSocket(SERVER_URL);
-    wsConn._prCodigo=code;
     wsConn.onopen=function(){
       var nome=document.getElementById('profNome');
-      var nomeVal=_prNomeAluno();
+      var nomeVal=(nome&&nome.textContent.trim()&&nome.textContent.trim()!=='—')?nome.textContent.trim():(localStorage.getItem('pr_nome')||'Aluno');
       if(_bikeSelNum){
         // Já escolheu a bike (ou reconexão durante a aula) → entra como participante
         // ── FTP VAI JUNTO ──────────────────────────────────────────
@@ -2499,14 +2305,13 @@ function connectQR(code){
         var _meuFtp = 0;
         try{ _meuFtp = parseInt(_ftpDoAluno(),10) || 0; }catch(e){}
         _entrarNome=nomeVal; _entrarCodigo=code;
-        wsConn.send(JSON.stringify({tipo:'entrar_sala',user_id:_prUid(),codigo:code,nome:nomeVal,genero:_prSexoAluno(),nivel:_prNivelAluno(),bike:_bikeSelNum,
+        wsConn.send(JSON.stringify({tipo:'entrar_sala',codigo:code,nome:nomeVal,bike:_bikeSelNum,
           foto:(localStorage.getItem('pr_foto')||null),
           ftpBase:(_meuFtp>0?_meuFtp:null)}));
       } else {
         // Primeiro contato: observa o mapa da sala ao vivo e mostra a tela de seleção
         wsConn.send(JSON.stringify({tipo:'assinar_sala',codigo:code}));
         _renderBikeGrid();   // mostra cache imediatamente, se houver
-        _prCarregarReservaHoje();   // 01/10b: destaca a bike reservada
         go('sBikeSel');
       }
     };
@@ -2529,7 +2334,7 @@ function connectQR(code){
       }catch(_e){}
 
       if(data.tipo==='sala_info'){
-        _salaInfo={ numBikes:data.numBikes||0, bikes:data.bikes||[], ocupadas:data.ocupadas||[], ocupantes:data.ocupantes||{}, trancadas:data.trancadas||[] }; // 26/09b: + ocupantes e trancadas (trancadas nao era guardado)
+        _salaInfo={ numBikes:data.numBikes||0, bikes:data.bikes||[], ocupadas:data.ocupadas||[] };
         _bikeCacheSalvar(_salaInfo.bikes);
         if(_salaInfo.numBikes) _numBikesCacheSalvar(_salaInfo.numBikes);
         var sb=document.getElementById('sBikeSel');
@@ -2545,11 +2350,9 @@ function connectQR(code){
           }
         }
       }
-      if(data.tipo==='aula_reiniciada'){ try{ _lsReset(); }catch(e){} if(typeof showToast==='function') showToast('A aula foi recomeçada: seus números voltaram a zero.'); }
-      if(data.tipo==='fim_desafio'){ _desafioResultadoApp(data); }
       if(data.tipo==='ftp_resultado' && data.nome){
         // o ginasio manda um por aluno; cada celular pega o seu
-        try{ var _eu=_entrarNome||(prUser&&prUser.name)||''; if(!_eu || String(data.nome)===String(_eu) || (prUser&&String(data.nome)===String(prUser.name))) _ftpResultadoApp(data); }catch(e){ _ftpResultadoApp(data); }
+        try{ if(!prUser || !prUser.name || String(data.nome)===String(prUser.name)) aplicarFtpResultado(data.ftp); }catch(e){ aplicarFtpResultado(data.ftp); }
       }
       if(data.tipo==='fim_aula' || data.tipo==='sala_encerrada'){
         // Professor encerrou a aula no ginásio → encerra no app e mostra resultados
@@ -2576,7 +2379,6 @@ function connectQR(code){
         }, 300);
       }
       if(data.tipo==='update_aula'){
-        window._ultUpdateAula=Date.now();
         if(data.grafico && data.grafico.length>0){
           aulaGrafico=data.grafico; aulaBlocoIdx=data.blocoIdx||0; _graficoLocalAtivo=false;
           aulaGraficoNome=data.nomeAula||'ProRider';
@@ -2673,14 +2475,6 @@ function connectQR(code){
         // morta, e o aluno tenta voltar para ela indefinidamente.
         if(/n[aã]o encontrada|inexistente|encerrada/i.test(String(_msgErr))){
           _prEsquecerSala('sala nao existe mais');
-          // 26/09d: em plena aula, sala que sumiu = aula acabou (Ginasio fechado
-          // ou encerrado sem o aviso chegar). Fecha a aula e mostra o resultado.
-          var _slE=document.getElementById('sLive');
-          if(_slE && _slE.classList.contains('active')){
-            try{ if(typeof _reconStop==='function') _reconStop(); }catch(e){}
-            if(typeof showToast==='function') showToast('A aula foi encerrada.');
-            _encerrarAulaApp(); return;
-          }
         }
         if(statusEl){statusEl.textContent=_msgErr;statusEl.style.color='#d62d2d';}
         // Mostra o erro de forma VISÍVEL mesmo fora da tela de QR (antes só atualizava um campo oculto → parecia travado)
@@ -3487,7 +3281,7 @@ function obDoRegister(){
     peso:obData.peso,
     altura:obData.altura,
     idade:obData.idade,
-    sexo:(function(){ try{ if(obData.sexo) localStorage.setItem('pr_sexo',obData.sexo); }catch(e){} return obData.sexo; })(),
+    sexo:obData.sexo,
     tmb:obData.tmb,
     ftp:obData.ftp
   };
@@ -4117,11 +3911,11 @@ function go(id){
   document.getElementById(id).classList.add('active');
   // Ao ENTRAR na tela de scan, volta ao estado limpo (câmera parada, "Ativar câmera" visível)
   if(id==='sQRScan'){ try{ _resetScanUI(); }catch(e){} }
-  var showNav=(id!=='sLive' && id!=='sGravada' && id!=='sCountdown' && id!=='sSplash' && id!=='sOnboard');
+  var showNav=(id!=='sLive' && id!=='sCountdown' && id!=='sSplash' && id!=='sOnboard');
   var bNav=document.getElementById('bNav');
   if(bNav) bNav.style.display=showNav?'flex':'none';
   // Mantém a tela do celular acesa durante a aula (usa o wake lock já existente)
-  if(id==='sLive'||id==='sGravada'){ try{ _acquireWakeLock(); }catch(e){} } else { try{ _releaseWakeLock(); }catch(e){} }
+  if(id==='sLive'){ try{ _acquireWakeLock(); }catch(e){} } else { try{ _releaseWakeLock(); }catch(e){} }
 }
 // ═══════════════════════════════════════════════
 // AGENDA — buscar aula, reservar, minhas reservas
@@ -4141,21 +3935,14 @@ async function loadMinhasReservas() {
   try {
     const r = await fetch(SERVER_HTTP + '/aluno/reservas', { headers:{'Authorization':'Bearer '+tok} });
     const lista = await r.json();
-    window._minhasResv = Array.isArray(lista) ? lista : [];   // 01/10b: a grade marca as aulas já reservadas
-    try { const re = await fetch(SERVER_HTTP + '/aluno/esperas', { headers:{'Authorization':'Bearer '+tok} }); window._minhasEsperas = re.ok ? await re.json() : []; } catch(_) { window._minhasEsperas = []; }   // 02/10c
     const el = document.getElementById('minhasReservas');
-    const _fila = (window._minhasEsperas||[]).map(e => `<div style="display:flex;align-items:center;gap:12px;background:rgba(255,180,90,.06);border:1px dashed rgba(255,180,90,.4);border-radius:12px;padding:12px 14px;margin-bottom:8px;">
-        <div style="font-size:22px;">⏳</div><div style="flex:1;min-width:0;"><div style="font-size:14px;font-weight:700;">${e.aula_nome} · ${e.hora}</div>
-        <div style="font-size:11px;color:#ffb45a;">${e.posicao}º na lista de espera · ${String(e.data_aula).split('-').reverse().slice(0,2).join('/')} · ${e.academia||''}</div>
-        <div style="font-size:10.5px;color:rgba(255,255,255,.4);">Se abrir vaga, a bike é sua e você recebe um e-mail.</div></div>
-        <button onclick="sairDaFila(${e.agenda_id},'${e.data_aula}')" style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.15);color:rgba(255,255,255,.7);padding:6px 10px;border-radius:8px;font-size:11px;cursor:pointer;">Sair</button></div>`).join('');
     if (!Array.isArray(lista) || !lista.length) {
-      el.innerHTML = _fila || '<div style="text-align:center;padding:20px;color:rgba(255,255,255,.3);font-size:13px;">Nenhuma reserva futura.</div>';
+      el.innerHTML = '<div style="text-align:center;padding:20px;color:rgba(255,255,255,.3);font-size:13px;">Nenhuma reserva futura.</div>';
       return;
     }
     const DIAS = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
     el.innerHTML = lista.map(r => {
-      const d = new Date(String(r.data_aula).slice(0,10)+'T00:00');   // 01/10b: vinha data com hora (NaN)
+      const d = new Date(r.data_aula+'T00:00');
       return `<div style="display:flex;align-items:center;gap:12px;background:rgba(255,255,255,.04);border-radius:12px;padding:12px 14px;margin-bottom:8px;">
         <div style="text-align:center;min-width:40px;">
           <div style="font-size:9px;color:rgba(255,255,255,.4);letter-spacing:1px;">${DIAS[d.getDay()]}</div>
@@ -4164,96 +3951,54 @@ async function loadMinhasReservas() {
         <div style="flex:1;min-width:0;">
           <div style="font-size:14px;font-weight:700;">${r.aula_nome}</div>
           <div style="font-size:11px;color:rgba(255,255,255,.4);">${r.hora?.slice(0,5)} · ${r.academia_nome||r.nome_fantasia||''} · ${r.cidade||''}</div>
-          ${r.bike_numero ? `<div style="font-size:11px;font-weight:800;color:#ea860c;margin-top:2px;">🚲 Bike ${r.bike_numero}</div>` : `<div style="font-size:11px;color:#ffb45a;margin-top:2px;">sem bike escolhida — reserve de novo para escolher</div>`}
         </div>
         <button onclick="cancelarReserva(${r.id})" style="background:rgba(214,45,45,.12);border:1px solid rgba(214,45,45,.2);color:#d62d2d;padding:6px 10px;border-radius:8px;font-size:11px;cursor:pointer;">Cancelar</button>
       </div>`;
-    }).join('') + _fila;
+    }).join('');
   } catch(e) { console.error(e); }
 }
 
-// ── Busca de academias + Perto de mim (29/09c) ──
-// A posição do celular só vai na busca (o servidor devolve a distância e
-// não grava). Se o aluno já deu permissão antes, a lista já abre em ordem
-// de distância; se nunca deu, só pede quando ele toca em "Perto de mim".
-var _agPos = null;
 async function loadAcademias() {
   try {
-    var q = _agPos ? ('?lat=' + _agPos.lat.toFixed(4) + '&lng=' + _agPos.lng.toFixed(4)) : '';
-    const r = await fetch(SERVER_HTTP + '/agenda/cidades' + q);
+    const r = await fetch(SERVER_HTTP + '/agenda/cidades');
     _agTodasAcademias = await r.json();
-    if (!Array.isArray(_agTodasAcademias)) _agTodasAcademias = [];
-    filtrarAcademias((document.getElementById('agCidadeInput') || {}).value || '');
+    renderAcademias(_agTodasAcademias);
   } catch(e) {
     document.getElementById('agAcademias').innerHTML = '<div style="color:rgba(255,255,255,.3);font-size:13px;text-align:center;padding:16px;">Nenhuma academia disponível.</div>';
   }
-  if (!_agPos && !window._agPertoAuto) { window._agPertoAuto = true;
-    try { navigator.permissions && navigator.permissions.query({ name: 'geolocation' }).then(function(st){ if (st.state === 'granted') agPertoDeMim(false); }).catch(function(){}); } catch(e) {}
-  }
-}
-function agPertoMsg(t){ var m = document.getElementById('agPertoMsg'); if (!m) return; m.style.display = t ? 'block' : 'none'; m.innerHTML = t || ''; }
-function agPertoDeMim(pediu) {
-  var btn = document.getElementById('agPertoBtn');
-  if (!navigator.geolocation) { if (pediu) agPertoMsg('Este aparelho não informa a localização. Busque pela cidade.'); return; }
-  if (btn) { btn.disabled = true; btn.querySelector('span').textContent = 'Procurando você…'; }
-  navigator.geolocation.getCurrentPosition(function(p){
-    _agPos = { lat: p.coords.latitude, lng: p.coords.longitude };
-    if (btn) { btn.disabled = false; btn.querySelector('span').textContent = 'Perto de mim · atualizar'; }
-    agPertoMsg(''); loadAcademias();
-  }, function(err){
-    if (btn) { btn.disabled = false; btn.querySelector('span').textContent = 'Perto de mim'; }
-    if (pediu) agPertoMsg(err.code === 1
-      ? 'A localização está bloqueada para o ProRider. Libere em <b>Ajustes → Navegador → Localização</b> (ou no cadeado ao lado do endereço) e toque de novo. Enquanto isso, busque pela cidade.'
-      : 'Não consegui achar você agora. Ligue o GPS e tente de novo, ou busque pela cidade.');
-  }, { enableHighAccuracy: false, timeout: 12000, maximumAge: 300000 });
 }
 
 function filtrarAcademias(q) {
-  const f = String(q || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
-  const n = function(t){ return String(t || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, ''); };
-  renderAcademias(!f ? _agTodasAcademias : _agTodasAcademias.filter(a =>
-    n(a.cidade).includes(f) || n(a.nome).includes(f) || n(a.nome_fantasia).includes(f) || n(a.bairro).includes(f)
+  const f = q.toLowerCase();
+  renderAcademias(_agTodasAcademias.filter(a =>
+    (a.cidade||'').toLowerCase().includes(f) ||
+    (a.nome||'').toLowerCase().includes(f) ||
+    (a.nome_fantasia||'').toLowerCase().includes(f)
   ));
 }
 
-function agDist(km) { if (km == null) return ''; return km < 1 ? Math.max(50, Math.round(km * 1000 / 50) * 50) + ' m' : (km < 10 ? km.toFixed(1).replace('.', ',') : Math.round(km)) + ' km'; }
-function agCardAcademia(a) {
-  const nm = String(a.nome_fantasia || a.nome || '').replace(/</g, '&lt;');
-  const sub = [a.bairro, a.cidade].filter(Boolean).join(' · ').replace(/</g, '&lt;');
-  const vivo = a.ao_vivo ? `<div style="display:inline-flex;align-items:center;gap:6px;margin-top:5px;font-size:11px;font-weight:800;color:#8fe06a;background:rgba(93,177,61,.14);border:1px solid rgba(93,177,61,.45);padding:3px 8px;border-radius:20px;"><i style="width:7px;height:7px;border-radius:50%;background:#7dff5a;box-shadow:0 0 8px #7dff5a;display:inline-block"></i>${a.ao_vivo.iniciada ? 'AULA AGORA' : 'AULA ABRINDO'}${a.ao_vivo.livres != null ? ' · ' + a.ao_vivo.livres + ' bike' + (a.ao_vivo.livres == 1 ? '' : 's') + ' livre' + (a.ao_vivo.livres == 1 ? '' : 's') : ''}</div>` : '';
-  return `
-        <div onclick="abrirGradeAcademia('${a.codigo}')" style="display:flex;align-items:center;gap:12px;background:rgba(255,255,255,.04);border:1px solid ${a.ao_vivo ? 'rgba(93,177,61,.5)' : 'rgba(255,255,255,.07)'};border-radius:12px;padding:14px;margin-bottom:8px;cursor:pointer;">
-          <div style="width:40px;height:40px;border-radius:10px;background:linear-gradient(135deg,rgba(234,134,12,.3),rgba(214,45,45,.3));display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">⚡</div>
-          <div style="flex:1;min-width:0;">
-            <div style="font-size:14px;font-weight:700;">${nm}</div>
-            <div style="font-size:11px;color:rgba(255,255,255,.4);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${sub}</div>
-            ${vivo}
-          </div>
-          ${a.dist_km != null ? `<div style="font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:17px;color:#ffb44a;white-space:nowrap;">${agDist(a.dist_km)}</div>` : ''}
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.3)" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
-        </div>`;
-}
-function agTitulo(t) { return `<div style="font-size:10px;font-weight:700;letter-spacing:2px;color:rgba(255,255,255,.3);text-transform:uppercase;margin-bottom:8px;">${t}</div>`; }
 function renderAcademias(lista) {
   const el = document.getElementById('agAcademias');
   if (!lista.length) {
     el.innerHTML = '<div style="color:rgba(255,255,255,.3);font-size:13px;text-align:center;padding:16px;">Nenhuma academia encontrada.</div>';
     return;
   }
-  let h = '';
-  const perto = lista.filter(a => a.dist_km != null);
-  const resto = lista.filter(a => a.dist_km == null);
-  if (perto.length) {
-    h += '<div style="margin-bottom:16px;">' + agTitulo('📍 Perto de você') + perto.map(agCardAcademia).join('') + '</div>';
-  } else {
-    const vivo = resto.filter(a => a.ao_vivo);
-    if (vivo.length) h += '<div style="margin-bottom:16px;">' + agTitulo('🟢 Aula acontecendo agora') + vivo.map(agCardAcademia).join('') + '</div>';
-  }
-  // o resto agrupado por cidade (como antes)
+  // agrupar por cidade
   const byCidade = {};
-  resto.filter(a => perto.length || !a.ao_vivo).forEach(a => { const c = a.cidade || 'Outros'; (byCidade[c] = byCidade[c] || []).push(a); });
-  h += Object.entries(byCidade).map(([cidade, acs]) => '<div style="margin-bottom:16px;">' + agTitulo('📍 ' + String(cidade).replace(/</g, '&lt;')) + acs.map(agCardAcademia).join('') + '</div>').join('');
-  el.innerHTML = h;
+  lista.forEach(a => { const c = a.cidade||'Outros'; if(!byCidade[c]) byCidade[c]=[]; byCidade[c].push(a); });
+  el.innerHTML = Object.entries(byCidade).map(([cidade, acs]) => `
+    <div style="margin-bottom:16px;">
+      <div style="font-size:10px;font-weight:700;letter-spacing:2px;color:rgba(255,255,255,.3);text-transform:uppercase;margin-bottom:8px;">📍 ${cidade}</div>
+      ${acs.map(a => `
+        <div onclick="abrirGradeAcademia('${a.codigo}')" style="display:flex;align-items:center;gap:12px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);border-radius:12px;padding:14px;margin-bottom:8px;cursor:pointer;">
+          <div style="width:40px;height:40px;border-radius:10px;background:linear-gradient(135deg,rgba(234,134,12,.3),rgba(214,45,45,.3));display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">⚡</div>
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:14px;font-weight:700;">${a.nome_fantasia||a.nome}</div>
+            <div style="font-size:11px;color:rgba(255,255,255,.4);">${a.cidade}</div>
+          </div>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.3)" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+        </div>`).join('')}
+    </div>`).join('');
 }
 
 async function abrirGradeAcademia(licId) {
@@ -4267,8 +4012,6 @@ async function abrirGradeAcademia(licId) {
     const d = await r.json();
     document.getElementById('agNomeAcad').textContent = d.academia?.nome_fantasia || d.academia?.nome || licId;
     document.getElementById('agCidadeAcad').textContent = d.academia?.cidade || '';
-    window._agAulasCache = d.aulas || [];
-    if (!window._minhasResv) { try { await loadMinhasReservas(); } catch(_) {} }
     renderGradeAluno(d.aulas || []);
     aulaAtivaVerificar(licId);
   } catch(e) {
@@ -4285,50 +4028,29 @@ async function aulaAtivaVerificar(licId){
   var box=document.getElementById('agAulaAtiva');
   if(!box){
     box=document.createElement('div'); box.id='agAulaAtiva';
-    box.style.cssText='display:none;margin:0 0 16px;';
+    box.style.cssText='display:none;margin:0 0 14px;';
     var g=document.getElementById('agGrade');
     if(g && g.parentNode) g.parentNode.insertBefore(box,g); else alvo.appendChild(box);
   }
-  // 29/09a: faixa VERDE, bem chamativa, atualizada a cada 15 s enquanto a
-  // grade desta academia estiver aberta. Aparece da pré-aula (tela do QR no
-  // Ginásio) até o fim — inclusive aula que não está na grade.
-  clearTimeout(window._agAtivaT);
-  window._agAtivaT=setTimeout(function(){ if(_agAcadSelecionada===licId && document.getElementById('agGradeWrap').style.display!=='none') aulaAtivaVerificar(licId); },15000);
+  box.style.display='none';
   try{
     var r=await fetch(SERVER_HTTP+'/agenda/aula-ativa/'+encodeURIComponent(licId));
-    if(!r.ok){ box.style.display='none'; return; }
+    if(!r.ok) return;
     var d=await r.json();
-    if(!d || !d.ativa || !d.codigo){ box.style.display='none'; return; }
-    var cod=String(d.codigo).replace(/[^A-Za-z0-9-]/g,'');
-    var foraGrade=!aulaAtivaNaGrade(d);
-    var det=[]; if(d.professor) det.push(_salaEsc(d.professor));
-    if(d.pedalando) det.push(d.pedalando+' pedalando'); if(d.livres!=null) det.push(d.livres+' bike'+(d.livres==1?'':'s')+' livre'+(d.livres==1?'':'s'));
-    var titulo=_salaEsc(d.nome_aula||'Aula ao vivo');
-    if(foraGrade && d.desde){ var hd=new Date(d.desde); titulo+=' · aberta às '+String(hd.getHours()).padStart(2,'0')+':'+String(hd.getMinutes()).padStart(2,'0'); }
-    box.innerHTML='<div onclick="aulaAtivaEntrar(\''+cod+'\')" style="cursor:pointer;border-radius:18px;padding:16px;'
-      +'background:linear-gradient(135deg,rgba(93,177,61,.36),rgba(93,177,61,.12));border:1.5px solid rgba(93,177,61,.85);box-shadow:0 0 26px rgba(93,177,61,.35);">'
-      +'<div style="display:flex;align-items:center;gap:8px;font-size:11.5px;font-weight:800;letter-spacing:1.5px;color:#9be37a;">'
-        +'<span style="width:9px;height:9px;border-radius:50%;background:#7dff5a;box-shadow:0 0 10px #7dff5a;animation:agPulse 1.4s infinite;"></span>'
-        +(d.iniciada?'AO VIVO AGORA':'AULA ABERTA — ENTRE JÁ')+(foraGrade?' · FORA DA GRADE':'')+'</div>'
-      +'<div style="font-family:\'Barlow Condensed\',sans-serif;font-size:25px;font-weight:900;margin-top:6px;line-height:1.05;">'+titulo+'</div>'
-      +(det.length?'<div style="font-size:12.5px;color:rgba(255,255,255,.72);margin-top:3px;">'+det.join(' · ')+'</div>':'')
-      +'<div style="margin-top:12px;background:#5db13d;color:#08130a;border-radius:12px;padding:13px;text-align:center;font-weight:800;font-size:16px;">Entrar na aula &#8594;</div>'
-      +(d.transmitindo?'<div onclick="event.stopPropagation();prAssistir(\''+cod+'\',\''+titulo.replace(/'/g,'')+'\')" style="margin-top:8px;background:rgba(0,0,0,.35);border:1.5px solid #ff3355;color:#fff;border-radius:12px;padding:12px;text-align:center;font-weight:800;font-size:15px;">📺 Assistir ao vivo</div>':'')
+    if(!d || !d.ativa || !d.codigo) return;
+    box.innerHTML='<div onclick="aulaAtivaEntrar(\''+String(d.codigo).replace(/[^A-Za-z0-9-]/g,'')+'\')" '
+      +'style="cursor:pointer;display:flex;align-items:center;gap:12px;padding:15px 16px;border-radius:16px;'
+      +'background:linear-gradient(135deg,rgba(234,134,12,.26),rgba(214,45,45,.16));border:1px solid rgba(234,134,12,.45);">'
+      +'<span style="width:10px;height:10px;border-radius:50%;background:#3ddc84;box-shadow:0 0 10px #3ddc84;flex:none;"></span>'
+      +'<span style="min-width:0;text-align:left;">'
+        +'<span style="display:block;font-size:14px;font-weight:900;letter-spacing:.4px;">ENTRAR NA AULA DE AGORA</span>'
+        +'<span style="display:block;font-size:11.5px;color:rgba(255,255,255,.62);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'
+          +_salaEsc(d.nome_aula||'Aula ao vivo')+(d.professor?(' · '+_salaEsc(d.professor)):'')+'</span>'
+      +'</span>'
+      +'<span style="margin-left:auto;font-size:20px;color:rgba(234,134,12,.8);flex:none;">&#8250;</span>'
       +'</div>';
-    if(!document.getElementById('agPulseCss')){ var st=document.createElement('style'); st.id='agPulseCss'; st.textContent='@keyframes agPulse{50%{opacity:.35}}'; document.head.appendChild(st); }
     box.style.display='block';
   }catch(e){}
-}
-// A aula aberta bate com alguma aula da grade de hoje (±15 min do horário)?
-function aulaAtivaNaGrade(d){
-  try{
-    var agora=new Date(), hoje=agora.getDay(), min=agora.getHours()*60+agora.getMinutes();
-    return (window._agAulasCache||[]).some(function(a){
-      if(a.dia_semana!==hoje) return false;
-      var p=String(a.hora||'').split(':'), h=parseInt(p[0])*60+parseInt(p[1]||0);
-      return min>=h-15 && min<=h+(parseInt(a.duracao_min)||60);
-    });
-  }catch(e){ return true; }
 }
 function aulaAtivaEntrar(codigo){
   // connectQR e o mesmo caminho de quem digita o codigo a mao: valida,
@@ -4355,37 +4077,22 @@ function renderGradeAluno(aulas) {
   }
   // calcular próxima data para cada dia_semana
   const hoje = new Date(); hoje.setHours(0,0,0,0);
-  // 29/09a: aula de HOJE que ainda não acabou fica hoje (antes pulava para a semana seguinte)
-  const _agAgora = new Date(), _agMin = _agAgora.getHours()*60 + _agAgora.getMinutes();
-  function proxData(dia, aula) {
+  function proxData(dia) {
     const d = new Date(hoje);
-    let diff = (dia - d.getDay() + 7) % 7;
-    if (diff === 0) {
-      const p = String((aula && aula.hora) || '00:00').split(':');
-      const fim = parseInt(p[0])*60 + parseInt(p[1]||0) + (parseInt(aula && aula.duracao_min) || 50);
-      if (fim <= _agMin) diff = 7;
-    }
+    const diff = (dia - d.getDay() + 7) % 7 || 7;
     d.setDate(d.getDate() + diff);
     return d;
   }
   const byDay = {};
   aulas.forEach(a => { const d = a.dia_semana; if(!byDay[d]) byDay[d]=[]; byDay[d].push(a); });
   const order = [1,2,3,4,5,6,0];
-  // hoje primeiro, depois os próximos dias
-  const _hojeDow = new Date().getDay();
-  const ordem2 = [0,1,2,3,4,5,6].map(k => (_hojeDow + k) % 7);
-  const _isoLocal = dt => dt.getFullYear() + '-' + String(dt.getMonth()+1).padStart(2,'0') + '-' + String(dt.getDate()).padStart(2,'0');
-  el.innerHTML = ordem2.filter(d => byDay[d]).map(d => {
-    // hoje: só as aulas que ainda não acabaram (as que já passaram voltam na semana que vem)
-    const aulasDia = d === _hojeDow ? byDay[d].filter(a => proxData(d, a).getDate() === new Date().getDate()) : byDay[d];
-    if (!aulasDia.length) return '';
-    const prox = proxData(d, aulasDia[0]);
-    const dateStr = _isoLocal(prox);   // 29/09a: data local (toISOString virava o dia depois das 21h)
+  el.innerHTML = order.filter(d => byDay[d]).map(d => {
+    const prox = proxData(d);
+    const dateStr = prox.toISOString().split('T')[0];
     const dataBR = prox.toLocaleDateString('pt-BR',{day:'2-digit',month:'short'});
-    const rotulo = d === _hojeDow ? 'Hoje' : DIAS_FULL_AG[d];
     return `<div style="margin-bottom:18px;">
-      <div style="font-size:11px;font-weight:700;letter-spacing:2px;color:${d === _hojeDow ? '#ea860c' : 'rgba(255,255,255,.3)'};text-transform:uppercase;margin-bottom:8px;">${rotulo} · ${dataBR}</div>
-      ${aulasDia.map(a => {
+      <div style="font-size:11px;font-weight:700;letter-spacing:2px;color:rgba(255,255,255,.3);text-transform:uppercase;margin-bottom:8px;">${DIAS_FULL_AG[d]} · ${dataBR}</div>
+      ${byDay[d].map(a => {
         const vagas = parseInt(a.vagas_max||20);
         const res = parseInt(a.reservas||0);
         const livres = vagas - res;
@@ -4401,15 +4108,11 @@ function renderGradeAluno(aulas) {
           </div>
           <div style="display:flex;justify-content:space-between;align-items:center;">
             <div style="font-size:12px;font-weight:700;color:${corVaga};">${lotado ? '🔴 Lotado' : livres<=3 ? '🟡 '+livres+' vagas' : '🟢 '+livres+' vagas'}</div>
-            ${(() => { const mr = (window._minhasResv||[]).find(x => x.agenda_id === a.id && String(x.data_aula).slice(0,10) === dateStr);
-              const me = (window._minhasEsperas||[]).find(x => x.agenda_id === a.id && x.data_aula === dateStr);
-              if (!mr && me) return `<button onclick="sairDaFila(${a.id},'${dateStr}')" style="padding:8px 14px;border-radius:10px;border:1.5px solid #ffb45a;background:rgba(255,180,90,.12);color:#ffb45a;font-size:13px;font-weight:700;cursor:pointer;">⏳ ${me.posicao}º na fila · sair</button>`;
-              if (!mr && lotado) return `<button onclick="entrarNaFila(${a.id},'${dateStr}')" style="padding:8px 14px;border-radius:10px;border:1.5px solid rgba(255,255,255,.25);background:rgba(255,255,255,.06);color:#fff;font-size:13px;font-weight:700;cursor:pointer;">Lotado · entrar na fila</button>`;
-              return mr ? `<button onclick="abrirReservaModal(${a.id},'${a.nome}','${a.hora.slice(0,5)}','${dateStr}',${a.duracao_min},${livres})" style="padding:8px 14px;border-radius:10px;border:1.5px solid #5db13d;background:rgba(93,177,61,.14);color:#8fe06a;font-size:13px;font-weight:700;cursor:pointer;">✓ ${mr.bike_numero ? 'Bike '+mr.bike_numero : 'Reservado'} · trocar</button>` : ''; })() || `<button onclick="abrirReservaModal(${a.id},'${a.nome}','${a.hora.slice(0,5)}','${dateStr}',${a.duracao_min},${livres})"
+            <button onclick="abrirReservaModal(${a.id},'${a.nome}','${a.hora.slice(0,5)}','${dateStr}',${a.duracao_min},${livres})"
               ${lotado?'disabled':''}
               style="padding:8px 18px;border-radius:10px;border:none;background:${lotado?'rgba(255,255,255,.06)':'linear-gradient(135deg,#ea860c,#d62d2d)'};color:${lotado?'rgba(255,255,255,.3)':'#fff'};font-size:13px;font-weight:700;cursor:${lotado?'default':'pointer'};">
               ${lotado ? 'Lotado' : 'Reservar'}
-            </button>`}
+            </button>
           </div>
         </div>`;
       }).join('')}
@@ -4418,7 +4121,7 @@ function renderGradeAluno(aulas) {
 }
 
 function abrirReservaModal(agendaId, nome, hora, data, dur, vagas) {
-  _rcPendente = { agenda_id: agendaId, data_aula: data, bike: null };
+  _rcPendente = { agenda_id: agendaId, data_aula: data };
   // Guarda o contexto para a Sala do Professor saber de que aula falar.
   try{ salaContexto(agendaId, data); }catch(e){}
   document.getElementById('rcNome').textContent = nome;
@@ -4427,107 +4130,42 @@ function abrirReservaModal(agendaId, nome, hora, data, dur, vagas) {
   document.getElementById('rcHora').textContent = hora;
   document.getElementById('rcDur').textContent = dur+'min';
   document.getElementById('rcVagas').textContent = vagas;
-  _rcBtnAtualizar();
-  document.getElementById('rcBikes').innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:14px;color:rgba(255,255,255,.35);font-size:13px;">Carregando as bikes…</div>';
   document.getElementById('reservaConfirmModal').style.display = 'flex';
-  rcCarregarBikes();
-}
-// 01/10b: mapa das bikes da aula (as reservadas por outros ficam em vermelho)
-var _rcMapa = null;
-async function rcCarregarBikes() {
-  if (!_rcPendente) return;
-  const tok = localStorage.getItem('pr_token') || '';
-  const box = document.getElementById('rcBikes');
-  if (!tok) { box.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:14px;color:rgba(255,255,255,.45);font-size:13px;">Faça login para escolher a bike.</div>'; return; }
-  try {
-    const r = await fetch(SERVER_HTTP + '/aluno/agenda/' + _rcPendente.agenda_id + '/bikes?data=' + encodeURIComponent(_rcPendente.data_aula), { headers:{'Authorization':'Bearer '+tok} });
-    const m = await r.json();
-    if (!r.ok) throw new Error(m.error || 'erro');
-    _rcMapa = m;
-    if (m.minha && !_rcPendente.bike) _rcPendente.bike = m.minha;   // já reservada: mostra a dela e deixa trocar
-    rcRenderBikes();
-  } catch(e) {
-    box.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:14px;color:#ff8a8a;font-size:13px;">Não consegui carregar as bikes. <a onclick="rcCarregarBikes()" style="color:#ea860c;text-decoration:underline;cursor:pointer;">Tentar de novo</a></div>';
-  }
-}
-function rcRenderBikes() {
-  const m = _rcMapa || { total: 0, ocupadas: [] }, box = document.getElementById('rcBikes');
-  const oc = (m.ocupadas || []).map(Number);
-  let h = '';
-  for (let i = 1; i <= m.total; i++) {
-    const tomada = oc.indexOf(i) >= 0, sel = _rcPendente && _rcPendente.bike === i;
-    h += '<button ' + (tomada ? 'disabled' : 'onclick="rcEscolherBike(' + i + ')"') + ' style="padding:12px 0;border-radius:12px;font-family:\'Bebas Neue\',sans-serif;font-size:24px;line-height:1;color:#fff;'
-      + 'background:' + (sel ? 'linear-gradient(135deg,#ea860c,#d62d2d)' : tomada ? 'rgba(214,45,45,.14)' : 'rgba(255,255,255,.07)') + ';'
-      + 'border:2px solid ' + (sel ? '#ffb45a' : tomada ? 'rgba(214,45,45,.4)' : 'rgba(255,255,255,.1)') + ';' + (tomada ? 'opacity:.5;cursor:not-allowed;' : 'cursor:pointer;') + '">'
-      + i + (tomada ? '<div style="font-family:Barlow,sans-serif;font-size:8px;letter-spacing:.5px;margin-top:2px;">reservada</div>' : sel ? '<div style="font-family:Barlow,sans-serif;font-size:8px;letter-spacing:.5px;margin-top:2px;">SUA</div>' : '') + '</button>';
-  }
-  box.innerHTML = h || '<div style="grid-column:1/-1;text-align:center;padding:14px;color:rgba(255,255,255,.35);font-size:13px;">Sem bikes nesta aula.</div>';
-  const livres = m.total - oc.length - (m.minha ? 1 : 0);
-  document.getElementById('rcBikeInfo').textContent = m.total ? (m.total + ' bikes · ' + Math.max(0, livres) + ' livres') : '';
-  _rcBtnAtualizar();
-}
-function rcEscolherBike(n) { if (!_rcPendente) return; _rcPendente.bike = n; rcRenderBikes(); }
-function _rcBtnAtualizar() {
-  const b = document.getElementById('rcBtn'); if (!b) return;
-  const n = _rcPendente && _rcPendente.bike, troca = _rcMapa && _rcMapa.minha;
-  b.disabled = !n; b.style.opacity = n ? '1' : '.45';
-  b.textContent = !n ? 'ESCOLHA A BIKE' : (troca && troca !== n ? 'TROCAR PARA A BIKE ' + n : troca ? 'MANTER A BIKE ' + n : 'RESERVAR A BIKE ' + n);
 }
 
 function closeReservaModal() {
   document.getElementById('reservaConfirmModal').style.display = 'none';
-  _rcPendente = null; _rcMapa = null;
+  _rcPendente = null;
 }
 
 async function confirmarReserva() {
   if (!_rcPendente) return;
-  if (!_rcPendente.bike) { showToast('Escolha a bike primeiro.'); return; }
   const tok = localStorage.getItem('pr_token') || '';
   if (!tok) { showToast('Faça login primeiro.'); closeReservaModal(); return; }
-  const btn = document.getElementById('rcBtn');
-  btn.textContent = 'Reservando...'; btn.disabled = true;
+  document.getElementById('rcBtn').textContent = 'Reservando...';
   try {
     const r = await fetch(SERVER_HTTP + '/aluno/reservar', {
       method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+tok},
       body: JSON.stringify(_rcPendente)
     });
     const d = await r.json();
+    closeReservaModal();
     if (r.ok) {
-      const bk = d.bike_numero || _rcPendente.bike;
-      closeReservaModal();
-      showToast('✅ Reservado! Bike ' + bk + ' é sua.');
+      showToast('✅ Reserva confirmada!');
       await loadMinhasReservas();
       if (_agAcadSelecionada) abrirGradeAcademia(_agAcadSelecionada);
-      return;
+    } else {
+      showToast(d.error || 'Erro ao reservar.', '#d62d2d');
     }
-    showToast(d.error || 'Erro ao reservar.', '#d62d2d');
-    if (r.status === 409 && _rcPendente) { _rcPendente.bike = null; rcCarregarBikes(); return; }  // outra pessoa pegou: atualiza o mapa
-    if (r.status !== 409) closeReservaModal();
   } catch(e) { showToast('Erro de conexão.', '#d62d2d'); }
-  _rcBtnAtualizar();
+  document.getElementById('rcBtn').textContent = 'RESERVAR VAGA';
 }
 
-// 02/10c: lista de espera
-async function entrarNaFila(agendaId, data) {
-  const tok = localStorage.getItem('pr_token') || ''; if (!tok) { showToast('Faça login primeiro.'); return; }
-  try {
-    const r = await fetch(SERVER_HTTP + '/aluno/espera', { method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+tok}, body: JSON.stringify({ agenda_id: agendaId, data_aula: data }) });
-    const d = await r.json();
-    if (r.ok) showToast('⏳ Você é o ' + d.posicao + 'º da fila. Se abrir vaga, a bike é sua.');
-    else showToast(d.error || 'Não deu para entrar na fila.', '#d62d2d');
-  } catch(e) { showToast('Erro de conexão.', '#d62d2d'); }
-  await loadMinhasReservas(); if (_agAcadSelecionada) abrirGradeAcademia(_agAcadSelecionada);
-}
-async function sairDaFila(agendaId, data) {
-  const tok = localStorage.getItem('pr_token') || ''; if (!tok) return;
-  try { await fetch(SERVER_HTTP + '/aluno/espera/' + agendaId + '/' + data, { method:'DELETE', headers:{'Authorization':'Bearer '+tok} }); showToast('Você saiu da fila.'); } catch(e) {}
-  await loadMinhasReservas(); if (_agAcadSelecionada) abrirGradeAcademia(_agAcadSelecionada);
-}
 async function cancelarReserva(id) {
   const tok = localStorage.getItem('pr_token') || '';
   if (!tok) return;
   const r = await fetch(SERVER_HTTP + '/aluno/reservar/'+id, { method:'DELETE', headers:{'Authorization':'Bearer '+tok} });
-  if (r.ok) { showToast('Reserva cancelada.'); await loadMinhasReservas(); if (_agAcadSelecionada) abrirGradeAcademia(_agAcadSelecionada); }
+  if (r.ok) { showToast('Reserva cancelada.'); loadMinhasReservas(); }
 }
 
 function goTab(id,tabId){
@@ -4539,9 +4177,6 @@ function goTab(id,tabId){
   if(id==='sActivity') buildActivity();
   if(id==='sProfile') profLoadLocalFields();
   if(id==='sHome') navCenterAtualizar(); // reaplica layout por role ao entrar no início
-  if(id==='sHome'||id==='sProfile') appCampCarregar();   // 01/10a: campeonato e camisas
-  if(id==='sHome') { try{ appDACarregar(); }catch(e){} }   // 02/10a: desafio entre academias
-  if(id==='sLoja') { try{ lojaGravadasCarregar(); }catch(e){} }   // 02/10b2: aulas gravadas
 }
 
 function showToast(txt,color){
@@ -4627,13 +4262,6 @@ function _checkProfCode(){
 }
 
 function _doOpenConstructor(){
-  // 30/09e (Mario): o Construtor do celular e o MESMO do computador (studio.html):
-  // mesmas funções, mesma conta, mesmo arquivo. O construtor antigo do app fica
-  // no código só como reserva (_doOpenConstructorAntigo).
-  try{ location.href='/studio.html?de=app'; return; }catch(e){}
-  _doOpenConstructorAntigo();
-}
-function _doOpenConstructorAntigo(){
   go('sConstructor');
   try{ bldMidiaPintar(); bldProfAtualizar(); }catch(e){}
   bldSetSection('main');
@@ -5402,7 +5030,10 @@ function tick(){
     if(!connected.bike && liveRelay.g>0) dGear=liveRelay.g;
     // FC idem: a cinta ligada no proprio celular manda mais que o relay
     if(!connected.hr && liveRelay.hr>0){
-      _appHr(liveRelay.hr);
+      var _hrEl=document.getElementById('bigHR');
+      var _hrEl2=document.getElementById('p2AHr');
+      if(_hrEl)  _hrEl.textContent  = liveRelay.hr;
+      if(_hrEl2) _hrEl2.textContent = liveRelay.hr;
     }
   } else if(connected.bike && _bleTs && (Date.now()-_bleTs)<3000){
     dRpm=_bleRpm; rpm=Math.round(_bleRpm);
@@ -5767,33 +5398,11 @@ function _prEsquecerSala(motivo){
   console.warn('[ProRider] sala esquecida ('+(motivo||'encerrada')+') — faixa de voltar removida.');
 }
 
-// 23/09e — AULA ANTERIOR "GRUDADA". Relato: encerrar uma aula, comecar outra,
-// ler o QR novo e o app mostrar a aula anterior no fim do bloco; ao comecar,
-// nada atualizava ate recarregar o app. Duas causas:
-//  1) _encerrarAulaApp so fechava o socket se o app estivesse NA TELA DA AULA.
-//     Em qualquer outra tela (inicio, Vista da sala...) o socket da sala velha
-//     ficava aberto.
-//  2) connectQR: "se ja esta conectado, vai direto para a aula" — com o socket
-//     velho aberto, o QR novo nem chegava a entrar na sala nova.
-// Agora o fim da aula sempre fecha o socket e limpa o estado da aula, e o QR de
-// uma sala DIFERENTE fecha a ligacao anterior e entra na nova.
-function _prLimparAulaAnterior(motivo){
-  try{ _appHrZerar(); }catch(e){}
-  try{ if(wsConn){ wsConn.onclose=null; wsConn.close(); } }catch(e){}
-  wsConn=null;
-  try{ aulaGrafico=[]; aulaBlocoIdx=0; aulaGraficoNome=''; }catch(e){}
-  try{ _blocoRest=0; _blocoRestTs=0; }catch(e){}
-  try{ liveRelay=null; _salaInfo=null; }catch(e){}
-  try{ _entrarCodigo=''; _entrarNome=''; }catch(e){}
-  try{ var gp=document.getElementById('aulaGraficoPainel'); if(gp) gp.style.display='none'; }catch(e){}
-  try{ var gn=document.getElementById('graficoNativo'); if(gn) gn.style.display=''; }catch(e){}
-  try{ console.log('[ProRider] estado da aula anterior limpo ('+(motivo||'-')+').'); }catch(e){}
-}
 function _encerrarAulaApp(){
   _prEsquecerSala('professor encerrou');
   var sl=document.getElementById('sLive');
   var emAula=(typeof lInt!=='undefined' && lInt) || (sl && sl.classList.contains('active'));
-  if(!emAula){ _prLimparAulaAnterior('aula encerrada fora da tela da aula'); return; }
+  if(!emAula) return;
   try{
     if(typeof quitW==='function'){ quitW(); return; }
   }catch(err){ try{ console.error('[ProRider] fim_aula -> quitW erro:',err); }catch(e){} }
@@ -6042,7 +5651,7 @@ function _ftpAvisarSala(){
       var nomeVal=_entrarNome; if(!nomeVal) return;
       var _cod=_entrarCodigo||lastCode; if(!_cod) return;
       window._ftpReenvio=Date.now();
-      wsConn.send(JSON.stringify({tipo:'entrar_sala',user_id:_prUid(),codigo:_cod,nome:nomeVal,genero:_prSexoAluno(),nivel:_prNivelAluno(),bike:_bikeSelNum,
+      wsConn.send(JSON.stringify({tipo:'entrar_sala',codigo:_cod,nome:nomeVal,bike:_bikeSelNum,
         foto:(localStorage.getItem('pr_foto')||null), ftpBase:f}));
       console.log('[ProRider] FTP '+f+'W enviado a sala (bike '+_bikeSelNum+').');
     }catch(e){ console.warn('[ProRider] nao consegui enviar o FTP a sala:', e&&e.message); }
@@ -6060,13 +5669,13 @@ function dFtpPrompt(){
   if(v<50||v>600){ alert('Informe um FTP entre 50 e 600 W.'); return; }
   aplicarFtpResultado(v); dFtpRender(); _ftpAvisarSala();
 }
-function aplicarFtpResultado(novoFtp, forcar){
+function aplicarFtpResultado(novoFtp){
   novoFtp = parseInt(novoFtp)||0;
   if(novoFtp<=0) return;
   _ftpDaAula = novoFtp;                 // vale para a aula em curso, sempre
   var el=document.getElementById('ftpDisplay');
   if(el) el.textContent = novoFtp+' W';
-  if(!forcar && !ftpAutoAtivo()){
+  if(!ftpAutoAtivo()){
     console.log('[ProRider] FTP do teste ('+novoFtp+'W) aplicado só nesta aula — atualização automática desligada.');
     return;
   }
@@ -6084,47 +5693,6 @@ function aplicarFtpResultado(novoFtp, forcar){
   console.log('[ProRider] FTP atualizado para '+novoFtp+'W pelo teste da aula.');
 }
 var _ftpDaAula = 0;
-// 26/09d — RESULTADO DO TESTE DE FTP DA AULA NO CELULAR (1 minuto na tela).
-// Regra do Mario: com a atualizacao automatica LIGADA, o FTP ja e gravado e a
-// mensagem so avisa; DESLIGADA, so grava se a pessoa tocar em "Atualizar". Nos
-// dois casos o novo FTP vale para o resto desta aula.
-function _ftpResultadoApp(d){
-  try{
-    var novo=parseInt(d&&d.ftp,10)||0; if(novo<=0) return;
-    var ant=parseInt(d.ant,10)||parseInt(_ftpDoAluno(),10)||0;
-    var auto=ftpAutoAtivo();
-    aplicarFtpResultado(novo, false);          // aula em curso sempre; conta so se automatico
-    var dif=ant>0?novo-ant:0, cor=dif>0?'#5db13d':(dif<0?'#9aa0aa':'#ea860c');
-    var velho=document.getElementById('prFtpRes'); if(velho) velho.remove();
-    var el=document.createElement('div'); el.id='prFtpRes';
-    el.style.cssText='position:fixed;inset:0;z-index:99999;background:rgba(4,4,10,.88);display:flex;align-items:center;justify-content:center;padding:24px;box-sizing:border-box;-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);';
-    var btns = auto
-      ? '<div style="font-size:14px;font-weight:800;color:#5db13d;margin-top:16px;">✓ Seu FTP foi atualizado</div>'
-        +'<button id="prFtpOk" style="margin-top:14px;width:100%;padding:14px;border-radius:14px;border:none;background:#ea860c;color:#fff;font-size:16px;font-weight:800;">OK</button>'
-      : '<div style="font-size:13px;color:rgba(255,255,255,.55);margin-top:14px;">Quer usar este FTP daqui para a frente?</div>'
-        +'<div style="display:flex;gap:10px;margin-top:10px;">'
-        +'<button id="prFtpNao" style="flex:1;padding:14px;border-radius:14px;border:1px solid rgba(255,255,255,.2);background:transparent;color:rgba(255,255,255,.8);font-size:15px;font-weight:700;">Agora não</button>'
-        +'<button id="prFtpSim" style="flex:1.4;padding:14px;border-radius:14px;border:none;background:#5db13d;color:#fff;font-size:15px;font-weight:800;">Atualizar meu FTP</button></div>';
-    el.innerHTML='<div style="width:100%;max-width:360px;border-radius:24px;padding:24px 22px 18px;text-align:center;background:linear-gradient(180deg,#141222,#0a0913);border:1px solid '+cor+'66;box-shadow:0 0 40px '+cor+'44;color:#fff;">'
-      +'<div style="font-size:12px;font-weight:800;letter-spacing:2.5px;color:rgba(255,255,255,.55);text-transform:uppercase;">Teste de FTP'+(d.protocolo?' · '+d.protocolo+' min':'')+'</div>'
-      +'<div style="font-size:44px;line-height:1;margin-top:14px;">🏁</div>'
-      +'<div style="font-size:14px;font-weight:700;letter-spacing:2px;color:rgba(255,255,255,.6);margin-top:10px;text-transform:uppercase;">Seu novo FTP</div>'
-      +'<div style="font-size:78px;font-weight:900;line-height:1;color:'+cor+';margin-top:4px;">'+novo+'<span style="font-size:26px;color:rgba(255,255,255,.6);"> W</span></div>'
-      +(ant>0?'<div style="font-size:16px;color:rgba(255,255,255,.75);margin-top:6px;">antes '+ant+' W · <b style="color:'+cor+'">'+(dif>0?'+':'')+dif+' W</b></div>':'')
-      +btns
-      +'<div style="height:4px;border-radius:2px;background:rgba(255,255,255,.1);margin-top:16px;overflow:hidden;"><div id="prFtpResBar" style="height:100%;width:100%;background:'+cor+';transition:width 60s linear;"></div></div>'
-      +'</div>';
-    var fechar=function(){ clearTimeout(el._t); if(el.parentNode) el.parentNode.removeChild(el); };
-    document.body.appendChild(el);
-    var ok=document.getElementById('prFtpOk'); if(ok) ok.onclick=fechar;
-    var nao=document.getElementById('prFtpNao'); if(nao) nao.onclick=fechar;
-    var sim=document.getElementById('prFtpSim'); if(sim) sim.onclick=function(){ aplicarFtpResultado(novo,true); if(typeof showToast==='function') showToast('FTP atualizado para '+novo+' W'); fechar(); };
-    requestAnimationFrame(function(){ requestAnimationFrame(function(){ var b=document.getElementById('prFtpResBar'); if(b) b.style.width='0%'; }); });
-    el._t=setTimeout(fechar,60000);
-    try{ if(navigator.vibrate) navigator.vibrate([80,60,80]); }catch(e){}
-  }catch(e){ try{ aplicarFtpResultado(d&&d.ftp); }catch(_e){} }
-}
-
 
 function saveFtp(){
   var vEl=document.getElementById('ftpResultVal');
@@ -6458,8 +6026,8 @@ function btConnectHR(server, device){
             if(hrEl)  hrEl.style.color  = '';
             if(hrEl2) hrEl2.style.color = '';
           }
-          _appHr(hr);
-          window._meuHr={v:hr,ts:Date.now()};   // 26/09d: vai para o Ginasio (cartoes de FC)
+          if(hrEl)  hrEl.textContent  = hr;
+          if(hrEl2) hrEl2.textContent = hr;
         });
         connDev('hr', device.name, '');
       });
@@ -6695,13 +6263,7 @@ function bldProfAtualizar(){
 var _parearPendente=null;
 try{ _parearPendente=new URLSearchParams(location.search).get('parear'); }catch(e){}
 async function parearConfirmar(){
-  if(!_parearPendente) return;
-  if(!prToken){
-    // sem login nao ha como dizer ao servidor quem e o professor; o codigo
-    // fica guardado e e usado assim que a pessoa entrar na conta
-    try{ _bldAviso('Entre na sua conta de professor para conectar o Ginásio.'); }catch(e){}
-    return;
-  }
+  if(!_parearPendente || !prToken) return;
   var cod=_parearPendente; _parearPendente=null;
   try{ history.replaceState(null,'',location.pathname); }catch(e){}
   try{
@@ -6722,28 +6284,6 @@ async function parearConfirmar(){
 // roxo muda: sai "Treino do Treinador", entra "Construtor de treino".
 // Existia uma tela separada (sProfHome) com Agenda + Build Workout, mas
 // nenhuma rota a abria: estava orfa. Fica abandonada em favor deste desenho.
-// 29/09a: brasão do aluno (vai para a TV ao lado do nome)
-// Subiu de brasão: comemoração na tela (toque fecha)
-function _prSubiuBrasao(n){
-  try{
-    var o=document.createElement('div');
-    o.style.cssText='position:fixed;inset:0;z-index:9999;background:radial-gradient(ellipse at 50% 40%,'+n.cor+'44,rgba(0,0,0,.92) 65%);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;opacity:0;transition:opacity .35s;padding:24px;';
-    o.innerHTML='<div style="font-size:13px;font-weight:800;letter-spacing:3px;color:rgba(255,255,255,.7)">NOVO BRASÃO</div>'
-      +'<div style="margin:14px 0 6px;transform:scale(.6);transition:transform .6s cubic-bezier(.2,1.6,.4,1)" id="_prSubB">'+prBrasaoSVG(n,170)+'</div>'
-      +'<div style="font-family:\'Barlow Condensed\',sans-serif;font-weight:900;font-size:44px;color:'+n.cor+';text-transform:uppercase;line-height:1">'+n.nome+'</div>'
-      +'<div style="font-size:14px;color:rgba(255,255,255,.7);margin-top:10px">Você subiu de nível! Toque para continuar</div>';
-    o.onclick=function(){ o.style.opacity='0'; setTimeout(function(){ o.remove(); },350); };
-    document.body.appendChild(o);
-    requestAnimationFrame(function(){ o.style.opacity='1'; var b=document.getElementById('_prSubB'); if(b) b.style.transform='scale(1)'; });
-    try{ if(navigator.vibrate) navigator.vibrate([80,60,160]); }catch(e){}
-    setTimeout(function(){ if(o.parentNode) o.onclick(); },8000);
-  }catch(e){}
-}
-function _prNivelAluno(){
-  try{ var p=(typeof prUser!=='undefined'&&prUser)?prUser:null; if(!p) return null;
-    if(window.prNivel && p.points!=null) return prNivel(parseInt(p.points)||0).key;
-    return p.level||null; }catch(e){ return null; }
-}
 function homeProfAtualizar(){
   // O card roxo continua SEMPRE Treino do Treinador — o professor tambem
   // pedala, e pode querer abrir um treino que recebeu do coach dele. Troca-lo
@@ -7101,18 +6641,6 @@ function rotearPorRole(user) {
       try{ navCenterAtualizar(); }catch(e){}
       try{ parearConfirmar(); }catch(e){}
       try{ if(_salaEhProfessor()){ _phInited=false; phCheckRole(); } }catch(e){}
-      // 26/09e: o botao "Criar aula" do Portal abre o app em /aluno#construtor.
-      // Professor, coordenador, gestor e admin caem direto no Construtor.
-      try{
-        if(String(location.hash||'').toLowerCase()==='#construtor'){
-          var _rr=String((prUser&&prUser.role)||'').toLowerCase();
-          if(_salaEhProfessor() || ['gestor','coordenador','admin','super_admin'].indexOf(_rr)>=0){
-            history.replaceState(null,'',location.pathname+location.search);
-            try{ _profUnlocked=true; }catch(e){}
-            _doOpenConstructor();
-          }
-        }
-      }catch(e){}
     });
   }catch(e){}
 }
@@ -7164,13 +6692,8 @@ function navCenterAtualizar() {
     if (wrap) wrap.onclick = function(){ goTab('sHome','navRide'); };
     if (tabDesafios) tabDesafios.style.display = '';
     if (tabAgenda)   tabAgenda.style.display   = 'none';
-    // 26/09b: o professor ve a MESMA grade do aluno (Agenda + Treino do
-    // Treinador) e, abaixo, o card comprido do Construtor de Treino. O card
-    // antigo "Build Workout" (construtor com codigo de acesso) saiu: estava
-    // duplicado com o Construtor e ocupava o lugar do Treino do Treinador.
-    if (profBtns)  profBtns.style.display  = 'none';
-    if (agendaBtn) agendaBtn.style.display = '';
-    try{ homeProfAtualizar(); }catch(e){}
+    if (profBtns)  profBtns.style.display  = '';
+    if (agendaBtn) agendaBtn.style.display = 'none';
     if (profBadge) profBadge.style.display = 'block';
     if (profNome && prUser) profNome.textContent = (prUser.name||'Professor').split(' ')[0].toUpperCase();
 
@@ -7243,17 +6766,9 @@ function updateProfileUI(){
     _profRefreshAvatar();
     var pts=prUser.points||0;
     var li=lvlIndex(pts);
-    var lv=document.getElementById('profLevel');
-    var pp=document.getElementById('profPts'); if(pp) pp.textContent=pts.toLocaleString('pt-BR')+' pts';
-    var bar=document.getElementById('profLevelBar');
-    if(window.prProgresso){   // 29/09a: brasão
-      var pg=prProgresso(pts);
-      if(lv){ lv.innerHTML='<span style="display:inline-flex;align-items:center;gap:6px;color:'+pg.atual.cor+'">'+prBrasaoSVG(pg.atual,22,true)+pg.atual.nome+'</span>'; }
-      if(bar){ bar.style.width=pg.pct+'%'; bar.style.background='linear-gradient(90deg,'+pg.atual.cor+','+(pg.prox?pg.prox.cor:pg.atual.cor)+')'; }
-    } else {
-      if(lv) lv.textContent=LVL_NAMES[li]||'Iniciante';
-      if(bar) bar.style.width=lvlPct(pts)+'%';
-    }
+    var lv=document.getElementById('profLevel'); if(lv) lv.textContent=LVL_NAMES[li]||'Iniciante';
+    var pp=document.getElementById('profPts'); if(pp) pp.textContent=pts+' pts';
+    var bar=document.getElementById('profLevelBar'); if(bar) bar.style.width=lvlPct(pts)+'%';
     // Dados pessoais — preencher com dados do servidor
     var pn=document.getElementById('profNome');  if(pn&&prUser.name)  pn.textContent=prUser.name;
     var pe=document.getElementById('profEmail'); if(pe&&prUser.email) pe.textContent=prUser.email;
@@ -7359,24 +6874,14 @@ function showSummaryScreen(pontosGanhos, totalPontos, nivel){
   var zPred='z2';
   for(var i=0;i<zOrder.length;i++){ if(zoneTime[zOrder[i]]>0){zPred=zOrder[i];break;} }
   el=document.getElementById('sumZona'); if(el){ el.textContent=zPred.toUpperCase(); el.style.color=zC[zPred]||'#ea860c'; }
-  // Nível — 29/09a: brasões novos
+  // Nível
   var pts=totalPontos||0;
-  var ptsAntes=Math.max(0,pts-(parseInt(pontosGanhos)||0));
-  if(window.prProgresso){
-    var pg=prProgresso(pts), antes=prNivel(ptsAntes);
-    el=document.getElementById('sumLevel'); if(el) el.innerHTML='<span style="display:inline-flex;align-items:center;gap:8px;color:'+pg.atual.cor+'">'+prBrasaoSVG(pg.atual,26,true)+pg.atual.nome+'</span>';
-    el=document.getElementById('sumNextLevel'); if(el) el.textContent=pg.prox?(pg.prox.nome+' em '+pg.faltam.toLocaleString('pt-BR')+' pts'):'nível máximo';
-    el=document.getElementById('sumLevelBar');
-    if(el){ el.style.background='linear-gradient(90deg,'+pg.atual.cor+','+(pg.prox?pg.prox.cor:pg.atual.cor)+')'; el.style.width='0%'; setTimeout(function(){ el.style.width=pg.pct+'%'; },300); }
-    if(pg.atual.idx>antes.idx) setTimeout(function(){ _prSubiuBrasao(pg.atual); },900);
-  } else {
-    var li=lvlIndex(pts);
-    el=document.getElementById('sumLevel'); if(el) el.textContent=LVL_NAMES[li]||'Iniciante';
-    el=document.getElementById('sumNextLevel'); if(el) el.textContent=LVL_THRESHOLDS[li+1]?'próx: '+LVL_THRESHOLDS[li+1]+' pts':'';
-    el=document.getElementById('sumLevelBar');
-    if(el){ el.style.width='0%'; setTimeout(function(){ el.style.width=lvlPct(pts)+'%'; },300); }
-  }
-  el=document.getElementById('sumTotalPts'); if(el) el.textContent=pts.toLocaleString('pt-BR')+' pts total';
+  var li=lvlIndex(pts);
+  el=document.getElementById('sumLevel'); if(el) el.textContent=LVL_NAMES[li]||'Iniciante';
+  el=document.getElementById('sumNextLevel'); if(el) el.textContent=LVL_THRESHOLDS[li+1]?'próx: '+LVL_THRESHOLDS[li+1]+' pts':'';
+  el=document.getElementById('sumTotalPts'); if(el) el.textContent=pts+' pts total';
+  el=document.getElementById('sumLevelBar');
+  if(el){ el.style.width='0%'; setTimeout(function(){ el.style.width=lvlPct(pts)+'%'; },300); }
   // Atualiza prUser
   if(prUser){ prUser.points=pts; prUser.level=nivel||prUser.level; updateProfileUI(); }
   go('sSummary');
@@ -7738,19 +7243,6 @@ function pararCamera(){
 
 function processarQRCode(raw){
   var status = document.getElementById('qrStatus');
-  // ── 26/09: QR de MINHAS AULAS do Ginasio (…/aluno?parear=CODIGO) ──
-  // A TV diz "escaneie com o app ProRider", mas o leitor do app so conhecia
-  // codigo de sala: lia o endereco, nao achava sala e respondia "esse e o QR
-  // do navegador". O pareamento nunca chegava ao servidor.
-  try{
-    var _pm=String(raw||'').match(/[?&]parear=([A-Za-z0-9]+)/);
-    if(_pm){
-      _parearPendente=_pm[1];
-      if(status){ status.textContent='Conectando ao Ginásio…'; status.style.color='#ea860c'; }
-      parearConfirmar();
-      return;
-    }
-  }catch(e){}
   // ── Formato bike fixa: prorider://bike?n=7&lic=GYM-XYZ ──
   var bikeMatch = raw.match(/prorider:\/\/bike\?(.+)/i);
   if(bikeMatch){
@@ -8014,16 +7506,16 @@ async function entrarSessaoAoVivo(token, localAddr){
 function _tentarConexaoWS(wsUrl, token, dadosSessao){
   return new Promise(function(resolve, reject){
     var ws = new WebSocket(wsUrl);
-    ws._prCodigo = token;
     var timeout = setTimeout(function(){ ws.close(); reject(new Error('timeout')); }, 3000);
     ws.onopen = function(){
       clearTimeout(timeout);
       var nome = document.getElementById('profNome');
-      var nomeVal = _prNomeAluno();
+      var nomeVal = (nome&&nome.textContent.trim()&&nome.textContent.trim()!=='—')
+        ? nome.textContent.trim() : (localStorage.getItem('pr_nome')||'Aluno');
       // 23/09c: este era o TERCEIRO ponto que manda entrar_sala (entrada pela
       // reserva/sessao) e tambem ia sem o FTP — o Ginasio ficava com 150.
       var _ftpS=0; try{ _ftpS=parseInt(_ftpDoAluno(),10)||0; }catch(e){}
-      ws.send(JSON.stringify({tipo:'entrar_sala',user_id:_prUid(), codigo:token, nome:nomeVal, genero:_prSexoAluno(),nivel:_prNivelAluno(), bike:dadosSessao.bike_num||null,
+      ws.send(JSON.stringify({tipo:'entrar_sala', codigo:token, nome:nomeVal, bike:dadosSessao.bike_num||null,
         foto:(localStorage.getItem('pr_foto')||null), ftpBase:(_ftpS>0?_ftpS:null)}));
       _entrarNome=nomeVal; _entrarCodigo=token;
       if(dadosSessao.bike_num) _bikeSelNum=parseInt(dadosSessao.bike_num); // casa o relay com a bike da sessão
@@ -8044,13 +7536,11 @@ function _tentarConexaoWS(wsUrl, token, dadosSessao){
           }
         }
       }
-      if(data.tipo==='aula_reiniciada'){ try{ _lsReset(); }catch(e){} if(typeof showToast==='function') showToast('A aula foi recomeçada: seus números voltaram a zero.'); }
-      if(data.tipo==='fim_desafio'){ _desafioResultadoApp(data); }
       if(data.tipo==='ftp_resultado' && data.nome){
-        try{ var _eu=_entrarNome||(prUser&&prUser.name)||''; if(!_eu || String(data.nome)===String(_eu) || (prUser&&String(data.nome)===String(prUser.name))) _ftpResultadoApp(data); }catch(e){ _ftpResultadoApp(data); }
+        try{ if(!prUser || !prUser.name || String(data.nome)===String(prUser.name)) aplicarFtpResultado(data.ftp); }catch(e){ aplicarFtpResultado(data.ftp); }
       }
       if(data.tipo==='sala_info'){
-        _salaInfo={ numBikes:data.numBikes||0, bikes:data.bikes||[], ocupadas:data.ocupadas||[], ocupantes:data.ocupantes||{}, trancadas:data.trancadas||[] }; // 26/09b: + ocupantes e trancadas (trancadas nao era guardado)
+        _salaInfo={ numBikes:data.numBikes||0, bikes:data.bikes||[], ocupadas:data.ocupadas||[] };
         if(_salaInfo.numBikes) _numBikesCacheSalvar(_salaInfo.numBikes);
       }
       if((data.tipo==='conectado' || data.tipo==='entrou_sala') && window._ftpReenvio && Date.now()-window._ftpReenvio<5000 && wsConn===ws){
@@ -8107,45 +7597,14 @@ function _pushLiveTelemetria(){
   try{
     var src=null;
     if(typeof liveRelay!=='undefined' && liveRelay && (Date.now()-liveRelay.ts)<3000){
-      src={ r:liveRelay.r||0, w:liveRelay.w||0, ftp:liveRelay.ftp||0, z:liveRelay.z||'z1', g:liveRelay.g||0, hr:liveRelay.hr||0 };
+      src={ r:liveRelay.r||0, w:liveRelay.w||0, ftp:liveRelay.ftp||0, z:liveRelay.z||'z1' };
     } else if(_bleTs && (Date.now()-_bleTs)<3000){
       src={ r:_bleRpm||0, w:_bleWatts||0, ftp:Math.round((_bleWatts||0)/150*100), z:'z1' };
     }
-    // 26/09b: o relogio do bloco anda SEMPRE — antes ficava depois do "sem
-    // dado fresco", entao sem bike transmitindo o bloco parava na tela.
-    try{
-      if(typeof _blocoRestTs!=='undefined' && _blocoRestTs && !(typeof cAula!=='undefined' && cAula && cAula.blocos)){
-        var _bt0=document.getElementById('gBlocoTempo');
-        if(_bt0){ var _r0=Math.max(0,Math.round(_blocoRest-(Date.now()-_blocoRestTs)/1000)); _bt0.textContent=Math.floor(_r0/60)+':'+String(_r0%60).padStart(2,'0'); }
-      }
-    }catch(e){}
     if(!src) return; // sem dado fresco → não mexe (deixa tick/simulação/padrão)
     var rpmR=Math.round(src.r), wR=Math.round(src.w), ftpR=Math.round(src.ftp);
-    // 23/09c: %FTP calculada com o FTP do PROPRIO app (o da gaveta). O valor
-    // que vem do Ginasio usa o FTP que ele recebeu na entrada — e so muda
-    // quando ele recebe o novo. Assim a troca na gaveta aparece na hora aqui,
-    // mesmo com um Ginasio antigo na TV.
-    try{ var _mf=_ftpDoAluno(); if(_mf>0 && src.w>=0) ftpR=Math.round(src.w/_mf*100); }catch(e){}
     var elR=document.getElementById('bigRpm');   if(elR) elR.textContent=rpmR;
     var elW=document.getElementById('bigWatts');  if(elW) elW.textContent=wR;
-    // 23/09c: MARCHA e FC na aula da academia. So o tick() da aula propria do
-    // app as escrevia — na aula do Ginasio o tick nao roda, e as caixas GEAR e
-    // BPM ficavam em "-" mesmo com o Ginasio mandando g e hr no bikes_live.
-    // Celular ligado direto na bike/cinta por Bluetooth continua com prioridade.
-    try{
-      if(src.g>0 && !(typeof connected!=='undefined' && connected.bike)){
-        dGear=src.g; var elG=document.getElementById('bigGear'); if(elG) elG.textContent=src.g;
-      }
-      if(src.hr>0 && !(typeof connected!=='undefined' && connected.hr)){
-        _appHr(src.hr);
-      }
-      // relogio do bloco dentro do gauge: o Ginasio manda o que falta do bloco
-      // (blocoRest) 1x por segundo; entre um e outro, desconta o relogio local.
-      if(typeof _blocoRestTs!=='undefined' && _blocoRestTs && !(typeof cAula!=='undefined' && cAula && cAula.blocos)){
-        var _bt=document.getElementById('gBlocoTempo');
-        if(_bt){ var _r=Math.max(0,Math.round(_blocoRest-(Date.now()-_blocoRestTs)/1000)); _bt.textContent=Math.floor(_r/60)+':'+String(_r%60).padStart(2,'0'); }
-      }
-    }catch(e){}
     var ptr=document.getElementById('gPtr');
     var gVal=document.getElementById('gValue');
     if(typeof gaugeMode==='undefined') return;
@@ -8169,38 +7628,6 @@ function _pushLiveTelemetria(){
     }
   }catch(e){}
 }
-// 26/09b — VIGIA DA AULA. Se o Ginasio parar de mandar a aula por 15 s com o
-// socket aberto (a sala foi recriada no servidor e este aluno ficou de fora),
-// o app entra de novo na mesma bike, sem o aluno perceber. No maximo 1x a
-// cada 20 s. Com a aula pausada tambem nao faz mal: so reconfirma a entrada.
-setInterval(function(){
-  try{
-    var sl=document.getElementById('sLive');
-    if(!sl || !sl.classList.contains('active')) return;
-    if(!window._ultUpdateAula || Date.now()-window._ultUpdateAula<15000) return;
-    if(window._vigiaTs && Date.now()-window._vigiaTs<20000) return;
-    if(!(typeof wsConn!=='undefined' && wsConn && wsConn.readyState===1)) return;
-    var cod=_entrarCodigo||lastCode, nm=_entrarNome||_prNomeAluno();
-    if(!cod || !nm) return;
-    window._vigiaTs=Date.now();
-    var f=0; try{ f=parseInt(_ftpDoAluno(),10)||0; }catch(e){}
-    wsConn.send(JSON.stringify({tipo:'entrar_sala',user_id:_prUid(),codigo:cod,nome:nm,genero:_prSexoAluno(),nivel:_prNivelAluno(),bike:(_bikeSelNum||null),
-      foto:(localStorage.getItem('pr_foto')||null),ftpBase:(f>0?f:null)}));
-    window._ftpReenvio=Date.now(); // a resposta nao deve navegar de tela
-    console.log('[ProRider] sem noticias da aula ha '+Math.round((Date.now()-window._ultUpdateAula)/1000)+' s — entrando de novo na sala.');
-  }catch(e){}
-},5000);
-// 26/09d — FC DA CINTA LIGADA NO CELULAR VAI PARA O GINASIO. Ate aqui a FC
-// que o celular lia (cinta/relogio) so aparecia no proprio celular; o Ginasio
-// so via a FC que vinha da bike. 1x por segundo, so com dado fresco.
-setInterval(function(){
-  try{
-    var h=window._meuHr; if(!h || Date.now()-h.ts>4000 || !(h.v>0)) return;
-    if(!(typeof wsConn!=='undefined' && wsConn && wsConn.readyState===1)) return;
-    var nm=_entrarNome; if(!nm) return;
-    wsConn.send(JSON.stringify({tipo:'dados_aluno',nome:nm,fc:h.v}));
-  }catch(e){}
-},1000);
 var _liveTelInt=null;
 (function(){ if(_liveTelInt) return; _liveTelInt=setInterval(_pushLiveTelemetria,250); })();
 
@@ -8228,9 +7655,6 @@ function _lsTick(){
     _lsAcc.wSum+=src.w; _lsAcc.wCnt++;
     var z=src.z||_lsZonaFromFtp(src.ftp);
     if(_lsAcc.zt[z]!==undefined) _lsAcc.zt[z]++;
-    // 02/10d: um ponto por segundo (potência, cadência, FC) para o arquivo do Strava/Garmin
-    var _hr=0; try{ _hr=parseInt((document.getElementById('bigHR')||{}).textContent,10)||0; }catch(e){}
-    if(!_lsAcc.am) _lsAcc.am=[]; if(_lsAcc.am.length<14400) _lsAcc.am.push([Date.now(),Math.round(src.w||0),Math.round(src.r||0),_hr>30&&_hr<230?_hr:0]);
   }catch(e){}
 }
 var _lsInt=null;
@@ -8589,7 +8013,7 @@ updateProfileUI = function() {
          + ' fill="none" stroke="'+col(fm)+'" stroke-width="30" stroke-linecap="'+cap+'"/>';
     }
     g.innerHTML=out;
-    try{ console.log('%c[ProRider Aluno] BUILD 02/10f — aula recomeçada zera os números da largada + 02/10d: caixas da aula gravada mais justas e nas pontas da tela; aulas gravadas abertas a qualquer login na fase de teste + 02/10b: aula gravada na Loja (vídeo do professor + gráfico e números do próprio aluno, ranking com quem fez ao vivo) + lista de espera na reserva, assistir a aula ao vivo, arquivo .tcx para Strava/Garmin, desafio entre academias no início + 01/10b: reserva com escolha da bike (mapa das bikes, a reservada aparece como SUA na hora de entrar) + 01/10a: campeonato no app (posição, camisas, próxima etapa) + camisas conquistadas no perfil + logo original no início + 30/09e: Construtor do celular = o mesmo Construtor online do computador (mesmas funções, mesma conta) + Perto de mim na lupinha (GPS do celular, distância até a academia, aula ao vivo no topo) + faixa verde da aula ao vivo na academia + aulas de hoje na grade + brasões novos (subiu de nível) + Criar aula do Portal abre direto o Construtor (/aluno#construtor) + FC da cinta do celular vai para o Ginasio; Avg. HR = media da aula; aula termina quando a sala some + resultado do teste de FTP da aula no celular (1 min; automatico grava, senao pergunta) + home do professor: sai o Build Workout antigo (com senha), fica Agenda + Treino do Treinador + Construtor de Treino + voltar para a propria bike depois de reabrir o app + relogio do bloco anda sem bike transmitindo + vigia: reentra na sala se a aula parar de chegar + resultado do desafio no celular (10 s, toque fecha) + sexo enviado na entrada da sala (desafio Homens x Mulheres) + aluno sem nome nao entra mais como "-" na sala + leitor do app aceita o QR de Minhas Aulas do Ginasio + aula anterior nao fica mais grudada (fim da aula fecha o socket em qualquer tela; QR de outra sala troca de sala) + gauge com FTP e BLOCO simetricos + marcha e FC na aula da academia + %FTP com o FTP da gaveta na hora + FTP da gaveta vai para a sala na hora + FTP tambem na entrada pela reserva + Revisar o treino mostra a aula do Ginasio + caloria por watt (kJ/eficiencia) + basal Mifflin-St Jeor no cadastro + historico gravado no aparelho + FTP na gaveta + card 1080x1920 reposicionado + 6 protocolos de FTP + TSS + teste de 3 min + fator do teste de 5 min corrigido (era 1,05) + explicacao de FTP em cada teste + gaveta esconde pela propria altura + importacao de treino do TrainingPeaks (grade 2x2 na tela inicial + construtor) com tela de conferencia (botoes acima da navegacao) + corrigido: aula aberta por objeto agora e a que roda + botao Revisar o treino na gaveta + FTP e peso persistem no aparelho + gauge reequilibrado + textos do Brasil + codigo de sala normalizado (QR do navegador deixava a sala inexistente) + faixa de voltar corrigida + reconexao nao trava mais + sala encerrada limpa o codigo guardado + VISTA DA SALA + card comprido de Construtor para professor + fim da corrida no login','color:#ea860c;font-weight:700;'); }catch(e){}
+    try{ console.log('%c[ProRider Aluno] BUILD 23/09c — FTP da gaveta vai para a sala na hora + FTP tambem na entrada pela reserva + Revisar o treino mostra a aula do Ginasio + caloria por watt (kJ/eficiencia) + basal Mifflin-St Jeor no cadastro + historico gravado no aparelho + FTP na gaveta + card 1080x1920 reposicionado + 6 protocolos de FTP + TSS + teste de 3 min + fator do teste de 5 min corrigido (era 1,05) + explicacao de FTP em cada teste + gaveta esconde pela propria altura + importacao de treino do TrainingPeaks (grade 2x2 na tela inicial + construtor) com tela de conferencia (botoes acima da navegacao) + corrigido: aula aberta por objeto agora e a que roda + botao Revisar o treino na gaveta + FTP e peso persistem no aparelho + gauge reequilibrado + textos do Brasil + codigo de sala normalizado (QR do navegador deixava a sala inexistente) + faixa de voltar corrigida + reconexao nao trava mais + sala encerrada limpa o codigo guardado + VISTA DA SALA + card comprido de Construtor para professor + fim da corrida no login','color:#ea860c;font-weight:700;'); }catch(e){}
   }
   if(document.readyState!=='loading') buildGaugeArc();
   else document.addEventListener('DOMContentLoaded', buildGaugeArc);
@@ -8632,342 +8056,6 @@ updateProfileUI = function() {
   if(document.readyState!=='loading') _prVoltarInit();
   else document.addEventListener('DOMContentLoaded', _prVoltarInit);
 })();
-
-// ══ 01/10a — CAMPEONATO E CAMISAS NO APP ═══════════════════════════
-function prCamisaSVG(cor,w){
-  var id='cj'+Math.random().toString(36).slice(2,8), defs='', fill=cor||'#888';
-  if(cor==='bol-vermelha'||cor==='bol-azul'){ var dc=cor==='bol-azul'?'#2f6bff':'#d62d2d'; defs='<pattern id="'+id+'" width="9" height="9" patternUnits="userSpaceOnUse"><rect width="9" height="9" fill="#fff"/><circle cx="4.5" cy="4.5" r="2.4" fill="'+dc+'"/></pattern>'; fill='url(#'+id+')'; }
-  else if(cor==='arcoiris'){ var f=[[0,'#fff'],[.36,'#fff'],[.36,'#2f6bff'],[.44,'#2f6bff'],[.44,'#d62d2d'],[.52,'#d62d2d'],[.52,'#111'],[.6,'#111'],[.6,'#ffd400'],[.68,'#ffd400'],[.68,'#1fb34a'],[.76,'#1fb34a'],[.76,'#fff'],[1,'#fff']];
-    defs='<linearGradient id="'+id+'" x1="0" y1="0" x2="0" y2="1">'+f.map(function(x){return '<stop offset="'+x[0]+'" stop-color="'+x[1]+'"/>';}).join('')+'</linearGradient>'; fill='url(#'+id+')'; }
-  return '<svg width="'+w+'" height="'+Math.round(w*.875)+'" viewBox="0 0 64 56" style="flex-shrink:0;vertical-align:middle"><defs>'+defs+'</defs><path d="M20 4 L8 10 L2 24 L12 28 L14 22 L14 52 L50 52 L50 22 L52 28 L62 24 L56 10 L44 4 Q32 14 20 4 Z" fill="'+fill+'" stroke="rgba(0,0,0,.35)" stroke-width="1.5"/></svg>';
-}
-function _acEsc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];}); }
-function _acData(iso){ var p=String(iso||'').split('-'); return p.length===3?p[2]+'/'+p[1]:''; }
-var _acUlt=0;
-async function appCampCarregar(){
-  var tok=''; try{ tok=localStorage.getItem('pr_token')||''; }catch(e){}
-  var hc=document.getElementById('homeCamp'), pc=document.getElementById('profCamisas');
-  if(!tok){ if(hc) hc.style.display='none'; if(pc) pc.style.display='none'; return; }
-  if(Date.now()-_acUlt<20000) return; _acUlt=Date.now();
-  var base=(typeof SERVER_HTTP!=='undefined'&&SERVER_HTTP)?SERVER_HTTP:'';
-  try{
-    var r1=await fetch(base+'/user/campeonatos',{headers:{'Authorization':'Bearer '+tok}}), r2=await fetch(base+'/user/camisas',{headers:{'Authorization':'Bearer '+tok}});
-    var cs=r1.ok?await r1.json():{campeonatos:[]}, cm=r2.ok?await r2.json():{conquistadas:[]};
-    // início: campeonato ativo (posição, camisas, próxima etapa) ou a camisa conquistada
-    var h='';
-    (cs.campeonatos||[]).slice(0,1).forEach(function(c){
-      var eu=c.eu, lid=(c.tipo_def&&c.tipo_def.lider)||{};
-      var cor=eu&&eu.camisa?eu.camisa.cor:(lid.cor||'#ffd400');
-      h+='<div style="background:linear-gradient(135deg,rgba(255,212,0,.12),rgba(255,255,255,.03) 60%);border:1px solid rgba(255,212,0,.35);border-radius:16px;padding:14px;">'
-        +'<div style="font-size:10px;font-weight:700;letter-spacing:2.5px;color:rgba(255,255,255,.45);text-transform:uppercase;">🏁 '+_acEsc(c.campeonato.tipo_nome)+' · etapa '+c.feitas+' de '+c.total_etapas+'</div>'
-        +'<div style="font-family:\'Bebas Neue\',sans-serif;font-size:26px;letter-spacing:1px;color:#fff;line-height:1.1;margin-top:2px;">'+_acEsc(c.campeonato.nome)+'</div>'
-        +'<div style="display:flex;align-items:center;gap:12px;margin-top:10px;">'+prCamisaSVG(cor,54)
-        +'<div>'+(eu?('<div style="font-family:\'Bebas Neue\',sans-serif;font-size:34px;color:#fff;line-height:1;">'+eu.pos+'º'+(eu.delta>0?' <span style="font-size:16px;color:#8fe06a">▲'+eu.delta+'</span>':eu.delta<0?' <span style="font-size:16px;color:#ff6b6b">▼'+(-eu.delta)+'</span>':'')+'</div><div style="font-size:12px;color:rgba(255,255,255,.55);">'+eu.pontos+' pontos · '+eu.etapas+(eu.etapas===1?' etapa':' etapas')+(eu.camisa?' · você veste a '+_acEsc(String(eu.camisa.rotulo||'').toLowerCase())+'!':'')+'</div>')
-          :'<div style="font-size:13px;color:rgba(255,255,255,.7);">Você ainda não pedalou uma etapa.<br>Cada aula vale pontos e camisas.</div>')+'</div></div>'
-        +(c.proxima?'<div style="margin-top:10px;font-size:12.5px;color:rgba(255,255,255,.6);">Próxima etapa: <b style="color:#fff">'+_acData(c.proxima.data)+' · '+_acEsc(String(c.proxima.hora||'').slice(0,5))+'</b>'+(c.proxima.tipo_etapa==='rainha'?' · 👑 vale em dobro':c.proxima.tipo_etapa==='montanha'?' · ⛰ montanha':c.proxima.tipo_etapa==='sprint'?' · ⚡ sprint':'')+'</div>':'')
-        +'</div>';
-    });
-    if(!h && cm.destaque){ var d=cm.destaque;
-      h='<div style="display:flex;align-items:center;gap:12px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:16px;padding:12px 14px;">'+prCamisaSVG(d.cor,46)
-        +'<div><div style="font-size:10px;font-weight:700;letter-spacing:2.5px;color:rgba(255,255,255,.45);text-transform:uppercase;">'+(d.k==='arco-iris'?'Campeão mundial':'Camisa conquistada')+'</div><div style="font-size:15px;font-weight:700;color:#fff;">'+_acEsc(d.rotulo)+'</div><div style="font-size:12px;color:rgba(255,255,255,.5);">'+_acEsc(d.campeonato||'')+'</div></div></div>'; }
-    if(hc){ hc.innerHTML=h; hc.style.display=h?'block':'none'; }
-    // perfil: minhas camisas
-    var lst=cm.conquistadas||[];
-    if(pc){
-      if(!lst.length){ pc.style.display='none'; }
-      else { pc.style.display='block';
-        pc.innerHTML='<div style="font-size:11px;font-weight:700;letter-spacing:2px;color:rgba(255,255,255,.4);text-transform:uppercase;margin:6px 2px 8px;">Minhas camisas</div><div style="display:flex;gap:10px;overflow-x:auto;padding-bottom:4px;">'
-          +lst.map(function(c){ return '<div style="flex-shrink:0;width:112px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:14px;padding:10px;text-align:center;">'+prCamisaSVG(c.cor,50)+'<div style="font-size:12px;font-weight:700;color:#fff;margin-top:4px;line-height:1.2;">'+_acEsc(c.rotulo)+'</div><div style="font-size:10.5px;color:rgba(255,255,255,.45);margin-top:2px;line-height:1.2;">'+_acEsc(c.campeonato_nome)+'</div></div>'; }).join('')+'</div>'; }
-    }
-  }catch(e){ console.warn('[ProRider] campeonato no app:', e&&e.message); }
-}
-setTimeout(function(){ try{ appCampCarregar(); }catch(e){} }, 2500);
-
-
-
-// ══ 02/10b2 — AULA GRAVADA (Loja) ═══════════════════════════════════════
-// O vídeo do professor toca no fundo; o ROTEIRO (o que a TV mostrava a cada
-// segundo) diz o bloco, o segundo do bloco, a tela e o desafio. Os números são
-// do PRÓPRIO aluno (bike Bluetooth), com o FTP dele; o WPP é a mesma conta da TV
-// (1 ponto por minuto na zona certa, metade a cada zona de distância). No fim,
-// o resultado entra no ranking da aula junto com quem pedalou ao vivo.
-var _grv=null;
-var GRV_ZN={z1:'RECOVERY',z2:'ENDURANCE',z3:'TEMPO',z4:'THRESHOLD',z5:'VO2 MAX',z6:'ANAERÓBICO',z7:'NEUROMUSCULAR'};
-var GRV_DT={1:['🔥','Gasto calórico','kcal'],2:['📏','Distância','km'],3:['⚡','Potência média','%FTP'],4:['💥','Potência máxima','W'],5:['🪢','Cabo de guerra','%FTP']};
-async function lojaGravadasCarregar(){
-  var el=document.getElementById('lojaGravadas'); if(!el) return;
-  var tok=''; try{ tok=localStorage.getItem('pr_token')||''; }catch(e){} if(!tok){ el.style.display='none'; return; }
-  try{
-    var r=await fetch(SERVER_HTTP+'/user/gravadas',{headers:{'Authorization':'Bearer '+tok}}), d=r.ok?await r.json():{gravadas:[]};
-    var l=d.gravadas||[]; if(!l.length){ el.style.display='none'; return; }
-    el.innerHTML='<div style="font-size:11px;font-weight:700;letter-spacing:2px;color:rgba(255,255,255,.45);text-transform:uppercase;margin-bottom:8px;">🎬 Aulas gravadas <span style="color:#ffb45a">· teste</span></div>'
-      +l.map(function(g){ var dt=new Date(g.created_at);
-        return '<div onclick="grvAbrir('+g.id+')" style="cursor:pointer;display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:14px;margin-bottom:8px;background:linear-gradient(135deg,rgba(234,134,12,.16),rgba(255,255,255,.03));border:1px solid rgba(234,134,12,.4);">'
-          +'<div style="font-size:26px;">▶</div><div style="flex:1;min-width:0;"><div style="font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+_acEsc(g.nome_aula)+'</div>'
-          +'<div style="font-size:11.5px;color:rgba(255,255,255,.55);">'+(g.academia?_acEsc(g.academia)+' · ':'')+(g.professor?'Prof. '+_acEsc(g.professor)+' · ':'')+Math.round((g.dur_seg||0)/60)+' min · '+dt.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'})+(g.fizeram?' · '+g.fizeram+' já fizeram':'')+'</div></div></div>'; }).join('')
-      +'<div style="font-size:11px;color:rgba(255,255,255,.4);margin:-2px 2px 4px;">Fase de teste: cada gravação fica 72 h. Grátis enquanto a compra não é ligada.</div>';
-    el.style.display='block';
-  }catch(e){ el.style.display='none'; }
-}
-async function grvAbrir(id){
-  var tok=localStorage.getItem('pr_token')||'';
-  try{
-    var r=await fetch(SERVER_HTTP+'/gravadas/'+id+'/roteiro',{headers:{'Authorization':'Bearer '+tok}}), d=await r.json();
-    if(!r.ok){ showToast(d.error||'Aula indisponível.'); return; }
-    _grv={id:id,d:d,rot:d.roteiro,tok:tok};
-    // conectar a bike primeiro (a mesma tela de sempre); "Começar" abre a aula gravada
-    cAula={nome:d.nome_aula,blocos:d.roteiro.blocos,tipo:'gravada'}; window._grvPend=true;
-    goConnect();
-  }catch(e){ showToast('Erro de conexão.'); }
-}
-if(typeof startCountdown==='function'){
-  var _startCountdownSemGrv=startCountdown;
-  startCountdown=function(){ if(window._grvPend){ window._grvPend=false; grvComecar(); return; } return _startCountdownSemGrv.apply(this,arguments); };
-}
-function grvGirarCheck(){
-  var g=document.getElementById('grvGirar'); if(!g) return;
-  var em=window.innerHeight>window.innerWidth&&!g.dataset.ok; g.style.display=em?'flex':'none';
-}
-window.addEventListener('resize',function(){ if(_grv&&_grv.on) grvGirarCheck(); });
-function grvComecar(){
-  var R=_grv.rot; _grv.on=true; _grv.ac={tot:0,wS:0,wN:0,rS:0,rN:0,zt:{},wpp:0,hrS:0,hrN:0,am:[],des:null};
-  _grv.idx={}; (R.a||[]).forEach(function(x){ _grv.idx[x[0]]=x; }); _grv.ultT=(R.a.length?R.a[R.a.length-1][0]:0);
-  go('sGravada'); try{ screen.orientation&&screen.orientation.lock&&screen.orientation.lock('landscape').catch(function(){}); }catch(e){}
-  document.getElementById('grvNome').textContent=_grv.d.nome_aula||'Aula gravada';
-  document.getElementById('grvProf').textContent=(_grv.d.professor?'Prof. '+_grv.d.professor+' · ':'')+'aula gravada';
-  document.getElementById('grvFim').style.display='none'; grvGirarCheck(); grvPerfil();
-  var v=document.getElementById('grvVideo'); v.src=SERVER_HTTP+'/gravadas/'+_grv.id+'/video?t='+encodeURIComponent(_grv.tok);
-  v.onended=function(){ grvTerminar(); };
-  v.play().catch(function(){ document.getElementById('grvPlay').textContent='▶'; });
-  clearInterval(_grv.timer); _grv.timer=setInterval(grvTick,1000); grvTick(true);
-  _acquireWakeLock&&_acquireWakeLock();
-}
-function grvPausa(){ var v=document.getElementById('grvVideo'); if(v.paused){ v.play().catch(function(){}); } else v.pause(); document.getElementById('grvPlay').textContent=v.paused?'▶':'⏸'; }
-function grvSair(){ if(_grv&&_grv.ac&&_grv.ac.tot>60&&!_grv.fim){ if(!confirm('Sair da aula gravada? O que você pedalou até aqui vai para o resultado.')) return; grvTerminar(); return; } grvFechar(); }
-function grvFechar(){ try{ clearInterval(_grv.timer); }catch(e){} var v=document.getElementById('grvVideo'); try{ v.pause(); v.removeAttribute('src'); v.load(); }catch(e){} if(_grv) _grv.on=false;
-  try{ screen.orientation&&screen.orientation.unlock&&screen.orientation.unlock(); }catch(e){} go('sLoja'); }
-function grvAmostra(t){ var A=_grv.idx; for(var k=Math.floor(t);k>=0&&k>=Math.floor(t)-5;k--){ if(A[k]) return A[k]; } return null; }
-function grvPerfil(){
-  var bl=_grv.rot.blocos||[], tot=bl.reduce(function(s2,b){ return s2+(b.dur||0)*60; },0)||1, acc=0, h='';
-  var ZH={z1:22,z2:36,z3:50,z4:66,z5:82,z6:95,z7:100};
-  bl.forEach(function(b){ var w=(b.dur*60)/tot*100; h+='<i style="position:absolute;bottom:0;left:'+(acc/tot*100).toFixed(3)+'%;width:max(1.5px,calc('+w.toFixed(3)+'% - 2px));height:'+(ZH[b.z]||22)+'%;background:'+(zC[b.z]||'#888')+';border-radius:3px 3px 1px 1px;opacity:.9"></i>'; acc+=b.dur*60; });
-  document.getElementById('grvPerfil').innerHTML=h; _grv.totSeg=tot;
-}
-function grvTick(primeiro){
-  if(!_grv||!_grv.on||_grv.fim) return;
-  var v=document.getElementById('grvVideo'), t=v.currentTime||0, a=grvAmostra(t);
-  if(!a) return;
-  var bl=_grv.rot.blocos||[], bi=Math.min(bl.length-1,a[1]), b=bl[bi]||{}, e=a[2], tela=a[3], pausaTV=a[4], dTipo=a[5], dSeg=a[6];
-  var resta=Math.max(0,Math.round((b.dur||0)*60-e));
-  document.getElementById('grvBloco').textContent=Math.floor(resta/60)+':'+String(resta%60).padStart(2,'0');
-  var zEl=document.getElementById('grvZona'); zEl.textContent=String(b.z||'z1').toUpperCase()+' · '+(GRV_ZN[b.z]||''); zEl.style.background=zC[b.z]||'#888'; zEl.style.color=(b.z==='z3'||b.z==='z4')?'#111':'#fff';
-  // números do aluno (bike pelo Bluetooth do celular)
-  var tem=(connected.bike&&_bleTs&&(Date.now()-_bleTs)<3000), w=tem?Math.round(_bleWatts||0):0, rpm=tem?Math.round(_bleRpm||0):0;
-  var ftp=_ftpDoAluno()||150, pct=Math.round(w/ftp*100), zMeu=_lsZonaFromFtp(pct), hr=0;
-  try{ hr=parseInt((document.getElementById('bigHR')||{}).textContent,10)||0; }catch(x){}
-  var ac=_grv.ac, contando=!v.paused&&!pausaTV&&tem;
-  if(contando){
-    ac.tot++; ac.wS+=w; ac.wN++; if(rpm>0){ ac.rS+=rpm; ac.rN++; } ac.zt[zMeu]=(ac.zt[zMeu]||0)+1; if(hr>30){ ac.hrS+=hr; ac.hrN++; }
-    var zs=['z1','z2','z3','z4','z5','z6','z7'], diff=Math.abs(zs.indexOf(zMeu)-zs.indexOf(b.z||'z1')); ac.wpp+=Math.pow(0.5,diff)/60;
-    if(ac.am.length<14400) ac.am.push([Date.now(),w,rpm,hr>30?hr:0]);
-  }
-  // desafio: o mesmo da TV, só com ele (base no começo do desafio)
-  if(dTipo){ if(!ac.des||ac.des.tipo!==dTipo||dSeg<(ac.des.ult||0)){ ac.des={tipo:dTipo,kcal0:prKcal(ac.wN?ac.wS/ac.wN:0,ac.tot,prPesoKg()),dist0:grvKm(),wS:0,wN:0,pico:0,ult:dSeg}; }
-    ac.des.ult=dSeg; if(contando){ ac.des.wS+=pct; ac.des.wN++; if(w>ac.des.pico) ac.des.pico=w; } } else ac.des=null;
-  var rA=b.rpm||[0,0], fA=b.ftp||[0,0];
-  document.getElementById('grvRpm').textContent=tem?rpm:'—'; document.getElementById('grvRpmAlvo').textContent='alvo '+rA[0]+'–'+rA[1];
-  // bola da direita: % do FTP grande, na cor da zona em que ele está; alvo embaixo; watts pequeno
-  var pEl=document.getElementById('grvPct'); pEl.innerHTML=tem?pct+'<span style="font-size:.5em">%</span>':'—'; pEl.style.color=tem?(zC[zMeu]||'#fff'):'#fff';
-  document.getElementById('grvFtpAlvo').textContent='alvo '+fA[0]+'–'+fA[1]+'%';
-  document.getElementById('grvW').textContent=tem?w+' W':'';
-  document.getElementById('grvBolaFtp').style.borderColor=tem?(zC[zMeu]||'#888'):'rgba(255,255,255,.18)';
-  var bolaR=document.getElementById('grvCxRpm'), rOk=tem&&rpm>=rA[0]&&rpm<=rA[1]; bolaR.style.borderColor=tem?(rOk?'#5db13d':'#ffb45a'):'rgba(255,255,255,.18)';
-  document.getElementById('grvPos').textContent=b.pos==='Standing'?'EM PÉ':'SENTADO';
-  var feito=0; for(var i=0;i<bi;i++) feito+=(bl[i].dur||0)*60; feito+=e;
-  document.getElementById('grvAgulha').style.left=(Math.min(1,feito/(_grv.totSeg||1))*100)+'%';
-  var fl=Math.max(0,Math.round((_grv.totSeg||0)-feito)); document.getElementById('grvFalta').textContent='falta '+Math.floor(fl/60)+':'+String(fl%60).padStart(2,'0');
-  var nx=bl[bi+1]; document.getElementById('grvProx').textContent=nx?('depois: '+String(nx.z).toUpperCase()+' '+(GRV_ZN[nx.z]||'')+' · '+Math.round(nx.dur*60)+' s'):'último bloco';
-  // qual tela a TV mostrava
-  var gEl=document.getElementById('grvGraf'), cEl=document.getElementById('grvCard'), dEl=document.getElementById('grvDesafio');
-  if(dTipo){ gEl.style.display='none'; cEl.style.display='none'; dEl.style.display='block'; dEl.innerHTML=grvDesafioHtml(dTipo,dSeg,tem); }
-  else if(tela===1||tela===2||tela===4||tela===5){ gEl.style.display='none'; dEl.style.display='none'; cEl.style.display='block'; cEl.innerHTML=grvCardHtml(tela,w,rpm,pct,zMeu,hr,tem); cEl.style.borderColor=tem?(zC[zMeu]||'#888'):'#888'; }
-  else { gEl.style.display='flex'; cEl.style.display='none'; dEl.style.display='none'; }
-  var av=document.getElementById('grvAviso');
-  if(!tem){ av.style.display='block'; av.textContent='Sem dados da bike: conecte pelo Bluetooth para pontuar'; }
-  else if(pausaTV){ av.style.display='block'; av.style.background='rgba(60,60,70,.85)'; av.textContent='Aula pausada pelo professor'; }
-  else av.style.display='none';
-  if(t>=_grv.ultT+2&&_grv.ultT>0) grvTerminar();
-}
-function grvKm(){ var s2=0; (_grv.ac.am||[]).forEach(function(x){ s2+=Math.pow(Math.max(0,x[1])/0.25,1/3); }); return s2/1000; }
-function grvCardHtml(tela,w,rpm,pct,z,hr,tem){
-  var nome=_prNomeAluno()||'Você', foto=localStorage.getItem('pr_foto'), ini=String(nome).trim().split(/\s+/).map(function(x){return x[0]||'';}).slice(0,2).join('').toUpperCase();
-  var big=tela===2?[rpm,'RPM']:tela===5?[hr||'—','BPM']:tela===4?[_grv.ac.wpp.toFixed(1),'WPP']:[w,'WATTS'];
-  return '<div style="display:flex;align-items:center;gap:14px;">'
-    +(foto?'<img src="'+foto+'" style="width:64px;height:64px;border-radius:50%;object-fit:cover;border:3px solid '+(zC[z]||'#888')+'">':'<div style="width:64px;height:64px;border-radius:50%;background:linear-gradient(135deg,#ffe033,#ea860c,#d62d2d);display:flex;align-items:center;justify-content:center;font-weight:900;color:#111;font-size:22px;">'+_acEsc(ini)+'</div>')
-    +'<div style="flex:1;min-width:0;"><div style="font-weight:800;font-size:18px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+_acEsc(nome)+'</div><div style="font-size:12px;color:'+(zC[z]||'#aaa')+';font-weight:800;">'+(tem?String(z).toUpperCase()+' · '+(GRV_ZN[z]||''):'sem dados da bike')+'</div></div>'
-    +'<div style="text-align:right;"><div style="font-family:\'Bebas Neue\',sans-serif;font-size:58px;line-height:.9;color:#fff;">'+(tem||tela===4?big[0]:'—')+'</div><div style="font-size:10px;letter-spacing:1.5px;color:rgba(255,255,255,.55);">'+big[1]+'</div></div></div>'
-    +'<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:12px;text-align:center;">'
-    +[[tem?w:'—','W'],[tem?pct+'%':'—','FTP'],[tem?rpm:'—','RPM'],[_grv.ac.wpp.toFixed(1),'WPP']].map(function(x){ return '<div style="background:rgba(255,255,255,.06);border-radius:10px;padding:6px 4px;"><div style="font-family:\'Bebas Neue\',sans-serif;font-size:24px;line-height:1;">'+x[0]+'</div><div style="font-size:9px;color:rgba(255,255,255,.5);letter-spacing:1px;">'+x[1]+'</div></div>'; }).join('')+'</div>';
-}
-function grvDesafioHtml(tipo,seg,tem){
-  var D=GRV_DT[tipo]||GRV_DT[1], ds=_grv.ac.des||{}, v='—';
-  if(tem||ds.wN){
-    if(tipo===1) v=Math.max(0,Math.round(prKcal(_grv.ac.wN?_grv.ac.wS/_grv.ac.wN:0,_grv.ac.tot,prPesoKg())-(ds.kcal0||0)));
-    else if(tipo===2) v=Math.max(0,grvKm()-(ds.dist0||0)).toFixed(2);
-    else if(tipo===4) v=ds.pico||0;
-    else v=ds.wN?Math.round(ds.wS/ds.wN):0;
-  }
-  return '<div style="font-size:11px;letter-spacing:2px;color:#ffb45a;font-weight:800;">DESAFIO · VOCÊ</div>'
-    +'<div style="font-family:\'Bebas Neue\',sans-serif;font-size:26px;color:#fff;">'+D[0]+' '+D[1]+'</div>'
-    +'<div style="font-family:\'Bebas Neue\',sans-serif;font-size:72px;line-height:.9;color:#fff;margin-top:4px;">'+v+'<span style="font-size:22px;color:rgba(255,255,255,.6);"> '+D[2]+'</span></div>'
-    +'<div style="font-size:12px;color:rgba(255,255,255,.6);margin-top:4px;">'+Math.floor(seg/60)+':'+String(seg%60).padStart(2,'0')+' de desafio</div>';
-}
-async function grvTerminar(){
-  if(!_grv||_grv.fim) return; _grv.fim=true; clearInterval(_grv.timer);
-  var v=document.getElementById('grvVideo'); try{ v.pause(); }catch(e){}
-  var ac=_grv.ac; ac.wpp=Math.round(ac.wpp*100)/100; var wMed=ac.wN?Math.round(ac.wS/ac.wN):0, kcal=prKcal(wMed,ac.tot,prPesoKg())||0, rpmMed=ac.rN?Math.round(ac.rS/ac.rN):0;
-  // aproveita o arquivo do Strava/Garmin e o histórico de sempre
-  try{ _lsAcc.am=ac.am.slice(); _lsAcc.wSum=ac.wS; _lsAcc.wCnt=ac.wN; }catch(e){}
-  var tok=_grv.tok, rk=[];
-  try{ var r=await fetch(SERVER_HTTP+'/user/gravadas/'+_grv.id+'/resultado',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+tok},body:JSON.stringify({wpp:Math.round(ac.wpp*100)/100,kcal:kcal,watts:wMed})}); var d=await r.json(); rk=d.ranking||[]; }catch(e){}
-  if(ac.tot>=120){ try{ var zp={}, zt=0; Object.keys(ac.zt).forEach(function(z){ zt+=ac.zt[z]; }); ['z1','z2','z3','z4','z5','z6','z7'].forEach(function(z){ zp[z]=zt?Math.round((ac.zt[z]||0)/zt*100):0; });
-    var zPred=Object.keys(ac.zt).sort(function(a,b){ return ac.zt[b]-ac.zt[a]; })[0]||'z2';
-    fetch(SERVER_HTTP+'/aula/complete',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+tok},body:JSON.stringify({aula_nome:(_grv.d.nome_aula||'Aula')+' (gravada)',duracao_sec:ac.tot,zona_predominante:zPred,badge:'',sem_pausas:true,zonas:zp,watts_med:wMed,rpm_med:rpmMed,kcal:kcal})}).catch(function(){}); }catch(e){} }
-  var eu=_prNomeAluno();
-  var f=document.getElementById('grvFim'); f.style.display='block';
-  f.innerHTML='<div style="display:flex;gap:16px;flex-wrap:wrap;max-width:900px;margin:0 auto;">'
-    +'<div style="flex:1;min-width:240px;"><div style="font-size:11px;letter-spacing:2px;color:rgba(255,255,255,.5);font-weight:800;">AULA GRAVADA CONCLUÍDA</div>'
-    +'<div style="font-family:\'Bebas Neue\',sans-serif;font-size:30px;color:#fff;line-height:1.05;">'+_acEsc(_grv.d.nome_aula||'')+'</div>'
-    +'<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:10px;">'
-    +[[ac.wpp.toFixed(1),'WPP','#ffd23f'],[kcal,'KCAL','#ea860c'],[wMed+' W','POTÊNCIA MÉDIA','#fff'],[fmMS(ac.tot),'PEDALADO','#fff']].map(function(x){ return '<div style="background:rgba(255,255,255,.06);border-radius:12px;padding:10px;"><div style="font-family:\'Bebas Neue\',sans-serif;font-size:30px;color:'+x[2]+';line-height:1;">'+x[0]+'</div><div style="font-size:10px;color:rgba(255,255,255,.5);letter-spacing:1px;">'+x[1]+'</div></div>'; }).join('')+'</div>'
-    +'<div style="display:flex;flex-direction:column;gap:8px;margin-top:12px;"><button onclick="prExportarTCX()" style="padding:11px;border-radius:24px;border:1.5px solid #fc4c02;background:rgba(252,76,2,.1);color:#fff;font-weight:800;">⬇ Arquivo para Strava / Garmin</button>'
-    +'<button onclick="grvFechar()" style="padding:11px;border-radius:24px;border:none;background:linear-gradient(135deg,#ea860c,#d62d2d);color:#fff;font-weight:900;">Voltar à Loja</button></div></div>'
-    +'<div style="flex:1;min-width:240px;"><div style="font-size:11px;letter-spacing:2px;color:rgba(255,255,255,.5);font-weight:800;margin-bottom:6px;">RANKING DA AULA · ao vivo + gravada</div>'
-    +(rk.length?rk.slice(0,12).map(function(x){ var meu=(x.onde==='gravada'&&x.nome===eu);
-      return '<div style="display:flex;align-items:center;gap:10px;padding:7px 10px;border-radius:10px;margin-bottom:5px;background:'+(meu?'rgba(234,134,12,.22)':'rgba(255,255,255,.05)')+';">'
-        +'<b style="font-family:\'Bebas Neue\',sans-serif;font-size:20px;width:28px;color:'+(meu?'#ffb45a':'rgba(255,255,255,.6)')+';">'+x.pos+'º</b>'
-        +'<span style="flex:1;min-width:0;font-weight:700;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+_acEsc(x.nome)+'</span>'
-        +'<span style="font-size:10px;color:rgba(255,255,255,.45);">'+(x.onde==='ao vivo'?'na sala':'gravada')+'</span>'
-        +'<b style="font-family:\'Bebas Neue\',sans-serif;font-size:20px;color:#ffb45a;">'+Number(x.wpp).toFixed(1)+'</b></div>'; }).join(''):'<div style="color:rgba(255,255,255,.5);font-size:13px;">Ranking indisponível agora.</div>')
-    +'</div></div>';
-}
-// ══ 02/10d — ARQUIVO DA AULA PARA STRAVA / GARMIN (.tcx) ═══════════════
-// Gerado no próprio celular com um ponto por segundo (potência, cadência e
-// FC). A distância é estimada pela potência, como numa bike de rolo. No
-// Strava: Você → Enviar atividade → Arquivo. No Garmin Connect: Importar dados.
-function _prTcxEsc(t){ return String(t||'').replace(/[<>&"]/g,function(c){ return {'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c]; }); }
-function prMontarTCX(){
-  var am=(typeof _lsAcc!=='undefined'&&_lsAcc.am)||[];
-  if(am.length<30) return null;
-  var ini=new Date(am[0][0]), dist=0, pts='', cal=0, hrS=0, hrN=0, hrM=0, wS=0, rS=0;
-  try{ cal=prKcal(prWattsMed(),am.length,prPesoKg())||0; }catch(e){}
-  am.forEach(function(a,i){
-    var dt=i?Math.min(5,(a[0]-am[i-1][0])/1000):1, v=Math.pow(Math.max(0,a[1])/0.25,1/3); dist+=v*dt;
-    if(a[3]){ hrS+=a[3]; hrN++; if(a[3]>hrM) hrM=a[3]; } wS+=a[1]; rS+=a[2];
-    pts+='<Trackpoint><Time>'+new Date(a[0]).toISOString()+'</Time><DistanceMeters>'+dist.toFixed(1)+'</DistanceMeters>'
-      +(a[3]?'<HeartRateBpm><Value>'+a[3]+'</Value></HeartRateBpm>':'')+'<Cadence>'+Math.min(254,a[2])+'</Cadence>'
-      +'<Extensions><ns3:TPX><ns3:Watts>'+a[1]+'</ns3:Watts></ns3:TPX></Extensions></Trackpoint>';
-  });
-  var dur=Math.round((am[am.length-1][0]-am[0][0])/1000)+1, nome=(typeof cAula!=='undefined'&&cAula&&cAula.nome)||'Aula ProRider';
-  return '<?xml version="1.0" encoding="UTF-8"?>\n<TrainingCenterDatabase xmlns="http://www.garmin.com/xmlschemas/TrainingCenterDatabase/v2" xmlns:ns3="http://www.garmin.com/xmlschemas/ActivityExtension/v2">'
-    +'<Activities><Activity Sport="Biking"><Id>'+ini.toISOString()+'</Id><Lap StartTime="'+ini.toISOString()+'"><TotalTimeSeconds>'+dur+'</TotalTimeSeconds><DistanceMeters>'+dist.toFixed(1)+'</DistanceMeters>'
-    +'<Calories>'+Math.round(cal)+'</Calories>'+(hrN?'<AverageHeartRateBpm><Value>'+Math.round(hrS/hrN)+'</Value></AverageHeartRateBpm><MaximumHeartRateBpm><Value>'+hrM+'</Value></MaximumHeartRateBpm>':'')
-    +'<Intensity>Active</Intensity><Cadence>'+Math.round(rS/am.length)+'</Cadence><TriggerMethod>Manual</TriggerMethod><Track>'+pts+'</Track>'
-    +'<Extensions><ns3:LX><ns3:AvgWatts>'+Math.round(wS/am.length)+'</ns3:AvgWatts></ns3:LX></Extensions></Lap>'
-    +'<Notes>'+_prTcxEsc(nome)+' · ProRider</Notes><Creator xsi:type="Device_t" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><Name>ProRider</Name></Creator></Activity></Activities></TrainingCenterDatabase>';
-}
-async function prExportarTCX(){
-  var x=prMontarTCX();
-  if(!x){ showToast('Esta aula não tem dados de potência suficientes para o arquivo.'); return; }
-  var nome=((typeof cAula!=='undefined'&&cAula&&cAula.nome)||'aula').normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^\w-]+/g,'_').slice(0,40);
-  var d=new Date(), arq='ProRider_'+nome+'_'+d.getFullYear()+String(d.getMonth()+1).padStart(2,'0')+String(d.getDate()).padStart(2,'0')+'.tcx';
-  var blob=new Blob([x],{type:'application/vnd.garmin.tcx+xml'});
-  try{
-    var f=new File([blob],arq,{type:'application/vnd.garmin.tcx+xml'});
-    if(navigator.canShare&&navigator.canShare({files:[f]})){ await navigator.share({files:[f],title:'Aula ProRider'}); return; }
-  }catch(e){ if(e&&e.name==='AbortError') return; }
-  var a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=arq; document.body.appendChild(a); a.click();
-  setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); },3000);
-  showToast('Arquivo salvo. No Strava: Enviar atividade → Arquivo.');
-}
-// ══ 02/10b — ASSISTIR A AULA AO VIVO (WebRTC direto da TV) ════════════
-// O servidor só passa os recados; o vídeo vem da TV da academia. Começa sem
-// som (o celular só toca sozinho mudo) — um toque liga o som.
-var _txv={ws:null,pc:null};
-function prAssistir(codigo,titulo){
-  prAssistirFechar();
-  var o=document.createElement('div'); o.id='txOverlay';
-  o.style.cssText='position:fixed;inset:0;z-index:2000;background:#000;display:flex;flex-direction:column;';
-  o.innerHTML='<div style="display:flex;align-items:center;gap:10px;padding:12px 14px;background:linear-gradient(180deg,rgba(0,0,0,.8),transparent);position:absolute;left:0;right:0;top:0;z-index:2;">'
-    +'<button onclick="prAssistirFechar()" style="width:38px;height:38px;border-radius:50%;border:none;background:rgba(255,255,255,.14);color:#fff;font-size:18px;">&#8592;</button>'
-    +'<div style="flex:1;min-width:0"><div style="font-size:11px;font-weight:800;letter-spacing:1.5px;color:#ff3355;">● AO VIVO</div><div style="font-weight:700;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+_salaEsc(titulo||'Aula ao vivo')+'</div></div>'
-    +'<button id="txSom" onclick="prAssistirSom()" style="border:none;border-radius:10px;padding:8px 12px;background:#ea860c;color:#fff;font-weight:800;">🔇 Ligar som</button></div>'
-    +'<video id="txVideo" autoplay playsinline muted style="flex:1;width:100%;height:100%;object-fit:contain;background:#000;"></video>'
-    +'<div id="txStatus" style="position:absolute;left:0;right:0;bottom:24px;text-align:center;color:rgba(255,255,255,.75);font-size:14px;">Conectando à TV da academia…</div>';
-  document.body.appendChild(o);
-  var st=function(t){ var e=document.getElementById('txStatus'); if(e) e.textContent=t||''; };
-  var ws=new WebSocket(SERVER_URL); _txv.ws=ws;
-  ws.onopen=function(){ ws.send(JSON.stringify({tipo:'tx_ver',codigo:codigo,nome:(function(){ try{ return _prNomeAluno(); }catch(e){ return ''; } })()})); };
-  ws.onmessage=function(e){
-    var d; try{ d=JSON.parse(e.data); }catch(x){ return; }
-    if(d.tipo==='tx_erro'){ st(d.msg); return; }
-    if(d.tipo==='tx_estado'&&d.ativo===false){ st('A transmissão terminou.'); return; }
-    if(d.tipo!=='tx_sinal') return;
-    var dd=d.dado||{};
-    if(dd.sdp&&dd.sdp.type==='offer'){
-      if(_txv.pc){ try{ _txv.pc.close(); }catch(x){} }
-      var pc=new RTCPeerConnection({iceServers:[{urls:'stun:stun.l.google.com:19302'},{urls:'stun:stun1.l.google.com:19302'}]}); _txv.pc=pc;
-      pc.ontrack=function(ev){ var v=document.getElementById('txVideo'); if(v&&v.srcObject!==ev.streams[0]){ v.srcObject=ev.streams[0]; v.play().catch(function(){}); } st(''); };
-      pc.onicecandidate=function(ev){ if(ev.candidate&&ws.readyState===1) ws.send(JSON.stringify({tipo:'tx_sinal',dado:{ice:ev.candidate}})); };
-      pc.onconnectionstatechange=function(){ if(pc.connectionState==='failed') st('Não consegui receber o vídeo nesta rede. Tente pelo Wi-Fi da academia ou pelo 4G.'); if(pc.connectionState==='disconnected') st('Conexão instável…'); if(pc.connectionState==='connected') st(''); };
-      pc.setRemoteDescription(dd.sdp).then(function(){ return pc.createAnswer(); }).then(function(a){ return pc.setLocalDescription(a); })
-        .then(function(){ ws.send(JSON.stringify({tipo:'tx_sinal',dado:{sdp:pc.localDescription}})); }).catch(function(err){ st('Erro: '+err); });
-    } else if(dd.ice&&_txv.pc){ _txv.pc.addIceCandidate(dd.ice).catch(function(){}); }
-  };
-  ws.onclose=function(){ if(document.getElementById('txOverlay')&&!_txv.fechando) st('A conexão caiu.'); };
-}
-function prAssistirSom(){ var v=document.getElementById('txVideo'), b=document.getElementById('txSom'); if(!v) return; v.muted=!v.muted; v.play().catch(function(){}); if(b) b.textContent=v.muted?'🔇 Ligar som':'🔊 Som ligado'; }
-function prAssistirFechar(){
-  _txv.fechando=true;
-  try{ if(_txv.pc) _txv.pc.close(); }catch(e){} try{ if(_txv.ws) _txv.ws.close(); }catch(e){}
-  _txv={ws:null,pc:null}; var o=document.getElementById('txOverlay'); if(o) o.remove();
-}
-
-// ══ 02/10a — DESAFIO ENTRE ACADEMIAS NO APP ═══════════════════════════
-// Cartão no início: a minha academia contra as outras (posição, média e o
-// que falta). Toda aula que eu pedalo na TV conta para a média da academia.
-var _daUlt=0;
-async function appDACarregar(){
-  var el=document.getElementById('homeDA'); if(!el) return;
-  var tok=''; try{ tok=localStorage.getItem('pr_token')||''; }catch(e){}
-  if(!tok){ el.style.display='none'; return; }
-  if(Date.now()-_daUlt<20000) return; _daUlt=Date.now();
-  try{
-    var r=await fetch(((typeof SERVER_HTTP!=='undefined'&&SERVER_HTTP)?SERVER_HTTP:'')+'/user/desafios-academias',{headers:{'Authorization':'Bearer '+tok}});
-    var d=r.ok?await r.json():{desafios:[]}, l=(d.desafios||[]).slice(0,2);
-    if(!l.length){ el.style.display='none'; return; }
-    el.innerHTML=l.map(function(x){
-      var fim=x.status!=='ativo', eu=x.eu||{}, quando;
-      if(x.tipo==='ao_vivo'){ var t=new Date(x.data_hora); quando='⚔ ao vivo · '+t.toLocaleDateString('pt-BR',{weekday:'short',day:'2-digit',month:'2-digit'})+' às '+t.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}); }
-      else { var f=function(s){ return String(s||'').split('-').reverse().slice(0,2).join('/'); }; quando='📅 '+f(x.inicio)+' a '+f(x.fim); }
-      var venc=fim&&x.ranking[0]&&x.ranking[0].participacoes>0?x.ranking[0]:null;
-      return '<div style="background:linear-gradient(135deg,rgba(255,138,92,.14),rgba(255,255,255,.03) 60%);border:1px solid rgba(255,138,92,.4);border-radius:16px;padding:14px;margin-bottom:10px;">'
-        +'<div style="font-size:10px;font-weight:700;letter-spacing:2.5px;color:rgba(255,255,255,.45);text-transform:uppercase;">⚔ Desafio entre academias · '+_acEsc(x.metrica_nome)+'</div>'
-        +'<div style="font-family:\'Bebas Neue\',sans-serif;font-size:24px;letter-spacing:1px;color:#fff;line-height:1.1;margin-top:2px;">'+_acEsc(x.nome)+'</div>'
-        +'<div style="font-size:12px;color:rgba(255,255,255,.55);margin-top:2px;">'+quando+(fim?' · encerrado':'')+'</div>'
-        +(venc?'<div style="margin-top:8px;font-weight:800;color:#ffd23f;font-size:14px;">🏆 '+(venc.license_id===eu.license_id?'Sua academia venceu!':'Venceu: '+_acEsc(venc.nome))+'</div>':'')
-        +'<div style="margin-top:10px;">'+x.ranking.slice(0,4).map(function(a){ var meu=a.license_id===eu.license_id;
-          return '<div style="display:flex;align-items:center;gap:10px;padding:7px 10px;border-radius:10px;margin-bottom:5px;background:'+(meu?'rgba(234,134,12,.2)':'rgba(255,255,255,.05)')+';">'
-            +'<b style="font-family:\'Bebas Neue\',sans-serif;font-size:20px;width:26px;color:'+(meu?'#ffb45a':'rgba(255,255,255,.6)')+';">'+a.pos+'º</b>'
-            +'<span style="flex:1;min-width:0;font-weight:700;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+_acEsc(a.nome)+'</span>'
-            +'<b style="font-family:\'Bebas Neue\',sans-serif;font-size:20px;color:#ffb45a;">'+(a.participacoes?a.valor.toLocaleString('pt-BR'):'—')+'</b></div>'; }).join('')+'</div>'
-        +(fim?'':'<div style="font-size:12px;color:rgba(255,255,255,.55);margin-top:6px;">Cada aula que você pedala na TV da academia conta para a média.</div>')
-        +'</div>';
-    }).join('');
-    el.style.display='block';
-  }catch(e){ console.warn('[ProRider] desafio entre academias no app:', e&&e.message); }
-}
-setTimeout(function(){ try{ appDACarregar(); }catch(e){} }, 2700);
 </script>
 </body>
 </html><!-- QR Scan screen -->

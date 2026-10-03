@@ -273,7 +273,14 @@ td .zb{display:inline-block;width:10px;height:10px;border-radius:3px;margin-righ
         <span class="clock" id="muClock">0:00 / 0:00</span>
         <button class="btn bg bs" onclick="document.getElementById('fMu').click()">🎵 Adicionar MP3</button>
         <input type="file" id="fMu" accept="audio/*,.mp3,.m4a,.wav" multiple style="display:none">
+        <button class="btn bg bs" onclick="muLinksAbrir()" title="Links de compartilhamento do Dropbox (ou Google Drive): a TV toca pela internet">🔗 Músicas por link</button>
         <span id="muAviso"></span>
+      </div>
+      <div id="muLinksBox" style="display:none;margin:8px 0;padding:10px;border:1px solid var(--border);border-radius:10px;background:var(--card2)">
+        <label class="lbl">Cole os links de compartilhamento das músicas, um por linha (Dropbox: botão Compartilhar → Copiar link)</label>
+        <textarea class="in" id="muLinksTxt" rows="4" style="width:100%;font-size:12px" placeholder="https://www.dropbox.com/scl/fi/…/Musica 1.mp3?rlkey=…&dl=0"></textarea>
+        <div style="display:flex;gap:8px;align-items:center;margin-top:6px"><button class="btn bp bs" onclick="muLinksAplicar()">Aplicar</button><button class="btn bg bs" onclick="$('muLinksBox').style.display='none'">Fechar</button>
+          <span class="note">O nome do arquivo no link liga cada link à sua música; link novo entra no fim da trilha. Na TV, música com link toca pela internet; sem link, pelo pendrive.</span></div>
       </div>
       <div class="mu-list" id="muList"></div>
       <div class="row r2" style="margin-top:12px;align-items:end">
@@ -554,7 +561,9 @@ $('fMu').addEventListener('change',async function(){
       var ch=buf.getChannelData(0), N=4000, passo=Math.max(1,Math.floor(ch.length/N)), p=new Float32Array(N);
       for(var j=0;j<N;j++){ var m=0, ini=j*passo, fim=Math.min(ch.length,ini+passo); for(var k=ini;k<fim;k+=8){ var v=Math.abs(ch[k]); if(v>m) m=v; } p[j]=m; }
       var _ct=(window._muCortes||{})[f.name.toLowerCase()]||{};   // aula aberta de arquivo: volta o corte
-      trilha.push({nome:f.name, dur:buf.duration, picos:p, url:URL.createObjectURL(f), ini:Math.min(_ct.ini||0,buf.duration-1), fim:_ct.fim!=null?Math.min(_ct.fim,buf.duration):null});
+      var ja=trilha.filter(function(t){ return !t.picos&&t.nome.toLowerCase()===f.name.toLowerCase(); })[0];   // 02/10f: já estava pelo link → ganha a onda
+      if(ja){ ja.picos=p; ja.dur=buf.duration; ja.url=URL.createObjectURL(f); }
+      else trilha.push({nome:f.name, dur:buf.duration, picos:p, url:URL.createObjectURL(f), link:_ct.link||'', ini:Math.min(_ct.ini||0,buf.duration-1), fim:_ct.fim!=null?Math.min(_ct.fim,buf.duration):null});
     }catch(e){ toast('⚠ Não consegui ler '+f.name); }
   }
   muLista(); muDesenhar(); rascunho(); if(fs.length) toast('✓ Trilha atualizada');
@@ -568,6 +577,7 @@ function muLista(){
       +'<small class="note">toca</small><input class="mu-t" value="'+mmss(ini)+'" title="Começa neste ponto da música" onchange="muCorte('+i+',\'ini\',this.value)">'
       +'<small class="note">até</small><input class="mu-t" value="'+mmss(fim)+'" title="Para neste ponto da música" onchange="muCorte('+i+',\'fim\',this.value)">'
       +'<small class="note" style="'+(cortada?'color:var(--accent);font-weight:800':'')+'">'+mmss(fim-ini)+(cortada?' de '+mmss(t.dur):'')+'</small>'
+      +'<button onclick="muLinkEditar('+i+')" title="'+(t.link?'Toca pelo link: '+esc(t.link):'Sem link: a TV usa o pendrive (clique para pôr o link do Dropbox)')+'" style="'+(t.link?'background:rgba(93,177,61,.35)':'')+'">🔗</button>'
       +'<button onclick="muMover('+i+',-1)" title="Antes">◀</button><button onclick="muMover('+i+',1)" title="Depois">▶</button><button onclick="muTirar('+i+')" title="Tirar">✕</button></div>'; }).join('');
   $('muVazio').style.display=trilha.length?'none':'flex';
   var tot=totalSeg(), mu=muTotal(), av=$('muAviso');
@@ -591,6 +601,39 @@ function muCortarNoFim(){
     if(a+ef>tot){ t.fim=(t.ini||0)+(tot-a); trilha.splice(i+1); break; }
     a+=ef; }
   muParar(); tudo(); toast('✂ Música cortada no fim da aula');
+}
+// 02/10f: MÚSICA POR LINK (Dropbox, Google Drive…) — vai na aula e a TV toca pela internet
+function muLinkDireto(u){
+  u=String(u||'').trim(); if(!/^https?:\/\//i.test(u)) return '';
+  try{ var x=new URL(u);
+    if(/(^|\.)dropbox\.com$/i.test(x.hostname)){ x.searchParams.delete('dl'); x.searchParams.set('raw','1'); return x.href; }
+    var g=/drive\.google\.com\/file\/d\/([^/]+)/.exec(u); if(g) return 'https://drive.google.com/uc?export=download&id='+g[1];
+    return x.href; }catch(e){ return ''; }
+}
+function muNomeDoLink(u){ try{ var p=new URL(u).pathname.split('/').filter(Boolean).pop()||''; return decodeURIComponent(p); }catch(e){ return ''; } }
+function muLinksAbrir(){ $('muLinksTxt').value=trilha.filter(function(t){ return t.link; }).map(function(t){ return t.link; }).join('\n'); $('muLinksBox').style.display='block'; $('muLinksTxt').focus(); }
+function muDurLink(u){ return new Promise(function(ok){ var a=new Audio(); a.preload='metadata'; var fim=function(v){ a.onloadedmetadata=a.onerror=null; ok(v); };
+  a.onloadedmetadata=function(){ fim(isFinite(a.duration)?a.duration:0); }; a.onerror=function(){ fim(0); }; setTimeout(function(){ fim(0); },15000); a.src=u; }); }
+async function muLinksAplicar(){
+  var ls=$('muLinksTxt').value.split(/\s+/).filter(function(x){ return /^https?:\/\//i.test(x); }), lig=0, novas=0, ruins=[];
+  for(var i=0;i<ls.length;i++){
+    var u=ls[i], nome=muNomeDoLink(u), ja=trilha.filter(function(t){ return t.nome.toLowerCase()===nome.toLowerCase(); })[0];
+    if(ja){ ja.link=u; if(!ja.picos) ja.url=muLinkDireto(u); lig++; continue; }
+    toast('Abrindo '+(nome||'link')+'…',6000);
+    var dur=await muDurLink(muLinkDireto(u));
+    if(!dur){ ruins.push(nome||u); continue; }
+    var ct=(window._muCortes||{})[nome.toLowerCase()]||{};
+    trilha.push({nome:nome||('Música '+(trilha.length+1)),dur:dur,picos:null,url:muLinkDireto(u),link:u,ini:Math.min(ct.ini||0,dur-1),fim:ct.fim!=null?Math.min(ct.fim,dur):null}); novas++;
+  }
+  muParar(); tudo();
+  toast((lig?'🔗 '+lig+' ligada(s) às músicas · ':'')+(novas?novas+' nova(s) pelo link':'')+(ruins.length?' · ⚠ não abriu: '+ruins.join(', '):'')||'Nenhum link',6000);
+  if(!ruins.length) $('muLinksBox').style.display='none';
+}
+function muLinkEditar(i){
+  var t=trilha[i]; if(!t) return;
+  var u=prompt('Link de compartilhamento de "'+t.nome+'" (Dropbox ou Google Drive).\nVazio = a TV usa o arquivo do pendrive com este nome.',t.link||''); if(u===null) return;
+  u=u.trim(); if(u&&!muLinkDireto(u)){ toast('⚠ Isso não parece um link'); return; }
+  t.link=u; if(!t.picos&&u) t.url=muLinkDireto(u); muLista(); rascunho(); toast(u?'🔗 '+t.nome+' toca pelo link':'💾 '+t.nome+' toca pelo pendrive');
 }
 function muMover(i,d){ var j=i+d; if(!trilha[j]) return; var t=trilha[i]; trilha[i]=trilha[j]; trilha[j]=t; muParar(); muLista(); muDesenhar(); rascunho(); }
 function muTirar(i){ muParar(); try{ URL.revokeObjectURL(trilha[i].url); }catch(e){} trilha.splice(i,1); muLista(); muDesenhar(); rascunho(); }
@@ -636,8 +679,8 @@ function muDesenhar(){
     var t=v0+x*porPx; while(ti<trilha.length-1&&t>=ini[ti]+muEf(trilha[ti])) ti++;
     while(ti>0&&t<ini[ti]) ti--;
     var tr=trilha[ti]; if(!tr||t<ini[ti]||t>=ini[ti]+muEf(tr)) continue;
-    var src=(tr.ini||0)+(t-ini[ti]), N=tr.picos.length, k0=Math.floor(src/tr.dur*(N-1)), k1=Math.min(N-1,Math.floor((src+porPx)/tr.dur*(N-1))), m=0;
-    for(var k=k0;k<=k1;k++) if(tr.picos[k]>m) m=tr.picos[k];
+    var src=(tr.ini||0)+(t-ini[ti]), m=0.28;
+    if(tr.picos){ var N=tr.picos.length, k0=Math.floor(src/tr.dur*(N-1)), k1=Math.min(N-1,Math.floor((src+porPx)/tr.dur*(N-1))); m=0; for(var k=k0;k<=k1;k++) if(tr.picos[k]>m) m=tr.picos[k]; }
     var h=Math.max(1,m*(H-26)/2); c.globalAlpha=.85; c.fillStyle=cores[ti%cores.length]; c.fillRect(x,mid-h,1,h*2);
   }
   c.globalAlpha=1;
@@ -735,7 +778,8 @@ function montar(){
   var link=$('muLink').value.trim();
   if(trilha.length){ out.musica={fonte:'mp3',arquivo:trilha[0].nome,arquivos:trilha.map(function(t){return t.nome;}),syncOffset:0,
       // 02/10: a ordem, o trecho de cada música (ini → fim) e a duração; o Ginásio toca na sequência
-      trilha:trilha.map(function(t){ return {arquivo:t.nome,ini:Math.round((t.ini||0)*10)/10,fim:Math.round((t.fim!=null?t.fim:t.dur)*10)/10,dur:Math.round(t.dur*10)/10}; })};
+      // 02/10f: link (Dropbox, Google Drive…) — a TV toca pela internet; sem link, pelo pendrive (mesmo nome)
+      trilha:trilha.map(function(t){ var o={arquivo:t.nome,ini:Math.round((t.ini||0)*10)/10,fim:Math.round((t.fim!=null?t.fim:t.dur)*10)/10,dur:Math.round(t.dur*10)/10}; if(t.link) o.link=t.link; return o; })};
     if(link) out.musica.playlist=link; }
   else if(link){ out.musica={fonte:/spotify/i.test(link)?'spotify':/deezer/i.test(link)?'deezer':'link',link:link,arquivo:null,syncOffset:0}; if(/spotify/i.test(link)) out.musica.spotifyUri=link; }
   out.instrucoes_pendrive={estrutura:'Coloque este arquivo em prorider/ no pendrive. Vídeos em prorider/video/ e MP3 em prorider/musicas/.'};
@@ -805,7 +849,9 @@ function carregar(d){
   video=d.video&&d.video.fonte==='youtube'&&(d.video.youtubeId||ytId(d.video.url))?{yt:d.video.youtubeId||ytId(d.video.url),url:d.video.url,titulo:d.video.titulo||'',dur:+d.video.duracao||0,chegada:+d.video.syncOffset||0,arquivo:null}
        :d.video&&d.video.arquivo?{arquivo:d.video.arquivo,dur:0,chegada:+d.video.syncOffset||0}:null;
   $('muLink').value=(d.musica&&(d.musica.playlist||d.musica.link||(d.musica.fonte==='spotify'&&d.musica.spotifyUri)))||'';
-  window._muCortes={}; ((d.musica&&d.musica.trilha)||[]).forEach(function(x){ if(x&&x.arquivo) window._muCortes[String(x.arquivo).toLowerCase()]={ini:+x.ini||0,fim:x.fim!=null?+x.fim:null}; });
+  window._muCortes={}; ((d.musica&&d.musica.trilha)||[]).forEach(function(x){ if(x&&x.arquivo) window._muCortes[String(x.arquivo).toLowerCase()]={ini:+x.ini||0,fim:x.fim!=null?+x.fim:null,link:x.link||''}; });
+  // 02/10f: as músicas com link voltam sozinhas (sem a onda; pondo o MP3 de novo ela aparece)
+  if(!trilha.length) ((d.musica&&d.musica.trilha)||[]).forEach(function(x){ if(x&&x.link&&+x.dur>0) trilha.push({nome:x.arquivo,dur:+x.dur,picos:null,url:muLinkDireto(x.link),link:x.link,ini:+x.ini||0,fim:x.fim!=null?+x.fim:null}); });
   if(d.musica&&d.musica.arquivos&&!trilha.length) toast('A aula usa '+d.musica.arquivos.length+' música(s): adicione os MP3 para ver a trilha',4500);
   segAtivo=segments[0].id; cancelarEdicao(); tudo();
 }

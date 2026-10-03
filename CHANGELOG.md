@@ -33,6 +33,70 @@ Componentes: `servidor` · `app` · `ginasio` · `portal` · `banco`.
 
 ---
 
+## 2026-10-02 · servidor + portal (Construtor) + app + ginasio · 02/10f — música por link, horário do START e recomeçar a aula em rede
+
+**O que mudou**
+- **Construtor (`studio.html`):**
+  - botão **"🔗 Músicas por link"**: colar os links de compartilhamento (Dropbox ou Google Drive), um por linha; o nome do arquivo no link liga cada link à música; link novo entra no fim da trilha (duração lida pelo próprio link);
+  - 🔗 em cada música para pôr, trocar ou tirar o link (verde = toca pelo link);
+  - a aula salva `trilha[i].link`; ao abrir de novo, as músicas com link voltam sozinhas (sem a onda; pondo o MP3 ela aparece).
+- **Ginásio (`telas-pv.js`, BUILD 02/10f):**
+  - cada música toca pelo link (Dropbox vira `raw=1`; Google Drive vira `uc?export=download`); sem link ou se o link não abrir, pelo pendrive com o mesmo nome; a tela de configurar mostra "N músicas da aula · pelo link";
+  - aula em rede: START da academia que criou o desafio só a partir de 5 min antes do horário; se ela não começar até 5 min depois do horário, o START das outras libera e elas seguem sozinhas;
+  - **Recomeçar**: nos primeiros 5 min de aula, o SELECT da academia que criou o desafio vira "Recomeçar a aula em rede" → todas voltam à tela do QR com os mesmos alunos conectados, números zerados, gravação da largada descartada, nada vai ao placar.
+- **Servidor:** `/display/rede/estado` guarda o contador `reinicio` (mantido se a aula for publicada de novo); mensagem `aula_reiniciada` da TV vai aos celulares da sala.
+- **App:** `aula_reiniciada` zera os números da largada (`_lsReset`) e avisa.
+
+**Por quê**
+- Pedido do Mario: tocar as músicas do Dropbox (sem depender de pendrive em cada academia), START central com horário e poder recomeçar sem perder os alunos.
+
+**Como confirmar**
+- Construtor: "🔗 Músicas por link" → colar 2 links → as duas entram na trilha com o 🔗 verde; "Baixar"/"Salvar" leva o `link`.
+- Ginásio: console "trilha da aula: 2 música(s) · 2 pelo link"; link quebrado → "usando o pendrive".
+- Aula em rede: START da mãe antes do horário − 5 min → aviso com o horário; SELECT nos primeiros 5 min → "Recomeçar a aula em rede?" → todas voltam ao QR.
+
+**Cuidados**
+- Link do Dropbox precisa ser "qualquer pessoa com o link". Arquivo grande no Google Drive (> 100 MB) pede confirmação e não toca; MP3 normal toca.
+
+## 2026-10-02 · servidor + ginasio · 02/10e — aula ao vivo em rede (desafio ao vivo entre academias)
+
+**O que mudou**
+- **Servidor:** rotas `/display/rede/aula` (a TV da academia que criou o desafio publica a aula), `/display/rede/estado` (a cada segundo: onde a aula está, contagem, tocando, pausa, fim, transmitindo) e `/display/rede/agora` (as outras TVs leem). Fica só na memória do servidor. A busca do "desafio ao vivo agora" virou a função `daAgoraDe`.
+- **Ginásio (`telas-pv.js`, BUILD 02/10e):**
+  - mãe = a academia que criou o desafio ao vivo; ao chegar na tela do QR, publica a aula (blocos, segmentos, música) e passa o relógio a cada segundo;
+  - nas outras, o início ganha a 1ª opção **"Aula ao vivo em rede"** → configurar (MP3 do pendrive daqui, pelos mesmos nomes) → QR esperando;
+  - começam sozinhas com a contagem da mãe, seguem pausa, avanço e pulo de bloco (acerto fino no começo, depois só se passar de 1 s);
+  - START numa TV atrasada entra no ponto em que a aula está; START antes da mãe começar só avisa;
+  - se a mãe está em "Gravar e transmitir", o vídeo e a voz do professor aparecem num quadro no canto de cima (WebRTC, como o "Assistir" do app; conta no limite de pessoas da transmissão);
+  - o início monta as opções por lista (`_escOps`, `_escMax`), sem índices fixos.
+
+**Por quê**
+- Pedido do Mario: dar uma aula e as outras academias do desafio seguirem junto, com o START central.
+
+**Como confirmar**
+- Criar um desafio ao vivo na academia A (horário agora) e entrar com o código na B.
+- TV da A: abrir a aula até a tela do QR (console: "aula em rede publicada").
+- TV da B: o início mostra "Aula ao vivo em rede" → configurar → QR. START na A → a B começa junto; pausar na A pausa a B.
+
+**Cuidados**
+- As outras academias precisam dos mesmos MP3 no pendrive (mesmo nome). Sem eles, a aula segue sem música.
+- Se a mãe ficar 15 s sem mandar o relógio, as outras seguem sozinhas.
+
+## 2026-10-02 · servidor + app · 02/10d — caixas da aula gravada mais justas; aulas gravadas abertas a qualquer login no teste
+
+**O que mudou**
+- **App (aula gravada, tela deitada):** as caixas de RPM e % FTP ficaram do tamanho do conteúdo (menos espaço vazio) e encostadas nas pontas da tela; o meio fica livre para o professor. Números do mesmo tamanho. A lista da Loja mostra o nome da academia.
+- **Servidor:** na fase de teste, **qualquer login do app** vê e faz as aulas gravadas de todas as academias (`/user/gravadas`, roteiro, vídeo e resultado). Para voltar a limitar à academia do aluno: variável `GRAVADAS_SO_DA_ACADEMIA=1`.
+
+**Por quê**
+- Pedido do Mario: ganhar espaço no meio da tela e deixar o teste aberto; a regra de quem pode assistir (pagantes etc.) fica para depois.
+
+**Como confirmar**
+- Entrar no app com um aluno de outra academia (ou sem academia) → Loja → Aulas gravadas mostra as gravações de teste, com o nome da academia.
+
+**Cuidados**
+- Só o `server.js` e o `aluno/index.html` mudaram. O Ginásio é o mesmo da 02/10c (só o BUILD passou a 02/10d).
+
 ## 2026-10-02 · portal (Construtor) + ginasio · 02/10c — linha do tempo única, zoom com a roda do mouse e trecho de cada música
 
 **O que mudou**

@@ -1824,6 +1824,14 @@ wss.on('connection', (ws) => {
         break;
       }
 
+      // 02/10f: aula recomeçada (aula em rede, primeiros 5 min): os celulares zeram a largada
+      case 'aula_reiniciada': {
+        const sala = ws._salaCode && salas[ws._salaCode]; if (!sala || ws._tipo !== 'professor') break;
+        sala.estado.iniciada = false;
+        broadcastAlunos(ws._salaCode, { tipo: 'aula_reiniciada' });
+        log(`Aula recomeçada na sala ${ws._salaCode}`);
+        break;
+      }
       case 'iniciar_aula': {
         const salaCode = ws._salaCode;
         if (!salaCode || !salas[salaCode]) return;
@@ -5872,15 +5880,63 @@ app.post('/display/aula/resumo', displayAuth, async (req, res) => {
 app.get('/display/desafio-academias/agora', displayAuth, async (req, res) => {
   if (!db) return res.status(503).json({ error: 'Banco indisponível' });
   try {
-    const r = await db.query(`SELECT d.id FROM desafios_academias d JOIN desafios_academias_part p ON p.desafio_id=d.id
-      WHERE p.license_id=$1 AND d.tipo='ao_vivo' AND d.status='ativo'
-        AND NOW() BETWEEN d.data_hora - INTERVAL '60 minutes' AND d.data_hora + INTERVAL '120 minutes'
-      ORDER BY ABS(EXTRACT(EPOCH FROM (NOW() - d.data_hora))) LIMIT 1`, [req.user.license_id]);
-    if (!r.rows.length) return res.json({ desafio: null });
-    const d = await daCarregar(r.rows[0].id);
+    const d = await daAgoraDe(req.user.license_id);
+    if (!d) return res.json({ desafio: null });
     const lic = await db.query('SELECT COALESCE(nome_fantasia, nome) AS nome FROM licencas WHERE codigo=$1', [req.user.license_id]);
     res.json({ desafio: await daResumo(d, req.user.license_id), minha_academia: (lic.rows[0] || {}).nome || req.user.license_id, license_id: req.user.license_id });
   } catch (e) { log('desafio agora: ' + e.message); res.status(500).json({ error: 'Erro interno' }); }
+});
+// desafio AO VIVO desta academia agora (de 60 min antes a 2 h depois do horário)
+async function daAgoraDe(lic) {
+  const r = await db.query(`SELECT d.id FROM desafios_academias d JOIN desafios_academias_part p ON p.desafio_id=d.id
+    WHERE p.license_id=$1 AND d.tipo='ao_vivo' AND d.status='ativo'
+      AND NOW() BETWEEN d.data_hora - INTERVAL '60 minutes' AND d.data_hora + INTERVAL '120 minutes'
+    ORDER BY ABS(EXTRACT(EPOCH FROM (NOW() - d.data_hora))) LIMIT 1`, [lic]);
+  return r.rows.length ? await daCarregar(r.rows[0].id) : null;
+}
+// ── 02/10e: AULA AO VIVO EM REDE ──────────────────────────────────
+// A academia que criou o desafio ao vivo é a "mãe": a TV dela publica a aula
+// (blocos, música) e, a cada segundo, onde a aula está. As outras TVs do
+// desafio carregam a mesma aula, começam junto com a mãe e seguem o relógio
+// dela (pausa e avanço inclusive). Fica só na memória: a aula dura 1 h.
+const redes = {};   // desafioId -> {lic, nome, sala, aula, done, play, contando, fim, tx, t}
+app.post('/display/rede/aula', displayAuth, async (req, res) => {
+  if (!db) return res.status(503).json({ error: 'Banco indisponível' });
+  try {
+    const d = await daAgoraDe(req.user.license_id);
+    if (!d) return res.status(404).json({ error: 'Nenhum desafio ao vivo agora.' });
+    if (d.criador_license !== req.user.license_id) return res.status(403).json({ error: 'Só a academia que criou o desafio dá a aula em rede.' });
+    const a = (req.body || {}).aula;
+    if (!a || !Array.isArray(a.workout) || !a.workout.length || a.workout.length > 300 || JSON.stringify(a).length > 400000) return res.status(400).json({ error: 'Aula inválida.' });
+    const l = (await db.query('SELECT COALESCE(nome_fantasia, nome) AS nome FROM licencas WHERE codigo=$1', [req.user.license_id])).rows[0] || {};
+    redes[d.id] = { lic: req.user.license_id, nome: l.nome || req.user.license_id, sala: String((req.body || {}).sala || '').slice(0, 30), aula: a,
+      done: 0, play: false, contando: false, fim: false, tx: false, t: Date.now(), reinicio: (redes[d.id] && redes[d.id].reinicio) || 0 };
+    log(`Aula em rede publicada: desafio ${d.id} por ${req.user.license_id} (${a.workout.length} blocos)`);
+    res.json({ ok: true, desafio_id: d.id });
+  } catch (e) { log('rede aula: ' + e.message); res.status(500).json({ error: 'Erro interno' }); }
+});
+app.post('/display/rede/estado', displayAuth, (req, res) => {
+  const b = req.body || {}, r = redes[parseInt(b.desafio_id, 10) || 0];
+  if (!r || r.lic !== req.user.license_id) return res.status(404).json({ error: 'Aula em rede não encontrada.' });
+  Object.assign(r, { done: Math.max(0, Number(b.done) || 0), play: !!b.play, contando: !!b.contando, fim: !!b.fim, tx: !!b.tx, t: Date.now(), reinicio: Math.max(r.reinicio || 0, parseInt(b.reinicio, 10) || 0) });
+  if (b.sala) r.sala = String(b.sala).slice(0, 30);
+  res.json({ ok: true });
+});
+app.get('/display/rede/agora', displayAuth, async (req, res) => {
+  if (!db) return res.status(503).json({ error: 'Banco indisponível' });
+  try {
+    const d = await daAgoraDe(req.user.license_id); if (!d) return res.json({ rede: null });
+    const r = redes[d.id], mae = d.criador_license === req.user.license_id;
+    const nomeMae = r ? r.nome : ((await db.query('SELECT COALESCE(nome_fantasia, nome) AS nome FROM licencas WHERE codigo=$1', [d.criador_license])).rows[0] || {}).nome;
+    const out = { desafio_id: d.id, nome: d.nome, mae, academia_mae: nomeMae || d.criador_license, data_hora: d.data_hora, tem_aula: !!r };
+    if (r && !mae) {
+      const idade = Date.now() - r.t;
+      out.sala = r.sala; out.tx = r.tx && idade < 15000; out.nome_aula = r.aula.nome || 'Aula';
+      out.estado = { done: r.play ? r.done + idade / 1000 : r.done, play: r.play, contando: r.contando, fim: r.fim, idade, reinicio: r.reinicio || 0 };
+      if (req.query.aula) out.aula = r.aula;
+    }
+    res.json({ rede: out });
+  } catch (e) { log('rede agora: ' + e.message); res.status(500).json({ error: 'Erro interno' }); }
 });
 // placar ao vivo: a TV entra no duelo e manda a média da sala; o servidor
 // devolve a todas as TVs do duelo a lista das academias (chamado pelo WS)
@@ -6023,11 +6079,14 @@ async function gvApagarTeste(id) {
   try { await db.query(`UPDATE aulas_gravadas SET status='no_pc', teste_ate=NULL WHERE id=$1`, [id]); } catch (e) {}
 }
 setInterval(async () => { if (!db) return; try { const r = await db.query(`SELECT id FROM aulas_gravadas WHERE status='teste' AND teste_ate < NOW()`); for (const x of r.rows) await gvApagarTeste(x.id); } catch (e) {} }, 3600000);
+// 02/10d: na fase de teste, qualquer login do app vê as aulas gravadas de todas as academias.
+// Para voltar a limitar à academia do aluno: GRAVADAS_SO_DA_ACADEMIA=1
+const GV_ABERTAS = process.env.GRAVADAS_SO_DA_ACADEMIA !== '1';
 async function gvDaAcademia(req, id) {
   const u = (await db.query('SELECT license_id, role FROM users WHERE id=$1', [req.user.id])).rows[0] || {};
   const g = (await db.query(`SELECT id, license_id, nome_aula, professor, dur_seg, uid, roteiro, teste_bytes, created_at FROM aulas_gravadas WHERE id=$1 AND status='teste' AND teste_ate > NOW()`, [parseInt(id, 10) || 0])).rows[0];
   if (!g) return null;
-  if (g.license_id !== u.license_id && !['super_admin', 'admin'].includes(u.role)) return null;
+  if (!GV_ABERTAS && g.license_id !== u.license_id && !['super_admin', 'admin'].includes(u.role)) return null;
   return g;
 }
 async function gvRanking(g) {
@@ -6045,7 +6104,7 @@ app.get('/user/gravadas', authMiddleware, async (req, res) => {
   if (!db) return res.status(503).json({ error: 'Banco indisponível' });
   try {
     const u = (await db.query('SELECT license_id, role FROM users WHERE id=$1', [req.user.id])).rows[0] || {};
-    const todas = ['super_admin', 'admin'].includes(u.role);   // o dono do sistema vê as gravações de teste de todas as academias
+    const todas = GV_ABERTAS || ['super_admin', 'admin'].includes(u.role);   // o dono do sistema vê as gravações de teste de todas as academias
     const r = await db.query(`SELECT g.id, g.nome_aula, g.professor, g.dur_seg, g.created_at, g.teste_ate, COALESCE(l.nome_fantasia, l.nome) AS academia,
         (SELECT COUNT(*)::int FROM gravadas_resultados x WHERE x.gravada_id=g.id) AS fizeram
       FROM aulas_gravadas g JOIN licencas l ON l.codigo=g.license_id
@@ -6269,7 +6328,6 @@ app.post('/gestor/sumidos/:id/avisar', gestorAuth, async (req, res) => {
 const ASAAS_API_KEY = process.env.ASAAS_API_KEY || null;
 const ASAAS_BASE    = 'https://api.asaas.com/v3';
 
-// Recebe eventos do Asaas e atualiza status das licenças
 app.post('/webhook/asaas', express.json(), async (req, res) => {
   if (!db) return res.status(503).json({ error: 'Banco indisponível' });
   const ev = req.body;
@@ -6277,88 +6335,57 @@ app.post('/webhook/asaas', express.json(), async (req, res) => {
   log(`[Asaas webhook] ${ev.event} payment=${ev.payment && ev.payment.id}`);
   try {
     const p = ev.payment || {};
-    const externalRef = p.externalReference || ''; // license_id guardado na cobrança
+    const externalRef = p.externalReference || '';
     if (!externalRef) return res.json({ ok: true, ignorado: 'sem externalReference' });
-
     if (ev.event === 'PAYMENT_RECEIVED' || ev.event === 'PAYMENT_CONFIRMED') {
-      // Pagamento confirmado: marca como em_dia e registra data
       await db.query(
         `UPDATE licencas SET status_pagamento='em_dia', ultimo_pagamento=NOW(),
          pagamento_ok_ate=NOW() + INTERVAL '35 days', status='ativa', updated_at=NOW()
-         WHERE codigo=$1`,
-        [externalRef]
-      );
+         WHERE codigo=$1`, [externalRef]);
       log(`[Asaas] Licença ${externalRef} paga → em_dia`);
     } else if (ev.event === 'PAYMENT_OVERDUE') {
-      await db.query(
-        `UPDATE licencas SET status_pagamento='inadimplente', updated_at=NOW() WHERE codigo=$1`,
-        [externalRef]
-      );
+      await db.query(`UPDATE licencas SET status_pagamento='inadimplente', updated_at=NOW() WHERE codigo=$1`, [externalRef]);
       log(`[Asaas] Licença ${externalRef} → inadimplente`);
     } else if (ev.event === 'PAYMENT_DELETED' || ev.event === 'PAYMENT_REFUNDED') {
-      await db.query(
-        `UPDATE licencas SET status_pagamento='pendente', updated_at=NOW() WHERE codigo=$1`,
-        [externalRef]
-      );
+      await db.query(`UPDATE licencas SET status_pagamento='pendente', updated_at=NOW() WHERE codigo=$1`, [externalRef]);
       log(`[Asaas] Licença ${externalRef} → pendente (${ev.event})`);
     }
     res.json({ ok: true });
-  } catch (e) {
-    log(`[Asaas webhook] erro: ${e.message}`);
-    res.status(500).json({ error: e.message });
-  }
+  } catch (e) { log(`[Asaas webhook] erro: ${e.message}`); res.status(500).json({ error: e.message }); }
 });
 
-// Criar assinatura Asaas para uma licença (chamado internamente ou pelo portal)
 app.post('/admin/asaas/assinatura', adminAuth, async (req, res) => {
   if (!ASAAS_API_KEY) return res.status(503).json({ error: 'ASAAS_API_KEY não configurada' });
   if (!db) return res.status(503).json({ error: 'Banco indisponível' });
   const { license_id, customer_name, customer_email, customer_cpf_cnpj,
-          valor, ciclo, dia_vencimento } = req.body;
+          valor, ciclo, credit_card_token } = req.body;
   if (!license_id || !customer_email || !valor)
     return res.status(400).json({ error: 'license_id, customer_email e valor obrigatórios' });
   try {
     const lic = (await db.query('SELECT * FROM licencas WHERE codigo=$1', [license_id])).rows[0];
     if (!lic) return res.status(404).json({ error: 'Licença não encontrada' });
-
-    // 1. Cria/obtém customer no Asaas
     const custRes = await fetch(`${ASAAS_BASE}/customers`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'access_token': ASAAS_API_KEY },
-      body: JSON.stringify({
-        name: customer_name || lic.contato_nome || lic.nome,
-        email: customer_email,
-        cpfCnpj: customer_cpf_cnpj || '',
-        externalReference: license_id,
-      })
+      body: JSON.stringify({ name: customer_name || lic.contato_nome || lic.nome,
+        email: customer_email, cpfCnpj: customer_cpf_cnpj || '', externalReference: license_id })
     });
     const cust = await custRes.json();
     if (!cust.id) return res.status(400).json({ error: 'Erro ao criar customer Asaas', detalhe: cust });
-
-    // 2. Cria assinatura recorrente
     const hoje = new Date();
     const dataInicio = `${hoje.getFullYear()}-${String(hoje.getMonth()+1).padStart(2,'0')}-${String(hoje.getDate()).padStart(2,'0')}`;
+    const subBody = { customer: cust.id, billingType: 'CREDIT_CARD', value: parseFloat(valor),
+      nextDueDate: dataInicio, cycle: ciclo || 'MONTHLY',
+      description: `ProRider — licença ${license_id}`, externalReference: license_id };
+    if (credit_card_token) { subBody.creditCardToken = credit_card_token; subBody.remoteIp = req.ip; }
     const subRes = await fetch(`${ASAAS_BASE}/subscriptions`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'access_token': ASAAS_API_KEY },
-      body: JSON.stringify({
-        customer: cust.id,
-        billingType: 'CREDIT_CARD',
-        value: parseFloat(valor),
-        nextDueDate: dataInicio,
-        cycle: ciclo || 'MONTHLY',
-        description: `ProRider — licença ${license_id}`,
-        externalReference: license_id,
-      })
+      body: JSON.stringify(subBody)
     });
     const sub = await subRes.json();
     if (!sub.id) return res.status(400).json({ error: 'Erro ao criar assinatura Asaas', detalhe: sub });
-
-    // 3. Salva IDs na licença
-    await db.query(
-      `UPDATE licencas SET obs=COALESCE(obs,'')||' | asaas_sub='||$1, updated_at=NOW() WHERE codigo=$2`,
-      [sub.id, license_id]
-    );
+    await db.query(`UPDATE licencas SET obs=COALESCE(obs,'')||' | asaas_sub='||$1, updated_at=NOW() WHERE codigo=$2`, [sub.id, license_id]);
     res.json({ ok: true, customer_id: cust.id, subscription_id: sub.id });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
