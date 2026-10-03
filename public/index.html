@@ -416,6 +416,13 @@ button{font-family:inherit}
   #loginScreen.lp{overflow:hidden}
   #loginScreen.lp .lpm{display:none}
 }
+.lj-tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px}
+.lj-tab{padding:9px 14px;border-radius:10px;border:1px solid var(--border);background:var(--card);color:var(--muted);font-weight:700;font-size:13px;cursor:pointer}
+.lj-tab.on{border-color:var(--accent);color:#fff;background:rgba(234,134,12,.12)}
+.lj-perfil{position:relative;height:26px;width:160px}
+.lj-perfil i{position:absolute;bottom:0;display:block;border-radius:2px 2px 0 0}
+.lj-hint{font-size:12px;color:var(--muted);margin:0 0 12px;line-height:1.55}
+.lj-ok{color:#5db13d;font-weight:700}.lj-no{color:#d7c414;font-weight:700}
 </style>
 <link href="https://fonts.googleapis.com/css2?family=Permanent+Marker&family=Barlow:wght@400;500;600;700&display=swap" rel="stylesheet">
 </head>
@@ -509,6 +516,7 @@ button{font-family:inherit}
     <div class="pr-it" onclick="showPage('licencas')" id="nav-licencas"><i>▣</i>Licenças<span class="n" id="nbLic" style="display:none"></span></div>
     <div class="pr-it" onclick="showPage('alunos')" id="nav-alunos"><i>👥</i>Usuários</div>
     <div class="pr-it" onclick="showPage('financeiro')" id="nav-financeiro"><i>💳</i>Financeiro</div>
+    <div class="pr-it" onclick="showPage('loja')" id="nav-loja"><i>🛒</i>Loja do app</div>
     <div class="pr-sbh">Conta</div>
     <div class="pr-it" onclick="showPage('perfil')" id="nav-perfil"><i>👤</i>Meu perfil</div>
   </nav>
@@ -683,6 +691,25 @@ button{font-family:inherit}
     </div>
   </div>
 
+  <!-- LOJA DO APP (03/10c): o super admin abastece aulas, professores, pacotes e acompanha as vendas -->
+  <div class="page" id="page-loja">
+    <div class="topbar">
+      <h1>Loja do app</h1>
+      <div class="actions" style="display:flex;gap:10px;align-items:center">
+        <span id="ljAsaas" style="font-size:12px;color:var(--muted)"></span>
+        <button class="btn btn-sm" id="ljVendasBtn" onclick="ljVendas()">…</button>
+      </div>
+    </div>
+    <div class="content">
+      <div class="lj-tabs">
+        <button class="lj-tab on" data-t="aulas" onclick="ljAba('aulas')">Aulas à venda</button>
+        <button class="lj-tab" data-t="profs" onclick="ljAba('profs')">Professores</button>
+        <button class="lj-tab" data-t="prods" onclick="ljAba('prods')">Pacotes e assinaturas</button>
+        <button class="lj-tab" data-t="vendas" onclick="ljAba('vendas')">Vendas e repasse</button>
+      </div>
+      <div id="ljAdm"></div>
+    </div>
+  </div>
   <!-- MEU PERFIL (26/09e) -->
   <div class="page" id="page-perfil">
     <div class="topbar"><h1>Meu perfil</h1></div>
@@ -866,6 +893,8 @@ button{font-family:inherit}
   </div>
 </div>
 
+<div class="modal-overlay" id="modalLoja"><div class="modal" style="max-width:560px"><h2 id="mlTitulo">—</h2><div id="mlCorpo"></div><div id="mlErro" class="err-msg"></div>
+  <div class="modal-footer"><button class="btn btn-outline" onclick="closeModal('modalLoja')">Cancelar</button><button class="btn btn-primary" id="mlSalvar">Salvar</button></div></div></div>
 <!-- TOAST -->
 <div id="toast"></div>
 
@@ -1007,6 +1036,7 @@ function showPage(page) {
   if (page === 'licencas')   loadLicencas();
   if (page === 'alunos')     loadAlunos();
   if (page === 'financeiro') loadFinanceiro();
+  if (page === 'loja')       loadLoja();   // 03/10c
 }
 
 // ── Meu perfil (26/09e) ───────────────────────────────────────
@@ -1685,6 +1715,121 @@ function toast(msg) {
 }
 
 // ── Start ─────────────────────────────────────────────────────
+// ═══ 03/10c — LOJA DO APP (super admin abastece) ══════════════════
+var _ljA={d:null,aba:'aulas',rep:null};
+const LJ_ZC={z1:'#a1a1a1',z2:'#295fe8',z3:'#5db13d',z4:'#d7c414',z5:'#ea860c',z6:'#d62d2d',z7:'#9b30ff'}, LJ_ZH={z1:22,z2:36,z3:50,z4:66,z5:82,z6:95,z7:100};
+function ljEsc(s){ return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function ljBRL(v){ return 'R$ '+Number(v||0).toFixed(2).replace('.',','); }
+function ljPerfil(bl){ const tot=(bl||[]).reduce((s,b)=>s+(+b.dur||0),0)||1; let acc=0; return '<div class="lj-perfil">'+(bl||[]).map(b=>{ const l=acc/tot*100, w=(+b.dur||0)/tot*100; acc+=(+b.dur||0); return '<i style="left:'+l.toFixed(2)+'%;width:max(1px,calc('+w.toFixed(2)+'% - 1px));height:'+(LJ_ZH[b.z]||22)+'%;background:'+(LJ_ZC[b.z]||'#888')+'"></i>'; }).join('')+'</div>'; }
+async function loadLoja(){
+  try{ _ljA.d=await api('/admin/loja'); }catch(e){ _ljA.d=null; }
+  const d=_ljA.d; if(!d||d.error){ document.getElementById('ljAdm').innerHTML='<div class="pr-warn">Não consegui carregar a loja: '+ljEsc((d&&d.error)||'sem conexão')+'</div>'; return; }
+  const b=document.getElementById('ljVendasBtn');
+  b.textContent=d.vendas?'Vendas LIGADAS — desligar':'Vendas desligadas — ligar'; b.className='btn btn-sm '+(d.vendas?'btn-outline':'btn-primary');
+  document.getElementById('ljAsaas').innerHTML=d.asaas?'<span class="lj-ok">Asaas ligado</span>':'<span class="lj-no">Asaas sem chave no servidor</span>';
+  ljAba(_ljA.aba);
+}
+async function ljVendas(){
+  const on=!_ljA.d.vendas;
+  if(on&&!confirm('Ligar as vendas? Os alunos passam a poder comprar aulas e pacotes no app (PIX, cartão ou boleto pelo Asaas).')) return;
+  const r=await api('/admin/loja/cfg',{method:'PUT',body:JSON.stringify({vendas:on})});
+  if(r.error) return alert(r.error); toast(on?'Vendas ligadas ✅':'Vendas desligadas'); loadLoja();
+}
+function ljAba(t){
+  _ljA.aba=t; document.querySelectorAll('.lj-tab').forEach(b=>b.classList.toggle('on',b.dataset.t===t));
+  const d=_ljA.d, el=document.getElementById('ljAdm'); if(!d) return;
+  const profNome=id=>((d.professores.find(p=>p.id===id)||{}).nome||'—');
+  if(t==='aulas'){
+    el.innerHTML='<p class="lj-hint">Cada aula à venda usa o <b>roteiro de uma gravação da TV</b> (é dele que sai o gráfico no app). O vídeo vem do servidor (quando a TV enviou) ou de um <b>link</b> (Dropbox, Google Drive ou nuvem) que você cola aqui. Preço 0 = grátis.</p>'
+      +'<div style="margin-bottom:12px"><button class="btn btn-primary btn-sm" onclick="ljAulaForm()">+ Nova aula à venda</button></div>'
+      +'<div class="table-wrap"><table><thead><tr><th>Aula</th><th>Perfil</th><th>Professor</th><th>Preço</th><th>Vídeo</th><th>Situação</th><th></th></tr></thead><tbody>'
+      +(d.aulas.length?d.aulas.map(a=>'<tr><td><b>'+ljEsc(a.titulo)+'</b>'+(a.destaque?' ⭐':'')+'<div style="font-size:11px;color:var(--muted)">'+Math.round((a.dur_seg||0)/60)+' min'+(a.nivel?' · '+ljEsc(a.nivel):'')+'</div></td><td>'+ljPerfil(a.blocos)+'</td><td>'+ljEsc(a.professor||'—')+'</td>'
+        +'<td>'+(a.preco>0?ljBRL(a.preco):'<span class="lj-ok">Grátis</span>')+'</td><td>'+(a.video_url?'<span class="lj-ok">link</span>':(a.video_servidor?'<span class="lj-ok">no servidor</span>':'<span class="lj-no">falta o vídeo</span>'))+'</td>'
+        +'<td>'+(a.ativo?'<span class="badge badge-ativa">à venda</span>':'<span class="badge" style="color:var(--muted)">oculta</span>')+'</td>'
+        +'<td style="white-space:nowrap"><button class="btn btn-outline btn-sm" onclick="ljAulaForm('+a.id+')">Editar</button> <button class="btn btn-outline btn-sm" title="Dar esta aula a um aluno, sem cobrar" onclick="ljCortesia(\'aula\','+a.id+')">🎁</button></td></tr>').join('')
+        :'<tr><td colspan="7" style="text-align:center;padding:28px;color:var(--muted)">Nenhuma aula à venda ainda. Clique em “+ Nova aula à venda”.</td></tr>')+'</tbody></table></div>';
+  } else if(t==='profs'){
+    el.innerHTML='<p class="lj-hint">Os professores aparecem na Loja do app; o aluno toca no professor e vê as aulas dele.</p><div style="margin-bottom:12px"><button class="btn btn-primary btn-sm" onclick="ljProfForm()">+ Novo professor</button></div>'
+      +'<div class="table-wrap"><table><thead><tr><th>Professor</th><th>Cidade</th><th>Aulas</th><th>Situação</th><th></th></tr></thead><tbody>'
+      +(d.professores.length?d.professores.map(p=>'<tr><td><b>'+ljEsc(p.nome)+'</b><div style="font-size:11px;color:var(--muted)">'+ljEsc((p.bio||'').slice(0,90))+'</div></td><td>'+ljEsc(p.cidade||'—')+'</td><td>'+d.aulas.filter(a=>a.professor_id===p.id).length+'</td><td>'+(p.ativo?'<span class="badge badge-ativa">visível</span>':'oculto')+'</td><td><button class="btn btn-outline btn-sm" onclick="ljProfForm('+p.id+')">Editar</button></td></tr>').join('')
+        :'<tr><td colspan="5" style="text-align:center;padding:28px;color:var(--muted)">Nenhum professor cadastrado.</td></tr>')+'</tbody></table></div>';
+  } else if(t==='prods'){
+    el.innerHTML='<p class="lj-hint"><b>Pacote</b> = N créditos (1 crédito libera 1 aula para sempre), para usar em X dias. <b>Assinatura</b> = todas as aulas (ou só as de um professor) por X dias. Crie quantos modelos quiser.</p><div style="margin-bottom:12px"><button class="btn btn-primary btn-sm" onclick="ljProdForm()">+ Novo pacote ou assinatura</button></div>'
+      +'<div class="table-wrap"><table><thead><tr><th>Nome</th><th>Tipo</th><th>O que dá</th><th>Preço</th><th>Situação</th><th></th></tr></thead><tbody>'
+      +(d.produtos.length?d.produtos.map(p=>'<tr><td><b>'+ljEsc(p.nome)+'</b>'+(p.destaque?' ⭐':'')+'</td><td>'+(p.tipo==='assinatura'?'Assinatura':'Pacote')+'</td><td>'+(p.tipo==='assinatura'?'todas as aulas'+(p.professor_id?' de '+ljEsc(profNome(p.professor_id)):'')+' · '+p.dias+' dias':p.creditos+' créditos'+(p.professor_id?' (só '+ljEsc(profNome(p.professor_id))+')':'')+' · usar em '+p.dias+' dias')+'</td>'
+        +'<td>'+ljBRL(p.preco)+(p.preco_de?' <s style="color:var(--muted);font-size:11px">'+ljBRL(p.preco_de)+'</s>':'')+'</td><td>'+(p.ativo?'<span class="badge badge-ativa">à venda</span>':'oculto')+'</td><td style="white-space:nowrap"><button class="btn btn-outline btn-sm" onclick="ljProdForm('+p.id+')">Editar</button> <button class="btn btn-outline btn-sm" title="Dar a um aluno, sem cobrar" onclick="ljCortesia(\'produto\','+p.id+')">🎁</button></td></tr>').join('')
+        :'<tr><td colspan="6" style="text-align:center;padding:28px;color:var(--muted)">Nenhum pacote ou assinatura.</td></tr>')+'</tbody></table></div>';
+  } else {
+    const mes=(_ljA.rep&&_ljA.rep.mes)||new Date(Date.now()-3*3600000).toISOString().slice(0,7);
+    el.innerHTML='<div style="display:flex;gap:10px;align-items:center;margin-bottom:12px"><b>Mês</b><input type="month" id="ljMes" value="'+mes+'" onchange="ljRepasse(this.value)" style="padding:7px 10px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:#fff"></div><div id="ljRep" style="margin-bottom:18px"></div>'
+      +'<h3 style="margin:0 0 8px">Últimos pedidos</h3><div class="table-wrap"><table><thead><tr><th>Data</th><th>Aluno</th><th>Item</th><th>Valor</th><th>Pagamento</th><th>Situação</th></tr></thead><tbody>'
+      +(d.pedidos.length?d.pedidos.map(p=>'<tr><td style="font-size:12px">'+new Date(p.created_at).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})+'</td><td>'+ljEsc(p.aluno||'—')+'<div style="font-size:11px;color:var(--muted)">'+ljEsc(p.email||'')+'</div></td><td>'+ljEsc(p.descricao)+'</td><td>'+ljBRL(p.valor)+'</td><td>'+ljEsc(p.metodo||'—')+'</td>'
+        +'<td>'+({pago:'<span class="badge badge-ativa">pago</span>',pendente:'<span class="lj-no">aguardando</span>',estornado:'<span style="color:#ff8a8a">estornado</span>',cancelado:'cancelado'}[p.status]||ljEsc(p.status))+'</td></tr>').join('')
+        :'<tr><td colspan="6" style="text-align:center;padding:28px;color:var(--muted)">Nenhum pedido ainda.</td></tr>')+'</tbody></table></div>';
+    ljRepasse(mes);
+  }
+}
+async function ljRepasse(mes){
+  const r=await api('/admin/loja/repasse?mes='+mes); _ljA.rep=r; const el=document.getElementById('ljRep'); if(!el) return;
+  el.innerHTML='<div class="stats-grid" style="margin-bottom:12px"><div class="stat-card"><div class="label">Vendas pagas no mês</div><div class="value">'+((r.vendas||{}).n||0)+'</div></div><div class="stat-card"><div class="label">Total recebido</div><div class="value" style="color:var(--green)">'+ljBRL((r.vendas||{}).total)+'</div></div></div>'
+    +'<div class="table-wrap"><div class="table-header"><h2>Repasse por professor</h2></div><table><thead><tr><th>Professor</th><th>Itens</th><th>Valor bruto</th></tr></thead><tbody>'
+    +((r.professores||[]).map(p=>'<tr><td>'+ljEsc(p.professor)+'</td><td>'+p.itens+'</td><td>'+ljBRL(p.valor)+'</td></tr>').join('')||'<tr><td colspan="3" style="text-align:center;padding:20px;color:var(--muted)">Nada no mês.</td></tr>')
+    +'</tbody></table></div><p class="lj-hint" style="margin-top:8px">Aula avulsa conta para o professor da aula; crédito de pacote conta quando o aluno usa (valor do crédito); assinatura de um professor conta para ele. O percentual de repasse você combina com cada professor.</p>';
+}
+// formulário genérico
+function ljForm(titulo,campos,valores,salvar){
+  document.getElementById('mlTitulo').textContent=titulo; document.getElementById('mlErro').style.display='none';
+  document.getElementById('mlCorpo').innerHTML=campos.map(c=>{
+    const v=valores[c.k]==null?(c.padrao==null?'':c.padrao):valores[c.k];
+    if(c.tipo==='chk') return '<label class="pr-chk" style="margin:6px 0 10px"><input type="checkbox" id="ml_'+c.k+'"'+(v?' checked':'')+'> '+c.l+'</label>';
+    let inp;
+    if(c.tipo==='sel') inp='<select id="ml_'+c.k+'" style="width:100%;padding:9px 12px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:#fff">'+c.ops.map(o=>'<option value="'+ljEsc(o[0])+'"'+(String(o[0])===String(v)?' selected':'')+'>'+ljEsc(o[1])+'</option>').join('')+'</select>';
+    else if(c.tipo==='txt') inp='<textarea id="ml_'+c.k+'" rows="3">'+ljEsc(v)+'</textarea>';
+    else inp='<input id="ml_'+c.k+'" type="'+(c.tipo||'text')+'" value="'+ljEsc(v)+'"'+(c.ph?' placeholder="'+ljEsc(c.ph)+'"':'')+(c.tipo==='number'?' step="0.01"':'')+'>';
+    return '<div class="form-group"><label>'+c.l+'</label>'+inp+(c.ajuda?'<small style="color:var(--muted);font-size:11px;display:block;margin-top:3px">'+c.ajuda+'</small>':'')+'</div>';
+  }).join('');
+  document.getElementById('mlSalvar').onclick=async()=>{
+    const o={}; campos.forEach(c=>{ const e=document.getElementById('ml_'+c.k); o[c.k]=c.tipo==='chk'?e.checked:e.value; });
+    const r=await salvar(o); if(r&&r.error){ const er=document.getElementById('mlErro'); er.textContent=r.error; er.style.display='block'; return; }
+    closeModal('modalLoja'); toast('Salvo ✅'); loadLoja();
+  };
+  openModal('modalLoja');
+}
+const ljSalvarEm=(rota,id)=>o=>api('/admin/loja/'+rota+(id?'/'+id:''),{method:id?'PUT':'POST',body:JSON.stringify(o)});
+function ljProfOps(){ return [['','— sem professor —']].concat(_ljA.d.professores.map(p=>[p.id,p.nome])); }
+function ljAulaForm(id){
+  const a=id?_ljA.d.aulas.find(x=>x.id===id):{}, gs=_ljA.d.gravacoes.filter(g=>!g.loja_aula_id||g.loja_aula_id===id);
+  if(!gs.length&&!id) return alert('Nenhuma gravação da TV com roteiro ainda. Grave uma aula no Ginásio (câmera em "Gravar") e ela aparece aqui.');
+  ljForm(id?'Editar aula à venda':'Nova aula à venda',[
+    {k:'gravada_id',l:'Gravação da TV (dá o gráfico da aula)',tipo:'sel',ops:gs.map(g=>[g.id,(g.nome_aula||'Aula')+' · '+(g.academia||'')+' · '+new Date(g.created_at).toLocaleDateString('pt-BR')+' · '+Math.round((g.dur_seg||0)/60)+' min'+(g.video_servidor?' · vídeo no servidor':' · sem vídeo no servidor')])},
+    {k:'titulo',l:'Título na loja',ph:'Ex.: HIIT de terça'},
+    {k:'professor_id',l:'Professor',tipo:'sel',ops:ljProfOps()},
+    {k:'preco',l:'Preço da aula avulsa (R$) — 0 = grátis',tipo:'number',padrao:0},
+    {k:'nivel',l:'Nível',tipo:'sel',ops:[['',''],['Iniciante','Iniciante'],['Intermediário','Intermediário'],['Avançado','Avançado']]},
+    {k:'descricao',l:'Descrição',tipo:'txt'},
+    {k:'video_url',l:'Link do vídeo (opcional)',ph:'https://www.dropbox.com/… ou Google Drive',ajuda:'Use quando o vídeo não está no servidor. O link do Dropbox/Drive é convertido sozinho para tocar no app.'},
+    {k:'destaque',l:'Destaque (aparece primeiro)',tipo:'chk'},{k:'ativo',l:'À venda',tipo:'chk',padrao:true}
+  ],a,ljSalvarEm('aulas',id));
+}
+function ljProfForm(id){
+  ljForm(id?'Editar professor':'Novo professor',[{k:'nome',l:'Nome'},{k:'cidade',l:'Cidade'},{k:'foto_url',l:'Foto (link da imagem, opcional)'},{k:'bio',l:'Sobre o professor',tipo:'txt'},{k:'email',l:'E-mail (para o repasse)'},{k:'ordem',l:'Ordem na loja',tipo:'number',padrao:0},{k:'ativo',l:'Visível na loja',tipo:'chk',padrao:true}],
+    id?_ljA.d.professores.find(x=>x.id===id):{},ljSalvarEm('professores',id));
+}
+function ljProdForm(id){
+  ljForm(id?'Editar pacote/assinatura':'Novo pacote ou assinatura',[
+    {k:'nome',l:'Nome',ph:'Ex.: Pacote 10 aulas'},{k:'tipo',l:'Tipo',tipo:'sel',ops:[['pacote','Pacote de créditos'],['assinatura','Assinatura (acesso a todas)']]},
+    {k:'creditos',l:'Créditos (só pacote)',tipo:'number',padrao:5},{k:'dias',l:'Validade (dias)',tipo:'number',padrao:60},
+    {k:'preco',l:'Preço (R$)',tipo:'number'},{k:'preco_de',l:'Preço "de" riscado (opcional)',tipo:'number'},
+    {k:'professor_id',l:'Só aulas de um professor? (opcional)',tipo:'sel',ops:ljProfOps()},{k:'descricao',l:'Descrição',tipo:'txt'},
+    {k:'destaque',l:'Mais popular (destaque)',tipo:'chk'},{k:'ativo',l:'À venda',tipo:'chk',padrao:true}
+  ],id?_ljA.d.produtos.find(x=>x.id===id):{},ljSalvarEm('produtos',id));
+}
+async function ljCortesia(tipo,id){
+  const email=prompt('E-mail do aluno que vai ganhar (sem cobrança):'); if(!email) return;
+  const r=await api('/admin/loja/cortesia',{method:'POST',body:JSON.stringify({email,tipo,id})});
+  if(r.error) alert(r.error); else { toast('🎁 Liberado para '+email); loadLoja(); }
+}
+
 init();
 </script>
 </body>

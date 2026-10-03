@@ -32,6 +32,11 @@ Lista do que foi combinado com o Mario e ainda não foi feito. Quem fizer um ite
 - [x] **Arquivo .tcx** da aula para Strava/Garmin.
 - [x] **Painel do gestor:** ocupação por dia e horário e alunos sumidos (com e-mail na hora).
 
+## Feito na 03/10c
+- [x] Loja: venda de aulas (avulsa, pacotes, assinatura) com Asaas; admin abastece; repasse por professor.
+- [x] Desafios reais: 21 dias, Quebra FTP, ranking do mês, grupos no servidor.
+- [x] Pré-treino do celular igual ao da TV; botões laranja; tela de Bluetooth refeita.
+
 ## Feito na 03/10b
 - [x] Demo 2: faturas no dia certo, só a 1ª com "Pagar"; financeiro sempre cai no pagamento.
 
@@ -39,12 +44,14 @@ Lista do que foi combinado com o Mario e ainda não foi feito. Quem fizer um ite
 - [x] Revisão do pagamento: vencimento certo no Asaas, situação única, livro-caixa, desfazer, e-mail com motivo e senha nova.
 
 ## Pendências abertas
+- [ ] **Volume no Railway para as gravações** (`GRAVACOES_TESTE_DIR` num Volume): sem isso, cada deploy apaga os vídeos enviados pela TV. Alternativa: link do Dropbox/Drive na aula da loja.
+- [ ] **Keiser M3i no celular:** a M3i só transmite por anúncio Bluetooth; testar na bike se o app conecta (a TV continua lendo pelo dongle).
+- [ ] **Percentual de repasse** de cada professor (hoje o relatório mostra o valor bruto por professor).
 - [ ] **Resend com domínio verificado** (prorider.com.br) e `EMAIL_FROM` no Railway — sem isso o e-mail com a senha só chega no dono da conta Resend.
 - [ ] **Trocar o cartão da cobrança automática** pela página do financeiro (hoje: falar com a ProRider).
 - [ ] **Pagamento da licença: testar no sandbox do Asaas** antes da 1ª cobrança real (feito na 02/10h com Asaas simulado). Conferir se a assinatura guarda o cartão pago pela página do Asaas para os meses seguintes, e como trocar o cartão.
 - [ ] **Desafio ao vivo: "convite" com a aula já no Portal** (hoje a aula vai às outras academias quando a TV da mãe abre a tela do QR).
 - [ ] **Músicas pela conta do Dropbox** (escolher direto da conta, como o Spivi): precisa criar um app gratuito no Dropbox e usar a chave dele. Hoje é colar o link (02/10f).
-- [ ] **Venda das aulas gravadas na Loja (decisão do Mario, 02/10):** a mensalidade da academia saiu do app; a venda é aula por aula, por professor, na Loja. Falta o meio de pagamento (PIX/cartão) para liberar a aula depois da compra.
 - [ ] **Nuvem para as aulas gravadas:** a tela do app já existe (02/10b) e hoje toca do servidor de TESTE (5 por academia, 72 h). Falta contratar o armazenamento de vídeo (ex.: Cloudflare R2/Stream) para guardar de vez e aguentar muita gente.
 - [ ] **Envio automático ao Strava:** hoje o aluno baixa o .tcx e envia. Para mandar sozinho, falta registrar o app ProRider no Strava (gratuito, mas exige conta e aprovação) e o login com Strava.
 - [ ] **Transmissão no app para muita gente / redes difíceis:** WebRTC direto da TV aguenta ~15 pessoas e usa só STUN (grátis). Em algumas redes de celular o vídeo não chega sem um servidor TURN (pago). Para 3 mil pessoas (Guinness): YouTube Live, ou um serviço de vídeo (LiveKit/Cloudflare) quando for contratar.

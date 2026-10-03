@@ -39,7 +39,7 @@ img{display:block;max-width:100%}
 .sp-form{width:100%;margin-top:48px;display:flex;flex-direction:column;gap:11px;animation:spFade .6s .5s both}
 .sp-input{width:100%;padding:15px 16px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);border-radius:12px;color:#fff;font-family:'Barlow',sans-serif;font-size:15px;outline:none;-webkit-appearance:none}
 .sp-input:focus{border-color:rgba(234,134,12,.5)}
-.sp-btn-main{width:100%;padding:16px;border-radius:30px;border:none;background:linear-gradient(135deg,#ea860c,#d62d2d);font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:900;letter-spacing:2px;color:#fff;cursor:pointer;box-shadow:0 4px 24px rgba(214,45,45,.3);margin-top:4px}
+.sp-btn-main{width:100%;padding:16px;border-radius:30px;border:none;background:linear-gradient(135deg,#ffb02e,#ea860c);font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:900;letter-spacing:2px;color:#fff;cursor:pointer;box-shadow:0 4px 24px rgba(214,45,45,.3);margin-top:4px}
 .sp-btns-row{display:flex;gap:10px}
 .sp-btn-sec{flex:1;padding:13px;border-radius:30px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;letter-spacing:1px;color:rgba(255,255,255,.4);cursor:pointer}
 .sp-zones{width:calc(100% + 56px);margin-left:-28px;height:4px;background:linear-gradient(90deg,#888 0%,#295fe8 16%,#5db13d 32%,#d7c414 48%,#ea860c 64%,#d62d2d 80%,#9b30ff 100%);margin-top:48px;box-shadow:0 0 12px rgba(234,134,12,.25);animation:spFade .6s .7s both}
@@ -55,7 +55,7 @@ img{display:block;max-width:100%}
 .h-logo-name{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:2px}
 .h-logo-pro{color:#fff}
 .h-logo-rider{background:linear-gradient(90deg,#ffe033,#ea860c,#d62d2d);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
-.btn-just-ride{display:inline-flex;align-items:center;gap:7px;padding:11px 22px;border-radius:30px;background:linear-gradient(135deg,#ea860c,#d62d2d);font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:900;letter-spacing:2px;color:#fff;border:none;cursor:pointer;box-shadow:0 4px 18px rgba(214,45,45,.35)}
+.btn-just-ride{display:inline-flex;align-items:center;gap:7px;padding:11px 22px;border-radius:30px;background:linear-gradient(135deg,#ffb02e,#ea860c);font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:900;letter-spacing:2px;color:#fff;border:none;cursor:pointer;box-shadow:0 4px 18px rgba(214,45,45,.35)}
 .home-sec{padding:18px 16px 0}
 .home-sec-title{font-family:'Barlow',sans-serif;font-size:18px;font-weight:700;color:#fff;margin-bottom:12px}
 
@@ -158,7 +158,7 @@ img{display:block;max-width:100%}
 .fi-name{font-size:13px;font-weight:700;color:#fff}
 .fi-sub{font-size:9px;font-weight:700;letter-spacing:1px;color:rgba(255,255,255,.28);text-transform:uppercase;margin-top:1px}
 .start-btns{padding:14px 16px;display:flex;flex-direction:column;gap:8px}
-.btn-start-main{width:100%;padding:14px;border-radius:30px;border:none;background:linear-gradient(135deg,#ea860c,#d62d2d);font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:900;letter-spacing:2px;color:#fff;cursor:pointer;display:none}
+.btn-start-main{width:100%;padding:14px;border-radius:30px;border:none;background:linear-gradient(135deg,#ffb02e,#ea860c);font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:900;letter-spacing:2px;color:#fff;cursor:pointer;display:none}
 .btn-start-main.show{display:block}
 .btn-start-ghost{width:100%;padding:13px;border-radius:30px;background:transparent;border:1px solid rgba(255,255,255,.14);font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:700;letter-spacing:1px;color:rgba(255,255,255,.38);cursor:pointer}
 
@@ -321,7 +321,7 @@ input[type=file]{display:none}
 .nav-tab svg{opacity:.35}
 .nav-tab.active svg{opacity:1}
 .nav-center{flex:0 0 56px;display:flex;align-items:center;justify-content:center}
-.nav-center-btn{width:52px;height:52px;border-radius:50%;background:linear-gradient(135deg,#ea860c,#d62d2d);display:flex;align-items:center;justify-content:center;margin-top:-18px;box-shadow:0 4px 18px rgba(234,134,12,.35);cursor:pointer}
+.nav-center-btn{width:52px;height:52px;border-radius:50%;background:linear-gradient(135deg,#ffb02e,#ea860c);display:flex;align-items:center;justify-content:center;margin-top:-18px;box-shadow:0 4px 18px rgba(234,134,12,.35);cursor:pointer}
 .ob-step{width:100%;animation:fadeIn .3s ease;}
 .ob-choice{transition:background .2s,border .2s;}
 .ob-choice.selected{background:rgba(234,134,12,.2) !important;border:1px solid #ea860c !important;}
@@ -336,6 +336,141 @@ input[type=file]{display:none}
   input { -webkit-appearance: none; border-radius: 0; }
 </style>
 <script src="/brasoes.js"></script>
+<style>
+/* ═══ 03/10c — telas novas: pré-treino (perfil igual ao do Ginásio), conectar, loja e desafios ═══ */
+.pd-scroll{flex:1;overflow-y:auto;padding-bottom:150px;background:#0b0b0e}
+.pd-top{display:flex;align-items:center;gap:12px;padding:calc(14px + env(safe-area-inset-top,0px)) 16px 6px}
+.pd-back{width:38px;height:38px;border-radius:50%;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.06);color:#fff;font-size:18px;cursor:pointer;flex-shrink:0}
+.pd-tt{flex:1;min-width:0}
+.pd-tt small{display:block;font-size:10px;font-weight:700;letter-spacing:3px;color:rgba(255,255,255,.45);text-transform:uppercase}
+.pd-tt b{display:block;font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:1px;color:#fff;line-height:1.02;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.pd-badge{padding:5px 11px;border-radius:9px;font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:900;letter-spacing:1px;text-transform:uppercase;flex-shrink:0}
+.pd-meta{padding:0 16px 12px 66px;font-size:13px;color:rgba(255,255,255,.55)}
+.pd-card{margin:4px 16px 0;padding:14px 14px 10px;border-radius:16px;background:#16161a;border:1px solid #26262d}
+.pd-lbl{font-size:10.5px;font-weight:800;letter-spacing:2.5px;color:rgba(255,255,255,.5);text-transform:uppercase}
+.pd-faixa{display:flex;gap:6px;margin:9px 0 6px}
+.pd-faixa span{display:block;border-bottom:2px solid;font-family:'Barlow Condensed',sans-serif;font-size:10.5px;font-weight:900;letter-spacing:1.5px;padding-bottom:3px;white-space:nowrap;overflow:hidden}
+.pd-bars{position:relative;height:170px}
+.pd-bars i{position:absolute;bottom:0;display:block;border-radius:4px 4px 1px 1px}
+.pd-bars i.std{box-shadow:inset 0 3px 0 rgba(255,255,255,.75)}
+.pd-eixo{display:flex;justify-content:space-between;font-size:11px;font-weight:700;color:rgba(255,255,255,.4);margin-top:5px}
+.pd-tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:12px 16px 0}
+.pd-tiles div{background:#16161a;border:1px solid #26262d;border-radius:12px;padding:9px 10px}
+.pd-tiles small{display:block;font-size:9.5px;font-weight:800;letter-spacing:1.5px;color:rgba(255,255,255,.45);text-transform:uppercase}
+.pd-tiles b{display:block;font-family:'Bebas Neue',sans-serif;font-size:26px;color:#fff;line-height:1.1;margin-top:2px}
+.pd-zonas{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin:0 16px}
+.pd-zonas div{border-radius:10px;padding:7px 6px;text-align:center;font-family:'Barlow Condensed',sans-serif;font-weight:900;line-height:1.15}
+.pd-zonas small{display:block;font-size:12px;letter-spacing:1px}
+.pd-zonas b{display:block;font-size:17px}
+.pd-desc{margin:16px 16px 0;font-size:14px;line-height:1.6;color:rgba(255,255,255,.7)}
+.pd-cta{position:absolute;left:0;right:0;bottom:0;padding:12px 16px calc(14px + env(safe-area-inset-bottom,0px));background:linear-gradient(180deg,rgba(11,11,14,0),#0b0b0e 32%);display:flex;flex-direction:column;gap:8px;z-index:3}
+.pd-go{width:100%;border:none;border-radius:16px;padding:14px 18px;background:linear-gradient(135deg,#ffb02e,#ea860c);color:#16161a;display:flex;align-items:center;justify-content:space-between;gap:12px;cursor:pointer;box-shadow:0 8px 26px rgba(234,134,12,.35)}
+.pd-go b{font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:1.5px;line-height:1;white-space:nowrap}
+.pd-go small{font-size:12px;font-weight:700;opacity:.75;text-align:right}
+.pd-go:disabled{opacity:.45;box-shadow:none}
+.pd-sec2{display:block;width:100%;border:1px solid rgba(255,255,255,.16);background:rgba(255,255,255,.04);color:rgba(255,255,255,.75);border-radius:14px;padding:12px;font-size:14px;font-weight:700;cursor:pointer}
+/* lista da categoria (cartões iguais aos da TV) */
+.pc-card{display:grid;grid-template-columns:54px 1fr auto;gap:4px 12px;align-items:center;padding:12px;border-radius:16px;background:#16161a;border:1px solid #26262d;cursor:pointer}
+.pc-card:active{border-color:#ea860c}
+.pc-ic{width:54px;height:54px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:28px}
+.pc-info b{display:block;font-size:16px;font-weight:700;color:#fff;line-height:1.15}
+.pc-info small{display:block;font-size:12px;color:rgba(255,255,255,.5);margin-top:2px}
+.pc-tags{display:flex;gap:6px;margin-top:5px}
+.pc-tags span{font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:900;letter-spacing:1px;padding:2px 8px;border-radius:7px;text-transform:uppercase}
+.pc-tss{text-align:center}
+.pc-tss small{display:block;font-size:9px;font-weight:800;letter-spacing:1.5px;color:rgba(255,255,255,.45)}
+.pc-tss b{display:block;font-family:'Bebas Neue',sans-serif;font-size:28px;color:#ffb45a;line-height:1}
+.pc-bars{grid-column:1 / -1;position:relative;height:46px;margin-top:6px}
+.pc-bars i{position:absolute;bottom:0;display:block;border-radius:3px 3px 1px 1px}
+/* conectar */
+.cn-dica{margin:4px 16px 10px;padding:10px 12px;border-radius:12px;font-size:12.5px;line-height:1.5;display:none}
+.cn-dev{display:flex;align-items:center;gap:12px;margin:0 16px;padding:14px;border-radius:16px;background:#16161a;border:1px solid #26262d}
+.cn-dev.busca{border-color:rgba(234,134,12,.6);animation:cnPulse 1.2s ease-in-out infinite}
+.cn-dev.ok{border-color:rgba(93,177,61,.55);background:rgba(93,177,61,.06)}
+.cn-dev.erro{border-color:rgba(214,45,45,.45)}
+@keyframes cnPulse{0%,100%{box-shadow:0 0 0 0 rgba(234,134,12,0)}50%{box-shadow:0 0 0 4px rgba(234,134,12,.18)}}
+.cn-ic{width:48px;height:48px;border-radius:12px;background:rgba(255,255,255,.05);display:flex;align-items:center;justify-content:center;font-size:26px;flex-shrink:0}
+.cn-info{flex:1;min-width:0}
+.cn-info b{display:block;font-size:15px;color:#fff}
+.cn-info small{display:block;font-size:11px;color:rgba(255,255,255,.4);margin-top:1px}
+.cn-st{font-size:12px;font-weight:700;margin-top:4px;color:rgba(255,255,255,.45)}
+.cn-dev.ok .cn-st{color:#7fd67f}.cn-dev.busca .cn-st{color:#ffb45a}.cn-dev.erro .cn-st{color:#ff8a8a}
+.cn-btn{padding:10px 14px;border-radius:11px;border:1px solid rgba(234,134,12,.5);background:rgba(234,134,12,.14);color:#ffb45a;font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:900;letter-spacing:1px;text-transform:uppercase;cursor:pointer;flex-shrink:0}
+.cn-dev.ok .cn-btn{border-color:rgba(255,255,255,.18);background:rgba(255,255,255,.05);color:rgba(255,255,255,.7)}
+.cn-btn:disabled{opacity:.5}
+.cn-live{display:none;gap:8px;margin:8px 16px 14px}
+.cn-live span{flex:1;text-align:center;border-radius:12px;background:#121216;border:1px solid #26262d;padding:6px 4px;font-size:10px;font-weight:800;letter-spacing:1.5px;color:rgba(255,255,255,.45)}
+.cn-live b{display:block;font-family:'Bebas Neue',sans-serif;font-size:30px;color:#fff;letter-spacing:1px;line-height:1.05}
+.cn-help{margin:14px 16px 0;padding:12px 14px;border-radius:14px;background:rgba(255,255,255,.03);border:1px dashed rgba(255,255,255,.12);font-size:12.5px;line-height:1.6;color:rgba(255,255,255,.55)}
+.cn-help b{color:rgba(255,255,255,.85)}
+.cn-gap{height:10px}
+/* loja e desafios */
+.lj-top{display:flex;align-items:flex-end;justify-content:space-between;gap:10px;padding:calc(20px + env(safe-area-inset-top,0px)) 16px 12px}
+.lj-top small{display:block;font-size:10px;font-weight:800;letter-spacing:4px;color:#ea860c}
+.lj-top b{display:block;font-family:'Bebas Neue',sans-serif;font-size:40px;letter-spacing:2px;color:#fff;line-height:1}
+.lj-chip{display:inline-flex;align-items:center;gap:6px;padding:7px 12px;border-radius:999px;background:rgba(234,134,12,.12);border:1px solid rgba(234,134,12,.4);color:#ffb45a;font-size:12px;font-weight:800;white-space:nowrap}
+.lj-aviso{margin:0 16px 12px;padding:11px 13px;border-radius:12px;background:rgba(41,95,232,.1);border:1px solid rgba(41,95,232,.35);color:#9db8ff;font-size:12.5px;line-height:1.5}
+.lj-sec{display:flex;align-items:center;justify-content:space-between;margin:18px 16px 9px}
+.lj-sec b{font-size:11px;font-weight:800;letter-spacing:2.5px;color:rgba(255,255,255,.5);text-transform:uppercase}
+.lj-sec a{font-size:12px;font-weight:700;color:#ffb45a;cursor:pointer}
+.lj-profs{display:flex;gap:10px;overflow-x:auto;padding:0 16px 4px;scrollbar-width:none}
+.lj-prof{flex:0 0 auto;width:92px;text-align:center;cursor:pointer;border-radius:14px;padding:10px 6px;border:1px solid transparent}
+.lj-prof.on{border-color:#ea860c;background:rgba(234,134,12,.08)}
+.lj-av{width:60px;height:60px;border-radius:50%;margin:0 auto 6px;background:linear-gradient(135deg,#ea860c,#9b30ff);display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:24px;color:#fff;background-size:cover;background-position:center}
+.lj-prof b{display:block;font-size:12.5px;color:#fff;line-height:1.15}
+.lj-prof small{display:block;font-size:10.5px;color:rgba(255,255,255,.45)}
+.lj-aula{margin:0 16px 10px;border-radius:16px;background:#16161a;border:1px solid #26262d;padding:12px;cursor:pointer}
+.lj-aula:active{border-color:#ea860c}
+.lj-aula-hd{display:flex;align-items:flex-start;gap:10px}
+.lj-aula-hd .t{flex:1;min-width:0}
+.lj-aula-hd .t b{display:block;font-size:16px;color:#fff;line-height:1.2}
+.lj-aula-hd .t small{display:block;font-size:12px;color:rgba(255,255,255,.5);margin-top:2px}
+.lj-preco{flex-shrink:0;padding:6px 11px;border-radius:10px;font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:900;letter-spacing:.5px;background:rgba(234,134,12,.15);color:#ffb45a;border:1px solid rgba(234,134,12,.4)}
+.lj-preco.ok{background:rgba(93,177,61,.14);color:#8fe06a;border-color:rgba(93,177,61,.4)}
+.lj-preco.free{background:rgba(41,95,232,.14);color:#9db8ff;border-color:rgba(41,95,232,.4)}
+.lj-prods{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:0 16px}
+.lj-prod{position:relative;border-radius:16px;background:#16161a;border:1px solid #26262d;padding:14px 12px;cursor:pointer;display:flex;flex-direction:column;gap:4px}
+.lj-prod.dest{border-color:rgba(234,134,12,.6);background:linear-gradient(160deg,rgba(234,134,12,.14),#16161a 60%)}
+.lj-prod .tag{position:absolute;top:-9px;left:12px;padding:2px 8px;border-radius:7px;background:#ea860c;color:#16161a;font-size:9.5px;font-weight:900;letter-spacing:1px}
+.lj-prod b{font-size:15px;color:#fff;line-height:1.15}
+.lj-prod small{font-size:11.5px;color:rgba(255,255,255,.5);line-height:1.35}
+.lj-prod .v{font-family:'Bebas Neue',sans-serif;font-size:28px;color:#ffb45a;line-height:1;margin-top:auto;padding-top:6px}
+.lj-prod .v s{display:block;font-family:'Barlow',sans-serif;font-size:12px;color:rgba(255,255,255,.35);margin:2px 0 0}
+.lj-vazio{margin:8px 16px;padding:22px 16px;border-radius:16px;border:1px dashed rgba(255,255,255,.14);text-align:center;color:rgba(255,255,255,.5);font-size:13px;line-height:1.6}
+.lj-sheet{position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,.72);display:none;align-items:flex-end;justify-content:center}
+.lj-sheet.on{display:flex}
+.lj-sheet-in{width:100%;max-width:520px;max-height:92vh;overflow-y:auto;background:#121216;border-radius:22px 22px 0 0;border-top:1px solid #2c2c34;padding:18px 16px calc(18px + env(safe-area-inset-bottom,0px))}
+.lj-sheet-in h3{font-family:'Bebas Neue',sans-serif;font-size:30px;letter-spacing:1px;color:#fff;line-height:1.05;margin:0}
+.lj-sheet-in .sub{font-size:13px;color:rgba(255,255,255,.55);margin-top:3px}
+.lj-in{width:100%;box-sizing:border-box;padding:13px 14px;border-radius:12px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.14);color:#fff;font-size:15px;outline:none;margin-top:6px}
+.lj-x{float:right;width:34px;height:34px;border-radius:50%;border:none;background:rgba(255,255,255,.08);color:#fff;font-size:16px;cursor:pointer}
+.ds-card{margin:0 16px 12px;border-radius:18px;background:#16161a;border:1px solid #26262d;padding:16px}
+.ds-hd{display:flex;align-items:center;gap:12px}
+.ds-ic{width:48px;height:48px;border-radius:13px;display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0}
+.ds-hd .t{flex:1;min-width:0}
+.ds-hd .t b{display:block;font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:1px;color:#fff;line-height:1}
+.ds-hd .t small{display:block;font-size:12px;color:rgba(255,255,255,.5);margin-top:2px}
+.ds-big{font-family:'Bebas Neue',sans-serif;font-size:46px;color:#fff;line-height:1;margin-top:12px}
+.ds-big span{font-size:20px;color:rgba(255,255,255,.45);margin-left:4px}
+.ds-bar{height:9px;border-radius:9px;background:rgba(255,255,255,.08);overflow:hidden;margin-top:8px}
+.ds-bar i{display:block;height:100%;border-radius:9px;background:linear-gradient(90deg,#ffb02e,#ea860c)}
+.ds-dias{display:grid;grid-template-columns:repeat(15,1fr);gap:4px;margin-top:10px}
+.ds-dias i{display:block;aspect-ratio:1;border-radius:4px;background:rgba(255,255,255,.07)}
+.ds-dias i.on{background:#ea860c}
+.ds-txt{font-size:12.5px;color:rgba(255,255,255,.55);margin-top:8px;line-height:1.5}
+.ds-acts{display:flex;gap:8px;margin-top:12px}
+.ds-acts button{flex:1;padding:11px 8px;border-radius:12px;font-size:13px;font-weight:800;cursor:pointer;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.05);color:rgba(255,255,255,.85)}
+.ds-acts button.pri{border:none;background:linear-gradient(135deg,#ffb02e,#ea860c);color:#16161a}
+.ds-selo{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:999px;background:rgba(93,177,61,.14);border:1px solid rgba(93,177,61,.4);color:#8fe06a;font-size:11px;font-weight:800;margin-top:10px}
+.ds-rk{display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.05)}
+.ds-rk:last-child{border-bottom:none}
+.ds-rk .p{width:26px;text-align:center;font-weight:900;color:rgba(255,255,255,.45)}
+.ds-rk .n{flex:1;font-size:14px;color:rgba(255,255,255,.8);min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ds-rk .v{font-family:'Bebas Neue',sans-serif;font-size:20px;color:#ffb45a}
+.ds-rk.eu .n{color:#fff;font-weight:800}
+#dsModalConvite input[type=radio]{appearance:auto;-webkit-appearance:radio;width:18px;height:18px;margin:0;accent-color:#ea860c;flex-shrink:0}
+.ds-btn-top{padding:10px 14px;border-radius:999px;border:none;background:linear-gradient(135deg,#ffb02e,#ea860c);color:#16161a;font-size:13px;font-weight:900;cursor:pointer;white-space:nowrap}
+</style>
 </head>
 <body>
 
@@ -622,76 +757,65 @@ input[type=file]{display:none}
 <!-- ══════════════════════════════════
      DETALHE DA AULA
 ══════════════════════════════════ -->
-<div class="screen" id="sDetail" style="padding-bottom:66px;">
-  <div class="det-hero">
-    <div class="det-hero-img" id="detHeroImg">&#x1F6B4;</div>
-    <div class="det-hero-over"></div>
-    <div class="det-back" onclick="go(window._detailFrom||'sHome')">←</div>
-    <div class="det-name" id="detName">–</div>
-    <div id="detBadge" style="position:absolute;top:14px;right:14px;padding:5px 12px;border-radius:10px;font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:900;letter-spacing:1px;text-transform:uppercase;"></div>
-  </div>
-  <div class="det-body">
-    <div class="det-dur"><span id="detDur">–</span><span>min</span></div>
-    <div class="det-graph" id="detGraph" style="height:140px;margin-top:16px;"></div>
-    <div class="det-divider"></div>
-    <div class="det-section-title">Description</div>
-    <div class="det-desc" id="detDesc">–</div>
-    <div class="det-divider"></div>
-    <div class="det-section-title">Zone Distribution</div>
-    <div class="det-zdist">
-      <div class="det-donut-wrap">
-        <svg id="detDonut" width="100" height="100" viewBox="0 0 100 100"></svg>
-      </div>
-      <div class="det-zdist-list" id="detZdist"></div>
+<div class="screen" id="sDetail" style="background:#0b0b0e;">
+  <div class="pd-scroll">
+    <div class="pd-top">
+      <button class="pd-back" onclick="go(window._detailFrom||'sHome')">←</button>
+      <div class="pd-tt"><small id="detSub">Aula</small><b id="detName">–</b></div>
+      <span id="detBadge" class="pd-badge"></span>
     </div>
+    <div class="pd-meta" id="detMeta"></div>
+    <div class="pd-card">
+      <div class="pd-lbl">Perfil da aula</div>
+      <div class="pd-faixa" id="detFaixa"></div>
+      <div class="pd-bars" id="detGraph"></div>
+      <div class="pd-eixo" id="detEixo"></div>
+    </div>
+    <div class="pd-tiles" id="detTiles"></div>
+    <div class="pd-lbl" style="margin:16px 16px 8px;">Tempo em cada zona</div>
+    <div class="pd-zonas" id="detZdist"></div>
+    <div class="pd-desc" id="detDesc"></div>
   </div>
-  <button class="det-start-btn" id="detStartBtn" onclick="goConnect()">▶ Start Workout</button>
+  <div class="pd-cta"><button class="pd-go" id="detStartBtn" onclick="goConnect()"><b>▶ COMEÇAR</b><small>depois: conectar<br>a bike e a cinta</small></button></div>
 </div>
 
 <!-- ══════════════════════════════════
      CONECTAR
 ══════════════════════════════════ -->
-<div class="screen" id="sConnect">
-  <div class="conn-header">
-    <span class="conn-back" onclick="go('sDetail')">‹</span>
-    <span class="conn-title">Connect Devices</span>
-  </div>
-  <div class="conn-hero" style="padding:16px;">
-    <div>
-      <div style="font-size:10px;font-weight:700;letter-spacing:3px;color:rgba(255,255,255,.25);text-transform:uppercase;margin-bottom:5px;">Bluetooth BLE</div>
-      <div style="font-size:19px;font-weight:700;color:rgba(255,255,255,.5);" id="connAulaName">Conectar dispositivos</div>
-      <div style="font-size:10px;color:rgba(255,255,255,.18);margin-top:3px;">Keiser · Stages · Wahoo · Tacx · iGS Sport · Polar · Garmin</div>
+<div class="screen" id="sConnect" style="background:#0b0b0e;">
+  <div class="pd-scroll">
+    <div class="pd-top">
+      <button class="pd-back" onclick="connVoltar()">←</button>
+      <div class="pd-tt"><small>Conectar aparelhos</small><b id="connAulaName">Sua aula</b></div>
     </div>
-    <svg width="42" height="52" viewBox="0 0 44 56" fill="none">
-      <defs><filter id="cg"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter><linearGradient id="cG" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#ffe033"/><stop offset="50%" stop-color="#ea860c"/><stop offset="100%" stop-color="#d62d2d"/></linearGradient></defs>
-      <path d="M30 4 L10 30 L20 30 L14 52 L34 26 L24 26Z" fill="url(#cG)" filter="url(#cg)"/>
-    </svg>
-  </div>
-  <div class="conn-sec">
-    <div class="conn-sec-lbl">Bike / Power Meter</div>
-    <div class="dev-item" id="devBike">
-      <div class="dev-icon">🚴</div>
-      <div class="dev-info"><div class="dev-name">Indoor Bike</div><div class="dev-sub">Keiser · Stages · Schwinn · Wahoo · iGS Sport · FTMS</div><div class="dev-status st-idle" id="stBike">Not connected</div></div>
-      <button class="dev-btn db-s" id="btnBike" onclick="scanDev('bike')">Search</button>
+    <div class="cn-dica" id="cnDica"></div>
+    <div class="cn-dev" id="devBike">
+      <div class="cn-ic">🚴</div>
+      <div class="cn-info"><b>Bike ou medidor de potência</b><small>Keiser M3i · Stages · Wahoo · Tacx · Schwinn · iGS · FTMS</small><div class="cn-st" id="stBike">Não conectada</div></div>
+      <button class="cn-btn" id="btnBike" onclick="scanDev('bike')">Procurar</button>
     </div>
-    <div class="found-list" id="fndBike">
-      <div style="padding:12px 14px;font-size:12px;color:rgba(255,255,255,.3);text-align:center;line-height:1.6;">Bluetooth requer Chrome no Android.<br>No iPhone, usa a app nativa.</div>
+    <div class="cn-live" id="liveBike"><span><b id="cnW">—</b>WATTS</span><span><b id="cnRpm">—</b>RPM</span></div>
+    <div class="found-list" id="fndBike" style="display:none"></div>
+    <div class="cn-gap"></div>
+    <div class="cn-dev" id="devHR">
+      <div class="cn-ic">❤️</div>
+      <div class="cn-info"><b>Cinta cardíaca</b><small>Polar · Garmin · Wahoo TICKR · iGS · qualquer cinta Bluetooth</small><div class="cn-st" id="stHR">Não conectada</div></div>
+      <button class="cn-btn" id="btnHR" onclick="scanDev('hr')">Procurar</button>
     </div>
-  </div>
-  <div class="conn-sec" style="margin-top:4px;">
-    <div class="conn-sec-lbl">Heart Rate Monitor</div>
-    <div class="dev-item" id="devHR">
-      <div class="dev-icon">❤️</div>
-      <div class="dev-info"><div class="dev-name">Heart Rate Monitor</div><div class="dev-sub">Polar · Garmin HRM · Wahoo TICKR · iGS Sport · BLE HR</div><div class="dev-status st-idle" id="stHR">Not connected</div></div>
-      <button class="dev-btn db-s" id="btnHR" onclick="scanDev('hr')">Search</button>
-    </div>
-    <div class="found-list" id="fndHR">
-      <div style="padding:12px 14px;font-size:12px;color:rgba(255,255,255,.3);text-align:center;line-height:1.6;">Bluetooth requer Chrome no Android.<br>No iPhone, usa a app nativa.</div>
+    <div class="cn-live" id="liveHR"><span><b id="cnBpm">—</b>BPM</span></div>
+    <div class="found-list" id="fndHR" style="display:none"></div>
+    <div class="cn-help">
+      <b>Não achou?</b><br>
+      • Ligue o <b>Bluetooth</b> e a <b>Localização</b> do celular.<br>
+      • <b>Pedale</b> uns segundos: a bike só aparece acordada.<br>
+      • A cinta precisa estar <b>no peito</b> (com a pele úmida).<br>
+      • Toque em <b>Procurar</b> de novo para atualizar a lista.<br>
+      • Na academia não precisa: a TV já lê a sua bike.
     </div>
   </div>
-  <div class="start-btns">
-    <button class="btn-start-main" id="btnStartMain" onclick="startCountdown()">▶ Start Workout</button>
-    <button class="btn-start-ghost" onclick="startCountdown()">Start without device</button>
+  <div class="pd-cta">
+    <button class="pd-go" id="btnStartMain" onclick="startCountdown()" style="display:none"><b>▶ COMEÇAR</b><small id="cnStartSub">aparelho conectado</small></button>
+    <button class="pd-sec2" id="btnStartSem" onclick="startCountdown()">Começar sem aparelho</button>
   </div>
 </div>
 
@@ -1284,7 +1408,7 @@ input[type=file]{display:none}
   <div id="resZoneChart" style="display:none;"></div>
   <div style="display:flex;align-items:center;gap:16px;padding:8px 18px 0;"><svg id="resDonut" width="130" height="130" viewBox="0 0 100 100" style="flex-shrink:0;"></svg><div id="resZoneList" style="flex:1;display:flex;flex-direction:column;gap:7px;"></div></div>
   <div style="padding:18px 18px;display:flex;flex-direction:column;gap:10px;">
-    <button onclick="saveAndGoHistory()" style="width:100%;padding:15px;border-radius:30px;border:none;background:linear-gradient(135deg,#ea860c,#d62d2d);font-size:17px;font-weight:900;letter-spacing:2px;color:#fff;cursor:pointer;">SALVAR ATIVIDADE</button>
+    <button onclick="saveAndGoHistory()" style="width:100%;padding:15px;border-radius:30px;border:none;background:linear-gradient(135deg,#ffb02e,#ea860c);font-size:17px;font-weight:900;letter-spacing:2px;color:#fff;cursor:pointer;">SALVAR ATIVIDADE</button>
     <button onclick="shareCard()" style="width:100%;padding:15px;border-radius:30px;border:none;background:linear-gradient(135deg,#833ab4,#fd1d1d,#fcb045);font-size:17px;font-weight:900;letter-spacing:2px;color:#fff;cursor:pointer;">📸 COMPARTILHAR RESULTADO</button>
     <button id="resTcxBtn" onclick="prExportarTCX()" style="width:100%;padding:13px;border-radius:30px;border:1.5px solid #fc4c02;background:rgba(252,76,2,.1);font-size:15px;font-weight:800;color:#fff;cursor:pointer;">⬇ Arquivo para Strava / Garmin</button>
     <button onclick="go('sHome')" style="width:100%;padding:13px;border-radius:30px;background:transparent;border:1px solid rgba(255,255,255,.14);font-size:14px;font-weight:700;color:rgba(255,255,255,.4);cursor:pointer;">Voltar ao inicio</button>
@@ -1313,7 +1437,7 @@ input[type=file]{display:none}
       <!-- Remove foto -->
       <button id="btnRemoveBg" onclick="removeBgPhoto()" style="display:none;width:100%;padding:12px;border-radius:30px;border:1px solid rgba(214,45,45,.4);background:rgba(214,45,45,.1);font-size:13px;font-weight:700;color:rgba(214,45,45,.8);cursor:pointer;">✕ Remover foto</button>
       <button onclick="downloadCard()" style="width:100%;padding:15px;border-radius:30px;border:none;background:linear-gradient(135deg,#833ab4,#fd1d1d,#fcb045);font-size:16px;font-weight:900;letter-spacing:2px;color:#fff;cursor:pointer;">⬇️ SALVAR IMAGEM</button>
-      <button onclick="nativeShare()" id="btnNativeShare" style="display:none;width:100%;padding:15px;border-radius:30px;border:none;background:linear-gradient(135deg,#ea860c,#d62d2d);font-size:16px;font-weight:900;letter-spacing:2px;color:#fff;cursor:pointer;">📤 COMPARTILHAR</button>
+      <button onclick="nativeShare()" id="btnNativeShare" style="display:none;width:100%;padding:15px;border-radius:30px;border:none;background:linear-gradient(135deg,#ffb02e,#ea860c);font-size:16px;font-weight:900;letter-spacing:2px;color:#fff;cursor:pointer;">📤 COMPARTILHAR</button>
     </div>
     <div style="font-size:11px;color:rgba(255,255,255,.25);text-align:center;margin-top:12px;">Salve a imagem e publique no Instagram Stories ou Feed</div>
   </div>
@@ -1335,7 +1459,7 @@ input[type=file]{display:none}
     <div style="background:rgba(255,255,255,.04);border-radius:14px;padding:0 14px;border:1px solid rgba(255,255,255,.07);" id="ftpZoneList"></div>
   </div>
   <div style="padding:24px 20px;display:flex;flex-direction:column;gap:10px;">
-    <button onclick="saveFtp()" style="width:100%;padding:15px;border-radius:30px;border:none;background:linear-gradient(135deg,#ea860c,#d62d2d);font-size:17px;font-weight:900;letter-spacing:2px;color:#fff;cursor:pointer;">SALVAR COMO MEU FTP</button>
+    <button onclick="saveFtp()" style="width:100%;padding:15px;border-radius:30px;border:none;background:linear-gradient(135deg,#ffb02e,#ea860c);font-size:17px;font-weight:900;letter-spacing:2px;color:#fff;cursor:pointer;">SALVAR COMO MEU FTP</button>
     <button onclick="go('sHome')" style="width:100%;padding:13px;border-radius:30px;background:transparent;border:1px solid rgba(255,255,255,.14);font-size:14px;font-weight:700;color:rgba(255,255,255,.4);cursor:pointer;">Descartar resultado</button>
   </div>
 </div>
@@ -1376,7 +1500,7 @@ input[type=file]{display:none}
       <!-- Erro -->
       <div id="lgErr" style="display:none;background:rgba(214,45,45,.15);border:1px solid rgba(214,45,45,.3);border-radius:10px;padding:10px 14px;font-size:13px;color:#ff6b6b;"></div>
       <!-- Submit -->
-      <button id="lgBtn" onclick="lgSubmit()" style="width:100%;padding:16px;border-radius:30px;border:none;background:linear-gradient(135deg,#ea860c,#d62d2d);font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:900;letter-spacing:2px;color:#fff;cursor:pointer;margin-top:4px;">ENTRAR</button>
+      <button id="lgBtn" onclick="lgSubmit()" style="width:100%;padding:16px;border-radius:30px;border:none;background:linear-gradient(135deg,#ffb02e,#ea860c);font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:900;letter-spacing:2px;color:#fff;cursor:pointer;margin-top:4px;">ENTRAR</button>
       <!-- Pular -->
       <button onclick="go('sHome')" style="width:100%;padding:13px;border-radius:30px;background:transparent;border:1px solid rgba(255,255,255,.1);font-size:14px;font-weight:600;color:rgba(255,255,255,.3);cursor:pointer;">Continuar sem login</button>
     </div>
@@ -1429,7 +1553,7 @@ input[type=file]{display:none}
 
     <!-- Botões -->
     <div style="display:flex;flex-direction:column;gap:10px;">
-      <button onclick="saveAndGoHistory()" style="width:100%;padding:15px;border-radius:30px;border:none;background:linear-gradient(135deg,#ea860c,#d62d2d);font-family:'Barlow Condensed',sans-serif;font-size:17px;font-weight:900;letter-spacing:2px;color:#fff;cursor:pointer;">VER HISTÓRICO</button>
+      <button onclick="saveAndGoHistory()" style="width:100%;padding:15px;border-radius:30px;border:none;background:linear-gradient(135deg,#ffb02e,#ea860c);font-family:'Barlow Condensed',sans-serif;font-size:17px;font-weight:900;letter-spacing:2px;color:#fff;cursor:pointer;">VER HISTÓRICO</button>
       <button onclick="shareCard()" style="width:100%;padding:15px;border-radius:30px;border:none;background:linear-gradient(135deg,#833ab4,#fd1d1d,#fcb045);font-family:'Barlow Condensed',sans-serif;font-size:17px;font-weight:900;letter-spacing:2px;color:#fff;cursor:pointer;">📸 COMPARTILHAR</button>
       <button onclick="go('sHome')" style="width:100%;padding:13px;border-radius:30px;background:transparent;border:1px solid rgba(255,255,255,.14);font-size:14px;font-weight:700;color:rgba(255,255,255,.4);cursor:pointer;">Voltar ao início</button>
     </div>
@@ -1453,7 +1577,7 @@ input[type=file]{display:none}
   <div id="profUserCard" style="display:none;margin:0 16px 6px;background:linear-gradient(135deg,rgba(234,134,12,.15),rgba(214,45,45,.1));border:1px solid rgba(234,134,12,.25);border-radius:18px;padding:18px 20px;">
     <div style="display:flex;align-items:center;gap:14px;">
       <div style="position:relative;flex-shrink:0;">
-        <div onclick="document.getElementById('profFotoInput').click()" title="Trocar foto" style="width:48px;height:48px;border-radius:50%;background:linear-gradient(135deg,#ea860c,#d62d2d);display:flex;align-items:center;justify-content:center;font-size:22px;cursor:pointer;overflow:hidden;">
+        <div onclick="document.getElementById('profFotoInput').click()" title="Trocar foto" style="width:48px;height:48px;border-radius:50%;background:linear-gradient(135deg,#ffb02e,#ea860c);display:flex;align-items:center;justify-content:center;font-size:22px;cursor:pointer;overflow:hidden;">
           <img id="profUserAvImg" alt="" style="display:none;width:100%;height:100%;object-fit:cover;"/>
           <span id="profUserAvIcon">⚡</span>
         </div>
@@ -1479,7 +1603,7 @@ input[type=file]{display:none}
   </div>
   <!-- Botão login (quando deslogado) -->
   <div id="profLoginBtn" style="margin:0 16px 6px;">
-    <button onclick="go('sLogin')" style="width:100%;padding:14px;border-radius:14px;border:none;background:linear-gradient(135deg,#ea860c,#d62d2d);font-family:'Barlow Condensed',sans-serif;font-size:17px;font-weight:900;letter-spacing:2px;color:#fff;cursor:pointer;">⚡ FAZER LOGIN / CRIAR CONTA</button>
+    <button onclick="go('sLogin')" style="width:100%;padding:14px;border-radius:14px;border:none;background:linear-gradient(135deg,#ffb02e,#ea860c);font-family:'Barlow Condensed',sans-serif;font-size:17px;font-weight:900;letter-spacing:2px;color:#fff;cursor:pointer;">⚡ FAZER LOGIN / CRIAR CONTA</button>
   </div>
 
   <div id="profCamisas" style="display:none;margin:0 16px 10px;"></div>
@@ -1547,7 +1671,7 @@ input[type=file]{display:none}
       <input id="profModalInput" type="text" style="width:100%;padding:14px 16px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.15);border-radius:12px;color:#fff;font-size:18px;outline:none;-webkit-appearance:none;box-sizing:border-box;" placeholder=""/>
       <div style="display:flex;gap:10px;margin-top:16px;">
         <button onclick="profModalCancel()" style="flex:1;padding:13px;border-radius:12px;background:rgba(255,255,255,.07);border:none;color:rgba(255,255,255,.5);font-size:14px;font-weight:700;cursor:pointer;">Cancelar</button>
-        <button onclick="profModalSave()" style="flex:1;padding:13px;border-radius:12px;background:linear-gradient(135deg,#ea860c,#d62d2d);border:none;color:#fff;font-size:14px;font-weight:900;cursor:pointer;">Salvar</button>
+        <button onclick="profModalSave()" style="flex:1;padding:13px;border-radius:12px;background:linear-gradient(135deg,#ffb02e,#ea860c);border:none;color:#fff;font-size:14px;font-weight:900;cursor:pointer;">Salvar</button>
       </div>
     </div>
   </div>
@@ -1669,140 +1793,10 @@ input[type=file]{display:none}
 #sGravada .grv-cw{font-size:16px;font-weight:700;color:rgba(255,255,255,.65);margin-top:2px;}
 @media (orientation:portrait){ #sGravada .grv-cx{min-width:0;max-width:46%;} #sGravada .grv-cv{font-size:64px;} }
 </style>
-<div class="screen" id="sLoja" style="background:#0d0810;overflow-y:auto;padding-bottom:80px;">
-
-  <div id="lojaGravadas" style="display:none;padding:18px 16px 0;"></div><!-- 02/10b2: aulas gravadas -->
-  <!-- Hero -->
-  <div style="position:relative;padding:48px 24px 36px;text-align:center;background:linear-gradient(180deg,rgba(214,45,45,.18) 0%,rgba(234,134,12,.08) 60%,transparent 100%);">
-    <div style="position:absolute;top:0;left:0;right:0;bottom:0;background:radial-gradient(ellipse at 50% 0%,rgba(234,134,12,.15),transparent 70%);pointer-events:none;"></div>
-    <div style="display:inline-flex;align-items:center;gap:6px;background:rgba(234,134,12,.12);border:1px solid rgba(234,134,12,.3);border-radius:20px;padding:5px 14px;font-size:10px;font-weight:700;letter-spacing:2px;color:#ea860c;margin-bottom:18px;">⚡ PRORIDER CERTIFICADO</div>
-    <div style="font-family:'Bebas Neue',sans-serif;font-size:42px;letter-spacing:3px;color:#fff;line-height:1.1;margin-bottom:12px;">TREINE COM OS<br/>MELHORES</div>
-    <div style="font-size:15px;color:rgba(255,255,255,.55);line-height:1.6;max-width:300px;margin:0 auto 24px;">Professores certificados ProRider, cada um com seu método, sua energia e seu estúdio. Escolha quem te motiva e pedala de onde quiser.</div>
-    <div style="display:flex;justify-content:center;gap:20px;">
-      <div style="text-align:center;"><div style="font-family:'Bebas Neue',sans-serif;font-size:32px;color:#ea860c;">12+</div><div style="font-size:10px;font-weight:700;letter-spacing:1px;color:rgba(255,255,255,.35);">PROFESSORES</div></div>
-      <div style="width:1px;background:rgba(255,255,255,.1);"></div>
-      <div style="text-align:center;"><div style="font-family:'Bebas Neue',sans-serif;font-size:32px;color:#ea860c;">200+</div><div style="font-size:10px;font-weight:700;letter-spacing:1px;color:rgba(255,255,255,.35);">AULAS</div></div>
-      <div style="width:1px;background:rgba(255,255,255,.1);"></div>
-      <div style="text-align:center;"><div style="font-family:'Bebas Neue',sans-serif;font-size:32px;color:#ea860c;">7</div><div style="font-size:10px;font-weight:700;letter-spacing:1px;color:rgba(255,255,255,.35);">ZONAS</div></div>
-    </div>
-  </div>
-
-  <!-- Por que vale a pena -->
-  <div style="padding:0 20px 8px;">
-    <div style="font-size:10px;font-weight:700;letter-spacing:3px;color:rgba(255,255,255,.3);text-transform:uppercase;margin-bottom:14px;">Por que vale a pena</div>
-    <div style="display:flex;flex-direction:column;gap:10px;">
-      <div style="display:flex;align-items:flex-start;gap:12px;">
-        <div style="width:36px;height:36px;border-radius:10px;background:rgba(234,134,12,.12);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:18px;">🎯</div>
-        <div><div style="font-size:14px;font-weight:700;color:#fff;margin-bottom:2px;">Zonas de potência reais</div><div style="font-size:12px;color:rgba(255,255,255,.4);line-height:1.5;">Cada aula é estruturada nas 7 Zonas Coggan & Allen. Você treina com método, não no escuro.</div></div>
-      </div>
-      <div style="display:flex;align-items:flex-start;gap:12px;">
-        <div style="width:36px;height:36px;border-radius:10px;background:rgba(29,185,84,.1);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:18px;">🎬</div>
-        <div><div style="font-size:14px;font-weight:700;color:#fff;margin-bottom:2px;">Seu professor na tela</div><div style="font-size:12px;color:rgba(255,255,255,.4);line-height:1.5;">Vídeo do professor no estúdio ProRider como fundo da sua aula. Presença real, energia real.</div></div>
-      </div>
-      <div style="display:flex;align-items:flex-start;gap:12px;">
-        <div style="width:36px;height:36px;border-radius:10px;background:rgba(155,48,255,.1);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:18px;">🏅</div>
-        <div><div style="font-size:14px;font-weight:700;color:#fff;margin-bottom:2px;">Certificação ProRider</div><div style="font-size:12px;color:rgba(255,255,255,.4);line-height:1.5;">Complete pacotes e conquiste selos digitais. Mostre sua evolução para o mundo.</div></div>
-      </div>
-      <div style="display:flex;align-items:flex-start;gap:12px;">
-        <div style="width:36px;height:36px;border-radius:10px;background:rgba(41,95,232,.1);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:18px;">📅</div>
-        <div><div style="font-size:14px;font-weight:700;color:#fff;margin-bottom:2px;">Planos e desafios</div><div style="font-size:12px;color:rgba(255,255,255,.4);line-height:1.5;">Programas de 4 a 8 semanas e desafios com prazo para você manter a consistência.</div></div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Professores certificados -->
-  <div style="padding:24px 20px 8px;">
-    <div style="font-size:10px;font-weight:700;letter-spacing:3px;color:rgba(255,255,255,.3);text-transform:uppercase;margin-bottom:14px;">Professores certificados</div>
-    <div style="display:flex;gap:12px;overflow-x:auto;padding-bottom:8px;-webkit-overflow-scrolling:touch;scrollbar-width:none;">
-      <div style="flex-shrink:0;width:150px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:16px;overflow:hidden;">
-        <div style="height:90px;background:linear-gradient(135deg,#d62d2d,#9b30ff);display:flex;align-items:center;justify-content:center;font-size:40px;">🚴</div>
-        <div style="padding:12px;"><div style="font-size:13px;font-weight:700;color:#fff;margin-bottom:2px;">Lucas Mendes</div><div style="font-size:10px;color:#ea860c;font-weight:700;margin-bottom:6px;">HIIT · VO2 Max</div><div style="font-size:10px;color:rgba(255,255,255,.35);">48 aulas · 4.9 ⭐</div></div>
-      </div>
-      <div style="flex-shrink:0;width:150px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:16px;overflow:hidden;">
-        <div style="height:90px;background:linear-gradient(135deg,#295fe8,#00b4a6);display:flex;align-items:center;justify-content:center;font-size:40px;">⚡</div>
-        <div style="padding:12px;"><div style="font-size:13px;font-weight:700;color:#fff;margin-bottom:2px;">Carla Vieira</div><div style="font-size:10px;color:#ea860c;font-weight:700;margin-bottom:6px;">Endurance · Fartlek</div><div style="font-size:10px;color:rgba(255,255,255,.35);">62 aulas · 5.0 ⭐</div></div>
-      </div>
-      <div style="flex-shrink:0;width:150px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:16px;overflow:hidden;">
-        <div style="height:90px;background:linear-gradient(135deg,#ea860c,#d7c414);display:flex;align-items:center;justify-content:center;font-size:40px;">🔥</div>
-        <div style="padding:12px;"><div style="font-size:13px;font-weight:700;color:#fff;margin-bottom:2px;">Rafael Costa</div><div style="font-size:10px;color:#ea860c;font-weight:700;margin-bottom:6px;">Sprint · Threshold</div><div style="font-size:10px;color:rgba(255,255,255,.35);">35 aulas · 4.8 ⭐</div></div>
-      </div>
-      <div style="flex-shrink:0;width:150px;background:rgba(255,255,255,.02);border:1px dashed rgba(255,255,255,.1);border-radius:16px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:20px 12px;text-align:center;">
-        <div style="font-size:28px;">➕</div>
-        <div style="font-size:11px;font-weight:700;color:rgba(255,255,255,.3);">Mais professores em breve</div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Produtos -->
-  <div style="padding:20px 20px 8px;">
-    <div style="font-size:10px;font-weight:700;letter-spacing:3px;color:rgba(255,255,255,.3);text-transform:uppercase;margin-bottom:14px;">O que você pode comprar</div>
-    <div style="display:flex;flex-direction:column;gap:10px;">
-
-      <div style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:18px;display:flex;align-items:center;gap:14px;">
-        <div style="width:46px;height:46px;border-radius:12px;background:rgba(41,95,232,.15);border:1px solid rgba(41,95,232,.3);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;">🎟️</div>
-        <div style="flex:1;min-width:0;"><div style="font-size:15px;font-weight:700;color:#fff;">Aula Avulsa</div><div style="font-size:11px;color:rgba(255,255,255,.4);margin-top:2px;line-height:1.4;">Acesso a qualquer aula de um professor certificado.</div></div>
-        <div style="text-align:right;flex-shrink:0;"><div style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:#fff;">R$9</div><div style="font-size:9px;color:rgba(255,255,255,.3);">/ aula</div></div>
-      </div>
-
-      <div style="background:linear-gradient(135deg,rgba(234,134,12,.1),rgba(214,45,45,.08));border:1px solid rgba(234,134,12,.25);border-radius:16px;padding:18px;display:flex;align-items:center;gap:14px;position:relative;overflow:hidden;">
-        <div style="position:absolute;top:10px;right:10px;background:linear-gradient(135deg,#ea860c,#d62d2d);border-radius:6px;padding:3px 8px;font-size:9px;font-weight:700;letter-spacing:1px;color:#fff;">MAIS POPULAR</div>
-        <div style="width:46px;height:46px;border-radius:12px;background:rgba(234,134,12,.2);border:1px solid rgba(234,134,12,.4);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;">📦</div>
-        <div style="flex:1;min-width:0;"><div style="font-size:15px;font-weight:700;color:#fff;">Pack 10 Aulas</div><div style="font-size:11px;color:rgba(255,255,255,.4);margin-top:2px;line-height:1.4;">10 aulas com o professor que você escolher. Válido por 90 dias.</div></div>
-        <div style="text-align:right;flex-shrink:0;"><div style="font-size:11px;color:rgba(255,255,255,.3);text-decoration:line-through;">R$90</div><div style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:#ea860c;">R$69</div><div style="font-size:9px;color:rgba(255,255,255,.3);">pack</div></div>
-      </div>
-
-      <div style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:18px;display:flex;align-items:center;gap:14px;">
-        <div style="width:46px;height:46px;border-radius:12px;background:rgba(155,48,255,.12);border:1px solid rgba(155,48,255,.25);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;">♾️</div>
-        <div style="flex:1;min-width:0;"><div style="font-size:15px;font-weight:700;color:#fff;">Assinatura Mensal</div><div style="font-size:11px;color:rgba(255,255,255,.4);margin-top:2px;line-height:1.4;">Acesso ilimitado a todos os professores e aulas do catálogo.</div></div>
-        <div style="text-align:right;flex-shrink:0;"><div style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:#fff;">R$49</div><div style="font-size:9px;color:rgba(255,255,255,.3);">/ mês</div></div>
-      </div>
-
-      <div style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:18px;display:flex;align-items:center;gap:14px;">
-        <div style="width:46px;height:46px;border-radius:12px;background:rgba(0,180,166,.12);border:1px solid rgba(0,180,166,.25);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;">📋</div>
-        <div style="flex:1;min-width:0;"><div style="font-size:15px;font-weight:700;color:#fff;">Plano de Treino</div><div style="font-size:11px;color:rgba(255,255,255,.4);margin-top:2px;line-height:1.4;">4 ou 8 semanas estruturadas por um professor. Progressão real.</div></div>
-        <div style="text-align:right;flex-shrink:0;"><div style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:#fff;">R$89</div><div style="font-size:9px;color:rgba(255,255,255,.3);">/ plano</div></div>
-      </div>
-
-    </div>
-  </div>
-
-  <!-- Desafio -->
-  <div style="padding:20px 20px 8px;">
-    <div style="font-size:10px;font-weight:700;letter-spacing:3px;color:rgba(255,255,255,.3);text-transform:uppercase;margin-bottom:14px;">Desafios com prazo</div>
-    <div style="background:linear-gradient(135deg,rgba(155,48,255,.12),rgba(41,95,232,.08));border:1px solid rgba(155,48,255,.2);border-radius:16px;padding:20px;">
-      <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
-        <div style="font-size:32px;">🏆</div>
-        <div><div style="font-size:16px;font-weight:700;color:#fff;">Desafio 21 Dias</div><div style="font-size:11px;color:rgba(255,255,255,.4);">com Prof. Lucas Mendes · HIIT</div></div>
-      </div>
-      <div style="font-size:12px;color:rgba(255,255,255,.5);line-height:1.6;margin-bottom:14px;">21 aulas em 21 dias. Complete o desafio e ganhe seu Selo de Consistência ProRider. Ranking ao vivo com outros participantes.</div>
-      <div style="display:flex;gap:10px;align-items:center;">
-        <div style="flex:1;height:4px;background:rgba(255,255,255,.08);border-radius:2px;"></div>
-        <div style="font-size:11px;font-weight:700;color:rgba(255,255,255,.3);">EM BREVE</div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Certificação -->
-  <div style="padding:20px 20px 8px;">
-    <div style="font-size:10px;font-weight:700;letter-spacing:3px;color:rgba(255,255,255,.3);text-transform:uppercase;margin-bottom:14px;">Certificação ProRider</div>
-    <div style="background:linear-gradient(135deg,rgba(234,134,12,.1),rgba(214,45,45,.06));border:1px solid rgba(234,134,12,.2);border-radius:16px;padding:20px;text-align:center;">
-      <div style="width:70px;height:70px;margin:0 auto 14px;border-radius:50%;background:linear-gradient(135deg,#ea860c,#d62d2d);display:flex;align-items:center;justify-content:center;box-shadow:0 0 30px rgba(234,134,12,.3);">
-        <svg width="36" height="44" viewBox="0 0 44 56" fill="none"><defs><filter id="lf2"><feGaussianBlur stdDeviation="2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs><path d="M30 4 L10 30 L20 30 L14 52 L34 26 L24 26Z" fill="#fff" filter="url(#lf2)"/></svg>
-      </div>
-      <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:2px;color:#fff;margin-bottom:6px;">CERTIFICADO PRORIDER</div>
-      <div style="font-size:12px;color:rgba(255,255,255,.45);line-height:1.6;margin-bottom:14px;">Complete pacotes de aulas com um professor certificado e receba seu selo digital. Compartilhe no Strava e Instagram.</div>
-      <div style="display:inline-flex;align-items:center;gap:6px;background:rgba(234,134,12,.1);border:1px solid rgba(234,134,12,.2);border-radius:20px;padding:6px 16px;font-size:10px;font-weight:700;letter-spacing:2px;color:#ea860c;">EM BREVE</div>
-    </div>
-  </div>
-
-  <!-- CTA -->
-  <div style="padding:20px;">
-    <div style="background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:16px;padding:20px;text-align:center;">
-      <div style="font-size:13px;color:rgba(255,255,255,.4);line-height:1.6;margin-bottom:16px;">Seja notificado quando as aulas dos professores chegarem. Os primeiros assinantes terão acesso antecipado e preço especial de lançamento.</div>
-      <button onclick="lojaNotificar()" style="width:100%;padding:15px;border-radius:30px;border:none;background:linear-gradient(135deg,#ea860c,#d62d2d);font-family:'Barlow Condensed',sans-serif;font-size:17px;font-weight:900;letter-spacing:2px;color:#fff;cursor:pointer;">⚡ QUERO SER NOTIFICADO</button>
-    </div>
-  </div>
-
+<div class="screen" id="sLoja" style="background:#0b0b0e;overflow-y:auto;padding-bottom:90px;">
+  <div class="lj-top"><div><small>ProRider</small><b>LOJA</b></div><div id="ljSaldo"></div></div>
+  <div id="ljConteudo"><div class="lj-vazio">Carregando…</div></div>
+  <div id="lojaGravadas" style="display:none;padding:10px 16px 0;"></div><!-- aulas gravadas · teste (72 h) -->
 </div>
 
 <!-- ══════════════════════════════════
@@ -1823,7 +1817,7 @@ input[type=file]{display:none}
 
   <!-- Ação rápida: Entrar na aula -->
   <div style="padding:20px 18px 0;display:flex;gap:10px;">
-    <button onclick="go('sScan')" style="flex:2;padding:16px;border-radius:16px;border:none;background:linear-gradient(135deg,#ea860c,#d62d2d);font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:900;letter-spacing:2px;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;">
+    <button onclick="go('sScan')" style="flex:2;padding:16px;border-radius:16px;border:none;background:linear-gradient(135deg,#ffb02e,#ea860c);font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:900;letter-spacing:2px;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
       SCAN QR DA AULA
     </button>
@@ -1954,7 +1948,7 @@ input[type=file]{display:none}
       <span><b style="display:inline-block;width:10px;height:10px;border-radius:3px;background:#ea860c;vertical-align:-1px;"></b> sua</span>
       <span><b style="display:inline-block;width:10px;height:10px;border-radius:3px;background:rgba(214,45,45,.5);vertical-align:-1px;"></b> reservada</span>
     </div>
-    <button id="rcBtn" disabled style="width:100%;padding:14px;border-radius:12px;border:none;background:linear-gradient(135deg,#ea860c,#d62d2d);color:#fff;font-size:16px;font-weight:700;cursor:pointer;opacity:.45;" onclick="confirmarReserva()">ESCOLHA A BIKE</button>
+    <button id="rcBtn" disabled style="width:100%;padding:14px;border-radius:12px;border:none;background:linear-gradient(135deg,#ffb02e,#ea860c);color:#fff;font-size:16px;font-weight:700;cursor:pointer;opacity:.45;" onclick="confirmarReserva()">ESCOLHA A BIKE</button>
     <button onclick="closeReservaModal()" style="width:100%;padding:12px;border-radius:12px;border:none;background:transparent;color:rgba(255,255,255,.4);font-size:14px;cursor:pointer;margin-top:8px;">Cancelar</button>
   </div>
 </div>
@@ -1962,118 +1956,45 @@ input[type=file]{display:none}
 <!--
      DESAFIOS SCREEN
 ══════════════════════════════════ -->
-<div class="screen" id="sDesafios" style="background:#0a0812;overflow-y:auto;padding-bottom:80px;">
-  <div style="padding:24px 18px 8px;display:flex;align-items:flex-end;justify-content:space-between;">
-    <div>
-      <div style="font-size:11px;font-weight:700;letter-spacing:4px;color:rgba(155,48,255,.6);text-transform:uppercase;">ProRider</div>
-      <div style="font-family:'Bebas Neue',sans-serif;font-size:40px;letter-spacing:3px;color:#fff;line-height:1;margin-top:4px;">DESAFIOS</div>
-      <div style="font-size:13px;color:rgba(255,255,255,.4);margin-top:6px;">Compita, evolua e conquiste selos.</div>
-    </div>
-    <button onclick="dsAbrirConvite()" style="padding:10px 16px;border-radius:30px;border:1px solid rgba(155,48,255,.5);background:rgba(155,48,255,.15);font-size:12px;font-weight:700;color:#c084fc;letter-spacing:1px;cursor:pointer;white-space:nowrap;">🤜 DESAFIAR</button>
-  </div>
-
-  <!-- Grupo ativo (aparece se o usuário está num grupo) -->
-  <div id="dsGrupoAtivo" style="display:none;padding:0 18px 4px;">
-    <div style="border-radius:16px;background:linear-gradient(135deg,rgba(155,48,255,.15),rgba(41,95,232,.1));border:1px solid rgba(155,48,255,.35);padding:16px;">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
-        <div>
-          <div style="font-size:10px;font-weight:700;letter-spacing:2px;color:rgba(155,48,255,.8);text-transform:uppercase;">Seu grupo</div>
-          <div id="dsGrupoNome" style="font-size:16px;font-weight:700;color:#fff;margin-top:2px;">—</div>
-        </div>
-        <button onclick="dsCompartilharGrupo()" style="padding:7px 14px;border-radius:20px;border:1px solid rgba(155,48,255,.4);background:rgba(155,48,255,.2);font-size:11px;font-weight:700;color:#c084fc;cursor:pointer;">📤 Convidar</button>
-      </div>
-      <div id="dsGrupoRanking" style="display:flex;flex-direction:column;gap:6px;"></div>
-    </div>
-  </div>
-
-  <!-- Cards de desafios -->
-  <div id="dsLista" style="padding:16px 18px;display:flex;flex-direction:column;gap:14px;">
-    <!-- Desafio 21 dias -->
-    <div style="border-radius:16px;overflow:hidden;background:linear-gradient(135deg,#1a0a2e,#2a0a1a);border:1px solid rgba(255,255,255,.08);padding:20px;">
-      <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
-        <div style="width:48px;height:48px;border-radius:12px;background:linear-gradient(135deg,#833ab4,#fd1d1d);display:flex;align-items:center;justify-content:center;font-size:22px;">🔥</div>
-        <div style="flex:1;">
-          <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;color:#fff;letter-spacing:1px;">DESAFIO 21 DIAS</div>
-          <div style="font-size:11px;color:rgba(255,255,255,.4);">Pedalar 21 dias consecutivos</div>
-        </div>
-        <div style="background:rgba(131,58,180,.25);padding:4px 10px;border-radius:20px;font-size:10px;font-weight:700;color:#c084fc;letter-spacing:1px;">ATIVO</div>
-      </div>
-      <div style="background:rgba(0,0,0,.3);border-radius:8px;height:6px;overflow:hidden;"><div id="ds21prog" style="width:0%;height:100%;background:linear-gradient(90deg,#833ab4,#fd1d1d);transition:width .6s;"></div></div>
-      <div style="display:flex;justify-content:space-between;margin-top:6px;font-size:10px;color:rgba(255,255,255,.3);">
-        <span id="ds21days">0 / 21 dias</span><span>🏅 Selo + 500 pts</span>
-      </div>
-      <div style="display:flex;gap:8px;margin-top:14px;">
-        <button onclick="dsVerRanking('21dias','🔥 21 Dias')" style="flex:1;padding:10px;border-radius:12px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);font-size:12px;font-weight:700;color:rgba(255,255,255,.5);cursor:pointer;">🏆 Ranking Geral</button>
-        <button onclick="dsDesafiarNeste('21dias','Desafio 21 Dias')" style="flex:1;padding:10px;border-radius:12px;background:rgba(131,58,180,.2);border:1px solid rgba(131,58,180,.4);font-size:12px;font-weight:700;color:#c084fc;cursor:pointer;">🤜 Desafiar amigos</button>
-      </div>
-    </div>
-
-    <!-- Ranking mensal -->
-    <div style="border-radius:16px;overflow:hidden;background:linear-gradient(135deg,#0a1a2e,#0a2a1a);border:1px solid rgba(255,255,255,.08);padding:20px;">
-      <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
-        <div style="width:48px;height:48px;border-radius:12px;background:linear-gradient(135deg,#d7c414,#ea860c);display:flex;align-items:center;justify-content:center;font-size:22px;">🏆</div>
-        <div style="flex:1;">
-          <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;color:#fff;letter-spacing:1px;">RANKING MENSAL</div>
-          <div style="font-size:11px;color:rgba(255,255,255,.4);">Top ciclistas do mês · <span id="dsRankMes">—</span></div>
-        </div>
-      </div>
-      <div id="dsRankingGeral" style="display:flex;flex-direction:column;gap:8px;">
-        <div style="text-align:center;padding:12px;color:rgba(255,255,255,.2);font-size:12px;">Carregando ranking...</div>
-      </div>
-      <button onclick="dsVerRanking('mensal','🏆 Mensal')" style="width:100%;margin-top:12px;padding:10px;border-radius:12px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);font-size:12px;font-weight:700;color:rgba(255,255,255,.4);cursor:pointer;">Ver ranking completo</button>
-    </div>
-
-    <!-- Quebra FTP -->
-    <div style="border-radius:16px;overflow:hidden;background:linear-gradient(135deg,#0a1020,#1a0a20);border:1px solid rgba(255,255,255,.08);padding:20px;">
-      <div style="display:flex;align-items:center;gap:12px;">
-        <div style="width:48px;height:48px;border-radius:12px;background:linear-gradient(135deg,#295fe8,#9b30ff);display:flex;align-items:center;justify-content:center;font-size:22px;">⚡</div>
-        <div style="flex:1;">
-          <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;color:#fff;letter-spacing:1px;">QUEBRA FTP</div>
-          <div style="font-size:11px;color:rgba(255,255,255,.4);">Melhore seu FTP em 30 dias</div>
-        </div>
-        <div style="background:rgba(255,255,255,.07);padding:4px 10px;border-radius:20px;font-size:10px;font-weight:700;color:rgba(255,255,255,.35);letter-spacing:1px;">EM BREVE</div>
-      </div>
-      <div style="font-size:12px;color:rgba(255,255,255,.35);margin-top:12px;line-height:1.6;">Complete o Ramp Test a cada 4 semanas e acompanhe sua evolução no ranking de FTP.</div>
-    </div>
-  </div>
+<div class="screen" id="sDesafios" style="background:#0b0b0e;overflow-y:auto;padding-bottom:90px;">
+  <div class="lj-top"><div><small>ProRider</small><b>DESAFIOS</b></div><button class="ds-btn-top" onclick="dsAbrirConvite()">🤜 Desafiar amigos</button></div>
+  <div id="dsConteudo"><div class="lj-vazio">Carregando…</div></div>
 
   <!-- Modal Ranking (geral ou de grupo) -->
-  <div id="dsModalRanking" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.9);z-index:9999;flex-direction:column;">
-    <div style="display:flex;align-items:center;padding:20px 18px 12px;border-bottom:1px solid rgba(255,255,255,.07);">
-      <button onclick="document.getElementById('dsModalRanking').style.display='none'" style="background:none;border:none;color:rgba(255,255,255,.5);font-size:22px;cursor:pointer;margin-right:12px;">✕</button>
-      <div id="dsModalRankTitulo" style="font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:2px;color:#fff;">RANKING</div>
+  <div id="dsModalRanking" style="display:none;position:fixed;inset:0;background:rgba(5,5,8,.96);z-index:9999;flex-direction:column;">
+    <div style="display:flex;align-items:center;gap:10px;padding:calc(18px + env(safe-area-inset-top,0px)) 16px 12px;border-bottom:1px solid rgba(255,255,255,.07);">
+      <button class="pd-back" onclick="document.getElementById('dsModalRanking').style.display='none'">←</button>
+      <div id="dsModalRankTitulo" style="font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:1px;color:#fff;">RANKING</div>
     </div>
-    <div id="dsModalRankLista" style="overflow-y:auto;padding:14px 18px;display:flex;flex-direction:column;gap:8px;flex:1;"></div>
+    <div id="dsModalRankLista" style="overflow-y:auto;padding:12px 16px;flex:1;"></div>
   </div>
 
-  <!-- Modal Convidar / Criar grupo -->
-  <div id="dsModalConvite" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:9999;align-items:flex-end;justify-content:center;">
-    <div style="background:#131020;border-radius:24px 24px 0 0;padding:28px 24px 32px;width:100%;max-width:480px;">
-      <div style="font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:2px;color:#fff;margin-bottom:4px;">🤜 DESAFIAR AMIGOS</div>
-      <div style="font-size:13px;color:rgba(255,255,255,.4);margin-bottom:20px;">Crie um grupo privado dentro do desafio — ranking exclusivo entre vocês + ranking geral.</div>
-      <!-- Tab: Criar / Entrar -->
-      <div style="display:flex;gap:6px;background:rgba(255,255,255,.05);border-radius:12px;padding:4px;margin-bottom:18px;">
-        <button id="dsCriarTab" onclick="dsAbaConvite('criar')" style="flex:1;padding:10px;border-radius:9px;background:rgba(155,48,255,.25);border:none;color:#c084fc;font-size:13px;font-weight:700;cursor:pointer;">Criar grupo</button>
-        <button id="dsEntrarTab" onclick="dsAbaConvite('entrar')" style="flex:1;padding:10px;border-radius:9px;background:transparent;border:none;color:rgba(255,255,255,.35);font-size:13px;font-weight:700;cursor:pointer;">Tenho um código</button>
+  <!-- Modal Criar / Entrar em grupo -->
+  <div id="dsModalConvite" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:9999;align-items:flex-end;justify-content:center;">
+    <div class="lj-sheet-in">
+      <button class="lj-x" onclick="document.getElementById('dsModalConvite').style.display='none'">✕</button>
+      <h3>🤜 DESAFIAR AMIGOS</h3>
+      <div class="sub">Crie um grupo e mande o código. Vocês ganham um ranking só de vocês.</div>
+      <div style="display:flex;gap:6px;background:rgba(255,255,255,.05);border-radius:12px;padding:4px;margin:16px 0;">
+        <button id="dsCriarTab" onclick="dsAbaConvite('criar')" style="flex:1;padding:10px;border-radius:9px;border:none;font-size:13px;font-weight:800;cursor:pointer;">Criar grupo</button>
+        <button id="dsEntrarTab" onclick="dsAbaConvite('entrar')" style="flex:1;padding:10px;border-radius:9px;border:none;font-size:13px;font-weight:800;cursor:pointer;">Entrar com código</button>
       </div>
-      <!-- Criar -->
       <div id="dsPainelCriar">
-        <input id="dsGrupoNomeInput" placeholder="Nome do seu grupo (ex: Turma da 7h)" maxlength="40"
-          style="width:100%;padding:14px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);border-radius:12px;color:#fff;font-size:14px;outline:none;box-sizing:border-box;margin-bottom:10px;">
-        <div id="dsDesafioSelect" style="display:flex;flex-direction:column;gap:6px;margin-bottom:16px;">
-          <div style="font-size:11px;font-weight:700;letter-spacing:1px;color:rgba(255,255,255,.3);margin-bottom:2px;">DESAFIO</div>
-          <label style="display:flex;align-items:center;gap:10px;cursor:pointer;"><input type="radio" name="dsDesafioRad" value="21dias" checked style="accent-color:#9b30ff;"> <span style="font-size:14px;color:#fff;">🔥 21 Dias</span></label>
-          <label style="display:flex;align-items:center;gap:10px;cursor:pointer;"><input type="radio" name="dsDesafioRad" value="mensal"> <span style="font-size:14px;color:#fff;">🏆 Ranking Mensal</span></label>
+        <div class="pd-lbl">Nome do grupo</div>
+        <input id="dsGrupoNomeInput" class="lj-in" placeholder="Ex.: Turma das 7h" maxlength="40">
+        <div class="pd-lbl" style="margin-top:14px;">Desafio do grupo</div>
+        <div id="dsDesafioSelect" style="display:flex;flex-direction:column;gap:8px;margin:8px 0 16px;">
+          <label style="display:flex;align-items:center;gap:10px;font-size:14px;"><input type="radio" name="dsDesafioRad" value="21dias" checked style="accent-color:#ea860c;"> 🔥 21 dias de pedal</label>
+          <label style="display:flex;align-items:center;gap:10px;font-size:14px;"><input type="radio" name="dsDesafioRad" value="mensal" style="accent-color:#ea860c;"> 🏆 Pontos do mês</label>
+          <label style="display:flex;align-items:center;gap:10px;font-size:14px;"><input type="radio" name="dsDesafioRad" value="ftp" style="accent-color:#ea860c;"> ⚡ Quebra FTP</label>
         </div>
-        <button onclick="dsCriarGrupo()" style="width:100%;padding:15px;border-radius:30px;border:none;background:linear-gradient(135deg,#9b30ff,#295fe8);font-size:15px;font-weight:900;letter-spacing:2px;color:#fff;cursor:pointer;">CRIAR E CONVIDAR</button>
+        <button class="pd-go" onclick="dsCriarGrupo()" style="justify-content:center;"><b>CRIAR E CONVIDAR</b></button>
       </div>
-      <!-- Entrar com código -->
       <div id="dsPainelEntrar" style="display:none;">
-        <input id="dsCodigoInput" placeholder="Cole o código aqui — ex: TURMA-A7F2" maxlength="20"
-          style="width:100%;padding:14px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);border-radius:12px;color:#fff;font-size:16px;font-weight:700;letter-spacing:2px;text-transform:uppercase;outline:none;box-sizing:border-box;margin-bottom:16px;">
-        <button onclick="dsEntrarGrupo()" style="width:100%;padding:15px;border-radius:30px;border:none;background:linear-gradient(135deg,#9b30ff,#295fe8);font-size:15px;font-weight:900;letter-spacing:2px;color:#fff;cursor:pointer;">ENTRAR NO GRUPO</button>
+        <div class="pd-lbl">Código do grupo</div>
+        <input id="dsCodigoInput" class="lj-in" placeholder="GRP-XXXXXX" maxlength="12" style="text-transform:uppercase;letter-spacing:2px;font-weight:800;">
+        <button class="pd-go" onclick="dsEntrarGrupo()" style="justify-content:center;margin-top:14px;"><b>ENTRAR NO GRUPO</b></button>
       </div>
-      <button onclick="document.getElementById('dsModalConvite').style.display='none'" style="width:100%;margin-top:10px;padding:12px;border-radius:30px;background:transparent;border:none;font-size:13px;color:rgba(255,255,255,.25);cursor:pointer;">Cancelar</button>
     </div>
   </div>
 </div>
@@ -2091,7 +2012,7 @@ input[type=file]{display:none}
     Loja
   </div>
   <div class="nav-center" id="navRide" style="flex:0 0 72px;display:flex;flex-direction:column;align-items:center;gap:3px;" onclick="navCenterClick()">
-    <div id="navCenterBtn" style="width:60px;height:60px;border-radius:50%;background:linear-gradient(135deg,#ea860c,#d62d2d);display:flex;align-items:center;justify-content:center;margin-top:-22px;box-shadow:0 4px 20px rgba(234,134,12,.45);cursor:pointer;">
+    <div id="navCenterBtn" style="width:60px;height:60px;border-radius:50%;background:linear-gradient(135deg,#ffb02e,#ea860c);display:flex;align-items:center;justify-content:center;margin-top:-22px;box-shadow:0 4px 20px rgba(234,134,12,.45);cursor:pointer;">
       <svg width="28" height="34" viewBox="0 0 44 56" fill="none">
         <defs><filter id="nbf"><feGaussianBlur stdDeviation="2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>
         <path d="M30 4 L10 30 L20 30 L14 52 L34 26 L24 26Z" fill="#fff" filter="url(#nbf)"/>
@@ -4407,7 +4328,7 @@ function renderGradeAluno(aulas) {
               if (!mr && lotado) return `<button onclick="entrarNaFila(${a.id},'${dateStr}')" style="padding:8px 14px;border-radius:10px;border:1.5px solid rgba(255,255,255,.25);background:rgba(255,255,255,.06);color:#fff;font-size:13px;font-weight:700;cursor:pointer;">Lotado · entrar na fila</button>`;
               return mr ? `<button onclick="abrirReservaModal(${a.id},'${a.nome}','${a.hora.slice(0,5)}','${dateStr}',${a.duracao_min},${livres})" style="padding:8px 14px;border-radius:10px;border:1.5px solid #5db13d;background:rgba(93,177,61,.14);color:#8fe06a;font-size:13px;font-weight:700;cursor:pointer;">✓ ${mr.bike_numero ? 'Bike '+mr.bike_numero : 'Reservado'} · trocar</button>` : ''; })() || `<button onclick="abrirReservaModal(${a.id},'${a.nome}','${a.hora.slice(0,5)}','${dateStr}',${a.duracao_min},${livres})"
               ${lotado?'disabled':''}
-              style="padding:8px 18px;border-radius:10px;border:none;background:${lotado?'rgba(255,255,255,.06)':'linear-gradient(135deg,#ea860c,#d62d2d)'};color:${lotado?'rgba(255,255,255,.3)':'#fff'};font-size:13px;font-weight:700;cursor:${lotado?'default':'pointer'};">
+              style="padding:8px 18px;border-radius:10px;border:none;background:${lotado?'rgba(255,255,255,.06)':'linear-gradient(135deg,#ffb02e,#ea860c)'};color:${lotado?'rgba(255,255,255,.3)':'#fff'};font-size:13px;font-weight:700;cursor:${lotado?'default':'pointer'};">
               ${lotado ? 'Lotado' : 'Reservar'}
             </button>`}
           </div>
@@ -4457,7 +4378,7 @@ function rcRenderBikes() {
   for (let i = 1; i <= m.total; i++) {
     const tomada = oc.indexOf(i) >= 0, sel = _rcPendente && _rcPendente.bike === i;
     h += '<button ' + (tomada ? 'disabled' : 'onclick="rcEscolherBike(' + i + ')"') + ' style="padding:12px 0;border-radius:12px;font-family:\'Bebas Neue\',sans-serif;font-size:24px;line-height:1;color:#fff;'
-      + 'background:' + (sel ? 'linear-gradient(135deg,#ea860c,#d62d2d)' : tomada ? 'rgba(214,45,45,.14)' : 'rgba(255,255,255,.07)') + ';'
+      + 'background:' + (sel ? 'linear-gradient(135deg,#ffb02e,#ea860c)' : tomada ? 'rgba(214,45,45,.14)' : 'rgba(255,255,255,.07)') + ';'
       + 'border:2px solid ' + (sel ? '#ffb45a' : tomada ? 'rgba(214,45,45,.4)' : 'rgba(255,255,255,.1)') + ';' + (tomada ? 'opacity:.5;cursor:not-allowed;' : 'cursor:pointer;') + '">'
       + i + (tomada ? '<div style="font-family:Barlow,sans-serif;font-size:8px;letter-spacing:.5px;margin-top:2px;">reservada</div>' : sel ? '<div style="font-family:Barlow,sans-serif;font-size:8px;letter-spacing:.5px;margin-top:2px;">SUA</div>' : '') + '</button>';
   }
@@ -4546,7 +4467,7 @@ function goTab(id,tabId){
 
 function showToast(txt,color){
   var msg=document.createElement('div');
-  msg.style.cssText='position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:'+(color||'linear-gradient(135deg,#ea860c,#d62d2d)')+';color:#fff;font-size:13px;font-weight:700;padding:12px 24px;border-radius:30px;z-index:9999;white-space:nowrap;box-shadow:0 4px 20px rgba(0,0,0,.3);';
+  msg.style.cssText='position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:'+(color||'linear-gradient(135deg,#ffb02e,#ea860c)')+';color:#fff;font-size:13px;font-weight:700;padding:12px 24px;border-radius:30px;z-index:9999;white-space:nowrap;box-shadow:0 4px 20px rgba(0,0,0,.3);';
   msg.textContent=txt;
   document.body.appendChild(msg);
   setTimeout(function(){ if(msg.parentNode) msg.parentNode.removeChild(msg); },3000);
@@ -4555,7 +4476,7 @@ function lojaNotificar(){
   var nome=document.getElementById('profNome')?document.getElementById('profNome').textContent:'';
   var email=document.getElementById('profEmail')?document.getElementById('profEmail').textContent:'';
   var msg=document.createElement('div');
-  msg.style.cssText='position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,#ea860c,#d62d2d);color:#fff;font-size:13px;font-weight:700;padding:12px 24px;border-radius:30px;z-index:9999;white-space:nowrap;box-shadow:0 4px 20px rgba(234,134,12,.4);';
+  msg.style.cssText='position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,#ffb02e,#ea860c);color:#fff;font-size:13px;font-weight:700;padding:12px 24px;border-radius:30px;z-index:9999;white-space:nowrap;box-shadow:0 4px 20px rgba(234,134,12,.4);';
   msg.textContent='✅ Você será notificado no lançamento!';
   document.body.appendChild(msg);
   setTimeout(function(){ msg.style.opacity='0'; msg.style.transition='opacity .5s'; setTimeout(function(){ msg.remove(); },500); },3000);
@@ -7166,7 +7087,7 @@ function navCenterAtualizar() {
 
   if (!prToken) {
     if (lbl) lbl.textContent = 'Entrar';
-    if (btn) { btn.style.background = 'linear-gradient(135deg,#ea860c,#d62d2d)'; btn.style.boxShadow = '0 4px 20px rgba(234,134,12,.45)'; }
+    if (btn) { btn.style.background = 'linear-gradient(135deg,#ffb02e,#ea860c)'; btn.style.boxShadow = '0 4px 20px rgba(234,134,12,.45)'; }
     if (wrap) wrap.onclick = function(){ go('sSplash'); };
     if (tabDesafios) tabDesafios.style.display = '';
     if (tabAgenda)   tabAgenda.style.display   = 'none';
@@ -7192,7 +7113,7 @@ function navCenterAtualizar() {
 
   } else {
     if (lbl) lbl.textContent = 'Início';
-    if (btn) { btn.style.background = 'linear-gradient(135deg,#ea860c,#d62d2d)'; btn.style.boxShadow = '0 4px 20px rgba(234,134,12,.45)'; }
+    if (btn) { btn.style.background = 'linear-gradient(135deg,#ffb02e,#ea860c)'; btn.style.boxShadow = '0 4px 20px rgba(234,134,12,.45)'; }
     if (wrap) wrap.onclick = function(){ goTab('sHome','navRide'); };
     if (tabDesafios) tabDesafios.style.display = '';     // Desafios sempre na barra inferior
     if (tabAgenda)   tabAgenda.style.display   = 'none'; // Agenda fica no botão azul da home
@@ -8566,7 +8487,7 @@ updateProfileUI = function() {
   <div style="font-size:21px;font-weight:800;color:#fff;letter-spacing:.5px;">Conexão perdida</div>
   <div id="reconMsg" style="font-size:15px;color:rgba(255,255,255,.6);max-width:300px;line-height:1.4;">Tentando reconectar à aula. Verifique a sua internet.</div>
   <div id="reconCount" style="font-family:'Bebas Neue',sans-serif;font-size:48px;color:#ea860c;letter-spacing:2px;line-height:1;">2:00</div>
-  <button id="reconRetryBtn" onclick="_reconManualRetry()" style="display:none;margin-top:6px;padding:14px 32px;border-radius:30px;border:none;background:linear-gradient(135deg,#ea860c,#d62d2d);font-size:15px;font-weight:800;letter-spacing:1px;color:#fff;cursor:pointer;">Tentar de novo</button>
+  <button id="reconRetryBtn" onclick="_reconManualRetry()" style="display:none;margin-top:6px;padding:14px 32px;border-radius:30px;border:none;background:linear-gradient(135deg,#ffb02e,#ea860c);font-size:15px;font-weight:800;letter-spacing:1px;color:#fff;cursor:pointer;">Tentar de novo</button>
 </div>
 <script>
 // Monta o arco do gauge em SEGMENTOS ANGULARES — cada pedaço pega a cor da sua posição
@@ -8626,7 +8547,7 @@ updateProfileUI = function() {
     if(document.getElementById('prVoltarAula')) return;
     var b=document.createElement('div');
     b.id='prVoltarAula';
-    b.style.cssText='position:fixed;left:12px;right:12px;bottom:14px;z-index:99999;display:flex;align-items:center;justify-content:center;gap:10px;background:linear-gradient(135deg,#ea860c,#d62d2d);color:#fff;font-family:Barlow Condensed,sans-serif;font-weight:900;letter-spacing:1px;font-size:16px;padding:14px;border-radius:14px;box-shadow:0 6px 24px rgba(214,45,45,.4);cursor:pointer;';
+    b.style.cssText='position:fixed;left:12px;right:12px;bottom:14px;z-index:99999;display:flex;align-items:center;justify-content:center;gap:10px;background:linear-gradient(135deg,#ffb02e,#ea860c);color:#fff;font-family:Barlow Condensed,sans-serif;font-weight:900;letter-spacing:1px;font-size:16px;padding:14px;border-radius:14px;box-shadow:0 6px 24px rgba(214,45,45,.4);cursor:pointer;';
     b.innerHTML='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg> VOLTAR PRA ÚLTIMA AULA ('+s.code+')';
     b.onclick=function(){
       try{ lastCode=s.code; if(s.bike) _bikeSelNum=s.bike; }catch(e){}
@@ -8857,7 +8778,7 @@ async function grvTerminar(){
     +'<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:10px;">'
     +[[ac.wpp.toFixed(1),'WPP','#ffd23f'],[kcal,'KCAL','#ea860c'],[wMed+' W','POTÊNCIA MÉDIA','#fff'],[fmMS(ac.tot),'PEDALADO','#fff']].map(function(x){ return '<div style="background:rgba(255,255,255,.06);border-radius:12px;padding:10px;"><div style="font-family:\'Bebas Neue\',sans-serif;font-size:30px;color:'+x[2]+';line-height:1;">'+x[0]+'</div><div style="font-size:10px;color:rgba(255,255,255,.5);letter-spacing:1px;">'+x[1]+'</div></div>'; }).join('')+'</div>'
     +'<div style="display:flex;flex-direction:column;gap:8px;margin-top:12px;"><button onclick="prExportarTCX()" style="padding:11px;border-radius:24px;border:1.5px solid #fc4c02;background:rgba(252,76,2,.1);color:#fff;font-weight:800;">⬇ Arquivo para Strava / Garmin</button>'
-    +'<button onclick="grvFechar()" style="padding:11px;border-radius:24px;border:none;background:linear-gradient(135deg,#ea860c,#d62d2d);color:#fff;font-weight:900;">Voltar à Loja</button></div></div>'
+    +'<button onclick="grvFechar()" style="padding:11px;border-radius:24px;border:none;background:linear-gradient(135deg,#ffb02e,#ea860c);color:#fff;font-weight:900;">Voltar à Loja</button></div></div>'
     +'<div style="flex:1;min-width:240px;"><div style="font-size:11px;letter-spacing:2px;color:rgba(255,255,255,.5);font-weight:800;margin-bottom:6px;">RANKING DA AULA · ao vivo + gravada</div>'
     +(rk.length?rk.slice(0,12).map(function(x){ var meu=(x.onde==='gravada'&&x.nome===eu);
       return '<div style="display:flex;align-items:center;gap:10px;padding:7px 10px;border-radius:10px;margin-bottom:5px;background:'+(meu?'rgba(234,134,12,.22)':'rgba(255,255,255,.05)')+';">'
@@ -8984,6 +8905,409 @@ async function appDACarregar(){
   }catch(e){ console.warn('[ProRider] desafio entre academias no app:', e&&e.message); }
 }
 setTimeout(function(){ try{ appDACarregar(); }catch(e){} }, 2700);
+</script>
+<script>
+// ═══════════════════════════════════════════════════════════════════
+// 03/10c — APP DO ALUNO: pré-treino com o perfil da TV, conectar, loja e desafios
+// ═══════════════════════════════════════════════════════════════════
+// Cores e alturas das zonas iguais às do Ginásio (PV_ZC / PV_ZH em telas-pv.js)
+zC.z1='#a1a1a1';
+var PR_ZH={z1:22,z2:36,z3:50,z4:66,z5:82,z6:95,z7:100};
+var PR_ZNOME={z1:'Z1',z2:'Z2',z3:'Z3',z4:'Z4',z5:'Z5',z6:'Z6',z7:'Z7'};
+function _prEsc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];}); }
+function _prMin(b){ return Math.max(0,Number(b&&b.dur)||0); }
+function prMMSS(min){ var s=Math.round((min||0)*60); return Math.floor(s/60)+':'+String(s%60).padStart(2,'0'); }
+// partes da aula (aquecimento / principal / volta): pelo segmento, se a aula tiver; senão pelo começo e fim leves
+function prPartes(bl){
+  var p={w:0,m:0,c:0}, tem=bl.some(function(b){ return b.seg; });
+  if(tem){ bl.forEach(function(b){ var s=String(b.seg||''); if(/warm|aquec/i.test(s)) p.w+=_prMin(b); else if(/cool|calma|volta/i.test(s)) p.c+=_prMin(b); else p.m+=_prMin(b); }); return p; }
+  var tot=bl.reduce(function(s,b){ return s+_prMin(b); },0), i=0, j=bl.length-1, leve=function(b){ return b.z==='z1'||b.z==='z2'; };
+  while(i<j && leve(bl[i]) && p.w+_prMin(bl[i])<=tot*.3){ p.w+=_prMin(bl[i]); i++; }
+  while(j>i && bl[j].z==='z1' && p.c+_prMin(bl[j])<=tot*.2){ p.c+=_prMin(bl[j]); j--; }
+  p.m=tot-p.w-p.c; return p;
+}
+// barras: largura = tempo exato do bloco, altura = zona (mesma regra da TV)
+function prBarras(bl){
+  var tot=bl.reduce(function(s,b){ return s+_prMin(b); },0)||1, acc=0;
+  return bl.map(function(b){ var l=acc/tot*100, w=_prMin(b)/tot*100; acc+=_prMin(b);
+    var em=/stand|em\s*p/i.test(String(b.pos||''));
+    return '<i'+(em?' class="std"':'')+' style="left:'+l.toFixed(3)+'%;width:max(1.5px,calc('+w.toFixed(3)+'% - 2px));height:'+(PR_ZH[b.z]||22)+'%;background:'+(zC[b.z]||'#a1a1a1')+'"></i>'; }).join('');
+}
+function prFaixa(bl,curto){
+  var p=prPartes(bl), h='';
+  [[curto?'AQUEC.':'AQUECIMENTO',p.w,'#5db13d'],[curto?'PRINCIPAL':'BLOCO PRINCIPAL',p.m,'#ea860c'],[curto?'CALMA':'VOLTA À CALMA',p.c,'#7fa3ff']].forEach(function(x){
+    var tot=p.w+p.m+p.c||1, txt=x[1]/tot>=(x[0].length>9?.3:.16)?x[0]:'';
+    if(x[1]>0) h+='<span style="flex:'+x[1]+';color:'+x[2]+';border-color:'+x[2]+'">'+(txt||'&nbsp;')+'</span>'; });
+  return h;
+}
+function prEixo(min){ var h=''; for(var k=0;k<=4;k++) h+='<span>'+Math.round((min||0)*k/4)+'′</span>'; return h; }
+function prZonaFaixa(bl){ var zs=bl.map(function(b){ return parseInt(String(b.z).slice(1))||1; }); if(!zs.length) return ''; var a=Math.min.apply(null,zs), b=Math.max.apply(null,zs); return a===b?'Z'+a:'Z'+a+'–Z'+b; }
+function prIcone(bl){ var top=bl.reduce(function(m,b){ return Math.max(m,parseInt(String(b.z).slice(1))||1); },1); return top>=6?'⚡':top>=5?'🔥':top>=4?'⛰️':top>=3?'🚴':'🌿'; }
+
+// ── LISTA DA CATEGORIA (cartões iguais aos da TV) ─────────────────────
+buildCategory=function(catId){
+  var list=document.getElementById('catAulasList'); if(!list) return;
+  var todas=aulas.map(function(a,i){ return {a:a,i:i}; }).concat(tpLerSalvas().map(function(a){ return {a:a,i:-1}; }));
+  window._catLista=[];
+  list.innerHTML=todas.filter(function(x){ return x.a.badge!=='Test' && getAulaCat(x.a)===catId; }).map(function(x){
+    var a=x.a, bl=a.blocos||[], tot=bl.reduce(function(s,b){ return s+_prMin(b); },0), k=window._catLista.push(x)-1, cor=a.badgeColor||'#ea860c';
+    var top=bl.reduce(function(m,b){ return Math.max(m,parseInt(String(b.z).slice(1))||1); },1);
+    return '<div class="pc-card" onclick="_catAbrir('+k+')">'
+      +'<div class="pc-ic" style="background:linear-gradient(135deg,'+(zC['z'+top]||'#ea860c')+'55,rgba(255,255,255,.04))">'+(a.icon||prIcone(bl))+'</div>'
+      +'<div class="pc-info"><b>'+_prEsc(a.nome)+'</b><small>'+prMMSS(tot)+' · '+bl.length+' blocos</small>'
+      +'<div class="pc-tags"><span style="background:'+cor+'26;color:'+cor+';border:1px solid '+cor+'55">'+_prEsc(a.badge||'Aula')+'</span><span style="color:#8fe06a;background:rgba(93,177,61,.1)">'+prZonaFaixa(bl)+'</span></div></div>'
+      +'<div class="pc-tss"><small>TSS</small><b>'+prTSS(bl).tss+'</b></div>'
+      +'<div class="pc-bars">'+prBarras(bl)+'</div></div>';
+  }).join('')||'<div class="lj-vazio">Nenhuma aula nesta categoria ainda.</div>';
+};
+// abre pelo objeto: aula importada (Treino do treinador) também abre (antes o índice apontava para outra lista)
+function _catAbrir(k){ var x=(window._catLista||[])[k]; if(!x) return; if(x.i>=0) openDetail(x.i,'sCategory'); else openDetail(x.a,'sCategory'); }
+
+// ── DETALHE / PRÉ-TREINO ──────────────────────────────────────────────
+var _openDetailAntigo=openDetail;
+openDetail=function(idx,from){
+  var a;
+  if(typeof idx==='object'){ a=idx; cAula=a; } else { curAulaIdx=idx; a=aulas[idx]; cAula=null; }
+  if(!a) return;
+  window._grvPend=false;
+  window._detailFrom=from||'sHome';
+  go('sDetail');
+  var bl=a.blocos||[], tot=bl.reduce(function(s,b){ return s+_prMin(b); },0), t=prTSS(bl);
+  var nDes=bl.filter(function(b){ return b&&b.desafio&&(b.desafio.tipo||b.desafio===true); }).length;
+  document.getElementById('detName').textContent=a.nome||'Aula';
+  document.getElementById('detSub').textContent=String(a.badge||'')==='Test'?'Teste de FTP':(a.tipo==='gravada'?'Aula gravada':'Aula guiada');
+  document.getElementById('detMeta').textContent=prMMSS(tot)+' · '+bl.length+' blocos · '+prZonaFaixa(bl);
+  var bd=document.getElementById('detBadge'), cor=a.badgeColor||'#ea860c';
+  bd.textContent=a.badge||''; bd.style.display=a.badge?'':'none'; bd.style.background=cor+'26'; bd.style.border='1px solid '+cor+'55'; bd.style.color=cor;
+  document.getElementById('detFaixa').innerHTML=prFaixa(bl);
+  document.getElementById('detGraph').innerHTML=prBarras(bl);
+  document.getElementById('detEixo').innerHTML=prEixo(tot);
+  document.getElementById('detTiles').innerHTML=[['Duração',prMMSS(tot)],['TSS',t.tss],['FTP médio',t.np+'%'],['Desafios',nDes]]
+    .map(function(x){ return '<div><small>'+x[0]+'</small><b>'+x[1]+'</b></div>'; }).join('');
+  var zt={}; bl.forEach(function(b){ zt[b.z]=(zt[b.z]||0)+_prMin(b); });
+  document.getElementById('detZdist').innerHTML=['z1','z2','z3','z4','z5','z6','z7'].filter(function(z){ return zt[z]; }).map(function(z){
+    var c=zC[z]; return '<div style="background:'+c+'1f;border:1px solid '+c+'44;color:'+c+'"><small>'+PR_ZNOME[z]+'</small><b>'+Math.round(zt[z]/(tot||1)*100)+'%</b></div>'; }).join('');
+  var de=document.getElementById('detDesc');
+  if(String(a.badge||'')==='Test'){
+    de.innerHTML='<div style="background:rgba(234,134,12,.08);border:1px solid rgba(234,134,12,.22);border-radius:12px;padding:12px 14px;margin-bottom:12px;">'
+      +'<div style="font-size:11px;font-weight:800;letter-spacing:2px;color:#ea860c;text-transform:uppercase;margin-bottom:6px;">O que é FTP</div>'
+      +'<div style="font-size:13.5px;line-height:1.55;color:rgba(255,255,255,.72);">FTP é a maior potência média que você aguenta por cerca de uma hora. Todas as suas zonas saem dele. '
+      +'Repita sempre o mesmo protocolo para comparar sua evolução.'
+      +(a.testDur?(' <b style="color:#fff">Neste teste:</b> '+(a.modo==='rampa'?'o FTP sai de 75% do seu melhor minuto.':(a.modo==='final30'?'o FTP sai da potência dos últimos 30 s.':'o FTP sai de '+Math.round((a.calc||1)*100)+'% da média do bloco de esforço.'))):'')
+      +'</div></div>'+_prEsc(a.desc||'');
+  } else de.textContent=a.desc||'';
+};
+
+// ── CONECTAR (Bluetooth) ──────────────────────────────────────────────
+var _btDev={bike:null,hr:null}, _btTent={bike:0,hr:0}, _cnTimer=null;
+function _cnUI(type,estado,msg){
+  var d=document.getElementById(type==='bike'?'devBike':'devHR'), st=document.getElementById(type==='bike'?'stBike':'stHR'), bt=document.getElementById(type==='bike'?'btnBike':'btnHR');
+  if(!d) return;
+  d.className='cn-dev'+(estado==='idle'?'':' '+(estado==='recon'?'busca':estado));
+  st.textContent=msg;
+  bt.disabled=(estado==='busca');
+  bt.textContent=estado==='busca'?'Aguarde':(estado==='ok'?'Trocar':(estado==='erro'||estado==='recon'?'Tentar de novo':'Procurar'));
+  var lv=document.getElementById(type==='bike'?'liveBike':'liveHR'); if(lv) lv.style.display=(estado==='ok'||estado==='recon')?'flex':'none';
+  _cnBotoes();
+}
+function _cnBotoes(){
+  var on=connected.bike||connected.hr, m=document.getElementById('btnStartMain'), s=document.getElementById('btnStartSem');
+  if(m){ m.style.display=on?'flex':'none'; m.classList.toggle('show',on); }
+  var sub=document.getElementById('cnStartSub'); if(sub) sub.textContent=connected.bike&&connected.hr?'bike e cinta conectadas':(connected.bike?'bike conectada':'cinta conectada');
+  if(s) s.textContent=on?'Começar sem esperar os números':'Começar sem aparelho';
+}
+connDev=function(type,name){ connected[type]=true; _btTent[type]=0; _cnUI(type,'ok','✓ Conectada: '+(name||'aparelho')); };
+scanDev=function(type){
+  if(!navigator.bluetooth){
+    _cnUI(type,'erro','Este navegador não tem Bluetooth.');
+    var dica=document.getElementById('cnDica');
+    if(dica){ dica.style.display='block'; dica.style.background='rgba(214,45,45,.1)'; dica.style.border='1px solid rgba(214,45,45,.35)'; dica.style.color='#ffb0b0';
+      dica.innerHTML='<b>Bluetooth indisponível neste navegador.</b><br>Android: abra no <b>Chrome</b>. iPhone: use o app <b>Bluefy</b> (navegador com Bluetooth) e abra o ProRider por ele. Na academia não precisa: a TV lê a sua bike.'; }
+    return;
+  }
+  scanDevBT(type);
+};
+scanDevBT=function(type){
+  var old=_btDev[type];
+  if(old){ old._prManual=true; try{ old.gatt.disconnect(); }catch(e){} _btDev[type]=null; connected[type]=false; }
+  _cnUI(type,'busca','Escolha o aparelho na lista que abriu…');
+  var opts=type==='hr'?{acceptAllDevices:true,optionalServices:[BTUUID.HEART_RATE]}
+    :{filters:[{namePrefix:'M3'},{namePrefix:'Keiser'},{namePrefix:'KEISER'},{namePrefix:'M3i'},{services:[BTUUID.CYCLING_POWER]},{services:[BTUUID.FTMS]},{services:[BTUUID.CSC]}],
+      optionalServices:[BTUUID.KEISER,BTUUID.CYCLING_POWER,BTUUID.FTMS,BTUUID.CSC]};
+  navigator.bluetooth.requestDevice(opts).then(function(dev){ return _btLigar(type,dev); }).catch(function(err){
+    var msg=err.name==='NotFoundError'?'Nenhum aparelho escolhido. Toque em Procurar de novo.'
+      :err.name==='NotAllowedError'?'Permissão negada: ligue o Bluetooth e a Localização.'
+      :err.name==='SecurityError'?'Bloqueado: o app precisa abrir em https.'
+      :err.name==='InvalidStateError'?'O Bluetooth do celular está desligado.':('Erro: '+(err.message||err.name));
+    _cnUI(type,err.name==='NotFoundError'?'idle':'erro',msg);
+  });
+};
+// liga no aparelho escolhido: 20 s para responder; se cair, tenta reconectar sozinho 3 vezes
+function _btLigar(type,dev){
+  _cnUI(type,'busca','Conectando em '+(dev.name||'aparelho')+'…');
+  var tempo=new Promise(function(_,rej){ setTimeout(function(){ rej(new Error('TEMPO')); },20000); });
+  var liga=dev.gatt.connect().then(function(server){
+    if(type==='hr') return btConnectHR(server,dev);
+    var n=(dev.name||'').toLowerCase();
+    if(n.indexOf('keiser')!==-1||n.indexOf('m3')!==-1) return btConnectKeiser(server,dev);
+    if(/wahoo|kickr|tacx|elite|suito|neo|schwinn|igs|ic /.test(n)) return btConnectFTMS(server,dev);
+    return btConnectCyclingPower(server,dev).catch(function(){ return btConnectFTMS(server,dev); });
+  });
+  return Promise.race([liga,tempo]).then(function(){
+    _btDev[type]=dev;
+    if(!dev._prOuvindo){ dev._prOuvindo=true; dev.addEventListener('gattserverdisconnected',function(){ _btCaiu(type,dev); }); }
+  }).catch(function(e){
+    try{ dev._prManual=true; dev.gatt.disconnect(); }catch(x){} setTimeout(function(){ dev._prManual=false; },500);
+    connected[type]=false;
+    _cnUI(type,'erro',e&&e.message==='TEMPO'?'Não respondeu em 20 s. Chegue perto, pedale para acordar a bike e tente de novo.':'Conectou, mas não achei os dados deste aparelho ('+((e&&e.message)||'erro')+').');
+  });
+}
+function _btCaiu(type,dev){
+  if(dev._prManual||_btDev[type]!==dev) return;
+  connected[type]=false; _btTent[type]++;
+  if(_btTent[type]<=3){ _cnUI(type,'recon','Sinal perdido — reconectando ('+_btTent[type]+'/3)…'); setTimeout(function(){ if(_btDev[type]===dev) _btLigar(type,dev); },1500*_btTent[type]); }
+  else { _btDev[type]=null; _cnUI(type,'erro','Desconectou. Toque em "Tentar de novo".'); try{ showToast('Bluetooth: '+(type==='bike'?'a bike':'a cinta')+' desconectou.','#7a1f1f'); }catch(e){} }
+}
+// números ao vivo na tela de conectar: confirma que os dados estão chegando
+function _cnAoVivo(){
+  var ag=Date.now(), fresco=typeof _bleTs!=='undefined'&&_bleTs&&ag-_bleTs<3500;
+  var w=document.getElementById('cnW'), r=document.getElementById('cnRpm'), h=document.getElementById('cnBpm');
+  if(w) w.textContent=fresco&&typeof _bleWatts!=='undefined'?Math.round(_bleWatts):'—';
+  if(r) r.textContent=fresco&&typeof _bleRpm!=='undefined'?Math.round(_bleRpm):'—';
+  var hr=window._meuHr; if(h) h.textContent=hr&&ag-hr.ts<5000?hr.v:'—';
+  if(connected.bike){ var st=document.getElementById('stBike'); if(st&&st.textContent.indexOf('✓')===0) st.textContent=fresco?'✓ Recebendo dados da bike':'✓ Conectada — pedale para ver os números'; }
+}
+goConnect=function(){
+  var a=cAula||aulas[curAulaIdx]; var nm=document.getElementById('connAulaName'); if(nm) nm.textContent=(a&&a.nome)||'Pedal livre';
+  ['bike','hr'].forEach(function(t){ var d=_btDev[t]; var ligado=!!(d&&d.gatt&&d.gatt.connected); connected[t]=ligado;
+    _cnUI(t,ligado?'ok':'idle',ligado?'✓ Conectada: '+(d.name||'aparelho'):'Não conectada'); });
+  var dica=document.getElementById('cnDica'); if(dica&&navigator.bluetooth) dica.style.display='none';
+  go('sConnect');
+  clearInterval(_cnTimer); _cnTimer=setInterval(function(){ var s=document.getElementById('sConnect'); if(!s||!s.classList.contains('active')){ clearInterval(_cnTimer); return; } _cnAoVivo(); },500);
+};
+function connVoltar(){
+  if(window._grvPend){ window._grvPend=false; goTab('sLoja','navLoja'); return; }   // veio da loja (aula gravada)
+  if(cAula&&cAula.tipo==='free'){ go('sHome'); return; }                            // pedal livre não tem tela de aula
+  go('sDetail');
+}
+var _openFreeRideAntigo=openFreeRide;
+openFreeRide=function(){ window._grvPend=false; _openFreeRideAntigo(); goConnect(); };
+
+// ── LOJA ──────────────────────────────────────────────────────────────
+var _lj={d:null,prof:0,pedido:null,poll:null};
+function _ljTok(){ try{ return localStorage.getItem('pr_token')||''; }catch(e){ return ''; } }
+function _ljBRL(v){ return 'R$ '+Number(v||0).toFixed(2).replace('.',','); }
+function _ljData(s){ if(!s) return ''; var d=new Date(s); return d.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'}); }
+async function lojaCarregar(){
+  var el=document.getElementById('ljConteudo'); if(!el) return;
+  try{
+    var tk=_ljTok(), r=await fetch(SERVER_HTTP+'/loja',{headers:tk?{'Authorization':'Bearer '+tk}:{}});
+    if(!r.ok) throw new Error(); _lj.d=await r.json(); lojaRender();
+  }catch(e){ el.innerHTML='<div class="lj-vazio">Sem conexão com a loja agora. Tente de novo em instantes.</div>'; }
+}
+function lojaRender(){
+  var d=_lj.d, el=document.getElementById('ljConteudo'); if(!d||!el) return;
+  var m=d.minha||{}, saldo=document.getElementById('ljSaldo');
+  if(saldo) saldo.innerHTML=(m.assinaturas&&m.assinaturas.length)?'<span class="lj-chip">⭐ Assinante até '+_ljData(m.assinaturas[0].ate)+'</span>':(m.creditos?'<span class="lj-chip">🎟 '+m.creditos+' crédito'+(m.creditos>1?'s':'')+'</span>':'');
+  var h='';
+  if(!d.vendas_ligadas) h+='<div class="lj-aviso">🛒 As vendas abrem em breve. As aulas grátis já podem ser feitas.</div>';
+  (m.pendentes||[]).forEach(function(p){ h+='<div class="lj-aviso" style="background:rgba(234,134,12,.1);border-color:rgba(234,134,12,.4);color:#ffc27a">⏳ Pagamento pendente: '+_prEsc(p.descricao)+' — '+_ljBRL(p.valor)+(p.url?' · <a style="color:#fff;font-weight:800" href="'+_prEsc(p.url)+'" target="_blank" rel="noopener">pagar</a>':'')+'</div>'; });
+  var profs=d.professores||[];
+  if(profs.length){
+    h+='<div class="lj-sec"><b>Professores</b>'+(_lj.prof?'<a onclick="_lj.prof=0;lojaRender()">ver todos</a>':'')+'</div><div class="lj-profs">'
+      +profs.map(function(p){ var ini=String(p.nome||'?').split(/\s+/).map(function(w){ return w[0]; }).slice(0,2).join('').toUpperCase();
+        return '<div class="lj-prof'+(_lj.prof===p.id?' on':'')+'" onclick="_lj.prof=(_lj.prof==='+p.id+'?0:'+p.id+');lojaRender()"><div class="lj-av"'+(p.foto_url?' style="background-image:url('+_prEsc(p.foto_url)+')"':'')+'>'+(p.foto_url?'':ini)+'</div><b>'+_prEsc(p.nome)+'</b><small>'+p.aulas+' aula'+(p.aulas===1?'':'s')+'</small></div>'; }).join('')+'</div>';
+    if(_lj.prof){ var pp=profs.find(function(x){ return x.id===_lj.prof; }); if(pp&&pp.bio) h+='<div class="ds-txt" style="margin:8px 16px 0">'+_prEsc(pp.bio)+(pp.cidade?' · '+_prEsc(pp.cidade):'')+'</div>'; }
+  }
+  var aulasL=(d.aulas||[]).filter(function(a){ return !_lj.prof||a.professor_id===_lj.prof; });
+  h+='<div class="lj-sec"><b>Aulas gravadas</b><span style="font-size:12px;color:rgba(255,255,255,.4)">'+aulasL.length+'</span></div>';
+  h+=aulasL.length?aulasL.map(function(a){
+    var tot=(a.blocos||[]).reduce(function(s,b){ return s+_prMin(b); },0)||Math.round((a.dur_seg||0)/60);
+    var pr=a.comprada||a.tem_acesso&&a.preco>0?'<span class="lj-preco ok">✓ Liberada</span>':(a.preco>0?'<span class="lj-preco">'+_ljBRL(a.preco)+'</span>':'<span class="lj-preco free">Grátis</span>');
+    return '<div class="lj-aula" onclick="lojaAbrirAula('+a.id+')"><div class="lj-aula-hd"><div class="t"><b>'+_prEsc(a.titulo)+'</b><small>'+(a.professor?'Prof. '+_prEsc(a.professor)+' · ':'')+prMMSS(tot)+(a.nivel?' · '+_prEsc(a.nivel):'')+' · '+prZonaFaixa(a.blocos||[])+'</small></div>'+pr+'</div>'
+      +'<div class="pc-bars" style="height:40px;margin-top:10px">'+prBarras(a.blocos||[])+'</div></div>'; }).join('')
+    :'<div class="lj-vazio">'+(_lj.prof?'Este professor ainda não tem aulas à venda.':'A loja está sendo abastecida. Logo tem aula aqui! 🚴')+'</div>';
+  var prods=(d.produtos||[]).filter(function(p){ return !_lj.prof||!p.professor_id||p.professor_id===_lj.prof; });
+  if(prods.length){
+    h+='<div class="lj-sec"><b>Pacotes e assinaturas</b></div><div class="lj-prods">'+prods.map(function(p){
+      var sub=p.tipo==='assinatura'?('Todas as aulas'+(p.professor?' de '+_prEsc(p.professor):'')+' por '+p.dias+' dias'):(p.creditos+' aula'+(p.creditos>1?'s':'')+(p.professor?' de '+_prEsc(p.professor):'')+' · usar em '+p.dias+' dias');
+      return '<div class="lj-prod'+(p.destaque?' dest':'')+'" onclick="lojaAbrirProduto('+p.id+')">'+(p.destaque?'<span class="tag">MAIS POPULAR</span>':'')+'<b>'+_prEsc(p.nome)+'</b><small>'+sub+'</small>'
+        +'<div class="v">'+_ljBRL(p.preco)+(p.preco_de?'<s>'+_ljBRL(p.preco_de)+'</s>':'')+'</div></div>'; }).join('')+'</div>';
+  }
+  h+='<div class="ds-txt" style="margin:18px 16px 0;text-align:center;font-size:11.5px">Pagamento seguro pelo Asaas (PIX, cartão ou boleto). A ProRider não vê o número do seu cartão.</div>';
+  el.innerHTML=h;
+}
+function _ljSheet(html){ var s=document.getElementById('ljSheet'); if(!s){ s=document.createElement('div'); s.id='ljSheet'; s.className='lj-sheet'; s.onclick=function(e){ if(e.target===s) lojaFechar(); }; document.body.appendChild(s); }
+  s.innerHTML='<div class="lj-sheet-in"><button class="lj-x" onclick="lojaFechar()">✕</button>'+html+'</div>'; s.classList.add('on'); }
+function lojaFechar(){ var s=document.getElementById('ljSheet'); if(s) s.classList.remove('on'); clearInterval(_lj.poll); }
+function lojaAbrirAula(id){
+  var a=((_lj.d||{}).aulas||[]).find(function(x){ return x.id===id; }); if(!a) return;
+  var bl=a.blocos||[], tot=bl.reduce(function(s,b){ return s+_prMin(b); },0), m=(_lj.d.minha||{}), t=prTSS(bl.map(function(b){ return {z:b.z,dur:b.dur}; }));
+  var cred=(m.pacotes||[]).some(function(c){ return !c.professor_id||c.professor_id===a.professor_id; });
+  var cta;
+  if(a.tem_acesso) cta=a.video_ok?'<button class="pd-go" onclick="lojaFazer('+a.id+')"><b>▶ FAZER AULA</b><small>conectar a bike<br>e começar</small></button>':'<div class="lj-aviso">O vídeo desta aula ainda está sendo enviado. Volte daqui a pouco.</div>';
+  else if(cred) cta='<button class="pd-go" onclick="lojaUsarCredito('+a.id+')"><b>USAR 1 CRÉDITO</b><small>você tem '+m.creditos+'</small></button>'+(_lj.d.vendas_ligadas?'<button class="pd-sec2" style="margin-top:8px" onclick="lojaComprar(\'aula\','+a.id+')">ou comprar avulsa por '+_ljBRL(a.preco)+'</button>':'');
+  else if(_lj.d.vendas_ligadas) cta='<button class="pd-go" onclick="lojaComprar(\'aula\','+a.id+')"><b>COMPRAR '+_ljBRL(a.preco)+'</b><small>PIX, cartão<br>ou boleto</small></button>';
+  else cta='<button class="pd-go" disabled><b>EM BREVE</b><small>vendas abrindo</small></button>';
+  _ljSheet('<h3>'+_prEsc(a.titulo)+'</h3><div class="sub">'+(a.professor?'Prof. '+_prEsc(a.professor)+' · ':'')+prMMSS(tot)+' · '+prZonaFaixa(bl)+(a.nivel?' · '+_prEsc(a.nivel):'')+'</div>'
+    +'<div class="pd-card" style="margin:14px 0 0"><div class="pd-lbl">Perfil da aula</div><div class="pd-faixa">'+prFaixa(bl)+'</div><div class="pd-bars" style="height:130px">'+prBarras(bl)+'</div><div class="pd-eixo">'+prEixo(tot)+'</div></div>'
+    +'<div class="pd-tiles" style="margin:10px 0 0;grid-template-columns:repeat(3,1fr)"><div><small>Duração</small><b>'+prMMSS(tot)+'</b></div><div><small>TSS</small><b>'+t.tss+'</b></div><div><small>FTP médio</small><b>'+t.np+'%</b></div></div>'
+    +(a.descricao?'<div class="pd-desc" style="margin:14px 0 0">'+_prEsc(a.descricao)+'</div>':'')
+    +'<div class="ds-txt" style="margin:12px 0 14px">Você pedala com o vídeo do professor e o gráfico da aula; seu resultado entra no ranking junto com quem fez ao vivo.</div>'+cta);
+}
+function lojaAbrirProduto(id){
+  var p=((_lj.d||{}).produtos||[]).find(function(x){ return x.id===id; }); if(!p) return;
+  var sub=p.tipo==='assinatura'?('Todas as aulas'+(p.professor?' de '+_prEsc(p.professor):'')+' liberadas por '+p.dias+' dias.'):(p.creditos+' crédito'+(p.creditos>1?'s':'')+' — cada crédito libera 1 aula'+(p.professor?' de '+_prEsc(p.professor):'')+' para sempre. Use em até '+p.dias+' dias.');
+  _ljSheet('<h3>'+_prEsc(p.nome)+'</h3><div class="sub">'+sub+'</div>'+(p.descricao?'<div class="pd-desc" style="margin:12px 0 0">'+_prEsc(p.descricao)+'</div>':'')
+    +'<div class="ds-big" style="margin:14px 0 16px;color:#ffb45a">'+_ljBRL(p.preco)+(p.preco_de?'<span style="text-decoration:line-through">'+_ljBRL(p.preco_de)+'</span>':'')+'</div>'
+    +(_lj.d.vendas_ligadas?'<button class="pd-go" onclick="lojaComprar(\'produto\','+p.id+')"><b>COMPRAR</b><small>PIX, cartão<br>ou boleto</small></button>':'<button class="pd-go" disabled><b>EM BREVE</b><small>vendas abrindo</small></button>'));
+}
+async function lojaComprar(tipo,id,cpf){
+  if(!requireLogin('Entre na sua conta para comprar.')) return;
+  var w=null; if(cpf!==undefined||(_lj.d&&_lj.d.logado)) { try{ w=window.open('','_blank'); }catch(e){} }   // abre a aba já no toque (o celular bloqueia depois)
+  try{
+    var r=await fetch(SERVER_HTTP+'/loja/comprar',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+_ljTok()},body:JSON.stringify({tipo:tipo,id:id,cpf_cnpj:cpf||''})}), d=await r.json();
+    if(!r.ok){ if(w) w.close();
+      if(d.precisa_cpf){ _ljSheet('<h3>SEU CPF</h3><div class="sub">Só na primeira compra: o Asaas precisa do CPF para emitir a cobrança. Ele vai direto ao Asaas — a ProRider não guarda.</div><input id="ljCpf" class="lj-in" inputmode="numeric" placeholder="só números" style="margin:14px 0">'
+        +'<button class="pd-go" onclick="lojaComprar(\''+tipo+'\','+id+',document.getElementById(\'ljCpf\').value)"><b>CONTINUAR</b><small>abre o pagamento</small></button>'); return; }
+      showToast(d.error||'Não consegui gerar a cobrança.'); return; }
+    if(w) w.location=d.url; else window.open(d.url,'_blank');
+    _lj.pedido=d.pedido_id;
+    _ljSheet('<h3>AGUARDANDO O PAGAMENTO</h3><div class="sub">A página segura do Asaas abriu em outra aba. Pague com PIX, cartão ou boleto e volte aqui: a aula libera sozinha.</div>'
+      +'<div class="lj-aviso" id="ljStatus" style="margin:14px 0">⏳ Esperando a confirmação…</div>'
+      +'<a class="pd-sec2" style="display:block;text-align:center;text-decoration:none;margin-bottom:8px" href="'+_prEsc(d.url)+'" target="_blank" rel="noopener">Abrir o pagamento de novo</a>'
+      +'<button class="pd-go" onclick="lojaConferir(true)" style="justify-content:center"><b>JÁ PAGUEI</b></button>');
+    clearInterval(_lj.poll); var n=0; _lj.poll=setInterval(function(){ if(++n>60){ clearInterval(_lj.poll); return; } lojaConferir(false); },5000);
+  }catch(e){ if(w) w.close(); showToast('Sem conexão.'); }
+}
+async function lojaConferir(manual){
+  if(!_lj.pedido) return;
+  try{
+    var r=await fetch(SERVER_HTTP+'/loja/pedidos/'+_lj.pedido,{headers:{'Authorization':'Bearer '+_ljTok()}}), d=await r.json(), st=document.getElementById('ljStatus');
+    if(d.status==='pago'){ clearInterval(_lj.poll); _lj.pedido=null; lojaFechar(); showToast('✅ Pagamento confirmado!','#2f7d1f'); await lojaCarregar(); return; }
+    if(st&&manual) st.textContent='⏳ Ainda não chegou a confirmação. PIX costuma levar alguns segundos; cartão, até 1 minuto.';
+  }catch(e){}
+}
+async function lojaUsarCredito(id){
+  try{
+    var r=await fetch(SERVER_HTTP+'/loja/aulas/'+id+'/usar-credito',{method:'POST',headers:{'Authorization':'Bearer '+_ljTok()}}), d=await r.json();
+    if(!r.ok){ showToast(d.error||'Não deu.'); return; }
+    showToast('🎟 Aula liberada!','#2f7d1f'); await lojaCarregar(); lojaAbrirAula(id);
+  }catch(e){ showToast('Sem conexão.'); }
+}
+function lojaFazer(id){
+  var a=((_lj.d||{}).aulas||[]).find(function(x){ return x.id===id; }); if(!a) return;
+  if(!requireLogin('Entre na sua conta para fazer a aula.')) return;
+  lojaFechar(); grvAbrir(a.gravada_id);
+}
+var _lojaGravadasAntigo=lojaGravadasCarregar;
+lojaGravadasCarregar=function(){ lojaCarregar(); try{ _lojaGravadasAntigo(); }catch(e){} };
+
+// ── DESAFIOS ──────────────────────────────────────────────────────────
+var _ds={d:null};
+loadDesafios=async function(){
+  var el=document.getElementById('dsConteudo'); if(!el) return;
+  var tk=_ljTok(), h='';
+  var rk=[]; try{ rk=(await (await fetch(SERVER_HTTP+'/desafios/ranking/mensal')).json()).ranking||[]; }catch(e){}
+  if(!tk){
+    el.innerHTML=_dsCard21(null)+_dsCardFtp(null)+_dsCardMes(rk,null)+'<div class="lj-vazio">Entre na sua conta para participar dos desafios. <br><button class="ds-btn-top" style="margin-top:10px" onclick="go(\'sSplash\')">Entrar</button></div>';
+    return;
+  }
+  try{ var r=await fetch(SERVER_HTTP+'/desafios/meus',{headers:{'Authorization':'Bearer '+tk}}); _ds.d=r.ok?await r.json():null; }catch(e){ _ds.d=null; }
+  var d=_ds.d;
+  if(d&&d.d21&&d.d21.conquistado_agora) showToast('🏅 Desafio 21 dias conquistado! +'+d.d21.pontos+' pts','#2f7d1f');
+  if(d&&d.ftp&&d.ftp.conquistado_agora) showToast('⚡ Quebra FTP conquistado! +'+d.ftp.pontos+' pts','#2f7d1f');
+  h=_dsCard21(d)+_dsCardFtp(d)+_dsCardMes(rk,d)+_dsGrupos(d);
+  el.innerHTML=h;
+};
+function _dsCard21(d){
+  var x=(d&&d.d21)||{dias:0,meta:21,janela:30,pontos:500}, pct=Math.min(100,Math.round(x.dias/x.meta*100)), dots='';
+  for(var i=0;i<30;i++) dots+='<i class="'+(i<x.dias?'on':'')+'"></i>';
+  return '<div class="ds-card"><div class="ds-hd"><div class="ds-ic" style="background:linear-gradient(135deg,#ffb02e,#ea860c)">🔥</div><div class="t"><b>21 DIAS</b><small>Pedale em 21 dias diferentes dentro de 30 dias</small></div></div>'
+    +'<div class="ds-big">'+x.dias+'<span>/ '+x.meta+' dias</span></div><div class="ds-bar"><i style="width:'+pct+'%"></i></div><div class="ds-dias">'+dots+'</div>'
+    +'<div class="ds-txt">'+(x.dias>=x.meta?'Meta batida! 🏅':'Faltam <b style="color:#fff">'+(x.meta-x.dias)+'</b> dias. Vale aula na academia, em casa, pedal livre ou aula gravada. Prêmio: selo + '+x.pontos+' pts.')+'</div>'
+    +(x.ultimo?'<div class="ds-selo">🏅 Conquistado em '+_ljData(x.ultimo)+'</div>':'')
+    +'<div class="ds-acts"><button onclick="dsVerRanking(\'21dias\',\'🔥 21 DIAS\')">Ranking</button><button class="pri" onclick="dsDesafiarNeste(\'21dias\')">Desafiar amigos</button></div></div>';
+}
+function _dsCardFtp(d){
+  var x=(d&&d.ftp)||{base:0,atual:0,ganho_pct:0,meta_pct:5,pontos:300}, pct=Math.max(0,Math.min(100,Math.round(x.ganho_pct/x.meta_pct*100)));
+  var txt=!x.atual?'Faça um teste de FTP para entrar no desafio.':(x.ganho_pct>=x.meta_pct?'Você quebrou o seu FTP este mês! ⚡':(x.ganho_pct>0?'Faltam '+(Math.round((x.meta_pct-x.ganho_pct)*10)/10)+'% para a meta. Refaça o teste no fim do mês.':'Meta: subir '+x.meta_pct+'% o FTP neste mês. Faça um teste de FTP para medir.'));
+  return '<div class="ds-card"><div class="ds-hd"><div class="ds-ic" style="background:linear-gradient(135deg,#295fe8,#9b30ff)">⚡</div><div class="t"><b>QUEBRA FTP</b><small>Suba '+x.meta_pct+'% o seu FTP no mês · selo + '+x.pontos+' pts</small></div></div>'
+    +'<div class="ds-big">'+(x.ganho_pct>0?'+':'')+x.ganho_pct+'%<span>'+(x.base?x.base+' W → '+x.atual+' W':'')+'</span></div><div class="ds-bar"><i style="width:'+pct+'%"></i></div>'
+    +'<div class="ds-txt">'+txt+'</div>'+(x.ultimo?'<div class="ds-selo">⚡ Conquistado em '+_ljData(x.ultimo)+'</div>':'')
+    +'<div class="ds-acts"><button onclick="dsVerRanking(\'ftp\',\'⚡ QUEBRA FTP\')">Ranking</button><button class="pri" onclick="_dsTesteFtp()">Fazer teste de FTP</button></div></div>';
+}
+function _dsTesteFtp(){ try{ var t=(aulas||[]).find(function(a){ return String(a.badge)==='Test'; }); if(t){ openDetail(t,'sDesafios'); return; } }catch(e){} goTab('sHome','navRide'); }
+function _dsCardMes(rk,d){
+  var eu=prUser&&prUser.id, med=['🥇','🥈','🥉'], minha=rk.find(function(u){ return u.user_id===eu; });
+  var top=rk.slice(0,3).map(function(u,i){ return '<div class="ds-rk'+(u.user_id===eu?' eu':'')+'"><span class="p">'+med[i]+'</span><span class="n">'+_prEsc(u.nome||'—')+'</span><span class="v">'+(u.pontos||u.valor||0)+' pts</span></div>'; }).join('');
+  return '<div class="ds-card"><div class="ds-hd"><div class="ds-ic" style="background:linear-gradient(135deg,#d7c414,#ea860c)">🏆</div><div class="t"><b>RANKING DO MÊS</b><small>'+new Date().toLocaleDateString('pt-BR',{month:'long'})+' · pontos das aulas</small></div></div>'
+    +'<div style="margin-top:10px">'+(top||'<div class="ds-txt">Ainda ninguém pedalou este mês. Seja o primeiro!</div>')+'</div>'
+    +(minha&&minha.pos>3?'<div class="ds-rk eu" style="margin-top:4px"><span class="p">'+minha.pos+'º</span><span class="n">Você</span><span class="v">'+minha.pontos+' pts</span></div>':'')
+    +'<div class="ds-acts"><button onclick="dsVerRanking(\'mensal\',\'🏆 RANKING DO MÊS\')">Ver ranking completo</button></div></div>';
+}
+function _dsGrupos(d){
+  var gs=(d&&d.grupos)||[], nome={'21dias':'21 dias','mensal':'pontos do mês','ftp':'Quebra FTP'};
+  return '<div class="lj-sec"><b>Meus grupos</b><a onclick="dsAbrirConvite()">+ criar ou entrar</a></div>'
+    +(gs.length?gs.map(function(g){ return '<div class="ds-card" style="padding:14px"><div class="ds-hd"><div class="ds-ic" style="background:rgba(234,134,12,.14);font-size:20px">👥</div><div class="t"><b style="font-size:20px">'+_prEsc(g.nome)+'</b><small>'+g.membros+' pessoa'+(g.membros>1?'s':'')+' · '+(nome[g.desafio_id]||g.desafio_id)+' · código <span style="color:#ffb45a;font-weight:800;letter-spacing:1px">'+g.codigo+'</span></small></div></div>'
+      +'<div class="ds-acts"><button onclick="dsVerRanking(\'grupo:'+g.codigo+'\',\''+_prEsc(g.nome).replace(/'/g,'')+'\')">Ranking</button><button onclick="dsCompartilharGrupo(\''+g.codigo+'\')">Convidar</button><button onclick="dsSairGrupo(\''+g.codigo+'\')" style="flex:0 0 auto">Sair</button></div></div>'; }).join('')
+      :'<div class="lj-vazio">Crie um grupo com os amigos da turma e vejam quem pedala mais.</div>');
+}
+dsVerRanking=async function(id,titulo){
+  var modal=document.getElementById('dsModalRanking'), lista=document.getElementById('dsModalRankLista'); if(!modal) return;
+  modal.style.display='flex'; document.getElementById('dsModalRankTitulo').textContent=titulo||'RANKING';
+  lista.innerHTML='<div class="lj-vazio">Carregando…</div>';
+  var grupo=String(id).indexOf('grupo:')===0, url=grupo?'/desafios/grupos/'+id.slice(6)+'/ranking':'/desafios/ranking/'+id;
+  try{
+    var d=await (await fetch(SERVER_HTTP+url)).json(), tipo=grupo?((d.grupo||{}).desafio_id||'mensal'):id, eu=prUser&&prUser.id, med=['🥇','🥈','🥉'];
+    var fmt=function(u){ return tipo==='21dias'?u.valor+' dias':(tipo==='ftp'?(u.valor>0?'+':'')+u.valor+'%':(u.pontos||u.valor||0)+' pts'); };
+    var sub=function(u){ return tipo==='ftp'&&u.base?u.base+' W → '+u.atual+' W':(tipo==='mensal'||!tipo?(u.aulas||0)+' aulas no mês':''); };
+    lista.innerHTML=(d.ranking||[]).map(function(u,i){ return '<div class="ds-rk'+(u.user_id===eu?' eu':'')+'" style="padding:10px 4px"><span class="p">'+(med[i]||(i+1))+'</span><span class="n">'+_prEsc(u.nome||'—')+(u.user_id===eu?' <small style="color:#ea860c">você</small>':'')+'<br><small style="color:rgba(255,255,255,.4);font-weight:400">'+sub(u)+'</small></span><span class="v">'+fmt(u)+'</span></div>'; }).join('')
+      ||'<div class="lj-vazio">Ainda sem ninguém neste ranking.</div>';
+  }catch(e){ lista.innerHTML='<div class="lj-vazio">Sem conexão.</div>'; }
+};
+dsAbaConvite=function(aba){
+  var c=aba==='criar';
+  document.getElementById('dsPainelCriar').style.display=c?'block':'none'; document.getElementById('dsPainelEntrar').style.display=c?'none':'block';
+  var on='background:rgba(234,134,12,.22);color:#ffb45a', off='background:transparent;color:rgba(255,255,255,.45)';
+  document.getElementById('dsCriarTab').style.cssText+=';'+(c?on:off); document.getElementById('dsEntrarTab').style.cssText+=';'+(c?off:on);
+};
+dsDesafiarNeste=function(id){ if(!requireLogin('Entre para desafiar amigos!')) return; dsAbrirConvite(); document.querySelectorAll('[name="dsDesafioRad"]').forEach(function(r){ r.checked=r.value===id; }); };
+dsCriarGrupo=async function(){
+  var nome=(document.getElementById('dsGrupoNomeInput').value||'').trim(); if(!nome){ showToast('Dê um nome ao grupo.'); return; }
+  var des=(document.querySelector('[name="dsDesafioRad"]:checked')||{}).value||'21dias';
+  try{ var r=await fetch(SERVER_HTTP+'/desafios/grupos',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+_ljTok()},body:JSON.stringify({nome:nome,desafio_id:des})}), d=await r.json();
+    if(!r.ok){ showToast(d.error||'Não consegui criar.'); return; }
+    document.getElementById('dsModalConvite').style.display='none'; await loadDesafios(); dsCompartilharGrupo(d.codigo);
+  }catch(e){ showToast('Sem conexão.'); }
+};
+dsEntrarGrupo=async function(){
+  var cod=(document.getElementById('dsCodigoInput').value||'').trim().toUpperCase(); if(!cod){ showToast('Digite o código.'); return; }
+  if(!/^GRP-/.test(cod)) cod='GRP-'+cod.replace(/^GRP/,'');
+  try{ var r=await fetch(SERVER_HTTP+'/desafios/grupos/'+encodeURIComponent(cod)+'/entrar',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+_ljTok()},body:'{}'}), d=await r.json();
+    if(!r.ok){ showToast(d.error||'Código não encontrado.'); return; }
+    document.getElementById('dsModalConvite').style.display='none'; showToast('✅ Você entrou no grupo '+(d.nome||cod)+'!','#2f7d1f'); loadDesafios();
+  }catch(e){ showToast('Sem conexão.'); }
+};
+dsCompartilharGrupo=function(cod){
+  cod=cod||((_dsGrupoAtual||{}).codigo); if(!cod) return;
+  var t='🚴 Bora pedalar no desafio ProRider! Entra no meu grupo com o código '+cod+' (aba Desafios do app).';
+  if(navigator.share){ navigator.share({title:'ProRider — Desafio',text:t}).catch(function(){}); return; }
+  try{ navigator.clipboard.writeText(t).then(function(){ showToast('📋 Convite copiado: '+cod); }).catch(function(){ prompt('Copie o convite:',t); }); }catch(e){ prompt('Copie o convite:',t); }
+};
+async function dsSairGrupo(cod){
+  if(!confirm('Sair do grupo '+cod+'?')) return;
+  try{ await fetch(SERVER_HTTP+'/desafios/grupos/'+cod+'/sair',{method:'POST',headers:{'Authorization':'Bearer '+_ljTok()}}); try{ if((JSON.parse(localStorage.getItem('pr_grupo')||'{}')).codigo===cod) localStorage.removeItem('pr_grupo'); }catch(e){} loadDesafios(); }catch(e){ showToast('Sem conexão.'); }
+}
+
+['dsModalRanking','dsModalConvite'].forEach(function(id){ var m=document.getElementById(id); if(m) document.body.appendChild(m); });
+// ── CAMINHOS: telas de fluxo sem a barra de baixo; botão do professor que quebrava ──
+var _goAntigo03c=go;
+go=function(id){
+  if(id==='sScan') id='sQRScan';   // botão "SCAN QR DA AULA" do professor apontava para uma tela que não existe
+  _goAntigo03c(id);
+  if(id==='sDetail'||id==='sConnect'){ var n=document.getElementById('bNav'); if(n) n.style.display='none'; }
+};
 </script>
 </body>
 </html><!-- QR Scan screen -->
@@ -9170,7 +9494,7 @@ setTimeout(function(){ try{ appDACarregar(); }catch(e){} }, 2700);
       </div>
       <!-- Opcoes -->
       <div style="display:flex;flex-direction:column;gap:10px;width:100%;">
-        <button id="obRegBtn" onclick="obSaveAndHome()" style="padding:15px;border-radius:30px;border:none;background:linear-gradient(135deg,#ea860c,#d62d2d);font-size:16px;font-weight:900;letter-spacing:2px;color:#fff;cursor:pointer;">COMECAR COM ESTE FTP</button>
+        <button id="obRegBtn" onclick="obSaveAndHome()" style="padding:15px;border-radius:30px;border:none;background:linear-gradient(135deg,#ffb02e,#ea860c);font-size:16px;font-weight:900;letter-spacing:2px;color:#fff;cursor:pointer;">COMECAR COM ESTE FTP</button>
         <button id="obTestBtn" onclick="obSaveAndTest()" style="padding:14px;border-radius:30px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);font-size:14px;font-weight:700;color:rgba(255,255,255,.7);cursor:pointer;">Quero fazer o teste de FTP agora</button>
         <button id="obSkipBtn" onclick="obSaveAndHome()" style="padding:10px;border-radius:30px;background:transparent;border:none;font-size:13px;color:rgba(255,255,255,.3);cursor:pointer;">Usar estimativa e ajustar depois</button>
       </div>
@@ -9183,7 +9507,7 @@ setTimeout(function(){ try{ appDACarregar(); }catch(e){} }, 2700);
 
   <!-- Botao PROXIMO -->
   <div style="position:absolute;bottom:28px;left:28px;right:28px;" id="obNextWrap">
-    <button onclick="obNext()" id="obNextBtn" style="width:100%;padding:16px;border-radius:30px;border:none;background:linear-gradient(135deg,#ea860c,#d62d2d);font-size:17px;font-weight:900;letter-spacing:2px;color:#fff;cursor:pointer;opacity:.4;pointer-events:none;transition:opacity .2s;">PRÓXIMO</button>
+    <button onclick="obNext()" id="obNextBtn" style="width:100%;padding:16px;border-radius:30px;border:none;background:linear-gradient(135deg,#ffb02e,#ea860c);font-size:17px;font-weight:900;letter-spacing:2px;color:#fff;cursor:pointer;opacity:.4;pointer-events:none;transition:opacity .2s;">PRÓXIMO</button>
   </div>
 
 </div>

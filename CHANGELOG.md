@@ -33,6 +33,24 @@ Componentes: `servidor` · `app` · `ginasio` · `portal` · `banco`.
 
 ---
 
+## 2026-10-03 · servidor + app + admin + Ginásio · 03/10c — Loja (venda de aulas), desafios reais, pré-treino e Bluetooth
+
+**O que mudou**
+- **Loja do app (venda de aulas gravadas):** o super admin abastece em *Admin → Loja do app*: professores, aulas à venda (cada uma usa o roteiro de uma gravação da TV; vídeo do servidor ou por link do Dropbox/Drive), pacotes de créditos e assinaturas (quantos modelos quiser), vendas e repasse por professor no mês, 🎁 cortesia. Botão para ligar/desligar as vendas.
+- **Compra no app:** aula avulsa, pacote (1 crédito = 1 aula para sempre) ou assinatura. Pagamento pelo Asaas da ProRider (PIX, cartão ou boleto, página segura); o CPF vai direto ao Asaas e não é guardado. O webhook libera na hora; estorno tira o acesso. Rotas: `GET /loja`, `POST /loja/comprar`, `GET /loja/pedidos/:id`, `POST /loja/aulas/:id/usar-credito`, `/admin/loja*`. Tabelas `loja_*`, `sistema_cfg`.
+- **Aula comprada** abre no mesmo player da aula gravada (vídeo + gráfico + ranking com quem fez ao vivo). Gravação usada na loja não é apagada pela limpeza de 72 h.
+- **Desafios reais:** 21 dias (dias diferentes com pedal em 30 dias → selo + 500 pts), Quebra FTP (FTP do começo do mês × agora, meta +5% → selo + 300 pts; histórico de FTP por gatilho no banco), ranking do mês (pontos reais), grupos no servidor (vários grupos, qualquer aparelho, sair do grupo, ranking pelo desafio do grupo). Rotas `GET /desafios/meus`, `POST /desafios/grupos/:codigo/sair`; rankings `mensal`, `21dias`, `ftp`.
+- **Pré-treino no celular igual ao da TV:** lista da categoria em cartões (perfil, TSS, zonas); detalhe com faixa aquecimento/principal/volta, barras no tempo exato, eixo, Duração/TSS/FTP médio/Desafios e tempo em cada zona. Z1 cinza da TV (#a1a1a1). Botões principais laranja (eram vermelhos).
+- **Conectar (Bluetooth):** tela em português, estado de cada aparelho, números ao vivo (W, RPM, bpm), 20 s de limite para conectar, reconexão sozinha (3 tentativas), "Trocar" desconecta o anterior, dicas, aviso claro sem Bluetooth (Android: Chrome; iPhone: Bluefy).
+- **Caminhos do app:** voltar do conectar vai para a aula / loja / início conforme a origem; aula gravada não "vaza" para a próxima aula; aula importada (Treino do treinador) abre pela categoria; botão do professor "Scan QR" não quebra mais; detalhe e conectar sem a barra de baixo.
+- **Ginásio:** a gravação avisa na TV (não começou / salva / no app / falhou).
+
+**Como confirmar**
+- `tloja.js` (28), `tdes2.js` (15), `tlojaui.js`, `tlojaui2.js`, `tgrv.js`, `tpg2.js`: tudo OK.
+
+**Cuidados**
+- **Gravações enviadas pela TV ficam no disco do Railway.** Sem um *Volume* montado na pasta de `GRAVACOES_TESTE_DIR`, cada deploy apaga os vídeos.
+
 ## 2026-10-03 · servidor + site · 03/10b — Demo 2: faturas no dia 3 com o admin no dia 4; login do financeiro caindo no lugar errado
 
 **O que mudou**

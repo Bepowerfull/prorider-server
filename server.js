@@ -821,6 +821,7 @@ async function runMigrations() {
     await campMigrar().catch(e => log('Migração 01/10a (campeonatos) ERRO: ' + e.message));
     await daMigrar().catch(e => log('Migração 02/10a (desafio entre academias) ERRO: ' + e.message));
     await gvMigrar().catch(e => log('Migração 02/10b (gravar e transmitir) ERRO: ' + e.message));
+    await lojaMigrar().catch(e => log('Migração 03/10c (loja e desafios) ERRO: ' + e.message));
     await esMigrar().catch(e => log('Migração 02/10c (lista de espera e lembretes) ERRO: ' + e.message));
     await db.query(`ALTER TABLE licencas ADD COLUMN IF NOT EXISTS asaas_customer TEXT, ADD COLUMN IF NOT EXISTS asaas_sub TEXT`).catch(e => log('Migração 02/10h (Asaas) ERRO: ' + e.message));
     // 02/10l: licença criada sem situação (status NULL) não ativava a TV ("Licença não encontrada ou inativa")
@@ -5226,55 +5227,14 @@ function gerarCodigoGrupo() {
   return 'GRP-' + c;
 }
 
-// GET /desafios/ranking/mensal — top alunos do mês (público)
+// 03/10c: rankings reais — 'mensal' (pontos do mês), '21dias' (dias com pedal em 30 dias), 'ftp' (% de ganho no mês)
 app.get('/desafios/ranking/mensal', async (req, res) => {
   if (!db) return res.json({ ranking: [] });
-  const mes = parseInt(req.query.mes || new Date().getMonth() + 1);
-  const ano = parseInt(req.query.ano || new Date().getFullYear());
-  try {
-    const r = await db.query(`
-      SELECT u.id AS user_id, u.name AS nome,
-             COUNT(ah.id) AS aulas,
-             COALESCE(SUM(u_pts.pts_aula), COUNT(ah.id) * 100) AS pontos
-      FROM aula_historico ah
-      JOIN users u ON u.id = ah.user_id
-      LEFT JOIN LATERAL (SELECT 100 AS pts_aula) u_pts ON true
-      WHERE EXTRACT(MONTH FROM ah.data_aula) = $1
-        AND EXTRACT(YEAR  FROM ah.data_aula) = $2
-      GROUP BY u.id, u.name
-      ORDER BY pontos DESC
-      LIMIT 50
-    `, [mes, ano]);
-    res.json({ ranking: r.rows.map(x => ({ ...x, aulas: parseInt(x.aulas), pontos: parseInt(x.pontos) })) });
-  } catch(e) {
-    res.json({ ranking: [] });
-  }
+  try { res.json({ ranking: await desafioRanking('mensal') }); } catch (e) { log('ranking mensal: ' + e.message); res.json({ ranking: [] }); }
 });
-
-// GET /desafios/ranking/:desafio_id — ranking por tipo de desafio
 app.get('/desafios/ranking/:desafio_id', async (req, res) => {
   if (!db) return res.json({ ranking: [] });
-  const desafioId = req.params.desafio_id;
-  const mes = new Date().getMonth() + 1;
-  const ano = new Date().getFullYear();
-  try {
-    // Por enquanto todos os desafios usam contagem de aulas do mês
-    const r = await db.query(`
-      SELECT u.id AS user_id, u.name AS nome,
-             COUNT(ah.id) AS aulas,
-             COUNT(ah.id) * 100 AS pontos
-      FROM aula_historico ah
-      JOIN users u ON u.id = ah.user_id
-      WHERE EXTRACT(MONTH FROM ah.data_aula) = $1
-        AND EXTRACT(YEAR  FROM ah.data_aula) = $2
-      GROUP BY u.id, u.name
-      ORDER BY pontos DESC
-      LIMIT 50
-    `, [mes, ano]);
-    res.json({ desafio_id: desafioId, ranking: r.rows.map(x => ({ ...x, aulas: parseInt(x.aulas), pontos: parseInt(x.pontos) })) });
-  } catch(e) {
-    res.json({ ranking: [] });
-  }
+  try { res.json({ desafio_id: req.params.desafio_id, ranking: await desafioRanking(req.params.desafio_id) }); } catch (e) { log('ranking desafio: ' + e.message); res.json({ ranking: [] }); }
 });
 
 // POST /desafios/grupos — criar grupo
@@ -5324,33 +5284,29 @@ app.post('/desafios/grupos/:codigo/entrar', authMiddleware, async (req, res) => 
   }
 });
 
-// GET /desafios/grupos/:codigo/ranking — ranking do grupo
+// GET /desafios/grupos/:codigo/ranking — ranking do grupo (03/10c: pelo desafio do grupo)
 app.get('/desafios/grupos/:codigo/ranking', async (req, res) => {
   if (!db) return res.json({ ranking: [] });
-  const codigo = req.params.codigo.toUpperCase();
-  const mes = new Date().getMonth() + 1;
-  const ano = new Date().getFullYear();
   try {
-    const g = await db.query('SELECT * FROM desafio_grupos WHERE codigo=$1', [codigo]);
-    if (!g.rows.length) return res.status(404).json({ error: 'Grupo não encontrado' });
-    const grupoId = g.rows[0].id;
-    const r = await db.query(`
-      SELECT u.id AS user_id, u.name AS nome,
-             COUNT(ah.id) AS aulas,
-             COUNT(ah.id) * 100 AS pontos
-      FROM desafio_grupo_membros dgm
-      JOIN users u ON u.id = dgm.user_id
-      LEFT JOIN aula_historico ah ON ah.user_id = u.id
-        AND EXTRACT(MONTH FROM ah.data_aula) = $2
-        AND EXTRACT(YEAR  FROM ah.data_aula) = $3
-      WHERE dgm.grupo_id = $1
-      GROUP BY u.id, u.name
-      ORDER BY pontos DESC, u.name
-    `, [grupoId, mes, ano]);
-    res.json({ codigo, ranking: r.rows.map(x => ({ ...x, aulas: parseInt(x.aulas||0), pontos: parseInt(x.pontos||0) })) });
-  } catch(e) {
-    res.json({ ranking: [] });
-  }
+    const g = (await db.query('SELECT * FROM desafio_grupos WHERE codigo=$1', [String(req.params.codigo).toUpperCase()])).rows[0];
+    if (!g) return res.status(404).json({ error: 'Grupo não encontrado' });
+    const tipo = req.query.desafio || g.desafio_id || 'mensal';
+    const rk = await desafioRanking(tipo, g.id);
+    // quem está no grupo e ainda não pontuou aparece com zero
+    const membros = (await db.query('SELECT u.id AS user_id, u.name AS nome FROM desafio_grupo_membros m JOIN users u ON u.id=m.user_id WHERE m.grupo_id=$1', [g.id])).rows;
+    membros.forEach(m => { if (!rk.find(x => x.user_id === m.user_id)) rk.push({ user_id: m.user_id, nome: m.nome, valor: 0, aulas: 0, pontos: 0 }); });
+    rk.forEach((x, i) => { x.pos = i + 1; });
+    res.json({ grupo: { codigo: g.codigo, nome: g.nome, desafio_id: tipo, membros: membros.length }, ranking: rk });
+  } catch (e) { log('ranking grupo: ' + e.message); res.status(500).json({ error: 'Erro interno' }); }
+});
+// 03/10c: sair do grupo
+app.post('/desafios/grupos/:codigo/sair', authMiddleware, async (req, res) => {
+  try {
+    const g = (await db.query('SELECT id FROM desafio_grupos WHERE codigo=$1', [String(req.params.codigo).toUpperCase()])).rows[0];
+    if (!g) return res.status(404).json({ error: 'Grupo não encontrado' });
+    await db.query('DELETE FROM desafio_grupo_membros WHERE grupo_id=$1 AND user_id=$2', [g.id, req.user.id]);
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: 'Erro interno' }); }
 });
 
 // Limpeza de aulas expiradas
@@ -6294,7 +6250,7 @@ app.post('/display/gravacao/:id/parte', displayAuth, express.raw({ type: 'applic
 app.post('/display/gravacao/:id/pronta', displayAuth, async (req, res) => {
   if (!db) return res.status(503).json({ error: 'Banco indisponível' });
   try {
-    const r = await db.query(`UPDATE aulas_gravadas SET status='teste', teste_ate=NOW()+INTERVAL '72 hours' WHERE id=$1 AND license_id=$2 RETURNING id`, [parseInt(req.params.id, 10) || 0, req.user.license_id]);
+    const r = await db.query(`UPDATE aulas_gravadas SET status=CASE WHEN status='loja' THEN 'loja' ELSE 'teste' END, teste_ate=CASE WHEN status='loja' THEN NULL ELSE NOW()+INTERVAL '72 hours' END WHERE id=$1 AND license_id=$2 RETURNING id`, [parseInt(req.params.id, 10) || 0, req.user.license_id]);
     if (!r.rows.length) return res.status(404).json({ error: 'Gravação não encontrada' });
     // no máximo 5 no teste por academia: as mais antigas saem
     const velhas = await db.query(`SELECT id FROM aulas_gravadas WHERE license_id=$1 AND status='teste' ORDER BY created_at DESC OFFSET 5`, [req.user.license_id]);
@@ -6313,8 +6269,15 @@ setInterval(async () => { if (!db) return; try { const r = await db.query(`SELEC
 const GV_ABERTAS = process.env.GRAVADAS_SO_DA_ACADEMIA !== '1';
 async function gvDaAcademia(req, id) {
   const u = (await db.query('SELECT license_id, role FROM users WHERE id=$1', [req.user.id])).rows[0] || {};
-  const g = (await db.query(`SELECT id, license_id, nome_aula, professor, dur_seg, uid, roteiro, teste_bytes, created_at FROM aulas_gravadas WHERE id=$1 AND status='teste' AND teste_ate > NOW()`, [parseInt(id, 10) || 0])).rows[0];
+  const g = (await db.query(`SELECT id, license_id, nome_aula, professor, dur_seg, uid, roteiro, teste_bytes, created_at, status, teste_ate FROM aulas_gravadas WHERE id=$1`, [parseInt(id, 10) || 0])).rows[0];
   if (!g) return null;
+  // 03/10c: aula da Loja → vale quem comprou (ou tem crédito usado / assinatura); o vídeo pode vir de um link
+  const la = (await db.query('SELECT * FROM loja_aulas WHERE gravada_id=$1 AND ativo ORDER BY id LIMIT 1', [g.id]).catch(() => ({ rows: [] }))).rows[0];
+  if (la) {
+    if (!lojaPodeVer(await lojaAcesso(req.user.id), la, u.role)) return null;
+    g.loja_aula = la; g.nome_aula = la.titulo || g.nome_aula; return g;
+  }
+  if (!(g.status === 'teste' && g.teste_ate && new Date(g.teste_ate) > new Date())) return null;
   if (!GV_ABERTAS && g.license_id !== u.license_id && !['super_admin', 'admin'].includes(u.role)) return null;
   return g;
 }
@@ -6354,6 +6317,7 @@ app.get('/gravadas/:id/video', async (req, res) => {
   try {
     let p; try { p = jwt.verify(String(req.query.t || ''), JWT_SECRET); } catch (e) { return res.status(401).end(); }
     const g = await gvDaAcademia({ user: { id: p.id } }, req.params.id); if (!g) return res.status(404).end();
+    if (g.loja_aula && g.loja_aula.video_url) return res.redirect(302, g.loja_aula.video_url);   // 03/10c: vídeo num link (Dropbox/Drive/nuvem)
     const fs = require('fs'), arq = gvArq(g.id); let st; try { st = fs.statSync(arq); } catch (e) { return res.status(404).end(); }
     const m = /bytes=(\d*)-(\d*)/.exec(req.headers.range || '');
     if (!m) { res.writeHead(200, { 'Content-Type': 'video/webm', 'Content-Length': st.size, 'Accept-Ranges': 'bytes' }); return fs.createReadStream(arq).pipe(res); }
@@ -6380,6 +6344,415 @@ app.post('/display/gravacao/:id/enviar', displayAuth, async (req, res) => {
   res.status(501).json({ error: 'Armazenamento configurado, mas o envio ainda não foi implementado para este provedor.' });
 });
 
+
+// ══════════════════════════════════════════════════════════════
+// 03/10c — LOJA: VENDA DE AULAS GRAVADAS (super admin abastece)
+// ══════════════════════════════════════════════════════════════
+// Professores, aulas e produtos são cadastrados SÓ pelo super admin.
+//  · aula avulsa  → preço na própria aula (0 = grátis)
+//  · pacote       → N créditos, válidos D dias (1 crédito = 1 aula, para sempre)
+//  · assinatura   → todas as aulas (ou só as de um professor) por D dias
+// Pagamento: Asaas da ProRider (PIX, cartão ou boleto na página segura do Asaas).
+// O pedido leva externalReference "loja:<id>"; o webhook libera ou desfaz.
+// Vendas ligadas/desligadas pelo super admin (sem ligar, o app mostra "Em breve").
+// A aula usa o roteiro de uma gravação da TV; o vídeo vem do servidor (envio
+// da TV) ou de um link (Dropbox/Drive/nuvem) colado pelo super admin.
+async function lojaMigrar() {
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS sistema_cfg (chave TEXT PRIMARY KEY, valor JSONB, updated_at TIMESTAMPTZ DEFAULT NOW());
+    CREATE TABLE IF NOT EXISTS loja_professores (id SERIAL PRIMARY KEY, nome TEXT NOT NULL, foto_url TEXT, bio TEXT, cidade TEXT, email TEXT,
+      ativo BOOLEAN DEFAULT TRUE, ordem INTEGER DEFAULT 0, created_at TIMESTAMPTZ DEFAULT NOW());
+    CREATE TABLE IF NOT EXISTS loja_aulas (id SERIAL PRIMARY KEY, gravada_id INTEGER REFERENCES aulas_gravadas(id) ON DELETE SET NULL,
+      professor_id INTEGER REFERENCES loja_professores(id) ON DELETE SET NULL, titulo TEXT NOT NULL, descricao TEXT, nivel TEXT,
+      preco NUMERIC(8,2) DEFAULT 0, video_url TEXT, capa_url TEXT, ativo BOOLEAN DEFAULT TRUE, destaque BOOLEAN DEFAULT FALSE,
+      ordem INTEGER DEFAULT 0, created_at TIMESTAMPTZ DEFAULT NOW());
+    CREATE TABLE IF NOT EXISTS loja_produtos (id SERIAL PRIMARY KEY, nome TEXT NOT NULL, tipo TEXT NOT NULL DEFAULT 'pacote',
+      creditos INTEGER DEFAULT 0, dias INTEGER DEFAULT 30, preco NUMERIC(8,2) NOT NULL, preco_de NUMERIC(8,2),
+      professor_id INTEGER REFERENCES loja_professores(id) ON DELETE SET NULL, descricao TEXT, destaque BOOLEAN DEFAULT FALSE,
+      ativo BOOLEAN DEFAULT TRUE, ordem INTEGER DEFAULT 0, created_at TIMESTAMPTZ DEFAULT NOW());
+    CREATE TABLE IF NOT EXISTS loja_pedidos (id SERIAL PRIMARY KEY, user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+      tipo TEXT NOT NULL, ref_id INTEGER NOT NULL, descricao TEXT, valor NUMERIC(8,2) NOT NULL, creditos INTEGER DEFAULT 0,
+      dias INTEGER DEFAULT 0, professor_id INTEGER, status TEXT DEFAULT 'pendente', asaas_id TEXT UNIQUE, url TEXT, metodo TEXT,
+      created_at TIMESTAMPTZ DEFAULT NOW(), pago_em TIMESTAMPTZ, valido_ate TIMESTAMPTZ);
+    CREATE TABLE IF NOT EXISTS loja_desbloqueios (id SERIAL PRIMARY KEY, user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+      aula_id INTEGER REFERENCES loja_aulas(id) ON DELETE CASCADE, pedido_id INTEGER REFERENCES loja_pedidos(id) ON DELETE CASCADE,
+      valor NUMERIC(8,2) DEFAULT 0, created_at TIMESTAMPTZ DEFAULT NOW(), UNIQUE(user_id, aula_id));
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS asaas_customer TEXT;
+    -- desafios (03/10c)
+    CREATE TABLE IF NOT EXISTS desafio_conquistas (id SERIAL PRIMARY KEY, user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+      desafio TEXT NOT NULL, pontos INTEGER DEFAULT 0, info JSONB, created_at TIMESTAMPTZ DEFAULT NOW());
+    CREATE TABLE IF NOT EXISTS ftp_historico (id SERIAL PRIMARY KEY, user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+      ftp INTEGER NOT NULL, created_at TIMESTAMPTZ DEFAULT NOW());
+    CREATE INDEX IF NOT EXISTS ftp_historico_u ON ftp_historico(user_id, created_at);
+  `);
+  // toda troca de FTP (app, Portal, teste de FTP na TV) fica registrada — base do "Quebra FTP"
+  await db.query(`
+    CREATE OR REPLACE FUNCTION pr_ftp_hist() RETURNS trigger AS $$
+    BEGIN
+      IF NEW.ftp IS NOT NULL AND NEW.ftp > 0 AND (OLD.ftp IS DISTINCT FROM NEW.ftp) THEN
+        INSERT INTO ftp_historico (user_id, ftp) VALUES (NEW.id, ROUND(NEW.ftp)::int);
+      END IF;
+      RETURN NEW;
+    END $$ LANGUAGE plpgsql;
+    DROP TRIGGER IF EXISTS pr_ftp_hist_t ON users;
+    CREATE TRIGGER pr_ftp_hist_t AFTER UPDATE OF ftp ON users FOR EACH ROW EXECUTE FUNCTION pr_ftp_hist();
+  `).catch(e => log('ftp_historico trigger: ' + e.message));
+  // ponto de partida: quem ainda não tem histórico ganha o FTP de hoje
+  await db.query(`INSERT INTO ftp_historico (user_id, ftp, created_at)
+    SELECT id, ROUND(ftp)::int, COALESCE(updated_at, created_at, NOW()) FROM users u
+    WHERE ftp > 0 AND NOT EXISTS (SELECT 1 FROM ftp_historico h WHERE h.user_id=u.id)`).catch(() => {});
+  // apagar uma conta não pode travar por causa de grupo de desafio
+  await db.query(`ALTER TABLE desafio_grupos DROP CONSTRAINT IF EXISTS desafio_grupos_criador_id_fkey;
+    ALTER TABLE desafio_grupos ADD CONSTRAINT desafio_grupos_criador_id_fkey FOREIGN KEY (criador_id) REFERENCES users(id) ON DELETE SET NULL;
+    ALTER TABLE desafio_grupo_membros DROP CONSTRAINT IF EXISTS desafio_grupo_membros_user_id_fkey;
+    ALTER TABLE desafio_grupo_membros ADD CONSTRAINT desafio_grupo_membros_user_id_fkey FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;`).catch(() => {});
+  log('Migração 03/10c (loja e desafios) OK');
+}
+async function cfgLer(chave, padrao) {
+  try { const r = await db.query('SELECT valor FROM sistema_cfg WHERE chave=$1', [chave]); return r.rows.length ? r.rows[0].valor : padrao; } catch (e) { return padrao; }
+}
+async function cfgGravar(chave, valor) {
+  await db.query(`INSERT INTO sistema_cfg (chave, valor, updated_at) VALUES ($1,$2,NOW()) ON CONFLICT (chave) DO UPDATE SET valor=EXCLUDED.valor, updated_at=NOW()`, [chave, JSON.stringify(valor)]);
+}
+async function lojaVendasLigadas() { return !!(await cfgLer('loja_vendas', false)) && !!ASAAS_API_KEY; }
+// Link do Dropbox/Google Drive → endereço que toca direto no <video>
+function linkVideoDireto(u) {
+  u = String(u || '').trim(); if (!u) return '';
+  let m;
+  if (/dropbox\.com/i.test(u)) { try { const x = new URL(u); x.searchParams.delete('dl'); x.searchParams.set('raw', '1'); return x.toString(); } catch (e) { return u; } }
+  if ((m = u.match(/drive\.google\.com\/file\/d\/([\w-]+)/)) || (m = u.match(/drive\.google\.com\/(?:open|uc)\?(?:.*&)?id=([\w-]+)/))) return 'https://drive.google.com/uc?export=download&id=' + m[1];
+  return u;
+}
+// O que este aluno pode ver: aulas liberadas, assinaturas e créditos
+async function lojaAcesso(uid) {
+  const out = { aulas: new Set(), assin: [], creditos: [], total_creditos: 0 };
+  if (!uid) return out;
+  const peds = (await db.query(`SELECT * FROM loja_pedidos WHERE user_id=$1 AND status='pago'`, [uid])).rows;
+  const des = (await db.query(`SELECT aula_id, pedido_id FROM loja_desbloqueios WHERE user_id=$1`, [uid])).rows;
+  des.forEach(d => out.aulas.add(d.aula_id));
+  const agora = Date.now();
+  peds.forEach(p => {
+    const vale = !p.valido_ate || new Date(p.valido_ate).getTime() > agora;
+    if (p.tipo === 'assinatura' && vale) out.assin.push({ pedido_id: p.id, professor_id: p.professor_id || null, ate: p.valido_ate, nome: p.descricao });
+    if (p.tipo === 'pacote' && vale) {
+      const usados = des.filter(d => d.pedido_id === p.id).length, resta = Math.max(0, (p.creditos || 0) - usados);
+      if (resta > 0) out.creditos.push({ pedido_id: p.id, resta, ate: p.valido_ate, professor_id: p.professor_id || null, valor_credito: (Number(p.valor) || 0) / Math.max(1, p.creditos || 1), nome: p.descricao });
+    }
+  });
+  out.creditos.sort((a, b) => String(a.ate || '9').localeCompare(String(b.ate || '9')));
+  out.total_creditos = out.creditos.reduce((s, c) => s + c.resta, 0);
+  return out;
+}
+function lojaPodeVer(acc, aula, role) {
+  if (['super_admin', 'admin'].includes(role)) return true;
+  if (!(Number(aula.preco) > 0)) return true;
+  if (acc.aulas.has(aula.id)) return true;
+  return acc.assin.some(a => !a.professor_id || a.professor_id === aula.professor_id);
+}
+function _lojaUid(req) {   // token opcional (a vitrine abre sem login)
+  const t = (req.headers.authorization || '').replace('Bearer ', '');
+  try { return t ? jwt.verify(t, JWT_SECRET) : null; } catch (e) { return null; }
+}
+function _lojaAulaJson(a, acc, role) {
+  const rot = a.roteiro || {};
+  return { id: a.id, titulo: a.titulo, descricao: a.descricao || '', nivel: a.nivel || '', preco: Number(a.preco) || 0, capa_url: a.capa_url || null,
+    destaque: !!a.destaque, professor_id: a.professor_id, professor: a.prof_nome || a.professor || '', dur_seg: a.dur_seg || 0,
+    blocos: (rot.blocos || []).map(b => ({ z: b.z, dur: b.dur, seg: b.seg || '', ftp: b.ftp, pos: b.pos })),
+    tem_acesso: lojaPodeVer(acc, a, role), comprada: acc.aulas.has(a.id), gravada_id: a.gravada_id,
+    video_ok: !!(a.video_url || (a.gid && require('fs').existsSync(gvArq(a.gid)))) };
+}
+async function _lojaAulas(where, args) {
+  return (await db.query(`SELECT la.*, lp.nome AS prof_nome, g.roteiro, g.dur_seg, g.professor, g.id AS gid,
+      (g.teste_bytes > 0) AS video_arquivo
+    FROM loja_aulas la LEFT JOIN loja_professores lp ON lp.id=la.professor_id LEFT JOIN aulas_gravadas g ON g.id=la.gravada_id
+    ${where} ORDER BY la.destaque DESC, la.ordem, la.created_at DESC`, args || [])).rows;
+}
+
+// ── vitrine do app ─────────────────────────────────────────────
+app.get('/loja', async (req, res) => {
+  if (!db) return res.status(503).json({ error: 'Banco indisponível' });
+  try {
+    const p = _lojaUid(req), uid = p && p.id;
+    const role = uid ? ((await db.query('SELECT role FROM users WHERE id=$1', [uid])).rows[0] || {}).role : null;
+    const acc = await lojaAcesso(uid);
+    const [profs, aulas, prods] = await Promise.all([
+      db.query(`SELECT lp.id, lp.nome, lp.foto_url, lp.bio, lp.cidade, (SELECT COUNT(*)::int FROM loja_aulas a WHERE a.professor_id=lp.id AND a.ativo) AS aulas
+                FROM loja_professores lp WHERE lp.ativo ORDER BY lp.ordem, lp.nome`),
+      _lojaAulas('WHERE la.ativo AND la.gravada_id IS NOT NULL'),
+      db.query(`SELECT p.*, lp.nome AS prof_nome FROM loja_produtos p LEFT JOIN loja_professores lp ON lp.id=p.professor_id WHERE p.ativo ORDER BY p.destaque DESC, p.ordem, p.preco`)]);
+    const pend = uid ? (await db.query(`SELECT id, descricao, valor, url, created_at FROM loja_pedidos WHERE user_id=$1 AND status='pendente' AND created_at > NOW() - INTERVAL '3 days' ORDER BY id DESC LIMIT 5`, [uid])).rows : [];
+    res.json({ vendas_ligadas: await lojaVendasLigadas(), logado: !!uid,
+      professores: profs.rows, aulas: aulas.map(a => _lojaAulaJson(a, acc, role)),
+      produtos: prods.rows.map(x => ({ id: x.id, nome: x.nome, tipo: x.tipo, creditos: x.creditos, dias: x.dias, preco: Number(x.preco), preco_de: x.preco_de ? Number(x.preco_de) : null,
+        professor_id: x.professor_id, professor: x.prof_nome || null, descricao: x.descricao || '', destaque: !!x.destaque })),
+      minha: { creditos: acc.total_creditos, pacotes: acc.creditos.map(c => ({ resta: c.resta, ate: c.ate, nome: c.nome, professor_id: c.professor_id })),
+        assinaturas: acc.assin.map(a => ({ ate: a.ate, nome: a.nome, professor_id: a.professor_id })), pendentes: pend } });
+  } catch (e) { log('loja: ' + e.message); res.status(500).json({ error: 'Erro interno' }); }
+});
+
+// ── comprar (aula avulsa ou produto) ───────────────────────────
+app.post('/loja/comprar', authMiddleware, async (req, res) => {
+  if (!db) return res.status(503).json({ error: 'Banco indisponível' });
+  if (!(await lojaVendasLigadas())) return res.status(403).json({ error: 'As vendas abrem em breve.' });
+  const b = req.body || {}, tipo = b.tipo === 'produto' ? 'produto' : 'aula', id = parseInt(b.id, 10) || 0;
+  try {
+    const u = (await db.query('SELECT id, name, email, role, asaas_customer FROM users WHERE id=$1', [req.user.id])).rows[0];
+    let ped;
+    if (tipo === 'aula') {
+      const a = (await _lojaAulas('WHERE la.id=$1 AND la.ativo', [id]))[0];
+      if (!a) return res.status(404).json({ error: 'Aula não encontrada' });
+      if (!(Number(a.preco) > 0)) return res.status(400).json({ error: 'Esta aula é grátis.' });
+      if (lojaPodeVer(await lojaAcesso(u.id), a, u.role)) return res.status(400).json({ error: 'Você já tem esta aula.' });
+      ped = { tipo: 'aula', ref_id: a.id, descricao: 'Aula: ' + a.titulo + (a.prof_nome ? ' — ' + a.prof_nome : ''), valor: Number(a.preco), creditos: 0, dias: 0, professor_id: a.professor_id };
+    } else {
+      const x = (await db.query('SELECT p.*, lp.nome AS prof_nome FROM loja_produtos p LEFT JOIN loja_professores lp ON lp.id=p.professor_id WHERE p.id=$1 AND p.ativo', [id])).rows[0];
+      if (!x) return res.status(404).json({ error: 'Produto não encontrado' });
+      ped = { tipo: x.tipo === 'assinatura' ? 'assinatura' : 'pacote', ref_id: x.id, descricao: x.nome + (x.prof_nome ? ' — ' + x.prof_nome : ''), valor: Number(x.preco), creditos: x.creditos || 0, dias: x.dias || 0, professor_id: x.professor_id };
+    }
+    if (!(ped.valor > 0)) return res.status(400).json({ error: 'Valor inválido' });
+    // cliente no Asaas (o CPF/CNPJ vai direto ao Asaas; não guardamos)
+    let cust = u.asaas_customer;
+    if (!cust) {
+      const doc = String(b.cpf_cnpj || '').replace(/\D/g, '');
+      if (!(doc.length === 11 || doc.length === 14)) return res.status(400).json({ error: 'Informe seu CPF (só números) para emitir a cobrança.', precisa_cpf: true });
+      const c = await asaasApi('POST', '/customers', { name: String(b.nome || u.name || u.email).slice(0, 100), email: u.email, cpfCnpj: doc, externalReference: 'user:' + u.id });
+      cust = c.id; await db.query('UPDATE users SET asaas_customer=$1 WHERE id=$2', [cust, u.id]);
+    }
+    const ins = (await db.query(`INSERT INTO loja_pedidos (user_id, tipo, ref_id, descricao, valor, creditos, dias, professor_id) VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING id`,
+      [u.id, ped.tipo, ped.ref_id, ped.descricao.slice(0, 200), ped.valor, ped.creditos, ped.dias, ped.professor_id])).rows[0];
+    const pg = await asaasApi('POST', '/payments', { customer: cust, billingType: 'UNDEFINED', value: ped.valor, dueDate: dataSP(),
+      description: 'ProRider — ' + ped.descricao.slice(0, 180), externalReference: 'loja:' + ins.id });
+    await db.query('UPDATE loja_pedidos SET asaas_id=$1, url=$2 WHERE id=$3', [pg.id, pg.invoiceUrl || null, ins.id]);
+    log(`[Loja] pedido ${ins.id} (${ped.descricao}, R$ ${ped.valor}) de ${u.email}`);
+    res.json({ ok: true, pedido_id: ins.id, url: pg.invoiceUrl });
+  } catch (e) { log('loja comprar: ' + e.message); res.status(502).json({ error: 'Não consegui gerar a cobrança: ' + e.message }); }
+});
+app.get('/loja/pedidos/:id', authMiddleware, async (req, res) => {
+  try {
+    const p = (await db.query('SELECT id, status, descricao, valor, url, pago_em FROM loja_pedidos WHERE id=$1 AND user_id=$2', [parseInt(req.params.id, 10) || 0, req.user.id])).rows[0];
+    if (!p) return res.status(404).json({ error: 'Pedido não encontrado' });
+    res.json(p);
+  } catch (e) { res.status(500).json({ error: 'Erro interno' }); }
+});
+// usar 1 crédito de pacote numa aula
+app.post('/loja/aulas/:id/usar-credito', authMiddleware, async (req, res) => {
+  try {
+    const u = (await db.query('SELECT id, role FROM users WHERE id=$1', [req.user.id])).rows[0];
+    const a = (await _lojaAulas('WHERE la.id=$1 AND la.ativo', [parseInt(req.params.id, 10) || 0]))[0];
+    if (!a) return res.status(404).json({ error: 'Aula não encontrada' });
+    const acc = await lojaAcesso(u.id);
+    if (lojaPodeVer(acc, a, u.role)) return res.json({ ok: true, ja_tinha: true });
+    const c = acc.creditos.find(x => !x.professor_id || x.professor_id === a.professor_id);
+    if (!c) return res.status(400).json({ error: 'Você não tem crédito para esta aula.' });
+    await db.query('INSERT INTO loja_desbloqueios (user_id, aula_id, pedido_id, valor) VALUES ($1,$2,$3,$4) ON CONFLICT DO NOTHING', [u.id, a.id, c.pedido_id, c.valor_credito.toFixed(2)]);
+    res.json({ ok: true, creditos: acc.total_creditos - 1 });
+  } catch (e) { log('usar credito: ' + e.message); res.status(500).json({ error: 'Erro interno' }); }
+});
+// webhook do Asaas para pedidos da loja (chamado de dentro do /webhook/asaas)
+async function lojaWebhook(ev, p) {
+  const id = parseInt(String(p.externalReference).slice(5), 10) || 0;
+  const ped = (await db.query('SELECT * FROM loja_pedidos WHERE id=$1', [id])).rows[0];
+  if (!ped) return;
+  if (['PAYMENT_CONFIRMED', 'PAYMENT_RECEIVED'].includes(ev.event) || (ev.event === 'PAYMENT_RESTORED' && ['CONFIRMED', 'RECEIVED', 'RECEIVED_IN_CASH'].includes(p.status))) {
+    if (ped.status === 'pago') return;
+    const metodo = ({ CREDIT_CARD: 'cartão', PIX: 'PIX', BOLETO: 'boleto' }[p.billingType]) || 'Asaas';
+    await db.query(`UPDATE loja_pedidos SET status='pago', pago_em=NOW(), metodo=$2, asaas_id=COALESCE(asaas_id,$3),
+      valido_ate=CASE WHEN dias > 0 THEN NOW() + (dias || ' days')::interval ELSE NULL END WHERE id=$1`, [ped.id, metodo, p.id || null]);
+    if (ped.tipo === 'aula') await db.query('INSERT INTO loja_desbloqueios (user_id, aula_id, pedido_id, valor) VALUES ($1,$2,$3,$4) ON CONFLICT (user_id, aula_id) DO NOTHING', [ped.user_id, ped.ref_id, ped.id, ped.valor]);
+    log(`[Loja] pedido ${ped.id} PAGO (${metodo})`);
+  } else if (['PAYMENT_REFUNDED', 'PAYMENT_RECEIVED_IN_CASH_UNDONE', 'PAYMENT_DELETED', 'PAYMENT_CHARGEBACK_REQUESTED', 'PAYMENT_REFUND_IN_PROGRESS'].includes(ev.event)) {
+    await db.query(`UPDATE loja_pedidos SET status=CASE WHEN status='pago' THEN 'estornado' ELSE 'cancelado' END WHERE id=$1`, [ped.id]);
+    await db.query('DELETE FROM loja_desbloqueios WHERE pedido_id=$1', [ped.id]);
+    log(`[Loja] pedido ${ped.id} desfeito (${ev.event})`);
+  }
+}
+
+// ── super admin: abastecer a loja ──────────────────────────────
+app.get('/admin/loja', adminAuth, async (req, res) => {
+  try {
+    const [profs, aulas, prods, grav, peds] = await Promise.all([
+      db.query('SELECT * FROM loja_professores ORDER BY ordem, nome'),
+      _lojaAulas(''),
+      db.query('SELECT * FROM loja_produtos ORDER BY ordem, preco'),
+      db.query(`SELECT g.id, g.nome_aula, g.professor, g.dur_seg, g.status, g.teste_bytes, g.created_at, COALESCE(l.nome_fantasia, l.nome) AS academia,
+                  (SELECT la.id FROM loja_aulas la WHERE la.gravada_id=g.id LIMIT 1) AS loja_aula_id
+                FROM aulas_gravadas g LEFT JOIN licencas l ON l.codigo=g.license_id WHERE g.roteiro IS NOT NULL ORDER BY g.created_at DESC LIMIT 100`),
+      db.query(`SELECT p.*, u.name AS aluno, u.email FROM loja_pedidos p LEFT JOIN users u ON u.id=p.user_id ORDER BY p.id DESC LIMIT 100`)]);
+    const fs = require('fs');
+    res.json({ vendas: !!(await cfgLer('loja_vendas', false)), asaas: !!ASAAS_API_KEY,
+      professores: profs.rows, produtos: prods.rows,
+      aulas: aulas.map(a => ({ id: a.id, titulo: a.titulo, descricao: a.descricao, nivel: a.nivel, preco: Number(a.preco), video_url: a.video_url || '', capa_url: a.capa_url || '',
+        ativo: a.ativo, destaque: a.destaque, ordem: a.ordem, professor_id: a.professor_id, professor: a.prof_nome || '', gravada_id: a.gravada_id, dur_seg: a.dur_seg,
+        video_servidor: !!a.gid && fs.existsSync(gvArq(a.gid)), blocos: ((a.roteiro || {}).blocos || []).map(b => ({ z: b.z, dur: b.dur })) })),
+      gravacoes: grav.rows.map(g => Object.assign(g, { video_servidor: fs.existsSync(gvArq(g.id)) })), pedidos: peds.rows });
+  } catch (e) { log('admin loja: ' + e.message); res.status(500).json({ error: e.message }); }
+});
+app.put('/admin/loja/cfg', adminAuth, async (req, res) => {
+  try {
+    const on = !!(req.body || {}).vendas;
+    if (on && !ASAAS_API_KEY) return res.status(400).json({ error: 'Para ligar as vendas o servidor precisa da ASAAS_API_KEY.' });
+    await cfgGravar('loja_vendas', on); log(`[Loja] vendas ${on ? 'LIGADAS' : 'desligadas'} por ${req.user.email}`);
+    res.json({ ok: true, vendas: on });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+function _lojaCrud(tabela, campos, prep) {
+  app.post('/admin/loja/' + tabela, adminAuth, async (req, res) => {
+    try {
+      const b = prep(req.body || {}); if (b.erro) return res.status(400).json({ error: b.erro });
+      const ks = campos.filter(k => b[k] !== undefined);
+      const r = await db.query(`INSERT INTO loja_${tabela} (${ks.join(',')}) VALUES (${ks.map((k, i) => '$' + (i + 1)).join(',')}) RETURNING *`, ks.map(k => b[k]));
+      if (tabela === 'aulas') await _lojaPrenderGravacao(r.rows[0].gravada_id);
+      res.json(r.rows[0]);
+    } catch (e) { res.status(500).json({ error: e.message }); }
+  });
+  app.put('/admin/loja/' + tabela + '/:id', adminAuth, async (req, res) => {
+    try {
+      const b = prep(req.body || {}); if (b.erro) return res.status(400).json({ error: b.erro });
+      const ks = campos.filter(k => b[k] !== undefined); if (!ks.length) return res.status(400).json({ error: 'Nada para salvar' });
+      const r = await db.query(`UPDATE loja_${tabela} SET ${ks.map((k, i) => k + '=$' + (i + 1)).join(',')} WHERE id=$${ks.length + 1} RETURNING *`, ks.map(k => b[k]).concat([parseInt(req.params.id, 10) || 0]));
+      if (!r.rows.length) return res.status(404).json({ error: 'Não encontrado' });
+      if (tabela === 'aulas') await _lojaPrenderGravacao(r.rows[0].gravada_id);
+      res.json(r.rows[0]);
+    } catch (e) { res.status(500).json({ error: e.message }); }
+  });
+  app.delete('/admin/loja/' + tabela + '/:id', adminAuth, async (req, res) => {
+    try {
+      // quem já comprou não perde: aula/produto vendido só é desativado
+      const vendido = tabela !== 'professores' && (await db.query(`SELECT 1 FROM loja_pedidos WHERE tipo ${tabela === 'aulas' ? "='aula'" : "<>'aula'"} AND ref_id=$1 AND status='pago' LIMIT 1`, [parseInt(req.params.id, 10) || 0])).rows.length;
+      if (vendido) { await db.query(`UPDATE loja_${tabela} SET ativo=FALSE WHERE id=$1`, [parseInt(req.params.id, 10) || 0]); return res.json({ ok: true, desativado: true }); }
+      await db.query(`DELETE FROM loja_${tabela} WHERE id=$1`, [parseInt(req.params.id, 10) || 0]);
+      res.json({ ok: true });
+    } catch (e) { res.status(500).json({ error: e.message }); }
+  });
+}
+const _txt = (v, n) => v === undefined ? undefined : (String(v || '').trim().slice(0, n) || null);
+const _num = v => v === undefined ? undefined : Math.max(0, Math.round((Number(String(v).replace(',', '.')) || 0) * 100) / 100);
+const _int = v => v === undefined ? undefined : Math.max(0, parseInt(v, 10) || 0);
+const _bool = v => v === undefined ? undefined : !!v;
+_lojaCrud('professores', ['nome', 'foto_url', 'bio', 'cidade', 'email', 'ativo', 'ordem'], b => {
+  const o = { nome: _txt(b.nome, 80), foto_url: _txt(b.foto_url, 500), bio: _txt(b.bio, 600), cidade: _txt(b.cidade, 80), email: _txt(b.email, 120), ativo: _bool(b.ativo), ordem: _int(b.ordem) };
+  if (b.nome !== undefined && !o.nome) return { erro: 'Nome do professor obrigatório' };
+  return o;
+});
+_lojaCrud('aulas', ['gravada_id', 'professor_id', 'titulo', 'descricao', 'nivel', 'preco', 'video_url', 'capa_url', 'ativo', 'destaque', 'ordem'], b => {
+  const o = { gravada_id: b.gravada_id === undefined ? undefined : (parseInt(b.gravada_id, 10) || null), professor_id: b.professor_id === undefined ? undefined : (parseInt(b.professor_id, 10) || null),
+    titulo: _txt(b.titulo, 100), descricao: _txt(b.descricao, 800), nivel: _txt(b.nivel, 30), preco: _num(b.preco),
+    video_url: b.video_url === undefined ? undefined : (linkVideoDireto(b.video_url) || null), capa_url: _txt(b.capa_url, 500), ativo: _bool(b.ativo), destaque: _bool(b.destaque), ordem: _int(b.ordem) };
+  if (b.titulo !== undefined && !o.titulo) return { erro: 'Título obrigatório' };
+  if (b.gravada_id !== undefined && !o.gravada_id) return { erro: 'Escolha a gravação (é dela que vem o gráfico da aula).' };
+  return o;
+});
+_lojaCrud('produtos', ['nome', 'tipo', 'creditos', 'dias', 'preco', 'preco_de', 'professor_id', 'descricao', 'destaque', 'ativo', 'ordem'], b => {
+  const o = { nome: _txt(b.nome, 80), tipo: b.tipo === undefined ? undefined : (b.tipo === 'assinatura' ? 'assinatura' : 'pacote'), creditos: _int(b.creditos), dias: _int(b.dias),
+    preco: _num(b.preco), preco_de: b.preco_de === undefined ? undefined : (_num(b.preco_de) || null), professor_id: b.professor_id === undefined ? undefined : (parseInt(b.professor_id, 10) || null),
+    descricao: _txt(b.descricao, 300), destaque: _bool(b.destaque), ativo: _bool(b.ativo), ordem: _int(b.ordem) };
+  if (b.nome !== undefined && !o.nome) return { erro: 'Nome obrigatório' };
+  if (o.tipo === 'pacote' && b.creditos !== undefined && !(o.creditos > 0)) return { erro: 'Pacote precisa de pelo menos 1 crédito' };
+  if (b.preco !== undefined && !(o.preco > 0)) return { erro: 'Preço obrigatório' };
+  return o;
+});
+// gravação usada na loja não é apagada pela limpeza das 72 h do teste
+async function _lojaPrenderGravacao(gid) {
+  if (gid) await db.query(`UPDATE aulas_gravadas SET status='loja', teste_ate=NULL WHERE id=$1`, [gid]).catch(() => {});
+}
+// cortesia: dar uma aula ou um produto a um aluno sem cobrar (teste, brinde, suporte)
+app.post('/admin/loja/cortesia', adminAuth, async (req, res) => {
+  try {
+    const b = req.body || {}, email = String(b.email || '').trim().toLowerCase();
+    const u = (await db.query('SELECT id FROM users WHERE LOWER(email)=$1', [email])).rows[0];
+    if (!u) return res.status(404).json({ error: 'Nenhuma conta com esse e-mail' });
+    let ped;
+    if (b.tipo === 'aula') { const a = (await db.query('SELECT * FROM loja_aulas WHERE id=$1', [parseInt(b.id, 10) || 0])).rows[0]; if (!a) return res.status(404).json({ error: 'Aula não encontrada' });
+      ped = ['aula', a.id, 'Cortesia — aula: ' + a.titulo, 0, 0, a.professor_id]; }
+    else { const x = (await db.query('SELECT * FROM loja_produtos WHERE id=$1', [parseInt(b.id, 10) || 0])).rows[0]; if (!x) return res.status(404).json({ error: 'Produto não encontrado' });
+      ped = [x.tipo, x.id, 'Cortesia — ' + x.nome, x.creditos || 0, x.dias || 0, x.professor_id]; }
+    const r = (await db.query(`INSERT INTO loja_pedidos (user_id, tipo, ref_id, descricao, valor, creditos, dias, professor_id, status, metodo, pago_em, valido_ate)
+      VALUES ($1,$2,$3,$4,0,$5,$6,$7,'pago','cortesia',NOW(), CASE WHEN $6::int > 0 THEN NOW() + ($6::int || ' days')::interval ELSE NULL END) RETURNING id`, [u.id].concat(ped))).rows[0];
+    if (b.tipo === 'aula') await db.query('INSERT INTO loja_desbloqueios (user_id, aula_id, pedido_id, valor) VALUES ($1,$2,$3,0) ON CONFLICT DO NOTHING', [u.id, ped[1], r.id]);
+    log(`[Loja] cortesia ${ped[2]} para ${email} por ${req.user.email}`);
+    res.json({ ok: true, pedido_id: r.id });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+// repasse do mês por professor: avulsas + créditos usados (valor do crédito) + assinaturas do professor
+app.get('/admin/loja/repasse', adminAuth, async (req, res) => {
+  try {
+    const mes = /^\d{4}-\d{2}$/.test(String(req.query.mes || '')) ? req.query.mes : dataSP().slice(0, 7);
+    const r = await db.query(`
+      WITH v AS (
+        SELECT d.pedido_id, a.professor_id, d.valor FROM loja_desbloqueios d JOIN loja_aulas a ON a.id=d.aula_id JOIN loja_pedidos p ON p.id=d.pedido_id
+          WHERE p.status='pago' AND to_char(d.created_at AT TIME ZONE 'America/Sao_Paulo','YYYY-MM')=$1
+        UNION ALL
+        SELECT p.id, p.professor_id, p.valor FROM loja_pedidos p WHERE p.tipo='assinatura' AND p.status='pago' AND to_char(p.pago_em AT TIME ZONE 'America/Sao_Paulo','YYYY-MM')=$1)
+      SELECT COALESCE(lp.nome, 'Sem professor (assinatura geral)') AS professor, v.professor_id, COUNT(*)::int AS itens, SUM(v.valor)::numeric(10,2) AS valor
+      FROM v LEFT JOIN loja_professores lp ON lp.id=v.professor_id GROUP BY lp.nome, v.professor_id ORDER BY valor DESC`, [mes]);
+    const vend = (await db.query(`SELECT COUNT(*)::int AS n, COALESCE(SUM(valor),0)::numeric(10,2) AS total FROM loja_pedidos WHERE status='pago' AND valor > 0 AND to_char(pago_em AT TIME ZONE 'America/Sao_Paulo','YYYY-MM')=$1`, [mes])).rows[0];
+    res.json({ mes, vendas: vend, professores: r.rows });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ══════════════════════════════════════════════════════════════
+// 03/10c — DESAFIOS DO APP (21 dias · Quebra FTP · ranking mensal · grupos)
+// ══════════════════════════════════════════════════════════════
+const D21_META = 21, D21_JANELA = 30, D21_PTS = 500, FTP_META_PCT = 5, FTP_PTS = 300;
+async function d21Dias(uid) {   // dias diferentes com pedal nos últimos 30 dias (São Paulo)
+  const r = await db.query(`SELECT COUNT(DISTINCT (data_aula AT TIME ZONE 'America/Sao_Paulo')::date)::int AS n FROM aula_historico
+    WHERE user_id=$1 AND data_aula > NOW() - INTERVAL '${D21_JANELA} days'`, [uid]);
+  return r.rows[0].n || 0;
+}
+async function ftpEvolucao(uid) {   // FTP do começo do mês × FTP de agora
+  const r = (await db.query(`SELECT
+      (SELECT ftp FROM ftp_historico WHERE user_id=$1 AND created_at < date_trunc('month', NOW() AT TIME ZONE 'America/Sao_Paulo') AT TIME ZONE 'America/Sao_Paulo' ORDER BY created_at DESC LIMIT 1) AS antes,
+      (SELECT ftp FROM ftp_historico WHERE user_id=$1 ORDER BY created_at ASC LIMIT 1) AS primeiro,
+      (SELECT ROUND(ftp)::int FROM users WHERE id=$1) AS atual`, [uid])).rows[0];
+  const base = r.antes || r.primeiro || r.atual || 0, atual = r.atual || 0;
+  return { base, atual, ganho_pct: base > 0 ? Math.round((atual - base) * 1000 / base) / 10 : 0 };
+}
+// dá o selo (uma vez por janela) e os pontos
+async function desafioConquistar(uid, desafio, pts, info, janelaDias) {
+  const ja = (await db.query(`SELECT 1 FROM desafio_conquistas WHERE user_id=$1 AND desafio=$2 AND created_at > NOW() - ($3 || ' days')::interval LIMIT 1`, [uid, desafio, String(janelaDias)])).rows.length;
+  if (ja) return false;
+  await db.query('INSERT INTO desafio_conquistas (user_id, desafio, pontos, info) VALUES ($1,$2,$3,$4)', [uid, desafio, pts, JSON.stringify(info || {})]);
+  await db.query('UPDATE users SET points=COALESCE(points,0)+$1 WHERE id=$2', [pts, uid]);
+  log(`[Desafio] ${desafio} conquistado por user ${uid} (+${pts} pts)`);
+  return true;
+}
+app.get('/desafios/meus', authMiddleware, async (req, res) => {
+  if (!db) return res.status(503).json({ error: 'Banco indisponível' });
+  try {
+    const uid = req.user.id, dias = await d21Dias(uid), ftp = await ftpEvolucao(uid);
+    const novo21 = dias >= D21_META ? await desafioConquistar(uid, '21dias', D21_PTS, { dias }, D21_JANELA) : false;
+    const novoFtp = ftp.ganho_pct >= FTP_META_PCT ? await desafioConquistar(uid, 'ftp', FTP_PTS, ftp, 28) : false;
+    const conq = (await db.query(`SELECT desafio, pontos, created_at FROM desafio_conquistas WHERE user_id=$1 ORDER BY created_at DESC LIMIT 20`, [uid])).rows;
+    const grupos = (await db.query(`SELECT g.codigo, g.nome, g.desafio_id, (SELECT COUNT(*)::int FROM desafio_grupo_membros m2 WHERE m2.grupo_id=g.id) AS membros
+      FROM desafio_grupo_membros m JOIN desafio_grupos g ON g.id=m.grupo_id WHERE m.user_id=$1 ORDER BY m.joined_at DESC`, [uid])).rows;
+    const mes = (await db.query(`SELECT COUNT(*)::int AS aulas FROM aula_historico WHERE user_id=$1 AND date_trunc('month', data_aula AT TIME ZONE 'America/Sao_Paulo') = date_trunc('month', NOW() AT TIME ZONE 'America/Sao_Paulo')`, [uid])).rows[0];
+    res.json({ d21: { dias, meta: D21_META, janela: D21_JANELA, pontos: D21_PTS, conquistado_agora: novo21, ultimo: (conq.find(c => c.desafio === '21dias') || {}).created_at || null },
+      ftp: Object.assign(ftp, { meta_pct: FTP_META_PCT, pontos: FTP_PTS, conquistado_agora: novoFtp, ultimo: (conq.find(c => c.desafio === 'ftp') || {}).created_at || null }),
+      mes: { aulas: mes.aulas }, grupos, conquistas: conq });
+  } catch (e) { log('desafios meus: ' + e.message); res.status(500).json({ error: 'Erro interno' }); }
+});
+// ranking de um desafio (geral ou só de um grupo)
+async function desafioRanking(desafio, grupoId) {
+  const filtro = grupoId ? 'AND u.id IN (SELECT user_id FROM desafio_grupo_membros WHERE grupo_id=$1)' : '', args = grupoId ? [grupoId] : [];
+  let sql;
+  if (desafio === '21dias') sql = `SELECT u.id AS user_id, u.name AS nome, COUNT(DISTINCT (ah.data_aula AT TIME ZONE 'America/Sao_Paulo')::date)::int AS valor
+      FROM users u JOIN aula_historico ah ON ah.user_id=u.id AND ah.data_aula > NOW() - INTERVAL '${D21_JANELA} days' WHERE TRUE ${filtro}
+      GROUP BY u.id, u.name ORDER BY valor DESC, u.name LIMIT 50`;
+  else if (desafio === 'ftp') sql = `SELECT u.id AS user_id, u.name AS nome, ROUND(u.ftp)::int AS atual,
+      COALESCE((SELECT h.ftp FROM ftp_historico h WHERE h.user_id=u.id AND h.created_at < date_trunc('month', NOW() AT TIME ZONE 'America/Sao_Paulo') AT TIME ZONE 'America/Sao_Paulo' ORDER BY h.created_at DESC LIMIT 1),
+               (SELECT h.ftp FROM ftp_historico h WHERE h.user_id=u.id ORDER BY h.created_at LIMIT 1)) AS base
+      FROM users u WHERE u.ftp > 0 ${filtro} AND EXISTS (SELECT 1 FROM ftp_historico h WHERE h.user_id=u.id AND h.created_at >= date_trunc('month', NOW() AT TIME ZONE 'America/Sao_Paulo') AT TIME ZONE 'America/Sao_Paulo')`;
+  else sql = `SELECT u.id AS user_id, u.name AS nome, COUNT(ah.id)::int AS aulas,
+      COALESCE((SELECT SUM(ac.pontos) FROM aulas_completadas ac WHERE ac.user_id=u.id AND date_trunc('month', ac.completed_at AT TIME ZONE 'America/Sao_Paulo') = date_trunc('month', NOW() AT TIME ZONE 'America/Sao_Paulo')), 0)::int AS pts_app
+      FROM users u JOIN aula_historico ah ON ah.user_id=u.id AND date_trunc('month', ah.data_aula AT TIME ZONE 'America/Sao_Paulo') = date_trunc('month', NOW() AT TIME ZONE 'America/Sao_Paulo')
+      WHERE TRUE ${filtro} GROUP BY u.id, u.name`;
+  let rows = (await db.query(sql, args)).rows;
+  if (desafio === 'ftp') rows = rows.map(x => ({ user_id: x.user_id, nome: x.nome, base: x.base, atual: x.atual, valor: x.base > 0 ? Math.round((x.atual - x.base) * 1000 / x.base) / 10 : 0 }))
+    .filter(x => x.valor !== 0).sort((a, b) => b.valor - a.valor).slice(0, 50);
+  if (desafio === 'mensal' || !['21dias', 'ftp'].includes(desafio)) rows = rows.map(x => ({ user_id: x.user_id, nome: x.nome, aulas: x.aulas, pontos: Math.max(x.pts_app, x.aulas * 100), valor: Math.max(x.pts_app, x.aulas * 100) }))
+    .sort((a, b) => b.valor - a.valor).slice(0, 50);
+  return rows.map((x, i) => Object.assign(x, { pos: i + 1 }));
+}
 
 // ══════════════════════════════════════════════════════════════
 // 02/10c — LISTA DE ESPERA, BIKE LIBERADA E LEMBRETE
@@ -6580,6 +6953,7 @@ app.post('/webhook/asaas', express.json(), async (req, res) => {
   log(`[Asaas webhook] ${ev.event} payment=${ev.payment && ev.payment.id}`);
   try {
     const p = ev.payment || {};
+    if (String(p.externalReference || '').startsWith('loja:')) { await lojaWebhook(ev, p); return res.json({ ok: true }); }   // 03/10c: venda de aulas
     // 03/10a: acha a licença pela referência; senão pela assinatura; senão pelo cliente
     let l = null;
     if (p.externalReference) l = (await db.query('SELECT * FROM licencas WHERE codigo=$1', [p.externalReference])).rows[0];
