@@ -126,6 +126,7 @@ td{white-space:nowrap}
 var SERVER = (location.hostname === 'localhost' || location.hostname === '127.0.0.1') ? location.origin : 'https://prorider-server-production-5784.up.railway.app';
 var _sup = sessionStorage.getItem('pr_imp_token');   // super admin em modo suporte (mesma aba do Portal)
 var token = _sup || localStorage.getItem('pr_fin_token') || '';
+try { if (typeof prErroConfig === 'function') prErroConfig(SERVER, 'financeiro', function () { return _sup ? '' : token; }, 'Financeiro 03/10h'); } catch (e) {}   // 03/10f
 var user = _sup ? JSON.parse(sessionStorage.getItem('pr_imp_user') || 'null') : JSON.parse(localStorage.getItem('pr_fin_user') || 'null');
 function $(id){ return document.getElementById(id); }
 function esc(t){ return String(t == null ? '' : t).replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
@@ -164,6 +165,7 @@ async function trocarSenha(){
   try { var r = await fetch(SERVER + '/user/senha', { method: 'PUT', headers: { 'Content-Type':'application/json', 'Authorization': 'Bearer ' + token }, body: JSON.stringify({ senha_atual: $('sAtual').value, nova: $('sNova').value }) });
     var d = await r.json().catch(function(){ return {}; });
     if (!r.ok) return mostrarErro('eSenha', d.error || 'Não consegui trocar a senha.');
+    if (d.token && !_sup) { token = d.token; localStorage.setItem('pr_fin_token', d.token); }   // 03/10f
     $('sOk').textContent = '✓ Senha trocada'; ['sAtual','sNova','sNova2'].forEach(function(i){ $(i).value = ''; });
     user.senha_provisoria = false; if (!_sup) localStorage.setItem('pr_fin_user', JSON.stringify(user)); $('avProv').style.display = 'none';
   } catch (e) { mostrarErro('eSenha', 'Sem conexão com o servidor.'); }

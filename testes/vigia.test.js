@@ -42,6 +42,12 @@ const emails=async re=>(await j('GET',M+'/_emails')).d.filter(e=>re.test(e.subje
   await rodar(SA); ok((await emails(/erros do servidor em 10 minutos/)).length===1,'10 erros em 10 min → aviso');
   await j('POST','/webhook/asaas',{event:'PAYMENT_RECEIVED'}); await espera(500);
   await rodar(SA); ok((await emails(/Asaas estão sendo recusados/)).length===1,'webhook do Asaas recusado → aviso');
+  await sql(`INSERT INTO sistema_eventos (nivel,msg,origem,licenca,vezes) VALUES ('erro','tela de teste','app','D5448D47',30)`);
+  await rodar(SA); const tp=(await j('GET','/admin/alertas',null,SA)).d.lista.find(a=>a.tipo==='telas_pico');
+  ok(tp&&tp.email_ok===null&&(await emails(/erros nas telas/)).length===0,'aviso amarelo fica só no painel (sem e-mail)');
+  await j('POST','/admin/alertas/email',{ligado:false},SA); await sql(`DELETE FROM sistema_alertas WHERE tipo='erros_pico'`);
+  await rodar(SA); ok((await emails(/erros do servidor em 10 minutos/)).length===1,'e-mail dos vermelhos desligado: não manda de novo');
+  await j('POST','/admin/alertas/email',{ligado:true},SA); await sql(`DELETE FROM sistema_eventos WHERE msg='tela de teste'`);
   console.log('4) Liga/desliga e teste');
   await j('POST','/admin/alertas/ligar',{ligado:false},SA); r=await rodar(SA); ok(r.desligado,'desligado não verifica');
   await j('POST','/admin/alertas/ligar',{ligado:true},SA);

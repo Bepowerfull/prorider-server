@@ -715,8 +715,18 @@ button{font-family:inherit}
   <!-- SAÚDE DO SISTEMA (03/10e) -->
   <div class="page" id="page-saude">
     <div class="topbar"><h1>Saúde do sistema</h1><div class="actions"><span id="sdHora" style="font-size:12px;color:var(--muted)"></span> <button class="btn btn-outline btn-sm" onclick="loadSaude()">↻ Atualizar</button></div></div>
-    <div class="content"><div id="sdConteudo"><div class="pr-warn">Carregando…</div></div></div>
+    <div class="content">
+      <!-- 03/10h: lupinha + semáforo das academias -->
+      <form id="sdBuscaF" onsubmit="event.preventDefault();sdBuscar()" style="display:flex;gap:8px;margin-bottom:12px">
+        <input id="sdBusca" placeholder="🔎  Código do erro (E-7F3A), academia ou texto do erro" autocomplete="off" style="flex:1;padding:13px 15px;border-radius:12px;border:1px solid var(--border);background:var(--card);color:#fff;font-size:15px;outline:none">
+        <button class="btn btn-primary" type="submit">Buscar</button>
+      </form>
+      <div id="sdBuscaR" style="margin-bottom:14px"></div>
+      <div id="sdSemaforo" style="margin-bottom:18px"></div>
+      <div id="sdConteudo"><div class="pr-warn">Carregando…</div></div>
+    </div>
   </div>
+  <div class="modal-overlay" id="sdLicModal" onclick="if(event.target===this)sdLicFechar()"><div class="modal" id="sdLicBox" style="max-width:980px;width:96vw;max-height:92vh"></div></div>
 
   <!-- MEU PERFIL (26/09e) -->
   <div class="page" id="page-perfil">
@@ -959,7 +969,7 @@ function lpLogoToque(){}
 setTimeout(lpStats, 300); setInterval(lpStats, 30000);
 
 var adminToken = localStorage.getItem('pr_admin_token') || '';
-try { if (typeof prErroConfig === 'function') prErroConfig(SERVER, 'admin', function () { return adminToken; }, 'Admin 03/10f'); } catch (e) {}   // 03/10f
+try { if (typeof prErroConfig === 'function') prErroConfig(SERVER, 'admin', function () { return adminToken; }, 'Admin 03/10h'); } catch (e) {}   // 03/10f
 var adminUser  = JSON.parse(localStorage.getItem('pr_admin_user') || 'null');
 var allLicencas = [];
 var allAlunos   = [];
@@ -1858,6 +1868,7 @@ async function ljCortesia(tipo,id){
 function sdEsc(s){ return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 function sdQuando(t){ if(!t) return '—'; const m=Math.round((Date.now()-new Date(t))/60000); return m<1?'agora':m<60?m+' min':m<1440?Math.round(m/60)+' h':Math.round(m/1440)+' d'; }
 async function loadSaude(){
+  sdSemaforo();   // 03/10h
   let d, av=null; try{ [d,av]=await Promise.all([api('/admin/saude'), api('/admin/alertas').catch(()=>null)]); }catch(e){ d={error:'sem conexão com o servidor'}; }
   const el=document.getElementById('sdConteudo'); if(!el) return;
   if(!d||d.error){ el.innerHTML='<div class="pr-warn" style="border-color:#d62d2d;color:#ff9a9a">⛔ Não consegui falar com o servidor: '+sdEsc((d&&d.error)||'')+'</div>'; return; }
@@ -1881,11 +1892,11 @@ async function loadSaude(){
   // 03/10g — avisos automáticos (o servidor vigia a cada minuto e manda e-mail)
   if(av&&!av.error){ const ab=av.lista.filter(a=>!a.resolvido_em);
     h+='<div class="table-wrap" style="margin-bottom:16px"><div class="table-header" style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><h2>Avisos automáticos '+(ab.length?'<span style="color:#ff8a8a">· '+ab.length+' em aberto</span>':'')+'</h2>'
-      +'<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><label style="display:flex;gap:6px;align-items:center;font-size:13px;cursor:pointer"><input type="checkbox" '+(av.ligado?'checked':'')+' onchange="avLigar(this.checked)" style="appearance:auto;width:16px;height:16px"> ligados</label>'
+      +'<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><label style="display:flex;gap:6px;align-items:center;font-size:13px;cursor:pointer"><input type="checkbox" '+(av.ligado?'checked':'')+' onchange="avLigar(this.checked)" style="appearance:auto;width:16px;height:16px"> ligados</label><label style="display:flex;gap:6px;align-items:center;font-size:13px;cursor:pointer"><input type="checkbox" '+(av.email_vermelhos?'checked':'')+' onchange="avEmail(this.checked)" style="appearance:auto;width:16px;height:16px"> e-mail dos 🔴</label>'
       +'<button class="btn btn-outline btn-sm" onclick="avRodar(this)">Verificar agora</button><button class="btn btn-outline btn-sm" onclick="avTeste(this)">Mandar e-mail de teste</button></div></div>'
-      +'<div style="padding:10px 18px;font-size:12.5px;color:var(--muted)">O servidor confere tudo a cada '+(av.intervalo_s>=60?Math.round(av.intervalo_s/60)+' min':av.intervalo_s+' s')+' e manda e-mail na hora para <b>'+sdEsc((av.destinos||[]).join(', ')||'ninguém')+'</b>'+(av.email?'':' <span style="color:#ff8a8a">(e-mail desligado no servidor: os avisos ficam só aqui)</span>')+'. Última verificação: '+(av.ultima?(sdQuando(av.ultima)==='agora'?'agora':sdQuando(av.ultima)+' atrás'):'ainda não')+'.<br>Avisa quando: a TV está desligada perto da aula da grade · a TV cai no meio da aula · muitos erros de uma vez · o Asaas está sendo recusado · pouco espaço para gravações · memória alta · banco fora do ar.</div>'
+      +'<div style="padding:10px 18px;font-size:12.5px;color:var(--muted)">O servidor confere tudo a cada '+(av.intervalo_s>=60?Math.round(av.intervalo_s/60)+' min':av.intervalo_s+' s')+'. Tudo aparece aqui; '+(av.email_vermelhos?'só os 🔴 (agir agora) também vão por e-mail para <b>'+sdEsc((av.destinos||[]).join(', ')||'ninguém')+'</b>':'nenhum vai por e-mail')+(av.email||!av.email_vermelhos?'':' <span style="color:#ff8a8a">(e-mail desligado no servidor)</span>')+'. Última verificação: '+(av.ultima?(sdQuando(av.ultima)==='agora'?'agora':sdQuando(av.ultima)+' atrás'):'ainda não')+'.<br>Avisa quando: a TV está desligada perto da aula da grade · a TV cai no meio da aula · muitos erros de uma vez · o Asaas está sendo recusado · pouco espaço para gravações · memória alta · banco fora do ar.</div>'
       +'<table><thead><tr><th>Quando</th><th>Aviso</th><th>Academia</th><th>E-mail</th><th>Situação</th></tr></thead><tbody>'
-      +(av.lista.length?av.lista.map(a=>'<tr><td style="white-space:nowrap;font-size:12px">'+new Date(a.criado_em).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})+'</td><td>'+(a.nivel==='erro'?'🔴 ':'🟠 ')+sdEsc(a.txt)+'</td><td style="font-size:12px">'+sdEsc(a.academia||a.licenca||'—')+'</td><td style="font-size:12px">'+(a.email_ok?'✓ enviado':'<span style="color:#ffc27a" title="'+sdEsc(a.email_erro||'')+'">não enviado</span>')+'</td><td style="font-size:12px">'+(a.resolvido_em?'<span style="color:#8fe06a">✓ '+sdEsc(a.resolvido_txt||'resolvido')+'</span>':'<b style="color:#ff8a8a">em aberto</b>')+'</td></tr>').join('')
+      +(av.lista.length?av.lista.map(a=>'<tr><td style="white-space:nowrap;font-size:12px">'+new Date(a.criado_em).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})+'</td><td>'+(a.nivel==='erro'?'🔴 ':'🟠 ')+sdEsc(a.txt)+'</td><td style="font-size:12px">'+(a.licenca?'<a href="#" onclick="event.preventDefault();sdLicAbrir(\''+sdEsc(a.licenca)+'\',\'A-'+a.id.toString(36).toUpperCase()+'\')" style="color:#ffb45a">'+sdEsc(a.academia||a.licenca)+'</a>':'—')+'</td><td style="font-size:12px">'+(a.email_ok?'✓ enviado':a.email_ok===false?'<span style="color:#ffc27a" title="'+sdEsc(a.email_erro||'')+'">não saiu</span>':'<span style="color:var(--muted)">só no painel</span>')+'</td><td style="font-size:12px">'+(a.resolvido_em?'<span style="color:#8fe06a">✓ '+sdEsc(a.resolvido_txt||'resolvido')+'</span>':'<b style="color:#ff8a8a">em aberto</b>')+'</td></tr>').join('')
         :'<tr><td colspan="5" style="text-align:center;padding:22px;color:var(--muted)">Nenhum aviso nos últimos 7 dias.</td></tr>')+'</tbody></table></div>'; }
   h+='<div class="table-wrap" style="margin-bottom:16px"><div class="table-header"><h2>Problemas reportados ('+d.relatos.length+')</h2></div><table><thead><tr><th>Quando</th><th>Quem</th><th>Onde</th><th>O que aconteceu</th><th></th></tr></thead><tbody>'
     +(d.relatos.length?d.relatos.map(r=>'<tr><td style="white-space:nowrap;font-size:12px">'+new Date(r.created_at).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})+'</td><td>'+sdEsc(r.nome||'—')+'<div style="font-size:11px;color:var(--muted)">'+sdEsc(r.email||'')+(r.license_id?' · '+sdEsc(r.license_id):'')+'</div></td><td style="font-size:12px">'+sdEsc(r.origem)+'<div style="font-size:11px;color:var(--muted)">'+sdEsc(r.tela)+' · '+sdEsc(r.versao)+'</div></td><td style="max-width:520px">'+sdEsc(r.texto)+'</td><td><button class="btn btn-outline btn-sm" onclick="sdResolver('+r.id+')">Resolvido</button></td></tr>').join('')
@@ -1903,6 +1914,72 @@ async function loadSaude(){
       :'<tr><td colspan="3" style="text-align:center;padding:22px;color:var(--muted)">Nenhum erro registrado.</td></tr>')+'</tbody></table></div>';
   el.innerHTML=h;
 }
+// ═══ 03/10h — SEMÁFORO, PAINEL DA ACADEMIA E LUPINHA ═══════════
+const SD_COR={vermelho:'#e5484d',amarelo:'#f5a524',verde:'#46a758',cinza:'#6b6b76'};
+const SD_COR_TXT={vermelho:'Agir agora',amarelo:'Olhar quando der',verde:'Tudo certo',cinza:'Sem TV instalada'};
+const sdBola=c=>'<span style="display:inline-block;width:11px;height:11px;border-radius:50%;background:'+SD_COR[c]+';box-shadow:0 0 0 3px '+SD_COR[c]+'33;flex:none"></span>';
+const sdData=t=>t?new Date(t).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}):'—';
+async function sdSemaforo(){
+  const el=document.getElementById('sdSemaforo'); if(!el) return;
+  let d; try{ d=await api('/admin/saude/licencas'); }catch(e){ return; }
+  if(!d||!d.lista) return;
+  const n={vermelho:0,amarelo:0,verde:0,cinza:0}; d.lista.forEach(l=>n[l.cor]++);
+  document.title=(n.vermelho?'('+n.vermelho+') ':'')+'ProRider Admin';
+  el.innerHTML='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px"><h2 style="font-size:16px;margin:0">Academias</h2><div style="display:flex;gap:14px;font-size:12.5px;color:var(--muted);flex-wrap:wrap">'
+    +['vermelho','amarelo','verde','cinza'].map(c=>'<span style="display:flex;gap:6px;align-items:center">'+sdBola(c)+n[c]+' '+SD_COR_TXT[c].toLowerCase()+'</span>').join('')+'</div></div>'
+    +'<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:10px">'
+    +d.lista.map(l=>'<div onclick="sdLicAbrir(\''+sdEsc(l.codigo)+'\')" style="cursor:pointer;background:var(--card);border:1px solid '+(l.cor==='vermelho'?SD_COR.vermelho+'88':l.cor==='amarelo'?SD_COR.amarelo+'66':'var(--border)')+';border-radius:14px;padding:13px 14px">'
+      +'<div style="display:flex;gap:9px;align-items:center;margin-bottom:6px">'+sdBola(l.cor)+'<b style="font-size:14.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+sdEsc(l.nome)+'</b></div>'
+      +'<div style="font-size:12px;color:var(--muted);line-height:1.5">'+(l.tvs?(l.tv_online?'<span style="color:#8fe06a">● TV online</span>':'TV vista '+sdQuando(l.tv_visto)+(sdQuando(l.tv_visto)==='agora'?'':' atrás')):'sem TV')+(l.ultima_aula?' · última aula '+sdQuando(l.ultima_aula)+(sdQuando(l.ultima_aula)==='agora'?'':' atrás'):'')+'</div>'
+      +(l.motivos.length?'<div style="font-size:12.5px;margin-top:7px;line-height:1.45;color:'+(l.cor==='vermelho'?'#ff9a9a':'#ffc27a')+'">'+l.motivos.slice(0,2).map(sdEsc).join('<br>')+(l.motivos.length>2?'<br>+'+(l.motivos.length-2)+' mais':'')+'</div>':'')+'</div>').join('')+'</div>';
+}
+async function sdLicAbrir(cod, destacar){
+  const box=document.getElementById('sdLicBox'), ov=document.getElementById('sdLicModal');
+  box.innerHTML='<div class="pr-warn">Carregando…</div>'; ov.classList.add('open');
+  let d; try{ d=await api('/admin/saude/licenca/'+encodeURIComponent(cod)); }catch(e){ d={error:'sem conexão'}; }
+  if(!d||d.error){ box.innerHTML='<div class="pr-warn">⛔ '+sdEsc((d&&d.error)||'')+'</div>'; return; }
+  const L=d.licenca; window._sdLic=d;
+  box.innerHTML='<div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start;flex-wrap:wrap;margin-bottom:12px"><div><div style="display:flex;gap:10px;align-items:center">'+sdBola(L.cor)+'<h2 style="margin:0">'+sdEsc(L.nome)+'</h2><span style="font-size:12px;color:var(--muted)">'+sdEsc(L.codigo)+'</span></div>'
+      +'<div style="font-size:13px;color:'+SD_COR[L.cor]+';margin-top:4px;font-weight:700">'+SD_COR_TXT[L.cor]+'</div></div>'
+      +'<div style="display:flex;gap:8px"><button class="btn btn-outline btn-sm" onclick="impersonar(\''+sdEsc(L.codigo)+'\',\''+sdEsc(L.nome).replace(/'/g,'')+'\')">Entrar no Portal dela</button><button class="btn btn-outline btn-sm" onclick="sdLicFechar()">Fechar ✕</button></div></div>'
+    +(L.motivos.length?'<div class="pr-warn" style="margin-bottom:12px;'+(L.cor==='vermelho'?'border-color:rgba(214,45,45,.5);background:rgba(214,45,45,.08);color:#ff9a9a':'')+'">'+L.motivos.map(sdEsc).join('<br>')+'</div>':'<div class="pr-warn" style="margin-bottom:12px;border-color:rgba(93,177,61,.45);background:rgba(93,177,61,.08);color:#8fe06a">✅ Nenhum problema agora.</div>')
+    +'<div class="stats-grid" style="margin-bottom:12px">'
+      +'<div class="stat-card"><div class="label">TV</div><div class="value" style="font-size:20px;color:'+(L.tv_online?'#5db13d':'#fff')+'">'+(L.tvs?(L.tv_online?'online':'offline'):'sem TV')+'</div><div style="font-size:11.5px;color:var(--muted)">'+(d.tvs.map(t=>sdEsc(t.nome_computador||'PC')+' · '+sdEsc(t.build||'?')+' · '+sdData(t.visto_em)).join('<br>')||'—')+'</div></div>'
+      +'<div class="stat-card"><div class="label">Última aula</div><div class="value" style="font-size:20px">'+(L.ultima_aula?sdData(L.ultima_aula):'—')+'</div></div>'
+      +'<div class="stat-card"><div class="label">Telas (24 h)</div><div class="value" style="font-size:20px">'+L.erros_24h+' erro(s)</div><div style="font-size:11.5px;color:var(--muted)">'+L.avisos_24h+' aviso(s)</div></div>'
+      +'<div class="stat-card"><div class="label">Pagamento</div><div class="value" style="font-size:20px">'+sdEsc(String(L.situacao||'—').replace('_',' '))+'</div></div></div>'
+    +'<div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap" id="sdLicFil">'+[['tudo','Tudo'],['prob','Só problemas'],['aula','Aulas'],['relato','Reportados']].map((f,i)=>'<button class="btn btn-'+(i?'outline':'primary')+' btn-sm" onclick="sdLicFiltro(\''+f[0]+'\',this)">'+f[1]+'</button>').join('')+'</div>'
+    +'<div id="sdLicLinha"></div>';
+  sdLicFiltro('tudo', null, destacar);
+}
+function sdLicFiltro(f, btn, destacar){
+  if(btn) document.querySelectorAll('#sdLicFil button').forEach(b=>b.className='btn btn-'+(b===btn?'primary':'outline')+' btn-sm');
+  const d=window._sdLic; if(!d) return;
+  const l=d.linha.filter(x=>f==='tudo'||(f==='prob'&&(x.cor==='vermelho'||x.cor==='amarelo')&&x.tipo!=='relato')||(f==='aula'&&x.tipo==='aula')||(f==='relato'&&x.tipo==='relato'));
+  const nm={tv:'📺 TV',app:'📱 App',portal:'🏢 Portal',financeiro:'💳 Financeiro',admin:'🛠 Admin',aviso:'🚨 Aviso',resolvido:'✅',relato:'🛟 Reportado',aula:'🚴 Aula'};
+  document.getElementById('sdLicLinha').innerHTML=l.length?'<div style="border-left:2px solid var(--border);margin-left:6px">'+l.map(x=>'<div data-ref="'+sdEsc(x.ref||'')+'" style="position:relative;padding:8px 0 10px 18px'+(destacar&&x.ref===destacar?';background:rgba(255,170,40,.12);border-radius:8px':'')+'"><span style="position:absolute;left:-6px;top:13px">'+sdBola(x.cor)+'</span>'
+      +'<div style="font-size:12px;color:var(--muted)">'+sdData(x.t)+' · '+(nm[x.tipo]||sdEsc(x.tipo))+(x.ref?' · <span style="font-family:monospace">'+sdEsc(x.ref)+'</span>':'')+'</div>'
+      +'<div style="font-size:13.5px;margin-top:2px;word-break:break-word">'+sdEsc(x.txt)+'</div>'
+      +(x.sub?'<div style="font-size:12px;color:var(--muted);margin-top:2px">'+sdEsc(x.sub)+'</div>':'')
+      +(x.detalhe?'<details style="margin-top:3px"><summary style="cursor:pointer;color:var(--muted);font-size:11.5px">detalhes</summary><div style="font-family:monospace;font-size:11px;white-space:pre-wrap;word-break:break-word;color:var(--muted)">'+sdEsc(x.detalhe)+'</div></details>':'')+'</div>').join('')+'</div>'
+    :'<div style="text-align:center;padding:22px;color:var(--muted)">Nada nos últimos 30 dias.</div>';
+  if(destacar) setTimeout(()=>{ const e=document.querySelector('#sdLicLinha [data-ref="'+destacar+'"]'); if(e) e.scrollIntoView({block:'center'}); },50);
+}
+function sdLicFechar(){ document.getElementById('sdLicModal').classList.remove('open'); }
+async function sdBuscar(){
+  const q=document.getElementById('sdBusca').value.trim(), el=document.getElementById('sdBuscaR');
+  if(q.length<2){ el.innerHTML=''; return; }
+  el.innerHTML='<div class="pr-warn">Buscando…</div>';
+  const d=await api('/admin/saude/busca?q='+encodeURIComponent(q)).catch(()=>null);
+  if(!d||!d.lista){ el.innerHTML='<div class="pr-warn">⛔ Não consegui buscar.</div>'; return; }
+  if(!d.lista.length){ el.innerHTML='<div class="pr-warn">Nada encontrado para "'+sdEsc(q)+'". Confira o código (ex.: E-7F3A) — se a tela estava sem internet, ele chega quando a conexão voltar.</div>'; return; }
+  el.innerHTML='<div class="table-wrap"><div class="table-header" style="display:flex;justify-content:space-between"><h2>Resultado ('+d.lista.length+')</h2><button class="btn btn-outline btn-sm" onclick="document.getElementById(\'sdBuscaR\').innerHTML=\'\';document.getElementById(\'sdBusca\').value=\'\'">Limpar</button></div><table><tbody>'
+    +d.lista.map(x=>x.tipo==='licenca'?'<tr><td colspan="3">🏢 <b>'+sdEsc(x.academia)+'</b> <span style="color:var(--muted)">'+sdEsc(x.licenca)+'</span></td><td><button class="btn btn-outline btn-sm" onclick="sdLicAbrir(\''+sdEsc(x.licenca)+'\')">Abrir painel</button></td></tr>'
+      :'<tr><td style="white-space:nowrap;font-size:12px">'+sdBola(x.cor||'cinza')+' '+sdData(x.quando)+'<div style="font-family:monospace;color:var(--muted);margin-top:3px">'+sdEsc(x.via||x.ref||'')+'</div></td><td style="font-size:12px">'+sdEsc(x.origem||'')+'<div style="color:var(--muted)">'+sdEsc(x.academia||x.licenca||'—')+'</div></td>'
+        +'<td style="font-size:13px;word-break:break-word">'+sdEsc(x.txt)+(x.vezes>1?' <span style="color:var(--muted)">('+x.vezes+' vezes)</span>':'')+(x.detalhe?'<details><summary style="cursor:pointer;color:var(--muted);font-size:11.5px">detalhes</summary><div style="font-family:monospace;font-size:11px;white-space:pre-wrap;color:var(--muted)">'+sdEsc(x.detalhe)+'</div></details>':'')+'</td>'
+        +'<td>'+(x.licenca?'<button class="btn btn-outline btn-sm" onclick="sdLicAbrir(\''+sdEsc(x.licenca)+'\',\''+sdEsc(x.ref||'')+'\')">Abrir academia</button>':'')+'</td></tr>').join('')+'</tbody></table></div>';
+}
+async function avEmail(on){ await api('/admin/alertas/email',{method:'POST',body:JSON.stringify({ligado:on})}); loadSaude(); }
 async function avLigar(on){ await api('/admin/alertas/ligar',{method:'POST',body:JSON.stringify({ligado:on})}); loadSaude(); }
 async function avRodar(b){ b.disabled=true; b.textContent='Verificando…'; const r=await api('/admin/alertas/rodar',{method:'POST'}); b.textContent=r&&r.abertos?r.abertos+' aviso(s) novo(s)':'Nada novo ✓'; setTimeout(loadSaude,1200); }
 async function avTeste(b){ b.disabled=true; b.textContent='Enviando…'; const r=await api('/admin/alertas/teste',{method:'POST'}); b.textContent=r&&r.ok?'Enviado ✓ (olhe o e-mail)':'Não saiu: '+((r&&r.erro)||'erro'); }

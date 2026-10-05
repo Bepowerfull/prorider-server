@@ -6387,7 +6387,7 @@ app.post('/display/gravacao/:id/enviar', displayAuth, async (req, res) => {
 // 03/10e — SEGURANÇA E SAÚDE: esqueci a senha, reportar problema,
 // excluir minha conta (LGPD) e a página "Saúde do sistema" do admin
 // ══════════════════════════════════════════════════════════════
-const SERVIDOR_VERSAO = '03/10g';
+const SERVIDOR_VERSAO = '03/10h';
 const _inicioServidor = Date.now();
 let _ultWebhook = null;   // último aviso do Asaas recebido (hora e evento)
 async function segMigrar() {
@@ -6400,6 +6400,8 @@ async function segMigrar() {
     ALTER TABLE sistema_eventos ADD COLUMN IF NOT EXISTS vezes INTEGER DEFAULT 1;
     ALTER TABLE sistema_eventos ADD COLUMN IF NOT EXISTS detalhe TEXT;
     CREATE INDEX IF NOT EXISTS sistema_eventos_ch ON sistema_eventos(chave) WHERE chave IS NOT NULL;
+    CREATE TABLE IF NOT EXISTS erro_codigos (codigo TEXT PRIMARY KEY, evento_id INTEGER REFERENCES sistema_eventos(id) ON DELETE CASCADE, criado_em TIMESTAMPTZ DEFAULT NOW());   -- 03/10h: E-7F3A que aparece na tela → lupinha
+    CREATE INDEX IF NOT EXISTS sistema_eventos_lic ON sistema_eventos(licenca, created_at DESC) WHERE licenca IS NOT NULL;
     CREATE TABLE IF NOT EXISTS senha_reset (id SERIAL PRIMARY KEY, user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
       token_hash TEXT UNIQUE NOT NULL, expira TIMESTAMPTZ NOT NULL, usado_em TIMESTAMPTZ, ip TEXT, created_at TIMESTAMPTZ DEFAULT NOW());
     CREATE TABLE IF NOT EXISTS suporte_relatos (id SERIAL PRIMARY KEY, user_id INTEGER REFERENCES users(id) ON DELETE SET NULL, email TEXT, nome TEXT,
@@ -6501,8 +6503,10 @@ app.post('/suporte/erro', async (req, res) => {
       const det = [x.tela ? 'tela: ' + x.tela : '', x.versao || b.versao ? 'versão: ' + String(x.versao || b.versao).slice(0, 40) : '', x.onde ? 'onde: ' + String(x.onde).slice(0, 200) : '',
         'quem: ' + quem, b.aparelho ? 'aparelho: ' + String(b.aparelho).slice(0, 200) : '', x.stack ? '\n' + String(x.stack).slice(0, 1500) : ''].filter(Boolean).join(' · ');
       const quando = x.quando && !isNaN(Date.parse(x.quando)) && Date.parse(x.quando) < Date.now() + 60000 && Date.parse(x.quando) > Date.now() - 8 * 86400000 ? new Date(x.quando) : new Date();
-      const up = await db.query(`UPDATE sistema_eventos SET vezes=vezes+1, created_at=GREATEST(created_at,$2), detalhe=$3 WHERE id=(SELECT id FROM sistema_eventos WHERE chave=$1 AND created_at > NOW() - INTERVAL '24 hours' ORDER BY id DESC LIMIT 1) RETURNING id`, [chave, quando, det]);
-      if (!up.rows.length) await db.query(`INSERT INTO sistema_eventos (nivel, msg, origem, licenca, chave, vezes, detalhe, created_at) VALUES ($1,$2,$3,$4,$5,1,$6,$7)`, [nivel, msg, origem, lic, chave, det, quando]);
+      let up = await db.query(`UPDATE sistema_eventos SET vezes=vezes+1, created_at=GREATEST(created_at,$2), detalhe=$3 WHERE id=(SELECT id FROM sistema_eventos WHERE chave=$1 AND created_at > NOW() - INTERVAL '24 hours' ORDER BY id DESC LIMIT 1) RETURNING id`, [chave, quando, det]);
+      if (!up.rows.length) up = await db.query(`INSERT INTO sistema_eventos (nivel, msg, origem, licenca, chave, vezes, detalhe, created_at) VALUES ($1,$2,$3,$4,$5,1,$6,$7) RETURNING id`, [nivel, msg, origem, lic, chave, det, quando]);
+      const cod = String(x.codigo || '').toUpperCase();   // 03/10h: o código que apareceu na tela do cliente
+      if (/^E-[A-Z0-9]{4,6}$/.test(cod)) await db.query('INSERT INTO erro_codigos (codigo, evento_id) VALUES ($1,$2) ON CONFLICT (codigo) DO NOTHING', [cod, up.rows[0].id]);
       gravados++;
     }
     res.json({ ok: true, gravados });
@@ -6616,7 +6620,8 @@ let _vigiaRodando = false, _vigiaUltima = null, _vigiaBancoCaiu = false;
 async function vigiaMigrar() {
   await db.query(`CREATE TABLE IF NOT EXISTS sistema_alertas (id SERIAL PRIMARY KEY, chave TEXT UNIQUE NOT NULL, tipo TEXT NOT NULL, nivel TEXT NOT NULL,
     licenca TEXT, txt TEXT NOT NULL, criado_em TIMESTAMPTZ DEFAULT NOW(), email_ok BOOLEAN, email_erro TEXT, resolvido_em TIMESTAMPTZ, resolvido_txt TEXT);
-    CREATE INDEX IF NOT EXISTS sistema_alertas_t ON sistema_alertas(criado_em DESC);`);
+    CREATE INDEX IF NOT EXISTS sistema_alertas_t ON sistema_alertas(criado_em DESC);
+    ALTER TABLE sistema_alertas ADD COLUMN IF NOT EXISTS detalhe TEXT;`);
 }
 async function vigiaDestinos() {
   const env = String(process.env.ALERTAS_EMAIL || '').split(',').map(x => x.trim()).filter(x => /@/.test(x));
@@ -6632,9 +6637,11 @@ async function vigiaEmail(assunto, titulo, corpo) {
 }
 // abre um aviso (só se a chave ainda não existe) e manda o e-mail
 async function vigiaAbrir(chave, tipo, nivel, licenca, txt, detalhe) {
-  const r = await db.query(`INSERT INTO sistema_alertas (chave, tipo, nivel, licenca, txt) VALUES ($1,$2,$3,$4,$5) ON CONFLICT (chave) DO NOTHING RETURNING id`, [chave, tipo, nivel, licenca, txt]);
+  const r = await db.query(`INSERT INTO sistema_alertas (chave, tipo, nivel, licenca, txt, detalhe) VALUES ($1,$2,$3,$4,$5,$6) ON CONFLICT (chave) DO NOTHING RETURNING id`, [chave, tipo, nivel, licenca, txt, detalhe ? String(detalhe).replace(/<[^>]+>/g, '').replace(/&quot;/g, '"').replace(/&amp;/g, '&') : null]);
   if (!r.rows.length) return false;
-  const e = await vigiaEmail((nivel === 'erro' ? '🔴 ' : '🟠 ') + 'ProRider — ' + txt, nivel === 'erro' ? 'Atenção agora' : 'Aviso',
+  // 03/10h: e-mail só para os VERMELHOS (o resto fica no painel do Super Admin)
+  if (nivel !== 'erro' || !(await cfgLer('alertas_email', true).catch(() => true))) { await db.query('UPDATE sistema_alertas SET email_ok=NULL WHERE id=$1', [r.rows[0].id]); log(`[Vigia] aviso #${r.rows[0].id} aberto (${licenca || 'geral'}) · só no painel`); return true; }
+  const e = await vigiaEmail('🔴 ProRider — ' + txt, 'Atenção agora',
     `<p style="font-size:16px"><b>${_esc(txt)}</b></p>${detalhe ? '<p>' + detalhe + '</p>' : ''}<p style="color:#888;font-size:12px">${new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })} · aviso automático do servidor ProRider</p>`);
   await db.query('UPDATE sistema_alertas SET email_ok=$2, email_erro=$3 WHERE id=$1', [r.rows[0].id, e.ok, e.erro]);
   log(`[Vigia] aviso #${r.rows[0].id} aberto (${licenca || 'geral'}) · e-mail ${e.ok ? 'enviado' : 'não enviado'}`);   // sem o texto: o log não pode contar como erro
@@ -6642,11 +6649,11 @@ async function vigiaAbrir(chave, tipo, nivel, licenca, txt, detalhe) {
 }
 // fecha os avisos abertos de um tipo/academia (ex.: a TV voltou) e avisa
 async function vigiaFechar(tipo, licenca, txt) {
-  const r = await db.query(`UPDATE sistema_alertas SET resolvido_em=NOW(), resolvido_txt=$3 WHERE tipo=$1 AND licenca IS NOT DISTINCT FROM $2 AND resolvido_em IS NULL RETURNING id, criado_em`, [tipo, licenca, txt]);
+  const r = await db.query(`UPDATE sistema_alertas SET resolvido_em=NOW(), resolvido_txt=$3 WHERE tipo=$1 AND licenca IS NOT DISTINCT FROM $2 AND resolvido_em IS NULL RETURNING id, criado_em, email_ok`, [tipo, licenca, txt]);
   if (!r.rows.length) return;
   log(`[Vigia] ${r.rows.length} aviso(s) resolvido(s) (${licenca || 'geral'})`);
   // só manda "voltou" se o aviso é recente (TV desligada ontem e ligada hoje cedo não precisa de e-mail)
-  if (r.rows.some(x => Date.now() - new Date(x.criado_em).getTime() < 3 * 3600000)) await vigiaEmail('✅ ProRider — ' + txt, 'Voltou ao normal', `<p style="font-size:16px"><b>${_esc(txt)}</b></p>`);
+  if (r.rows.some(x => x.email_ok && Date.now() - new Date(x.criado_em).getTime() < 3 * 3600000) && (await cfgLer('alertas_email', true).catch(() => true))) await vigiaEmail('✅ ProRider — ' + txt, 'Voltou ao normal', `<p style="font-size:16px"><b>${_esc(txt)}</b></p>`);
 }
 function _hmBR(min) { return String(Math.floor(min / 60)).padStart(2, '0') + ':' + String(min % 60).padStart(2, '0'); }
 async function vigiaRodar() {
@@ -6705,11 +6712,91 @@ app.get('/admin/alertas', adminAuth, async (req, res) => {
   try {
     const lista = (await db.query(`SELECT a.*, COALESCE(l.nome_fantasia, l.nome) AS academia FROM sistema_alertas a LEFT JOIN licencas l ON l.codigo=a.licenca
       WHERE a.criado_em > NOW() - INTERVAL '7 days' ORDER BY a.criado_em DESC LIMIT 100`)).rows;
-    res.json({ ligado: !!(await cfgLer('alertas_ligados', true)), destinos: await vigiaDestinos(), email: !!emailProvedor(), ultima: _vigiaUltima, intervalo_s: VIGIA_SEG, lista });
+    res.json({ ligado: !!(await cfgLer('alertas_ligados', true)), email_vermelhos: !!(await cfgLer('alertas_email', true)), destinos: await vigiaDestinos(), email: !!emailProvedor(), ultima: _vigiaUltima, intervalo_s: VIGIA_SEG, lista });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 app.post('/admin/alertas/ligar', adminAuth, async (req, res) => {
   const on = !!(req.body || {}).ligado; await cfgGravar('alertas_ligados', on); log(`[Vigia] avisos ${on ? 'ligados' : 'desligados'} por ${req.user.email}`); res.json({ ok: true, ligado: on });
+});
+app.post('/admin/alertas/email', adminAuth, async (req, res) => {
+  const on = !!(req.body || {}).ligado; await cfgGravar('alertas_email', on); log(`[Vigia] e-mail dos vermelhos ${on ? 'ligado' : 'desligado'} por ${req.user.email}`); res.json({ ok: true, ligado: on });
+});
+// 03/10h — SEMÁFORO POR ACADEMIA (painel geral) e PAINEL DE UMA ACADEMIA
+// verde = tudo certo · amarelo = olhar quando der · vermelho = agir agora · cinza = sem TV instalada
+async function semaforoLicencas(soCodigo) {
+  const ls = (await db.query(`SELECT * FROM licencas WHERE status IN ('ativa','suspensa') ${soCodigo ? 'AND codigo=$1' : ''} ORDER BY COALESCE(nome_fantasia, nome)`, soCodigo ? [soCodigo] : [])).rows;
+  const tv = new Map((await db.query(`SELECT license_codigo AS c, MAX(visto_em) AS v, COUNT(*)::int AS n, MAX(build) AS b FROM licenca_computadores GROUP BY 1`)).rows.map(x => [x.c, x]));
+  const al = (await db.query(`SELECT licenca, nivel, txt FROM sistema_alertas WHERE resolvido_em IS NULL AND licenca IS NOT NULL AND criado_em > NOW() - INTERVAL '7 days'`)).rows;
+  const er = new Map((await db.query(`SELECT licenca, SUM(vezes) FILTER (WHERE nivel='erro')::int AS e, SUM(vezes) FILTER (WHERE nivel='aviso')::int AS a FROM sistema_eventos WHERE licenca IS NOT NULL AND created_at > NOW() - INTERVAL '24 hours' GROUP BY 1`)).rows.map(x => [x.licenca, x]));
+  const rel = new Map((await db.query(`SELECT license_id, COUNT(*)::int AS n FROM suporte_relatos WHERE status='aberto' AND license_id IS NOT NULL GROUP BY 1`)).rows.map(x => [x.license_id, x.n]));
+  const ult = new Map((await db.query(`SELECT license_id, MAX(inicio) AS u FROM aulas_tv GROUP BY 1`).catch(() => ({ rows: [] }))).rows.map(x => [x.license_id, x.u]));
+  const salaAberta = new Set(); for (const s of Object.values(salas)) if (s.licenca && s.professor && s.professor.readyState === WebSocket.OPEN) salaAberta.add(s.licenca);
+  return ls.map(l => {
+    const t = tv.get(l.codigo), online = salaAberta.has(l.codigo) || !!(t && t.v && Date.now() - new Date(t.v).getTime() < 180000);
+    const vm = [], am = [], sit = finSituacao(l);
+    al.filter(a => a.licenca === l.codigo).forEach(a => (a.nivel === 'erro' ? vm : am).push(a.txt));
+    if (sit === 'suspenso') vm.push('Licença suspensa por pagamento (TV travada)');
+    if (sit === 'vencido') am.push('Pagamento vencido');
+    const e = er.get(l.codigo) || {}; if (e.e) am.push(e.e + ' erro(s) nas telas em 24 h');
+    if (rel.get(l.codigo)) am.push(rel.get(l.codigo) + ' problema(s) reportado(s) em aberto');
+    if (t && t.v && Date.now() - new Date(t.v).getTime() > 86400000 * 2 && Date.now() - new Date(t.v).getTime() < 86400000 * 14) am.push('TV sem falar com o servidor há ' + Math.round((Date.now() - new Date(t.v).getTime()) / 86400000) + ' dias');
+    const cor = vm.length ? 'vermelho' : am.length ? 'amarelo' : !t ? 'cinza' : 'verde';
+    return { codigo: l.codigo, nome: l.nome_fantasia || l.nome, cor, motivos: vm.concat(am), tv_online: online, tv_visto: t ? t.v : null, tvs: t ? t.n : 0, build: t ? t.b : null,
+      erros_24h: e.e || 0, avisos_24h: e.a || 0, relatos: rel.get(l.codigo) || 0, situacao: sit, ultima_aula: ult.get(l.codigo) || null };
+  }).sort((a, b) => ({ vermelho: 0, amarelo: 1, verde: 2, cinza: 3 }[a.cor] - { vermelho: 0, amarelo: 1, verde: 2, cinza: 3 }[b.cor]) || a.nome.localeCompare(b.nome));
+}
+app.get('/admin/saude/licencas', adminAuth, async (req, res) => {
+  try { res.json({ lista: await semaforoLicencas() }); } catch (e) { res.status(500).json({ error: e.message }); }
+});
+app.get('/admin/saude/licenca/:codigo', adminAuth, async (req, res) => {
+  try {
+    const c = String(req.params.codigo).toUpperCase(), lic = (await semaforoLicencas(c))[0];
+    if (!lic) return res.status(404).json({ error: 'Licença não encontrada' });
+    const q = async (sql, p) => (await db.query(sql, p).catch(() => ({ rows: [] }))).rows;
+    const [alertas, telas, relatos, tvs, aulas, codigos] = await Promise.all([
+      q(`SELECT id, tipo, nivel, txt, detalhe, criado_em, email_ok, resolvido_em, resolvido_txt FROM sistema_alertas WHERE licenca=$1 AND criado_em > NOW() - INTERVAL '30 days' ORDER BY criado_em DESC LIMIT 100`, [c]),
+      q(`SELECT id, nivel, msg, origem, vezes, detalhe, created_at FROM sistema_eventos WHERE licenca=$1 AND created_at > NOW() - INTERVAL '30 days' ORDER BY created_at DESC LIMIT 150`, [c]),
+      q(`SELECT id, nome, email, origem, tela, versao, texto, status, created_at FROM suporte_relatos WHERE license_id=$1 ORDER BY id DESC LIMIT 50`, [c]),
+      q(`SELECT nome_computador, build, visto_em FROM licenca_computadores WHERE license_codigo=$1 ORDER BY visto_em DESC NULLS LAST`, [c]),
+      q(`SELECT nome_aula, inicio, dur_seg, n_alunos FROM aulas_tv WHERE license_id=$1 ORDER BY inicio DESC NULLS LAST LIMIT 15`, [c]),
+      q(`SELECT k.codigo, k.evento_id FROM erro_codigos k JOIN sistema_eventos e ON e.id=k.evento_id WHERE e.licenca=$1`, [c])]);
+    const cm = {}; codigos.forEach(k => (cm[k.evento_id] = cm[k.evento_id] || []).push(k.codigo));
+    telas.forEach(t => { t.codigos = cm[t.id] || []; t.ref = 'S-' + t.id.toString(36).toUpperCase(); });
+    alertas.forEach(a => { a.ref = 'A-' + a.id.toString(36).toUpperCase(); });
+    // linha do tempo: tudo junto, do mais novo para o mais velho
+    const linha = [].concat(
+      alertas.map(a => ({ t: a.criado_em, tipo: 'aviso', cor: a.nivel === 'erro' ? 'vermelho' : 'amarelo', txt: a.txt, sub: a.resolvido_em ? '✓ ' + (a.resolvido_txt || 'resolvido') : 'em aberto', ref: a.ref, detalhe: a.detalhe })),
+      alertas.filter(a => a.resolvido_em).map(a => ({ t: a.resolvido_em, tipo: 'resolvido', cor: 'verde', txt: a.resolvido_txt || 'Resolvido', ref: a.ref })),
+      telas.map(t => ({ t: t.created_at, tipo: t.origem, cor: t.nivel === 'erro' ? 'amarelo' : 'cinza', txt: t.msg, sub: (t.vezes > 1 ? t.vezes + ' vezes · ' : '') + (t.codigos.length ? t.codigos.slice(-3).join(' ') : ''), ref: t.ref, detalhe: t.detalhe })),
+      relatos.map(r => ({ t: r.created_at, tipo: 'relato', cor: r.status === 'aberto' ? 'amarelo' : 'cinza', txt: '🛟 ' + r.texto, sub: (r.nome || r.email || '') + ' · ' + (r.origem || '') + ' ' + (r.tela || ''), ref: 'R-' + r.id })),
+      aulas.map(a => ({ t: a.inicio, tipo: 'aula', cor: 'verde', txt: '🚴 Aula "' + (a.nome_aula || 'Aula') + '"', sub: (a.n_alunos || 0) + ' aluno(s) · ' + Math.round((a.dur_seg || 0) / 60) + ' min' }))
+    ).filter(x => x.t).sort((a, b) => new Date(b.t) - new Date(a.t)).slice(0, 200);
+    res.json({ licenca: lic, tvs, linha, relatos_abertos: relatos.filter(r => r.status === 'aberto') });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+// LUPINHA: busca por código (E-7F3A, S-1Z, A-3K, R-12), por academia ou por texto do erro
+app.get('/admin/saude/busca', adminAuth, async (req, res) => {
+  const t = String(req.query.q || '').trim(); if (t.length < 2) return res.json({ lista: [] });
+  try {
+    const out = [], up = t.toUpperCase().replace(/\s+/g, '');
+    const evento = async (id, via) => { const e = (await db.query(`SELECT e.*, COALESCE(l.nome_fantasia, l.nome) AS academia FROM sistema_eventos e LEFT JOIN licencas l ON l.codigo=e.licenca WHERE e.id=$1`, [id])).rows[0];
+      if (e) out.push({ ref: 'S-' + e.id.toString(36).toUpperCase(), via, quando: e.created_at, cor: e.nivel === 'erro' ? 'amarelo' : 'cinza', origem: e.origem || 'servidor', licenca: e.licenca, academia: e.academia, txt: e.msg, detalhe: e.detalhe, vezes: e.vezes }); };
+    let m;
+    if ((m = up.match(/^E-?([A-Z0-9]{4,6})$/))) { const k = (await db.query('SELECT evento_id FROM erro_codigos WHERE codigo=$1', ['E-' + m[1]])).rows[0]; if (k) await evento(k.evento_id, 'E-' + m[1]); }
+    if ((m = up.match(/^S-([A-Z0-9]+)$/))) await evento(parseInt(m[1], 36), up);
+    if ((m = up.match(/^A-([A-Z0-9]+)$/))) { const a = (await db.query(`SELECT a.*, COALESCE(l.nome_fantasia, l.nome) AS academia FROM sistema_alertas a LEFT JOIN licencas l ON l.codigo=a.licenca WHERE a.id=$1`, [parseInt(m[1], 36)])).rows[0];
+      if (a) out.push({ ref: up, quando: a.criado_em, cor: a.nivel === 'erro' ? 'vermelho' : 'amarelo', origem: 'aviso', licenca: a.licenca, academia: a.academia, txt: a.txt, detalhe: a.resolvido_em ? 'resolvido: ' + (a.resolvido_txt || '') : 'em aberto' }); }
+    if ((m = up.match(/^R-(\d+)$/))) { const r = (await db.query('SELECT * FROM suporte_relatos WHERE id=$1', [parseInt(m[1], 10)])).rows[0];
+      if (r) out.push({ ref: up, quando: r.created_at, cor: 'amarelo', origem: 'relato', licenca: r.license_id, academia: null, txt: r.texto, detalhe: (r.nome || '') + ' ' + (r.email || '') }); }
+    if (!out.length) {
+      const lic = (await db.query(`SELECT codigo, COALESCE(nome_fantasia, nome) AS nome FROM licencas WHERE UPPER(codigo)=$1 OR COALESCE(nome_fantasia, nome) ILIKE $2 LIMIT 10`, [up, '%' + t + '%'])).rows;
+      lic.forEach(l => out.push({ tipo: 'licenca', licenca: l.codigo, academia: l.nome, txt: 'Abrir o painel desta academia' }));
+      const ev = (await db.query(`SELECT e.id, e.created_at, e.nivel, e.origem, e.licenca, e.msg, e.vezes, COALESCE(l.nome_fantasia, l.nome) AS academia FROM sistema_eventos e LEFT JOIN licencas l ON l.codigo=e.licenca
+        WHERE e.msg ILIKE $1 ORDER BY e.created_at DESC LIMIT 30`, ['%' + t + '%'])).rows;
+      ev.forEach(e => out.push({ ref: 'S-' + e.id.toString(36).toUpperCase(), quando: e.created_at, cor: e.nivel === 'erro' ? 'amarelo' : 'cinza', origem: e.origem || 'servidor', licenca: e.licenca, academia: e.academia, txt: e.msg, vezes: e.vezes }));
+    }
+    res.json({ lista: out });
+  } catch (e) { res.status(500).json({ error: e.message }); }
 });
 app.post('/admin/alertas/rodar', adminAuth, async (req, res) => { res.json(await vigiaRodar()); });   // "Verificar agora"
 app.post('/admin/alertas/teste', adminAuth, async (req, res) => {

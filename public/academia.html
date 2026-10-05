@@ -1283,6 +1283,7 @@ var _impSession = sessionStorage.getItem('pr_imp_token') ? {
 } : null;
 
 var token = (_impSession ? _impSession.token : null) || localStorage.getItem('pr_gestor_token') || '';
+try { if (typeof prErroConfig === 'function') prErroConfig(SERVER, 'portal', function () { return _impSession ? '' : token; }, 'Portal 03/10h'); } catch (e) {}   // 03/10f (modo suporte não manda o token do admin)
 var user  = (_impSession ? _impSession.user  : null) || JSON.parse(localStorage.getItem('pr_gestor_user') || 'null');
 var allAlunos = [];
 
@@ -1622,7 +1623,8 @@ async function pfSalvar(){
 }
 async function pfTrocarSenha(){
   const m = document.getElementById('pfSMsg');
-  try { await apiSend('PUT', '/user/senha', { senha_atual: document.getElementById('pfS0').value, nova: document.getElementById('pfS1').value });
+  try { const d = await apiSend('PUT', '/user/senha', { senha_atual: document.getElementById('pfS0').value, nova: document.getElementById('pfS1').value });
+    if (d.token && !_impSession) { token = d.token; localStorage.setItem('pr_gestor_token', d.token); }   // 03/10f: os outros aparelhos saem, este continua
     m.textContent = '✓ Senha trocada'; document.getElementById('pfS0').value = ''; document.getElementById('pfS1').value = ''; }
   catch(e) { m.textContent = '⚠ ' + e.message; }
 }
