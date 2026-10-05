@@ -81,6 +81,24 @@ function limBloqueado(chave, max) { const x = _lim.get(chave); return (x && x.at
 function limConta(chave, janelaMin) { const ag = Date.now(); let x = _lim.get(chave); if (!x || x.ate < ag) { x = { n: 0, ate: ag + janelaMin * 60000 }; _lim.set(chave, x); } x.n++; return x.n; }
 function limZera(chave) { _lim.delete(chave); }
 setInterval(() => { const ag = Date.now(); for (const [k, x] of _lim) if (x.ate < ag) _lim.delete(k); }, 600000);
+// 03/10f — TROCOU A SENHA, AS OUTRAS SESSÕES CAEM. Cada usuário guarda quando trocou a
+// senha (users.senha_trocada_em, também na memória). Qualquer token de login emitido ANTES
+// disso deixa de valer em todo o servidor (todas as rotas usam jwt.verify). TVs não são afetadas.
+const _senhaTrocada = new Map();   // user id → ms
+const _jwtVerifyOrig = jwt.verify.bind(jwt);
+jwt.verify = function (t, s, o) {
+  const p = _jwtVerifyOrig(t, s, o);
+  if (p && p.id && p.iat && p.role !== 'display') { const tr = _senhaTrocada.get(Number(p.id)); if (tr && p.iat * 1000 < tr - 1000) throw new jwt.JsonWebTokenError('sessão encerrada: a senha foi trocada'); }
+  return p;
+};
+async function senhaTrocou(userId) {   // chamar depois de gravar a senha nova; devolve um token novo para quem trocou
+  const ag = Date.now(); _senhaTrocada.set(Number(userId), ag);
+  if (db) await db.query('UPDATE users SET senha_trocada_em=to_timestamp($1/1000.0) WHERE id=$2', [ag, userId]).catch(e => log('senha_trocada_em erro: ' + e.message));
+}
+async function senhaTrocadaCarregar() {
+  await db.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS senha_trocada_em TIMESTAMPTZ');
+  (await db.query(`SELECT id, senha_trocada_em FROM users WHERE senha_trocada_em > NOW() - INTERVAL '31 days'`)).rows.forEach(r => _senhaTrocada.set(Number(r.id), new Date(r.senha_trocada_em).getTime()));
+}
 process.on('unhandledRejection', e => { log('ERRO não tratado (promise): ' + ((e && e.stack) || e)); });
 process.on('uncaughtException', e => { log('ERRO não tratado: ' + ((e && e.stack) || e)); setTimeout(() => process.exit(1), 1500); });
 
@@ -1232,7 +1250,9 @@ app.put('/user/senha', authMiddleware, async (req, res) => {
     if (!(await bcrypt.compare(String(senha_atual || ''), r.rows[0].password_hash || '')))
       return res.status(401).json({ error: 'Senha atual incorreta.' });
     await db.query('UPDATE users SET password_hash=$1, senha_provisoria=FALSE, updated_at=NOW() WHERE id=$2', [await bcrypt.hash(String(nova), 10), req.user.id]);
-    res.json({ ok: true });
+    await senhaTrocou(req.user.id);   // 03/10f: os outros aparelhos saem; este recebe um token novo
+    const u = (await db.query('SELECT id, email, role, license_id FROM users WHERE id=$1', [req.user.id])).rows[0];
+    res.json({ ok: true, token: jwt.sign({ id: u.id, email: u.email, role: u.role, license_id: u.license_id || undefined }, JWT_SECRET, { expiresIn: '30d' }) });
   } catch (e) { res.status(500).json({ error: 'Erro interno' }); }
 });
 
@@ -2927,6 +2947,7 @@ app.post('/gestor/alunos/:id/reset-senha', gestorAuth, async (req, res) => {
       return res.status(403).json({ error: 'Aluno não pertence à sua academia' });
     const hash = await bcrypt.hash(password, 10);
     await db.query('UPDATE users SET password_hash=$1, updated_at=NOW() WHERE id=$2', [hash, req.params.id]);
+    await senhaTrocou(aluno.rows[0].id);   // 03/10f
     res.json({ ok: true });
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
@@ -3269,6 +3290,7 @@ app.post('/admin/licencas/:id/reenviar-acesso', adminAuth, async (req, res) => {
     if (['admin', 'super_admin'].includes(u.role)) return res.status(400).json({ error: 'Essa conta é de administrador — a senha dela não é trocada por aqui.' });
     const senhaTemp = 'PR-' + crypto.randomBytes(4).toString('hex');
     await db.query('UPDATE users SET password_hash=$1, senha_provisoria=TRUE, updated_at=NOW() WHERE id=$2', [await bcrypt.hash(senhaTemp, 10), u.id]);
+    await senhaTrocou(u.id);   // 03/10f: quem estava logado com a senha antiga sai
     await db.query("DELETE FROM email_log WHERE tipo='boas_vindas' AND ref=$1", ['u' + u.id]).catch(() => {});
     let enviado = false; _emailUltimoErro = null;
     try { enviado = await emailBoasVindas({ userId: u.id, email, nome: u.name, academia: l.nome_fantasia || l.nome, licId: null, senhaTemp, papel }); } catch (e) { _emailUltimoErro = e.message; }
@@ -6229,6 +6251,9 @@ app.post('/display/gravacao', displayAuth, async (req, res) => {
   try {
     const b = req.body || {};
     const rot = (b.roteiro && typeof b.roteiro === 'object' && Array.isArray(b.roteiro.a)) ? b.roteiro : null;
+    // 03/10f: a TV pode reenviar a mesma ficha (internet caiu no meio) — mesmo uid = mesma gravação
+    if (b.uid) { const ja = (await db.query('SELECT id FROM aulas_gravadas WHERE license_id=$1 AND uid=$2 ORDER BY id LIMIT 1', [req.user.license_id, String(b.uid).slice(0, 60)])).rows[0];
+      if (ja) return res.json({ ok: true, id: ja.id, repetida: true, envio_app: !!process.env.GRAVACOES_STORAGE, teste: !!rot && (parseInt(b.bytes, 10) || 0) <= GV_TESTE_MAX }); }
     const r = await db.query(`INSERT INTO aulas_gravadas (license_id, nome_aula, professor, dur_seg, arquivo, bytes, transmitida, youtube, uid, roteiro) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING id`,
       [req.user.license_id, String(b.nome_aula || 'Aula').slice(0, 80), String(b.professor || '').slice(0, 80), parseInt(b.dur_seg, 10) || 0,
        String(b.arquivo || '').slice(0, 300), parseInt(b.bytes, 10) || 0, !!b.transmitida, !!b.youtube, b.uid ? String(b.uid).slice(0, 60) : null, rot ? JSON.stringify(rot) : null]);
@@ -6362,13 +6387,19 @@ app.post('/display/gravacao/:id/enviar', displayAuth, async (req, res) => {
 // 03/10e — SEGURANÇA E SAÚDE: esqueci a senha, reportar problema,
 // excluir minha conta (LGPD) e a página "Saúde do sistema" do admin
 // ══════════════════════════════════════════════════════════════
-const SERVIDOR_VERSAO = '03/10e';
+const SERVIDOR_VERSAO = '03/10g';
 const _inicioServidor = Date.now();
 let _ultWebhook = null;   // último aviso do Asaas recebido (hora e evento)
 async function segMigrar() {
   await db.query(`
     CREATE TABLE IF NOT EXISTS sistema_eventos (id SERIAL PRIMARY KEY, nivel TEXT NOT NULL, msg TEXT NOT NULL, created_at TIMESTAMPTZ DEFAULT NOW());
     CREATE INDEX IF NOT EXISTS sistema_eventos_t ON sistema_eventos(created_at DESC);
+    ALTER TABLE sistema_eventos ADD COLUMN IF NOT EXISTS origem TEXT;       -- 03/10f: NULL = servidor; tv | app | portal | financeiro | admin
+    ALTER TABLE sistema_eventos ADD COLUMN IF NOT EXISTS licenca TEXT;
+    ALTER TABLE sistema_eventos ADD COLUMN IF NOT EXISTS chave TEXT;        -- mesmo erro repetido soma em "vezes" (não lota a lista)
+    ALTER TABLE sistema_eventos ADD COLUMN IF NOT EXISTS vezes INTEGER DEFAULT 1;
+    ALTER TABLE sistema_eventos ADD COLUMN IF NOT EXISTS detalhe TEXT;
+    CREATE INDEX IF NOT EXISTS sistema_eventos_ch ON sistema_eventos(chave) WHERE chave IS NOT NULL;
     CREATE TABLE IF NOT EXISTS senha_reset (id SERIAL PRIMARY KEY, user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
       token_hash TEXT UNIQUE NOT NULL, expira TIMESTAMPTZ NOT NULL, usado_em TIMESTAMPTZ, ip TEXT, created_at TIMESTAMPTZ DEFAULT NOW());
     CREATE TABLE IF NOT EXISTS suporte_relatos (id SERIAL PRIMARY KEY, user_id INTEGER REFERENCES users(id) ON DELETE SET NULL, email TEXT, nome TEXT,
@@ -6376,7 +6407,9 @@ async function segMigrar() {
       created_at TIMESTAMPTZ DEFAULT NOW(), resolvido_em TIMESTAMPTZ);
   `);
   _evPronto = true;
-  log('Migração 03/10e (segurança e saúde) OK');
+  await senhaTrocadaCarregar();
+  await vigiaMigrar();
+  log('Migração 03/10e/f/g (segurança, saúde e vigia) OK');
 }
 // limpeza: eventos com mais de 30 dias e links de senha vencidos
 setInterval(() => { if (!db || !_evPronto) return;
@@ -6418,6 +6451,7 @@ app.post('/user/redefinir-senha', async (req, res) => {
     const r = (await db.query(`SELECT r.id, r.user_id, u.email FROM senha_reset r JOIN users u ON u.id=r.user_id WHERE r.token_hash=$1 AND r.usado_em IS NULL AND r.expira > NOW()`, [h])).rows[0];
     if (!r) return res.status(400).json({ error: 'Este link venceu ou já foi usado. Peça um novo em "Esqueci minha senha".' });
     await db.query(`UPDATE users SET password_hash=$1, senha_provisoria=FALSE, updated_at=NOW() WHERE id=$2`, [await bcrypt.hash(senha, 10), r.user_id]);
+    await senhaTrocou(r.user_id);   // 03/10f: "esqueci a senha" derruba quem estiver logado com a antiga
     await db.query(`UPDATE senha_reset SET usado_em=NOW() WHERE user_id=$1 AND usado_em IS NULL`, [r.user_id]);
     limZera('login:e:' + r.email);
     log(`[Senha] senha trocada pelo link para ${r.email}`);
@@ -6440,6 +6474,39 @@ app.post('/suporte/relato', async (req, res) => {
     log(`[Suporte] relato ${r.rows[0].id} de ${u.email || 'visitante'} (${b.origem || '?'} · ${b.tela || '?'})`);
     res.json({ ok: true, id: r.rows[0].id });
   } catch (e) { log('relato erro: ' + e.message); res.status(500).json({ error: 'Erro interno' }); }
+});
+
+// ── 03/10f: ERROS DAS TELAS CHEGAM SOZINHOS NA SAÚDE ───────────
+// A TV (Ginásio), o app, o Portal, o financeiro e o admin mandam aqui os erros de
+// JavaScript e os avisos importantes (ex.: "TV sem internet, resultado guardado").
+// Token é opcional (identifica a academia). Mesmo erro da mesma academia em 24 h
+// vira uma linha só com "vezes". Limite por IP para ninguém lotar o banco.
+const _ORIGENS = ['tv', 'app', 'portal', 'financeiro', 'admin'];
+app.post('/suporte/erro', async (req, res) => {
+  if (!db || !_evPronto) return res.status(503).json({ error: 'indisponível' });
+  const b = req.body || {}, lista = (Array.isArray(b.erros) ? b.erros : [b]).filter(x => x && x.msg).slice(0, 20);
+  if (!lista.length) return res.status(400).json({ error: 'sem erro' });
+  if (limConta('err:ip:' + ipDe(req), 60) > 120) return res.status(429).json({ error: 'muitos erros seguidos' });
+  const p = _lojaUid(req) || {};
+  const origem = _ORIGENS.includes(b.origem) ? b.origem : 'outro';
+  const lic = p.license_id ? String(p.license_id).slice(0, 40) : (b.licenca ? String(b.licenca).slice(0, 40) : null);
+  const quem = p.role === 'display' ? 'TV' : (p.email || 'sem login');
+  let gravados = 0;
+  try {
+    for (const x of lista) {
+      const nivel = x.nivel === 'aviso' ? 'aviso' : 'erro';
+      const msg = String(x.msg).replace(/\s+/g, ' ').trim().slice(0, 400);
+      if (!msg || /^Script error\.?$/i.test(msg) || /ResizeObserver loop/i.test(msg)) continue;
+      const chave = crypto.createHash('sha1').update([origem, lic || '', nivel, msg.replace(/\d+/g, '#')].join('|')).digest('hex');
+      const det = [x.tela ? 'tela: ' + x.tela : '', x.versao || b.versao ? 'versão: ' + String(x.versao || b.versao).slice(0, 40) : '', x.onde ? 'onde: ' + String(x.onde).slice(0, 200) : '',
+        'quem: ' + quem, b.aparelho ? 'aparelho: ' + String(b.aparelho).slice(0, 200) : '', x.stack ? '\n' + String(x.stack).slice(0, 1500) : ''].filter(Boolean).join(' · ');
+      const quando = x.quando && !isNaN(Date.parse(x.quando)) && Date.parse(x.quando) < Date.now() + 60000 && Date.parse(x.quando) > Date.now() - 8 * 86400000 ? new Date(x.quando) : new Date();
+      const up = await db.query(`UPDATE sistema_eventos SET vezes=vezes+1, created_at=GREATEST(created_at,$2), detalhe=$3 WHERE id=(SELECT id FROM sistema_eventos WHERE chave=$1 AND created_at > NOW() - INTERVAL '24 hours' ORDER BY id DESC LIMIT 1) RETURNING id`, [chave, quando, det]);
+      if (!up.rows.length) await db.query(`INSERT INTO sistema_eventos (nivel, msg, origem, licenca, chave, vezes, detalhe, created_at) VALUES ($1,$2,$3,$4,$5,1,$6,$7)`, [nivel, msg, origem, lic, chave, det, quando]);
+      gravados++;
+    }
+    res.json({ ok: true, gravados });
+  } catch (e) { log('suporte/erro falhou: ' + e.message); res.status(500).json({ error: 'Erro interno' }); }
 });
 
 // ── EXCLUIR MINHA CONTA (LGPD) ─────────────────────────────────
@@ -6512,9 +6579,16 @@ app.get('/admin/saude', adminAuth, async (req, res) => {
   try {
     out.relatos = (await db.query(`SELECT * FROM suporte_relatos WHERE status='aberto' ORDER BY id DESC LIMIT 50`)).rows;
     if (out.relatos.length) al('aviso', out.relatos.length + ' problema(s) reportado(s) esperando resposta.');
-    out.eventos = (await db.query(`SELECT id, nivel, msg, created_at FROM sistema_eventos ORDER BY id DESC LIMIT 80`)).rows;
-    const e24 = (await db.query(`SELECT COUNT(*)::int AS n FROM sistema_eventos WHERE nivel='erro' AND created_at > NOW() - INTERVAL '24 hours'`)).rows[0].n;
+    out.eventos = (await db.query(`SELECT id, nivel, msg, created_at FROM sistema_eventos WHERE origem IS NULL ORDER BY id DESC LIMIT 80`)).rows;
+    const e24 = (await db.query(`SELECT COUNT(*)::int AS n FROM sistema_eventos WHERE origem IS NULL AND nivel='erro' AND created_at > NOW() - INTERVAL '24 hours'`)).rows[0].n;
     out.erros_24h = e24; if (e24) al('erro', e24 + ' erro(s) do servidor nas últimas 24 h (lista abaixo).');
+    // 03/10f: o que as telas (TV, app, Portal) mandaram sozinhas
+    out.telas = (await db.query(`SELECT e.id, e.nivel, e.msg, e.origem, e.licenca, e.vezes, e.detalhe, e.created_at, COALESCE(l.nome_fantasia, l.nome) AS academia
+      FROM sistema_eventos e LEFT JOIN licencas l ON l.codigo=e.licenca WHERE e.origem IS NOT NULL ORDER BY e.created_at DESC LIMIT 80`)).rows;
+    const t24 = (await db.query(`SELECT origem, nivel, SUM(vezes)::int AS n FROM sistema_eventos WHERE origem IS NOT NULL AND created_at > NOW() - INTERVAL '24 hours' GROUP BY 1,2`)).rows;
+    out.telas_24h = {}; t24.forEach(r => { const o = out.telas_24h[r.origem] = out.telas_24h[r.origem] || { erro: 0, aviso: 0 }; o[r.nivel] = r.n; });
+    const te = t24.filter(r => r.nivel === 'erro').reduce((a, r) => a + r.n, 0);
+    if (te) al('aviso', te + ' erro(s) nas telas (TV, app ou Portal) nas últimas 24 h — veja "O que as telas avisaram".');
   } catch (e) {}
   res.json(out);
 });
@@ -6523,8 +6597,124 @@ app.post('/admin/saude/relatos/:id/resolver', adminAuth, async (req, res) => {
   catch (e) { res.status(500).json({ error: e.message }); }
 });
 app.post('/admin/saude/eventos/limpar', adminAuth, async (req, res) => {
-  try { await db.query('DELETE FROM sistema_eventos'); log(`[Saúde] lista de eventos limpa por ${req.user.email}`); res.json({ ok: true }); }
+  const telas = (req.body || {}).tipo === 'telas';   // 03/10f: limpa só a lista pedida
+  try { await db.query(telas ? 'DELETE FROM sistema_eventos WHERE origem IS NOT NULL' : 'DELETE FROM sistema_eventos WHERE origem IS NULL'); log(`[Saúde] lista de ${telas ? 'avisos das telas' : 'eventos do servidor'} limpa por ${req.user.email}`); res.json({ ok: true }); }
   catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ══════════════════════════════════════════════════════════════
+// 03/10g — VIGIA: o servidor olha o sistema a cada minuto e AVISA
+// por e-mail na hora (TV desligada perto da aula, TV caiu no meio da
+// aula, pico de erros, Asaas recusado, disco cheio, memória alta).
+// Cada aviso vai uma vez só (chave única); os de TV mandam também
+// "voltou ao normal". Destino: ALERTAS_EMAIL (vírgulas) ou, sem ela,
+// o e-mail do super admin. Liga/desliga e lista no Saúde do sistema.
+// ══════════════════════════════════════════════════════════════
+const VIGIA_SEG = Math.max(15, parseInt(process.env.ALERTAS_INTERVALO_S || '60', 10) || 60);
+let _webhookRecusadoEm = 0;   // 03/10g: o vigia avisa se o Asaas estiver sendo recusado
+let _vigiaRodando = false, _vigiaUltima = null, _vigiaBancoCaiu = false;
+async function vigiaMigrar() {
+  await db.query(`CREATE TABLE IF NOT EXISTS sistema_alertas (id SERIAL PRIMARY KEY, chave TEXT UNIQUE NOT NULL, tipo TEXT NOT NULL, nivel TEXT NOT NULL,
+    licenca TEXT, txt TEXT NOT NULL, criado_em TIMESTAMPTZ DEFAULT NOW(), email_ok BOOLEAN, email_erro TEXT, resolvido_em TIMESTAMPTZ, resolvido_txt TEXT);
+    CREATE INDEX IF NOT EXISTS sistema_alertas_t ON sistema_alertas(criado_em DESC);`);
+}
+async function vigiaDestinos() {
+  const env = String(process.env.ALERTAS_EMAIL || '').split(',').map(x => x.trim()).filter(x => /@/.test(x));
+  if (env.length) return env;
+  return (await db.query(`SELECT email FROM users WHERE role='super_admin' AND COALESCE(status,'ativo') <> 'excluido' ORDER BY id LIMIT 3`)).rows.map(r => r.email);
+}
+async function vigiaEmail(assunto, titulo, corpo) {
+  const dest = await vigiaDestinos().catch(() => []);
+  if (!dest.length) return { ok: false, erro: 'sem destinatário' };
+  let ok = true, erro = null;
+  for (const to of dest) { const r = await enviarEmail({ to, subject: assunto, html: emailLayout(titulo, corpo, 'Abrir a Saúde do sistema', PORTAL_URL + '/index.html#saude', '') }); if (!r.ok) { ok = false; erro = r.erro; } }
+  return { ok, erro };
+}
+// abre um aviso (só se a chave ainda não existe) e manda o e-mail
+async function vigiaAbrir(chave, tipo, nivel, licenca, txt, detalhe) {
+  const r = await db.query(`INSERT INTO sistema_alertas (chave, tipo, nivel, licenca, txt) VALUES ($1,$2,$3,$4,$5) ON CONFLICT (chave) DO NOTHING RETURNING id`, [chave, tipo, nivel, licenca, txt]);
+  if (!r.rows.length) return false;
+  const e = await vigiaEmail((nivel === 'erro' ? '🔴 ' : '🟠 ') + 'ProRider — ' + txt, nivel === 'erro' ? 'Atenção agora' : 'Aviso',
+    `<p style="font-size:16px"><b>${_esc(txt)}</b></p>${detalhe ? '<p>' + detalhe + '</p>' : ''}<p style="color:#888;font-size:12px">${new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })} · aviso automático do servidor ProRider</p>`);
+  await db.query('UPDATE sistema_alertas SET email_ok=$2, email_erro=$3 WHERE id=$1', [r.rows[0].id, e.ok, e.erro]);
+  log(`[Vigia] aviso #${r.rows[0].id} aberto (${licenca || 'geral'}) · e-mail ${e.ok ? 'enviado' : 'não enviado'}`);   // sem o texto: o log não pode contar como erro
+  return true;
+}
+// fecha os avisos abertos de um tipo/academia (ex.: a TV voltou) e avisa
+async function vigiaFechar(tipo, licenca, txt) {
+  const r = await db.query(`UPDATE sistema_alertas SET resolvido_em=NOW(), resolvido_txt=$3 WHERE tipo=$1 AND licenca IS NOT DISTINCT FROM $2 AND resolvido_em IS NULL RETURNING id, criado_em`, [tipo, licenca, txt]);
+  if (!r.rows.length) return;
+  log(`[Vigia] ${r.rows.length} aviso(s) resolvido(s) (${licenca || 'geral'})`);
+  // só manda "voltou" se o aviso é recente (TV desligada ontem e ligada hoje cedo não precisa de e-mail)
+  if (r.rows.some(x => Date.now() - new Date(x.criado_em).getTime() < 3 * 3600000)) await vigiaEmail('✅ ProRider — ' + txt, 'Voltou ao normal', `<p style="font-size:16px"><b>${_esc(txt)}</b></p>`);
+}
+function _hmBR(min) { return String(Math.floor(min / 60)).padStart(2, '0') + ':' + String(min % 60).padStart(2, '0'); }
+async function vigiaRodar() {
+  if (_vigiaRodando || !db || !_evPronto) return { pulou: true };
+  if (!(await cfgLer('alertas_ligados', true).catch(() => true))) return { desligado: true };
+  _vigiaRodando = true; const out = { abertos: 0 };
+  const abre = async (...a) => { if (await vigiaAbrir(...a)) out.abertos++; };
+  try {
+    try { await db.query('SELECT 1'); if (_vigiaBancoCaiu) { _vigiaBancoCaiu = false; await vigiaEmail('✅ ProRider — banco de dados voltou', 'Voltou ao normal', '<p>O banco de dados respondeu de novo.</p>'); } }
+    catch (e) { if (!_vigiaBancoCaiu) { _vigiaBancoCaiu = true; await vigiaEmail('🔴 ProRider — banco de dados fora do ar', 'Atenção agora', '<p>O servidor não consegue falar com o banco de dados. Login, aulas e pagamentos param até ele voltar.</p>'); } return out; }
+    const { d, iso } = _hojeBR(), agoraMin = d.getHours() * 60 + d.getMinutes(), dia = d.getDay();
+    // TVs: online = falou com o servidor nos últimos 3 min OU está com a sala aberta
+    const salaAberta = new Set(); for (const s of Object.values(salas)) if (s.licenca && s.professor && s.professor.readyState === WebSocket.OPEN) salaAberta.add(s.licenca);
+    const tvs = (await db.query(`SELECT license_codigo AS lic, MAX(visto_em) AS visto FROM licenca_computadores GROUP BY 1`)).rows;
+    const tvOnline = new Map(tvs.map(t => [t.lic, salaAberta.has(t.lic) || (t.visto && Date.now() - new Date(t.visto).getTime() < 180000)]));
+    // academias "instaladas" (TV vista nos últimos 14 dias) e ativas
+    const inst = (await db.query(`SELECT l.codigo, COALESCE(l.nome_fantasia, l.nome) AS nome FROM licencas l JOIN licenca_computadores c ON c.license_codigo=l.codigo
+      WHERE l.status='ativa' AND c.visto_em > NOW() - INTERVAL '14 days' GROUP BY 1,2`)).rows;
+    for (const L of inst) {
+      if (tvOnline.get(L.codigo)) { await vigiaFechar('tv_sem_aula', L.codigo, `${L.nome}: TV ligou de novo`); await vigiaFechar('tv_caiu_aula', L.codigo, `${L.nome}: TV voltou`); continue; }
+      // 1) aula da grade começando (de 10 min antes até 5 min depois) e a TV desligada/sem internet
+      const aulas = (await db.query(`SELECT id, nome, professor_nome, EXTRACT(HOUR FROM hora)::int*60+EXTRACT(MINUTE FROM hora)::int AS m FROM aulas_agenda
+        WHERE license_id=$1 AND dia_semana=$2 AND COALESCE(ativa,TRUE)`, [L.codigo, dia])).rows;
+      for (const a of aulas) if (agoraMin >= a.m - 10 && agoraMin <= a.m + 5)
+        await abre(`tv_sem_aula:${L.codigo}:${a.id}:${iso}`, 'tv_sem_aula', 'erro', L.codigo, `${L.nome}: TV desligada — aula "${a.nome}" das ${_hmBR(a.m)}`,
+          `A aula começa ${a.m > agoraMin ? 'em ' + (a.m - agoraMin) + ' min' : 'agora'}${a.professor_nome ? ' (professor ' + _esc(a.professor_nome) + ')' : ''} e o computador da TV não fala com o servidor há mais de 3 minutos. Vale ligar para a academia: computador desligado, sem internet ou programa fechado.`);
+    }
+    // 2) TV caiu no meio da aula (sala iniciada, sem a TV há 2 min — a sala fecha aos 3)
+    for (const [cod, s] of Object.entries(salas)) {
+      if (!s.licenca || !s.estado || !s.estado.iniciada || s.estado.encerrada) continue;
+      const nome = (inst.find(x => x.codigo === s.licenca) || {}).nome || s.licenca;
+      if (s.profCaiuEm && Date.now() - s.profCaiuEm >= (parseInt(process.env.ALERTA_TV_CAIU_S || '90', 10) || 90) * 1000)
+        await abre(`tv_caiu_aula:${cod}:${s.profCaiuEm}`, 'tv_caiu_aula', 'erro', s.licenca, `${nome}: TV caiu no meio da aula "${s.estado.nomeAula || cod}"`,
+          `${s.alunos ? s.alunos.size : 0} aluno(s) na sala. A TV perdeu a conexão há mais de 1 minuto e meio. Os números da aula ficam guardados no computador da TV e vão sozinhos quando a internet voltar.`);
+    }
+    // 3) pico de erros do servidor (10+ em 10 min) e das telas (25+ em 15 min)
+    const hora = new Date().toISOString().slice(0, 13);
+    const es = (await db.query(`SELECT COUNT(*)::int AS n FROM sistema_eventos WHERE origem IS NULL AND nivel='erro' AND created_at > NOW() - INTERVAL '10 minutes'`)).rows[0].n;
+    if (es >= 10) await abre(`erros_pico:${hora}`, 'erros_pico', 'erro', null, `${es} erros do servidor em 10 minutos`, 'Veja a lista "Erros e avisos do servidor" na Saúde do sistema.');
+    const et = (await db.query(`SELECT COALESCE(SUM(vezes),0)::int AS n FROM sistema_eventos WHERE origem IS NOT NULL AND nivel='erro' AND created_at > NOW() - INTERVAL '15 minutes'`)).rows[0].n;
+    if (et >= 25) await abre(`telas_pico:${hora}`, 'telas_pico', 'aviso', null, `${et} erros nas telas (TV, app, Portal) em 15 minutos`, 'Veja "O que as telas avisaram" na Saúde do sistema.');
+    // 4) Asaas: aviso de pagamento recusado (token) na última hora
+    if (Date.now() - _webhookRecusadoEm < 3600000) await abre(`asaas_recusado:${iso}`, 'asaas_recusado', 'erro', null, 'Avisos de pagamento do Asaas estão sendo recusados', 'O token do webhook (ASAAS_WEBHOOK_TOKEN) não confere com o do painel do Asaas: pagamentos não são liberados sozinhos até corrigir.');
+    // 5) disco das gravações e memória do servidor
+    try { const sf = require('fs').statfsSync(GV_DIR), livre = sf.bavail * sf.bsize / 1073741824;
+      if (livre < 2) await abre(`disco:${iso}`, 'disco', 'erro', null, `Pouco espaço para gravações: ${livre.toFixed(1)} GB livres`, 'Aumente o Volume no Railway ou apague gravações antigas.'); } catch (e) {}
+    const rss = process.memoryUsage().rss / 1048576;
+    if (rss > parseInt(process.env.ALERTA_MEMORIA_MB || '1536', 10)) await abre(`memoria:${new Date().toISOString().slice(0, 10)}:${Math.floor(new Date().getUTCHours() / 6)}`, 'memoria', 'aviso', null, `Servidor usando ${Math.round(rss)} MB de memória`, 'Se continuar subindo, reinicie o serviço no Railway e me avise.');
+    _vigiaUltima = new Date().toISOString();
+  } catch (e) { log('[Vigia] falhou: ' + e.message); }
+  finally { _vigiaRodando = false; }
+  return out;
+}
+setInterval(() => { vigiaRodar().catch(() => {}); }, VIGIA_SEG * 1000);
+app.get('/admin/alertas', adminAuth, async (req, res) => {
+  try {
+    const lista = (await db.query(`SELECT a.*, COALESCE(l.nome_fantasia, l.nome) AS academia FROM sistema_alertas a LEFT JOIN licencas l ON l.codigo=a.licenca
+      WHERE a.criado_em > NOW() - INTERVAL '7 days' ORDER BY a.criado_em DESC LIMIT 100`)).rows;
+    res.json({ ligado: !!(await cfgLer('alertas_ligados', true)), destinos: await vigiaDestinos(), email: !!emailProvedor(), ultima: _vigiaUltima, intervalo_s: VIGIA_SEG, lista });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+app.post('/admin/alertas/ligar', adminAuth, async (req, res) => {
+  const on = !!(req.body || {}).ligado; await cfgGravar('alertas_ligados', on); log(`[Vigia] avisos ${on ? 'ligados' : 'desligados'} por ${req.user.email}`); res.json({ ok: true, ligado: on });
+});
+app.post('/admin/alertas/rodar', adminAuth, async (req, res) => { res.json(await vigiaRodar()); });   // "Verificar agora"
+app.post('/admin/alertas/teste', adminAuth, async (req, res) => {
+  const e = await vigiaEmail('🧪 ProRider — teste dos avisos', 'Teste', '<p>Se você recebeu este e-mail, os avisos automáticos do servidor estão chegando.</p>');
+  res.json(e);
 });
 
 // ══════════════════════════════════════════════════════════════
@@ -7135,7 +7325,7 @@ function asaasTokenOk(req) {
   return a.length === b.length && crypto.timingSafeEqual(a, b);
 }
 app.post('/webhook/asaas', express.json(), async (req, res) => {
-  if (!asaasTokenOk(req)) { log('[Asaas webhook] recusado: token ausente ou errado' + (process.env.ASAAS_WEBHOOK_TOKEN ? '' : ' (falta ASAAS_WEBHOOK_TOKEN no Railway)')); return res.status(401).json({ error: 'Token inválido' }); }
+  if (!asaasTokenOk(req)) { _webhookRecusadoEm = Date.now(); log('[Asaas webhook] recusado: token ausente ou errado' + (process.env.ASAAS_WEBHOOK_TOKEN ? '' : ' (falta ASAAS_WEBHOOK_TOKEN no Railway)')); return res.status(401).json({ error: 'Token inválido' }); }
   if (!db) return res.status(503).json({ error: 'Banco indisponível' });
   const ev = req.body;
   if (!ev || !ev.event) return res.status(400).json({ error: 'Evento inválido' });

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // ═══════════════════════════════════════════════════════════════════
-// ProRider — TESTES AUTOMÁTICOS (03/10e)
+// ProRider — TESTES AUTOMÁTICOS (03/10g)
 // Roda o servidor de verdade contra um BANCO DE TESTE vazio, com o Asaas e o
 // Resend simulados, e passa por pagamento, loja, desafios e segurança.
 //
@@ -30,7 +30,7 @@ const PORTA = parseInt(process.env.TEST_PORT || '3999'), PORTA_MOCK = 3014;
 const SERVIDOR = path.join(RAIZ, 'server.js');
 const pgCfg = { host: u.hostname, port: parseInt(u.port || '5432'), user: decodeURIComponent(u.username), password: decodeURIComponent(u.password), database: u.pathname.slice(1), ssl: false };
 const ADMIN = 'admin@teste.local', ADMIN_SENHA = 'teste123';
-const TESTES = ['pagamento', 'loja', 'desafios', 'seguranca'];
+const TESTES = ['pagamento', 'loja', 'desafios', 'seguranca', 'telas', 'vigia'];
 const espera = ms => new Promise(r => setTimeout(r, ms));
 const filhos = [];
 function sair(c) { filhos.forEach(p => { try { p.kill(); } catch (e) {} }); process.exit(c); }
@@ -48,7 +48,8 @@ process.on('SIGINT', () => sair(130));
     PGHOST: pgCfg.host, PGPORT: String(pgCfg.port), PGUSER: pgCfg.user, PGPASSWORD: pgCfg.password, PGDATABASE: pgCfg.database,
     PORTAL_URL: 'http://127.0.0.1:' + PORTA, GRAVACOES_TESTE_DIR: pasta,
     ASAAS_API_KEY: 'chave-teste', ASAAS_URL: 'http://127.0.0.1:' + PORTA_MOCK, ASAAS_WEBHOOK_TOKEN: 'tokenwebhook123',
-    RESEND_API_KEY: 're_teste', RESEND_API_URL: 'http://127.0.0.1:' + PORTA_MOCK + '/emails', EMAIL_FROM: 'ProRider <acesso@prorider.test>' };
+    RESEND_API_KEY: 're_teste', RESEND_API_URL: 'http://127.0.0.1:' + PORTA_MOCK + '/emails', EMAIL_FROM: 'ProRider <acesso@prorider.test>',
+    ALERTAS_INTERVALO_S: '3600', ALERTA_TV_CAIU_S: '3' };   // 03/10g: o vigia só roda quando o teste pede
   const log = fs.openSync(path.join(pasta, 'servidor.log'), 'w');
   const srv = spawn(process.execPath, [SERVIDOR], { cwd: RAIZ, env, stdio: ['ignore', log, log] }); filhos.push(srv);
   // espera o servidor e as migrações (a última cria sistema_eventos)

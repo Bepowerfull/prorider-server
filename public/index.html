@@ -959,6 +959,7 @@ function lpLogoToque(){}
 setTimeout(lpStats, 300); setInterval(lpStats, 30000);
 
 var adminToken = localStorage.getItem('pr_admin_token') || '';
+try { if (typeof prErroConfig === 'function') prErroConfig(SERVER, 'admin', function () { return adminToken; }, 'Admin 03/10f'); } catch (e) {}   // 03/10f
 var adminUser  = JSON.parse(localStorage.getItem('pr_admin_user') || 'null');
 var allLicencas = [];
 var allAlunos   = [];
@@ -1067,6 +1068,7 @@ async function pfSalvar(){
 }
 async function pfTrocarSenha(){
   const r = await api('/user/senha', { method:'PUT', body: JSON.stringify({ senha_atual: document.getElementById('pfS0').value, nova: document.getElementById('pfS1').value }) });
+  if (r.token) { adminToken = r.token; localStorage.setItem('pr_admin_token', r.token); }   // 03/10f
   document.getElementById('pfSMsg').textContent = r.error ? '⚠ ' + r.error : '✓ Senha trocada';
 }
 
@@ -1856,11 +1858,11 @@ async function ljCortesia(tipo,id){
 function sdEsc(s){ return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 function sdQuando(t){ if(!t) return '—'; const m=Math.round((Date.now()-new Date(t))/60000); return m<1?'agora':m<60?m+' min':m<1440?Math.round(m/60)+' h':Math.round(m/1440)+' d'; }
 async function loadSaude(){
-  let d; try{ d=await api('/admin/saude'); }catch(e){ d={error:'sem conexão com o servidor'}; }
+  let d, av=null; try{ [d,av]=await Promise.all([api('/admin/saude'), api('/admin/alertas').catch(()=>null)]); }catch(e){ d={error:'sem conexão com o servidor'}; }
   const el=document.getElementById('sdConteudo'); if(!el) return;
   if(!d||d.error){ el.innerHTML='<div class="pr-warn" style="border-color:#d62d2d;color:#ff9a9a">⛔ Não consegui falar com o servidor: '+sdEsc((d&&d.error)||'')+'</div>'; return; }
   document.getElementById('sdHora').textContent='atualizado '+new Date().toLocaleTimeString('pt-BR')+' · servidor '+d.versao;
-  const nb=document.getElementById('nbSaude'), nErr=d.alertas.filter(a=>a.nivel==='erro').length; if(nb){ nb.textContent=nErr||''; nb.style.display=nErr?'':'none'; }
+  const nb=document.getElementById('nbSaude'), nErr=d.alertas.filter(a=>a.nivel==='erro').length+((av&&av.lista)?av.lista.filter(a=>!a.resolvido_em).length:0); if(nb){ nb.textContent=nErr||''; nb.style.display=nErr?'':'none'; }
   const card=(t,v,ok,sub)=>'<div class="stat-card"><div class="label">'+t+'</div><div class="value" style="color:'+(ok===true?'#5db13d':ok===false?'#d62d2d':'#fff')+';font-size:26px">'+v+'</div>'+(sub?'<div style="font-size:11.5px;color:var(--muted);margin-top:4px">'+sub+'</div>':'')+'</div>';
   const sit=(d.licencas||{}).por_situacao||{};
   let h=(d.alertas.length?d.alertas.map(a=>'<div class="pr-warn" style="margin-bottom:8px;'+(a.nivel==='erro'?'border-color:rgba(214,45,45,.5);background:rgba(214,45,45,.08);color:#ff9a9a':'')+'">'+(a.nivel==='erro'?'⛔ ':'⚠️ ')+sdEsc(a.txt)+'</div>').join(''):'<div class="pr-warn" style="border-color:rgba(93,177,61,.45);background:rgba(93,177,61,.08);color:#8fe06a">✅ Tudo certo — nenhum alerta.</div>');
@@ -1873,19 +1875,39 @@ async function loadSaude(){
     +card('Gravações', (d.gravacoes.arquivos||0)+' arquivos', !d.gravacoes.pasta_temporaria, (d.gravacoes.tamanho_mb||0)+' MB'+(d.gravacoes.livre_gb!=null?' · '+d.gravacoes.livre_gb+' GB livres':''))
     +card('Licenças', d.licencas.total||0, null, ['em_dia','a_vencer','vencido','suspenso'].filter(k=>sit[k]).map(k=>sit[k]+' '+k.replace('_',' ')).join(' · ')||'—')
     +card('Loja', (d.loja.pagos_24h||0)+' vendas (24 h)', null, (d.loja.pendentes_velhos||0)+' pagamento(s) pendente(s) há +1 dia')
+    +(()=>{ const t=d.telas_24h||{}, er=Object.values(t).reduce((a,x)=>a+(x.erro||0),0), nm={tv:'TV',app:'App',portal:'Portal',financeiro:'Financeiro',admin:'Admin',outro:'Outro'};
+        return card('Telas (24 h)', er?er+' erro(s)':'sem erros', !er, Object.keys(t).map(k=>(nm[k]||k)+' '+((t[k].erro||0)+(t[k].aviso||0))).join(' · ')||'TV, app e Portal avisam sozinhos'); })()
     +'</div>';
+  // 03/10g — avisos automáticos (o servidor vigia a cada minuto e manda e-mail)
+  if(av&&!av.error){ const ab=av.lista.filter(a=>!a.resolvido_em);
+    h+='<div class="table-wrap" style="margin-bottom:16px"><div class="table-header" style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><h2>Avisos automáticos '+(ab.length?'<span style="color:#ff8a8a">· '+ab.length+' em aberto</span>':'')+'</h2>'
+      +'<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><label style="display:flex;gap:6px;align-items:center;font-size:13px;cursor:pointer"><input type="checkbox" '+(av.ligado?'checked':'')+' onchange="avLigar(this.checked)" style="appearance:auto;width:16px;height:16px"> ligados</label>'
+      +'<button class="btn btn-outline btn-sm" onclick="avRodar(this)">Verificar agora</button><button class="btn btn-outline btn-sm" onclick="avTeste(this)">Mandar e-mail de teste</button></div></div>'
+      +'<div style="padding:10px 18px;font-size:12.5px;color:var(--muted)">O servidor confere tudo a cada '+(av.intervalo_s>=60?Math.round(av.intervalo_s/60)+' min':av.intervalo_s+' s')+' e manda e-mail na hora para <b>'+sdEsc((av.destinos||[]).join(', ')||'ninguém')+'</b>'+(av.email?'':' <span style="color:#ff8a8a">(e-mail desligado no servidor: os avisos ficam só aqui)</span>')+'. Última verificação: '+(av.ultima?(sdQuando(av.ultima)==='agora'?'agora':sdQuando(av.ultima)+' atrás'):'ainda não')+'.<br>Avisa quando: a TV está desligada perto da aula da grade · a TV cai no meio da aula · muitos erros de uma vez · o Asaas está sendo recusado · pouco espaço para gravações · memória alta · banco fora do ar.</div>'
+      +'<table><thead><tr><th>Quando</th><th>Aviso</th><th>Academia</th><th>E-mail</th><th>Situação</th></tr></thead><tbody>'
+      +(av.lista.length?av.lista.map(a=>'<tr><td style="white-space:nowrap;font-size:12px">'+new Date(a.criado_em).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})+'</td><td>'+(a.nivel==='erro'?'🔴 ':'🟠 ')+sdEsc(a.txt)+'</td><td style="font-size:12px">'+sdEsc(a.academia||a.licenca||'—')+'</td><td style="font-size:12px">'+(a.email_ok?'✓ enviado':'<span style="color:#ffc27a" title="'+sdEsc(a.email_erro||'')+'">não enviado</span>')+'</td><td style="font-size:12px">'+(a.resolvido_em?'<span style="color:#8fe06a">✓ '+sdEsc(a.resolvido_txt||'resolvido')+'</span>':'<b style="color:#ff8a8a">em aberto</b>')+'</td></tr>').join('')
+        :'<tr><td colspan="5" style="text-align:center;padding:22px;color:var(--muted)">Nenhum aviso nos últimos 7 dias.</td></tr>')+'</tbody></table></div>'; }
   h+='<div class="table-wrap" style="margin-bottom:16px"><div class="table-header"><h2>Problemas reportados ('+d.relatos.length+')</h2></div><table><thead><tr><th>Quando</th><th>Quem</th><th>Onde</th><th>O que aconteceu</th><th></th></tr></thead><tbody>'
     +(d.relatos.length?d.relatos.map(r=>'<tr><td style="white-space:nowrap;font-size:12px">'+new Date(r.created_at).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})+'</td><td>'+sdEsc(r.nome||'—')+'<div style="font-size:11px;color:var(--muted)">'+sdEsc(r.email||'')+(r.license_id?' · '+sdEsc(r.license_id):'')+'</div></td><td style="font-size:12px">'+sdEsc(r.origem)+'<div style="font-size:11px;color:var(--muted)">'+sdEsc(r.tela)+' · '+sdEsc(r.versao)+'</div></td><td style="max-width:520px">'+sdEsc(r.texto)+'</td><td><button class="btn btn-outline btn-sm" onclick="sdResolver('+r.id+')">Resolvido</button></td></tr>').join('')
       :'<tr><td colspan="5" style="text-align:center;padding:22px;color:var(--muted)">Nenhum problema reportado em aberto.</td></tr>')+'</tbody></table></div>';
   h+='<div class="table-wrap" style="margin-bottom:16px"><div class="table-header"><h2>TVs (Ginásio)</h2></div><table><thead><tr><th>Academia</th><th>Computador</th><th>Versão</th><th>Visto</th></tr></thead><tbody>'
     +((d.tvs.lista||[]).map(t=>{ const on=Date.now()-new Date(t.visto_em)<300000; return '<tr><td>'+sdEsc(t.academia||t.license_codigo)+'</td><td>'+sdEsc(t.nome_computador||'—')+'</td><td>'+sdEsc(t.build||'—')+'</td><td><span style="color:'+(on?'#5db13d':'var(--muted)')+'">'+(on?'● online':sdQuando(t.visto_em)+' atrás')+'</span></td></tr>'; }).join('')||'<tr><td colspan="4" style="text-align:center;padding:20px;color:var(--muted)">Nenhuma TV ativada.</td></tr>')+'</tbody></table></div>';
-  h+='<div class="table-wrap"><div class="table-header" style="display:flex;justify-content:space-between;align-items:center"><h2>Erros e avisos do servidor (últimos 80)</h2><button class="btn btn-outline btn-sm" onclick="sdLimpar()">Limpar lista</button></div><table><thead><tr><th>Quando</th><th>Tipo</th><th>Mensagem</th></tr></thead><tbody>'
+  // 03/10f: o que a TV, o app e o Portal mandaram sozinhos (o mesmo erro soma em "vezes")
+  const nmO={tv:'📺 TV',app:'📱 App',portal:'🏢 Portal',financeiro:'💳 Financeiro',admin:'🛠 Admin',outro:'?'};
+  const tl=d.telas||[];
+  h+='<div class="table-wrap" style="margin-bottom:16px"><div class="table-header" style="display:flex;justify-content:space-between;align-items:center"><h2>O que as telas avisaram ('+tl.length+')</h2><button class="btn btn-outline btn-sm" onclick="sdLimpar(\'telas\')">Limpar lista</button></div><table><thead><tr><th>Quando</th><th>Onde</th><th>Academia</th><th>Mensagem</th><th>Vezes</th></tr></thead><tbody>'
+    +(tl.length?tl.map(e=>'<tr><td style="white-space:nowrap;font-size:12px">'+new Date(e.created_at).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})+'</td><td style="white-space:nowrap">'+(nmO[e.origem]||sdEsc(e.origem))+'<div style="font-size:11px">'+(e.nivel==='erro'?'<span style="color:#ff8a8a;font-weight:700">erro</span>':'<span style="color:#ffc27a">aviso</span>')+'</div></td><td style="font-size:12px">'+sdEsc(e.academia||e.licenca||'—')+'</td><td style="font-size:12px"><div style="font-family:monospace;word-break:break-word">'+sdEsc(e.msg)+'</div>'+(e.detalhe?'<details style="margin-top:4px"><summary style="cursor:pointer;color:var(--muted);font-size:11px">detalhes</summary><div style="font-family:monospace;font-size:11px;white-space:pre-wrap;word-break:break-word;color:var(--muted)">'+sdEsc(e.detalhe)+'</div></details>':'')+'</td><td style="text-align:center;font-weight:700">'+(e.vezes||1)+'</td></tr>').join('')
+      :'<tr><td colspan="5" style="text-align:center;padding:22px;color:var(--muted)">Nenhum aviso das telas. Quando a TV, o app ou o Portal derem erro, aparece aqui sozinho.</td></tr>')+'</tbody></table></div>';
+  h+='<div class="table-wrap"><div class="table-header" style="display:flex;justify-content:space-between;align-items:center"><h2>Erros e avisos do servidor (últimos 80)</h2><button class="btn btn-outline btn-sm" onclick="sdLimpar(\'servidor\')">Limpar lista</button></div><table><thead><tr><th>Quando</th><th>Tipo</th><th>Mensagem</th></tr></thead><tbody>'
     +(d.eventos.length?d.eventos.map(e=>'<tr><td style="white-space:nowrap;font-size:12px">'+new Date(e.created_at).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})+'</td><td>'+(e.nivel==='erro'?'<span style="color:#ff8a8a;font-weight:700">erro</span>':'<span style="color:#ffc27a">aviso</span>')+'</td><td style="font-size:12px;font-family:monospace;white-space:pre-wrap;word-break:break-word">'+sdEsc(e.msg)+'</td></tr>').join('')
       :'<tr><td colspan="3" style="text-align:center;padding:22px;color:var(--muted)">Nenhum erro registrado.</td></tr>')+'</tbody></table></div>';
   el.innerHTML=h;
 }
+async function avLigar(on){ await api('/admin/alertas/ligar',{method:'POST',body:JSON.stringify({ligado:on})}); loadSaude(); }
+async function avRodar(b){ b.disabled=true; b.textContent='Verificando…'; const r=await api('/admin/alertas/rodar',{method:'POST'}); b.textContent=r&&r.abertos?r.abertos+' aviso(s) novo(s)':'Nada novo ✓'; setTimeout(loadSaude,1200); }
+async function avTeste(b){ b.disabled=true; b.textContent='Enviando…'; const r=await api('/admin/alertas/teste',{method:'POST'}); b.textContent=r&&r.ok?'Enviado ✓ (olhe o e-mail)':'Não saiu: '+((r&&r.erro)||'erro'); }
 async function sdResolver(id){ await api('/admin/saude/relatos/'+id+'/resolver',{method:'POST'}); loadSaude(); }
-async function sdLimpar(){ if(!confirm('Limpar a lista de erros e avisos?')) return; await api('/admin/saude/eventos/limpar',{method:'POST'}); loadSaude(); }
+async function sdLimpar(tipo){ if(!confirm(tipo==='telas'?'Limpar a lista do que as telas avisaram?':'Limpar a lista de erros e avisos do servidor?')) return; await api('/admin/saude/eventos/limpar',{method:'POST',body:JSON.stringify({tipo:tipo||'servidor'})}); loadSaude(); }
 
 init();
 </script>
