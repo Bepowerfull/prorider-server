@@ -28,6 +28,31 @@ const app = express();
 app.use(cors());
 app.use(express.json({ limit: '1mb' }));  // 29/09a: foto do totem (~50–250 KB)
 app.use(express.static(path.join(__dirname, 'public')));
+// 03/10o — REGISTROS (LGPD e Marco Civil). Depois que cada pedido termina:
+//  · registros_acesso: quem usou o sistema logado, de qual IP e quando (1 linha por pessoa+IP a cada 6 h). Guardado 6 meses (Marco Civil, art. 15).
+//  · auditoria: toda ação do super admin (/admin que muda algo, download de backup) e tudo o que é feito
+//    no "modo suporte" (entrar no Portal de uma academia). Guardado 1 ano. O admin vê na Saúde do sistema.
+const _acessoVisto = new Map(), _audVisto = new Map();
+app.use((req, res, next) => {
+  res.on('finish', () => {
+    try {
+      const u = req.user; if (!db || !_evPronto || !u || !u.id || u.role === 'display') return;
+      const ip = ipDe(req), rota = String(req.originalUrl || '').split('?')[0].slice(0, 160), ag = Date.now();
+      if (!u.impersonated_by && res.statusCode < 400) {
+        const k = u.id + '|' + ip; if (!(_acessoVisto.get(k) > ag - 6 * 3600000)) { _acessoVisto.set(k, ag); if (_acessoVisto.size > 20000) _acessoVisto.clear();
+          db.query('INSERT INTO registros_acesso (user_id, ip, aparelho) VALUES ($1,$2,$3)', [u.id, ip, String(req.headers['user-agent'] || '').slice(0, 200)]).catch(() => {}); }
+      }
+      const admin = rota.startsWith('/admin/') && (req.method !== 'GET' || /\/admin\/backup\/baixar\//.test(rota));
+      if (admin || u.impersonated_by) {
+        const k2 = (u.impersonated_by || u.email) + '|' + req.method + '|' + rota;   // ver a mesma tela várias vezes no modo suporte conta 1 vez a cada 10 min
+        if (req.method === 'GET' && _audVisto.get(k2) > ag - 600000) return; _audVisto.set(k2, ag); if (_audVisto.size > 5000) _audVisto.clear();
+        db.query('INSERT INTO auditoria (quem, modo_suporte, licenca, metodo, rota, status, ip) VALUES ($1,$2,$3,$4,$5,$6,$7)',
+          [u.impersonated_by || u.email, !!u.impersonated_by, u.impersonated_by ? (u.license_id || null) : null, req.method, rota, res.statusCode, ip]).catch(() => {});
+      }
+    } catch (e) {}
+  });
+  next();
+});
 
 // ══ PostgreSQL ════════════════════════════════════════════════
 let db = null;
@@ -1046,6 +1071,7 @@ app.post('/user/register', async (req, res) => {
     else { const gl = (await db.query('SELECT codigo FROM licencas WHERE LOWER(TRIM(email_gestor))=$1 ORDER BY id LIMIT 1', [user.email]).catch(() => ({ rows: [] }))).rows[0];
       if (gl) { await db.query(`UPDATE users SET role='gestor', license_id=$1 WHERE id=$2`, [gl.codigo, user.id]); user.role = 'gestor'; user.license_id = gl.codigo; } }
     const token = jwt.sign({ id: user.id, email: user.email, role: user.role, license_id: user.license_id || undefined }, JWT_SECRET, { expiresIn: '30d' });
+    req.user = { id: user.id, email: user.email, role: user.role };   // 03/10o: o cadastro entra no registro de acessos
     res.json({ user, token });
   } catch(e) {
     if (e.code === '23505') return res.status(409).json({ error: 'Email já cadastrado' });
@@ -1071,6 +1097,7 @@ app.post('/user/login', async (req, res) => {
     if (!ok) { limConta(kE, 15); limConta(kI, 15); if (limBloqueado(kE, 8)) log(`[Segurança] login bloqueado 15 min: ${String(email).toLowerCase()} (IP ${ipDe(req)})`); return res.status(401).json({ error: 'Email ou senha incorretos' }); }
     limZera(kE);
     const token = jwt.sign({ id: user.id, email: user.email, role: user.role, license_id: user.license_id || undefined }, JWT_SECRET, { expiresIn: '30d' });
+    req.user = { id: user.id, email: user.email, role: user.role };   // 03/10o: o login entra no registro de acessos
     const financeiro = !!(await finLicencaDe(user.email).catch(() => null));   // 02/10h: o e-mail do financeiro vai para a página de pagamento
     res.json({ user: { id: user.id, email: user.email, name: user.name, role: user.role, license_id: user.license_id || null, points: user.points, level: user.level, sexo: user.sexo || null, financeiro, senha_provisoria: !!user.senha_provisoria, termos_pendente: termosPendente(user), termos_versao: TERMOS_VERSAO }, token }); // 26/09b: sexo · 03/10o: termos
   } catch(e) {
@@ -6436,7 +6463,12 @@ async function segMigrar() {
     ALTER TABLE users ADD COLUMN IF NOT EXISTS termos_versao TEXT;
     ALTER TABLE users ADD COLUMN IF NOT EXISTS termos_aceitos_em TIMESTAMPTZ;
     CREATE TABLE IF NOT EXISTS termos_aceites (id SERIAL PRIMARY KEY, user_id INTEGER REFERENCES users(id) ON DELETE SET NULL, email TEXT,
-      versao TEXT NOT NULL, saude BOOLEAN, onde TEXT, ip TEXT, aparelho TEXT, criado_em TIMESTAMPTZ DEFAULT NOW());`);
+      versao TEXT NOT NULL, saude BOOLEAN, onde TEXT, ip TEXT, aparelho TEXT, criado_em TIMESTAMPTZ DEFAULT NOW());
+    CREATE TABLE IF NOT EXISTS registros_acesso (id BIGSERIAL PRIMARY KEY, user_id INTEGER, ip TEXT, aparelho TEXT, criado_em TIMESTAMPTZ DEFAULT NOW());
+    CREATE INDEX IF NOT EXISTS registros_acesso_t ON registros_acesso(criado_em);
+    CREATE INDEX IF NOT EXISTS registros_acesso_u ON registros_acesso(user_id);
+    CREATE TABLE IF NOT EXISTS auditoria (id BIGSERIAL PRIMARY KEY, quem TEXT, modo_suporte BOOLEAN, licenca TEXT, metodo TEXT, rota TEXT, status INTEGER, ip TEXT, criado_em TIMESTAMPTZ DEFAULT NOW());
+    CREATE INDEX IF NOT EXISTS auditoria_t ON auditoria(criado_em DESC);`);
   await db.query(`
     CREATE TABLE IF NOT EXISTS sistema_eventos (id SERIAL PRIMARY KEY, nivel TEXT NOT NULL, msg TEXT NOT NULL, created_at TIMESTAMPTZ DEFAULT NOW());
     CREATE INDEX IF NOT EXISTS sistema_eventos_t ON sistema_eventos(created_at DESC);
@@ -6854,6 +6886,20 @@ app.get('/admin/backup/baixar/:arquivo', adminAuth, async (req, res) => {
   await vigiaFechar('backup_baixar', null, 'Cópia do backup baixada').catch(() => {});
   res.download(path.join(BK_DIR, f), f);
 });
+// 03/10o: auditoria (o que o super admin e o modo suporte fizeram) e limpeza dos prazos de guarda
+app.get('/admin/auditoria', adminAuth, async (req, res) => {
+  try {
+    const lista = (await db.query(`SELECT a.*, COALESCE(l.nome_fantasia, l.nome) AS academia FROM auditoria a LEFT JOIN licencas l ON l.codigo=a.licenca
+      WHERE a.criado_em > NOW() - INTERVAL '30 days' ORDER BY a.id DESC LIMIT 200`)).rows;
+    const acessos = (await db.query(`SELECT COUNT(*)::int AS n, COUNT(DISTINCT user_id)::int AS pessoas FROM registros_acesso WHERE criado_em > NOW() - INTERVAL '24 hours'`)).rows[0];
+    res.json({ lista, acessos_24h: acessos });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+setInterval(() => {
+  if (!db || !_evPronto) return;
+  db.query(`DELETE FROM registros_acesso WHERE criado_em < NOW() - INTERVAL '190 days'`).catch(() => {});   // Marco Civil: 6 meses
+  db.query(`DELETE FROM auditoria WHERE criado_em < NOW() - INTERVAL '400 days'`).catch(() => {});
+}, 6 * 3600000);
 app.get('/admin/alertas', adminAuth, async (req, res) => {
   try {
     const lista = (await db.query(`SELECT a.*, COALESCE(l.nome_fantasia, l.nome) AS academia FROM sistema_alertas a LEFT JOIN licencas l ON l.codigo=a.licenca
