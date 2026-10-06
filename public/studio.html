@@ -228,6 +228,7 @@ td .zb{display:inline-block;width:10px;height:10px;border-radius:3px;margin-righ
       <div class="note" style="margin-bottom:10px">Um arquivo do pendrive (pasta <b>prorider/video</b>; o Ginásio acha pelo nome), um link (Dropbox, Google Drive ou nuvem — o Ginásio baixa antes da aula) ou um vídeo do YouTube.</div>
       <div style="display:flex;gap:8px;flex-wrap:wrap">
         <button class="btn bg bs" onclick="document.getElementById('fVid').click()">🎬 Arquivo de vídeo</button>
+        <button class="btn bg bs" onclick="dbxAbrir('video')" style="border-color:rgba(0,97,254,.55)">📦 Dropbox</button>
         <button class="btn bg bs" onclick="vidLink()">🔗 Link do vídeo</button>
         <button class="btn bg bs" onclick="ytPedir()">▶ Link do YouTube</button>
       </div>
@@ -274,6 +275,7 @@ td .zb{display:inline-block;width:10px;height:10px;border-radius:3px;margin-righ
         <span class="clock" id="muClock">0:00 / 0:00</span>
         <button class="btn bg bs" onclick="document.getElementById('fMu').click()">🎵 Adicionar MP3</button>
         <input type="file" id="fMu" accept="audio/*,.mp3,.m4a,.wav" multiple style="display:none">
+        <button class="btn bg bs" onclick="dbxAbrir('musica')" title="Escolha as músicas da sua pasta ProRider no Dropbox" style="border-color:rgba(0,97,254,.55)">📦 Dropbox</button>
         <button class="btn bg bs" onclick="muLinksAbrir()" title="Links de compartilhamento do Dropbox (ou Google Drive): a TV toca pela internet">🔗 Músicas por link</button>
         <span id="muAviso"></span>
       </div>
@@ -299,6 +301,16 @@ td .zb{display:inline-block;width:10px;height:10px;border-radius:3px;margin-righ
 
 <div class="tip" id="tip"></div>
 <div class="toast" id="toast"></div>
+
+<!-- 03/10q: Dropbox conectado — a pasta Aplicativos/ProRider Cycling do professor -->
+<div class="mo" id="moDbx" onclick="if(event.target===this)dbxFechar()">
+  <div class="mo-box" style="max-width:560px;max-height:86vh;display:flex;flex-direction:column">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:10px"><h2 style="margin:0">📦 Dropbox</h2><button class="btn bg bs" onclick="dbxFechar()">Fechar</button></div>
+    <div class="note" id="dbxSub" style="margin:8px 0 12px"></div>
+    <div id="dbxCorpo" style="overflow-y:auto;flex:1;min-height:80px"></div>
+    <div id="dbxAcoes" style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap"></div>
+  </div>
+</div>
 
 <div class="mo" id="moLogin" onclick="if(event.target===this)loginFechar()">
   <div class="mo-box">
@@ -607,18 +619,23 @@ function muCortarNoFim(){
 function muLinkDireto(u){
   u=String(u||'').trim(); if(!/^https?:\/\//i.test(u)) return '';
   try{ var x=new URL(u);
-    if(/(^|\.)dropbox\.com$/i.test(x.hostname)){ x.searchParams.delete('dl'); x.searchParams.set('raw','1'); return x.href; }
+    // 03/10q: dl.dropboxusercontent.com entrega o arquivo direto (o raw=1 às vezes não abre no navegador)
+    if(/(^|\.)dropbox\.com$/i.test(x.hostname)){ if(/^\/(scl\/fo|sh)\//.test(x.pathname)) return ''; x.searchParams.delete('dl'); x.searchParams.delete('raw'); x.hostname='dl.dropboxusercontent.com'; return x.href; }
     var g=/drive\.google\.com\/file\/d\/([^/]+)/.exec(u); if(g) return 'https://drive.google.com/uc?export=download&id='+g[1];
     return x.href; }catch(e){ return ''; }
 }
 function muNomeDoLink(u){ try{ var p=new URL(u).pathname.split('/').filter(Boolean).pop()||''; return decodeURIComponent(p); }catch(e){ return ''; } }
 function muLinksAbrir(){ $('muLinksTxt').value=trilha.filter(function(t){ return t.link; }).map(function(t){ return t.link; }).join('\n'); $('muLinksBox').style.display='block'; $('muLinksTxt').focus(); }
-function muDurLink(u){ return new Promise(function(ok){ var a=new Audio(); a.preload='metadata'; var fim=function(v){ a.onloadedmetadata=a.onerror=null; ok(v); };
+function _muDur1(u){ return new Promise(function(ok){ var a=new Audio(); a.preload='metadata'; var fim=function(v){ a.onloadedmetadata=a.onerror=null; ok(v); };
   a.onloadedmetadata=function(){ fim(isFinite(a.duration)?a.duration:0); }; a.onerror=function(){ fim(0); }; setTimeout(function(){ fim(0); },15000); a.src=u; }); }
+// 03/10q: tenta o endereço direto e, se não abrir, o raw=1 do Dropbox
+async function muDurLink(u){ var d=await _muDur1(u); if(d||!/dropboxusercontent\.com/.test(u)) return d;
+  try{ var x=new URL(u); x.hostname='www.dropbox.com'; x.searchParams.set('raw','1'); return await _muDur1(x.href); }catch(e){ return 0; } }
 async function muLinksAplicar(){
   var ls=$('muLinksTxt').value.split(/\s+/).filter(function(x){ return /^https?:\/\//i.test(x); }), lig=0, novas=0, ruins=[];
   for(var i=0;i<ls.length;i++){
-    var u=ls[i], nome=muNomeDoLink(u), ja=trilha.filter(function(t){ return t.nome.toLowerCase()===nome.toLowerCase(); })[0];
+    var u=ls[i]; if(/dropbox\.com\/(scl\/fo|sh)\//i.test(u)){ ruins.push('link de PASTA (precisa ser o link de cada música, ou use o botão 📦 Dropbox)'); continue; }
+    var nome=muNomeDoLink(u), ja=trilha.filter(function(t){ return t.nome.toLowerCase()===nome.toLowerCase(); })[0];
     if(ja){ ja.link=u; if(!ja.picos) ja.url=muLinkDireto(u); lig++; continue; }
     toast('Abrindo '+(nome||'link')+'…',6000);
     var dur=await muDurLink(muLinkDireto(u));
@@ -744,6 +761,142 @@ function pintarVideo(){
 // A duração vem da API do YouTube quando o navegador consegue carregá-la;
 // se não, o professor digita a chegada.
 function ytId(u){ var m=String(u||'').match(/(?:youtu\.be\/|[?&]v=|\/embed\/|\/shorts\/|\/live\/)([\w-]{11})/); if(m) return m[1]; return /^[\w-]{11}$/.test(String(u||'').trim())?String(u).trim():null; }
+// ══════════════════════════════════════════════════════════════
+// 03/10q — DROPBOX CONECTADO. O professor autoriza uma vez; o Dropbox cria a pasta
+// Aplicativos/ProRider Cycling na conta dele e o ProRider só enxerga essa pasta.
+// Login seguro sem senha guardada (OAuth com PKCE); o acesso fica neste navegador.
+// Escolher a música → o link de compartilhamento é criado sozinho (é ele que vai na aula
+// e que a TV baixa antes da aula) e a onda da música é desenhada como num MP3 do computador.
+// ══════════════════════════════════════════════════════════════
+var DBX_APP='lngo9p5iaprfa1f', DBX_VOLTA=location.origin+'/studio.html';
+var _dbx={modo:'musica',lista:[],sel:{}};
+function _b64u(buf){ return btoa(String.fromCharCode.apply(null,new Uint8Array(buf))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,''); }
+function dbxConta(){ try{ return JSON.parse(ls('prb_dbx')||'null'); }catch(e){ return null; } }
+async function dbxConectar(){
+  var ver=_b64u(crypto.getRandomValues(new Uint8Array(48))), est=_b64u(crypto.getRandomValues(new Uint8Array(16)));
+  var chal=_b64u(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(ver)));
+  ls('prb_dbx_pkce',JSON.stringify({ver:ver,est:est,modo:_dbx.modo}));
+  var url='https://www.dropbox.com/oauth2/authorize?client_id='+DBX_APP+'&response_type=code&token_access_type=offline&code_challenge_method=S256&code_challenge='+chal+'&state='+est+'&redirect_uri='+encodeURIComponent(DBX_VOLTA);
+  var w=window.open(url,'prdbx','width=560,height=720');
+  if(!w) location.href=url;   // janela bloqueada: vai na mesma aba (o rascunho da aula volta sozinho)
+}
+async function _dbxTrocarCodigo(code,state){
+  var pk=null; try{ pk=JSON.parse(ls('prb_dbx_pkce')||'null'); }catch(e){}
+  if(!pk||pk.est!==state) throw new Error('autorização não confere — tente de novo');
+  var r=await fetch('https://api.dropboxapi.com/oauth2/token',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},
+    body:new URLSearchParams({grant_type:'authorization_code',code:code,code_verifier:pk.ver,client_id:DBX_APP,redirect_uri:DBX_VOLTA})});
+  var d=await r.json(); if(!r.ok||!d.access_token) throw new Error(d.error_description||d.error||('HTTP '+r.status));
+  ls('prb_dbx',JSON.stringify({refresh:d.refresh_token,access:d.access_token,exp:Date.now()+((d.expires_in||14400)-120)*1000,conta:d.account_id||''}));
+  ls('prb_dbx_pkce',null); return pk.modo||'musica';
+}
+async function _dbxToken(){
+  var c=dbxConta(); if(!c||!c.refresh) throw new Error('DESCONECTADO');
+  if(c.access&&c.exp>Date.now()) return c.access;
+  var r=await fetch('https://api.dropboxapi.com/oauth2/token',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:new URLSearchParams({grant_type:'refresh_token',refresh_token:c.refresh,client_id:DBX_APP})});
+  var d=await r.json(); if(!r.ok||!d.access_token){ if(r.status===400||r.status===401) ls('prb_dbx',null); throw new Error('DESCONECTADO'); }
+  c.access=d.access_token; c.exp=Date.now()+((d.expires_in||14400)-120)*1000; ls('prb_dbx',JSON.stringify(c)); return c.access;
+}
+async function _dbxApi(rota,corpo){
+  var tk=await _dbxToken();
+  var r=await fetch('https://api.dropboxapi.com/2/'+rota,{method:'POST',headers:{'Authorization':'Bearer '+tk,'Content-Type':'application/json'},body:JSON.stringify(corpo)});
+  var t=await r.text(), d=null; try{ d=JSON.parse(t); }catch(e){}
+  if(r.status===401){ ls('prb_dbx',null); throw new Error('DESCONECTADO'); }
+  if(!r.ok){ var e=new Error((d&&d.error_summary)||t||('HTTP '+r.status)); e.dados=d; throw e; }
+  return d;
+}
+// link de compartilhamento permanente (é o que vai na aula; a TV baixa por ele)
+async function _dbxLink(path){
+  try{ return (await _dbxApi('sharing/create_shared_link_with_settings',{path:path})).url; }
+  catch(e){
+    var ja=e.dados&&e.dados.error&&e.dados.error.shared_link_already_exists&&e.dados.error.shared_link_already_exists.metadata;
+    if(ja&&ja.url) return ja.url;
+    var l=await _dbxApi('sharing/list_shared_links',{path:path,direct_only:true}); if(l.links&&l.links[0]) return l.links[0].url;
+    throw e;
+  }
+}
+var DBX_AUD=/\.(mp3|m4a|aac|wav|ogg)$/i, DBX_VID=/\.(mp4|webm|mov|m4v)$/i;
+function dbxFechar(){ $('moDbx').classList.remove('on'); }
+async function dbxAbrir(modo){
+  _dbx.modo=modo||'musica'; _dbx.sel={}; $('moDbx').classList.add('on');
+  var corpo=$('dbxCorpo'), sub=$('dbxSub'), ac=$('dbxAcoes');
+  if(!dbxConta()){
+    sub.innerHTML='Conecte o seu Dropbox <b>uma vez</b>. O Dropbox cria a pasta <b>Aplicativos/ProRider Cycling</b> na sua conta: coloque lá as músicas e os vídeos das aulas (pelo computador ou pelo celular). O ProRider só enxerga essa pasta.';
+    corpo.innerHTML=''; ac.innerHTML='<button class="btn bp" style="flex:1;justify-content:center" onclick="dbxConectar()">Conectar Dropbox</button>'; return;
+  }
+  sub.innerHTML='Pasta <b>Aplicativos/ProRider Cycling</b> do seu Dropbox · '+(_dbx.modo==='video'?'escolha <b>um vídeo</b>':'marque as <b>músicas</b> (entram na trilha nesta ordem)');
+  corpo.innerHTML='<div class="note">Carregando…</div>'; ac.innerHTML='';
+  try{
+    var d=await _dbxApi('files/list_folder',{path:'',recursive:true,limit:2000}), it=d.entries||[];
+    while(d.has_more){ d=await _dbxApi('files/list_folder/continue',{cursor:d.cursor}); it=it.concat(d.entries||[]); }
+    var re=_dbx.modo==='video'?DBX_VID:DBX_AUD;
+    _dbx.lista=it.filter(function(x){ return x['.tag']==='file'&&re.test(x.name); }).sort(function(a,b){ return a.path_display.localeCompare(b.path_display,'pt-BR'); });
+    if(!_dbx.lista.length){ corpo.innerHTML='<div class="note" style="padding:14px 0">Nenhum'+(_dbx.modo==='video'?' vídeo (.mp4, .webm, .mov)':'a música (.mp3, .m4a, .wav)')+' na pasta ainda. Abra o Dropbox, entre em <b>Aplicativos → ProRider Cycling</b>, coloque os arquivos e clique em Atualizar.</div>'; }
+    else corpo.innerHTML=_dbx.lista.map(function(x,i){ var sub=x.path_display.split('/').slice(1,-1).join(' / ');
+      return '<label style="display:flex;gap:10px;align-items:center;padding:9px 6px;border-bottom:1px solid var(--border);cursor:pointer">'
+        +'<input type="'+(_dbx.modo==='video'?'radio':'checkbox')+'" name="dbxSel" onchange="dbxMarcar('+i+',this)" style="appearance:auto;width:18px;height:18px;flex-shrink:0">'
+        +'<span style="flex:1;min-width:0"><b style="display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+esc(x.name)+'</b><small class="note">'+(sub?esc(sub)+' · ':'')+(x.size/1048576).toFixed(1).replace('.',',')+' MB</small></span>'
+        +'<span class="note" id="dbxN'+i+'" style="min-width:22px;text-align:right"></span></label>'; }).join('');
+    ac.innerHTML='<button class="btn bg bs" onclick="dbxAbrir(_dbx.modo)">↻ Atualizar</button><button class="btn bg bs" onclick="dbxSair()">Desconectar</button>'
+      +(_dbx.lista.length?'<button class="btn bp" id="dbxOk" style="flex:1;justify-content:center" onclick="dbxUsar()">'+(_dbx.modo==='video'?'Usar este vídeo':'Pôr na trilha')+'</button>':'');
+  }catch(e){
+    if(e.message==='DESCONECTADO'){ dbxAbrir(_dbx.modo); return; }
+    corpo.innerHTML='<div class="err" style="display:block">Não consegui abrir o Dropbox: '+esc(e.message)+'</div>';
+    ac.innerHTML='<button class="btn bg bs" onclick="dbxAbrir(_dbx.modo)">Tentar de novo</button><button class="btn bg bs" onclick="dbxSair()">Desconectar</button>';
+  }
+}
+function dbxMarcar(i,el){
+  if(_dbx.modo==='video'){ _dbx.sel={}; if(el.checked) _dbx.sel[i]=1; return; }
+  if(el.checked) _dbx.sel[i]=Object.keys(_dbx.sel).length+1; else delete _dbx.sel[i];
+  var ord=Object.keys(_dbx.sel).sort(function(a,b){ return _dbx.sel[a]-_dbx.sel[b]; }); _dbx.sel={}; ord.forEach(function(k,n){ _dbx.sel[k]=n+1; });
+  _dbx.lista.forEach(function(x,j){ var n=$('dbxN'+j); if(n) n.textContent=_dbx.sel[j]?_dbx.sel[j]+'º':''; });
+}
+function dbxSair(){ if(!confirm('Desconectar o Dropbox deste navegador? As músicas já postas nas aulas continuam funcionando.')) return; ls('prb_dbx',null); dbxAbrir(_dbx.modo); }
+async function dbxUsar(){
+  var idx=Object.keys(_dbx.sel).sort(function(a,b){ return _dbx.sel[a]-_dbx.sel[b]; }).map(Number); if(!idx.length){ toast('Marque pelo menos um arquivo'); return; }
+  var bt=$('dbxOk'); if(bt){ bt.disabled=true; bt.textContent='Preparando…'; }
+  var ok=0, ruins=[];
+  for(var n=0;n<idx.length;n++){
+    var x=_dbx.lista[idx[n]]; if(bt) bt.textContent='Preparando '+(n+1)+' de '+idx.length+'…';
+    try{
+      var link=await _dbxLink(x.path_lower), tmp=(await _dbxApi('files/get_temporary_link',{path:x.path_lower})).link;
+      if(_dbx.modo==='video'){
+        var v=document.createElement('video'); v.preload='metadata';
+        var dur=await new Promise(function(ok2){ v.onloadedmetadata=function(){ ok2(isFinite(v.duration)?v.duration:0); }; v.onerror=function(){ ok2(0); }; setTimeout(function(){ ok2(0); },20000); v.src=tmp; });
+        video={arquivo:x.name,link:link,dur:dur,chegada:Math.round(dur)}; pintarVideo(); rascunho(); ok++;
+      } else {
+        var item={nome:x.name,dur:0,picos:null,url:tmp,link:link,ini:0,fim:null};
+        try{ // a onda da música, igual a um MP3 do computador
+          _ac=_ac||new (window.AudioContext||window.webkitAudioContext)();
+          var buf=await _ac.decodeAudioData(await (await fetch(tmp)).arrayBuffer());
+          var ch=buf.getChannelData(0), N=4000, passo=Math.max(1,Math.floor(ch.length/N)), pk=new Float32Array(N);
+          for(var j=0;j<N;j++){ var m=0, ini=j*passo, fim=Math.min(ch.length,ini+passo); for(var k=ini;k<fim;k+=8){ var a=Math.abs(ch[k]); if(a>m) m=a; } pk[j]=m; }
+          item.dur=buf.duration; item.picos=pk;
+        }catch(e){ item.dur=await _muDur1(tmp); }
+        if(!item.dur) throw new Error('não abriu');
+        var ja=trilha.filter(function(t){ return t.nome.toLowerCase()===x.name.toLowerCase(); })[0];
+        if(ja){ ja.link=link; if(!ja.picos){ ja.picos=item.picos; ja.dur=item.dur; ja.url=tmp; } } else trilha.push(item);
+        ok++;
+      }
+    }catch(e){ if(e.message==='DESCONECTADO'){ toast('O Dropbox desconectou: conecte de novo'); dbxAbrir(_dbx.modo); return; } ruins.push(x.name); }
+  }
+  muParar(); tudo(); rascunho(); dbxFechar();
+  toast((ok?'📦 '+ok+(_dbx.modo==='video'?' vídeo pelo Dropbox':' música(s) do Dropbox na trilha'):'')+(ruins.length?' · ⚠ não abriu: '+ruins.join(', '):''),6000);
+}
+// volta da autorização do Dropbox (na janelinha ou na mesma aba)
+(function(){
+  var q=new URLSearchParams(location.search), code=q.get('code'), st=q.get('state');
+  if(!code||!st) return;
+  if(window.opener&&window.opener!==window){ try{ window.opener.postMessage({prDbx:1,code:code,state:st},location.origin); }catch(e){} document.body.innerHTML='<p style="font:16px Barlow,sans-serif;color:#fff;padding:30px">Dropbox conectado. Pode fechar esta janela.</p>'; setTimeout(function(){ window.close(); },600); return; }
+  history.replaceState(null,'',location.pathname);
+  _dbxTrocarCodigo(code,st).then(function(modo){ toast('📦 Dropbox conectado'); setTimeout(function(){ dbxAbrir(modo); },800); }).catch(function(e){ toast('⚠ Dropbox: '+e.message,6000); });
+})();
+// se a janelinha perdeu o vínculo e conectou sozinha, esta aba percebe e abre a lista
+window.addEventListener('storage',function(ev){ if(ev.key==='prb_dbx'&&ev.newValue&&$('moDbx').classList.contains('on')) dbxAbrir(_dbx.modo); });
+window.addEventListener('message',function(ev){
+  if(ev.origin!==location.origin||!ev.data||!ev.data.prDbx) return;
+  _dbxTrocarCodigo(ev.data.code,ev.data.state).then(function(modo){ toast('📦 Dropbox conectado'); dbxAbrir(modo); }).catch(function(e){ toast('⚠ Dropbox: '+e.message,6000); });
+});
+
 // 02/10j: vídeo por link (Dropbox, Google Drive, nuvem). Sem arquivo escolhido, o nome vem do link.
 async function vidLink(){
   var u=prompt('Link de compartilhamento do vídeo (Dropbox, Google Drive ou nuvem).'+(video&&video.arquivo?'\nVazio = só pelo pendrive.':''),(video&&video.link)||''); if(u===null) return;

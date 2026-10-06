@@ -6455,7 +6455,7 @@ app.post('/display/gravacao/:id/enviar', displayAuth, async (req, res) => {
 // 03/10e — SEGURANÇA E SAÚDE: esqueci a senha, reportar problema,
 // excluir minha conta (LGPD) e a página "Saúde do sistema" do admin
 // ══════════════════════════════════════════════════════════════
-const SERVIDOR_VERSAO = '03/10p';
+const SERVIDOR_VERSAO = '03/10q';
 const _inicioServidor = Date.now();
 let _ultWebhook = null;   // último aviso do Asaas recebido (hora e evento)
 async function segMigrar() {
@@ -7133,7 +7133,7 @@ async function lojaVendasLigadas() { return !!(await cfgLer('loja_vendas', false
 function linkVideoDireto(u) {
   u = String(u || '').trim(); if (!u) return '';
   let m;
-  if (/dropbox\.com/i.test(u)) { try { const x = new URL(u); x.searchParams.delete('dl'); x.searchParams.set('raw', '1'); return x.toString(); } catch (e) { return u; } }
+  if (/dropbox\.com/i.test(u)) { try { const x = new URL(u); x.searchParams.delete('dl'); x.searchParams.delete('raw'); x.hostname = 'dl.dropboxusercontent.com'; return x.toString(); } catch (e) { return u; } }   // 03/10q: endereço direto do arquivo
   if ((m = u.match(/drive\.google\.com\/file\/d\/([\w-]+)/)) || (m = u.match(/drive\.google\.com\/(?:open|uc)\?(?:.*&)?id=([\w-]+)/))) return 'https://drive.google.com/uc?export=download&id=' + m[1];
   return u;
 }

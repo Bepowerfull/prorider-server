@@ -14,7 +14,7 @@ const hook=(event,payment)=>j('POST','/webhook/asaas',{event,payment},null,{'asa
   console.log('1) Abastecer (super admin)');
   let pr=(await j('POST','/admin/loja/professores',{nome:'Mario Elite',bio:'Treinador de ciclismo',cidade:'São Paulo'},SA)).d; ok(pr.id,'professor criado');
   let a1=(await j('POST','/admin/loja/aulas',{gravada_id:g1,professor_id:pr.id,titulo:'Endurance 25',preco:'19,90',video_url:'https://www.dropbox.com/scl/fi/abc/aula.webm?rlkey=x&dl=0'},SA)).d;
-  ok(a1.preco==19.9 && /raw=1/.test(a1.video_url) && !/dl=0/.test(a1.video_url),'aula R$19,90 com link do Dropbox convertido',a1.video_url);
+  ok(a1.preco==19.9 && /^https:\/\/dl\.dropboxusercontent\.com\/scl\/fi\/abc\/aula\.webm\?rlkey=x$/.test(a1.video_url) && !/dl=0/.test(a1.video_url),'aula R$19,90 com link do Dropbox convertido',a1.video_url);
   ok(await sql(`select status from aulas_gravadas where id=${g1}`)==='loja','gravação presa à loja (não apaga em 72 h)');
   let a2=(await j('POST','/admin/loja/aulas',{gravada_id:g2,professor_id:pr.id,titulo:'Força 25',preco:15},SA)).d;
   let a3=(await j('POST','/admin/loja/aulas',{gravada_id:g2,professor_id:pr.id,titulo:'Grátis',preco:0},SA)).d;
