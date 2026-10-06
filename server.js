@@ -66,6 +66,7 @@ function log(msg) {
 const _evUlt = new Map();
 function eventoDoLog(msg) {
   if (typeof db === 'undefined' || !db || !_evPronto) return;
+  if (/^Professor caiu da sala|^Sala removida apos|^Sala retomada/.test(msg)) return;   // 03/10i: queda e volta normal da TV (o vigia cuida quando é na aula)
   const nivel = /\bERRO\b|erro:|error|não tratado|falhou|caiu/i.test(msg) ? 'erro' : (/recusad|negad|bloquead|suspens|estorn|desfeit|parou/i.test(msg) ? 'aviso' : null);
   if (!nivel) return;
   const chave = msg.replace(/\d+/g, '#').slice(0, 120), ag = Date.now();
@@ -6387,7 +6388,7 @@ app.post('/display/gravacao/:id/enviar', displayAuth, async (req, res) => {
 // 03/10e — SEGURANÇA E SAÚDE: esqueci a senha, reportar problema,
 // excluir minha conta (LGPD) e a página "Saúde do sistema" do admin
 // ══════════════════════════════════════════════════════════════
-const SERVIDOR_VERSAO = '03/10h';
+const SERVIDOR_VERSAO = '03/10i';
 const _inicioServidor = Date.now();
 let _ultWebhook = null;   // último aviso do Asaas recebido (hora e evento)
 async function segMigrar() {
