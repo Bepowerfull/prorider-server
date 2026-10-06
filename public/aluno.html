@@ -312,6 +312,7 @@ function irFinanceiro(){ localStorage.setItem('pr_fin_token', token); localStora
 async function showApp() {
   if (user && user.financeiro) return irFinanceiro();
   try { const r = await fetch(SERVER + '/user/me', { headers: { 'Authorization': 'Bearer ' + token } }); const me = await r.json(); if (me && me.financeiro) { user.financeiro = true; return irFinanceiro(); } } catch(e) {}
+  try { if (window.prTermosChecar) prTermosChecar(SERVER, token, 'portal_aluno', doLogout); } catch(e) {}   // 03/10o: aceite dos Termos
   document.getElementById('loginScreen').style.display = 'none';
   document.getElementById('app').style.display = 'block';
   const ini = (user.name||user.email||'?')[0].toUpperCase();

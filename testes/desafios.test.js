@@ -4,8 +4,8 @@ const { sql, pool, ADMIN, ADMIN_SENHA } = require('./comum');
 let f=0; const ok=(c,t,x)=>{ console.log((c?'  OK ':'FALHA ')+t+(x!==undefined?'  → '+JSON.stringify(x):'')); if(!c) f++; };
 (async()=>{
   await sql("delete from users where email in ('d1@x.com','d2@x.com')");
-  await j('POST','/user/register',{name:'Dani Um',email:'d1@x.com',password:'123456'}); await j('POST','/user/register',{name:'Duda Dois',email:'d2@x.com',password:'123456'});
-  const A=(await j('POST','/user/login',{email:'d1@x.com',password:'123456'})).d.token, Bt=(await j('POST','/user/login',{email:'d2@x.com',password:'123456'})).d.token;
+  await j('POST','/user/register',{name:'Dani Um',email:'d1@x.com',password:'123456',aceite_termos:true,aceite_saude:true}); await j('POST','/user/register',{name:'Duda Dois',email:'d2@x.com',password:'123456',aceite_termos:true,aceite_saude:true});
+  const A=(await j('POST','/user/login',{email:'d1@x.com',password:'123456',aceite_termos:true,aceite_saude:true})).d.token, Bt=(await j('POST','/user/login',{email:'d2@x.com',password:'123456',aceite_termos:true,aceite_saude:true})).d.token;
   const ida=await sql("select id from users where email='d1@x.com'"), idb=await sql("select id from users where email='d2@x.com'");
   console.log('1) 21 dias');
   let m=(await j('GET','/desafios/meus',null,A)).d; ok(m.d21.dias===0&&m.d21.meta===21,'começa em 0/21');

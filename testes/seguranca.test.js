@@ -7,9 +7,9 @@ let f=0; const ok=(c,t,x)=>{ console.log((c?'  OK ':'FALHA ')+t+(x!==undefined?'
   await sql("delete from users where email like 'seg%@x.com'");
   const IP=n=>({'X-Forwarded-For':'10.0.0.'+n});
   console.log('1) Login com limite');
-  await j('POST','/user/register',{name:'Seg Um',email:'seg1@x.com',password:'123456'},null,IP(1));
+  await j('POST','/user/register',{name:'Seg Um',email:'seg1@x.com',password:'123456',aceite_termos:true,aceite_saude:true},null,IP(1));
   for(let i=0;i<8;i++) await j('POST','/user/login',{email:'seg1@x.com',password:'errada'},null,IP(2));
-  let r=await j('POST','/user/login',{email:'seg1@x.com',password:'123456'},null,IP(3)); ok(r.s===429,'9ª tentativa bloqueada (mesmo com a senha certa)',r.d);
+  let r=await j('POST','/user/login',{email:'seg1@x.com',password:'123456',aceite_termos:true,aceite_saude:true},null,IP(3)); ok(r.s===429,'9ª tentativa bloqueada (mesmo com a senha certa)',r.d);
   r=await j('POST','/user/login',{email:'nao-existe@x.com',password:'x'},null,IP(4)); ok(r.s===401,'outro e-mail continua normal');
   console.log('2) Esqueci minha senha');
   await j('POST',M+'/_reset');
@@ -43,9 +43,9 @@ let f=0; const ok=(c,t,x)=>{ console.log((c?'  OK ':'FALHA ')+t+(x!==undefined?'
   const rid=sd.relatos.find(x=>/bike 3/.test(x.texto)).id; ok((await j('POST','/admin/saude/relatos/'+rid+'/resolver',null,SA)).d.ok,'relato resolvido');
   ok((await j('GET','/ping')).s===200,'/ping 200 com banco no ar');
   console.log('6b) Trocou a senha: os outros aparelhos saem');
-  await j('POST','/user/register',{name:'Seg Dois',email:'seg2@x.com',password:'123456'},null,IP(20));
-  const celA=(await j('POST','/user/login',{email:'seg2@x.com',password:'123456'},null,IP(21))).d.token;
-  const pcB=(await j('POST','/user/login',{email:'seg2@x.com',password:'123456'},null,IP(22))).d.token;
+  await j('POST','/user/register',{name:'Seg Dois',email:'seg2@x.com',password:'123456',aceite_termos:true,aceite_saude:true},null,IP(20));
+  const celA=(await j('POST','/user/login',{email:'seg2@x.com',password:'123456',aceite_termos:true,aceite_saude:true},null,IP(21))).d.token;
+  const pcB=(await j('POST','/user/login',{email:'seg2@x.com',password:'123456',aceite_termos:true,aceite_saude:true},null,IP(22))).d.token;
   ok((await j('GET','/user/me',null,celA)).s===200,'celular logado');
   await new Promise(r=>setTimeout(r,1100));
   r=await j('PUT','/user/senha',{senha_atual:'123456',nova:'trocada77'},pcB); ok(r.d.ok&&r.d.token,'troca no computador devolve um token novo');

@@ -4,7 +4,12 @@
      prReportar(SERVIDOR, token, 'app'|'portal'|'financeiro', nomeDaTela, versao)
    03/10f — erros de JavaScript chegam sozinhos na "Saúde do sistema" do admin:
      prErroConfig(SERVIDOR, 'app'|'portal'|'financeiro'|'admin', function(){ return token; }, versao)
-     prErro('mensagem', 'erro'|'aviso')   ← para avisar algo importante de propósito  */
+     prErro('mensagem', 'erro'|'aviso')   ← para avisar algo importante de propósito
+   03/10o — Termos de uso e Política de privacidade (LGPD):
+     prTermosCaixas(SERVIDOR)   → HTML das 2 caixas de aceite para o formulário de cadastro
+     prTermosLidos(elemento)    → { aceite_termos, aceite_saude } das caixas dentro do elemento
+     prTermosChecar(SERVIDOR, token, 'app'|'portal'|..., sair) → quem ainda não aceitou a versão atual
+                                  vê a tela de aceite (só sai aceitando ou saindo da conta)  */
 (function () {
   // ── 03/10f: ERROS DA TELA → SAÚDE DO SISTEMA ──────────────────
   // Junta os erros por 2 s e manda em lote. O mesmo erro só uma vez a cada 10 min,
@@ -116,5 +121,49 @@
           msg.style.color = '#9ee39e'; msg.textContent = 'Recebido! Obrigado — a ProRider já foi avisada.'; bt.style.display = 'none'; o.querySelector('[data-x]').textContent = 'Fechar';
         }).catch(function () { msg.textContent = 'Sem conexão com o servidor.'; bt.disabled = false; });
     };
+  };
+  // ── 03/10o: TERMOS DE USO E POLÍTICA DE PRIVACIDADE ─────────────
+  function _tcCss() {
+    if (document.getElementById('prTcCss')) return;
+    var s = document.createElement('style'); s.id = 'prTcCss';
+    s.textContent = '.prs-tc{display:flex;flex-direction:column;gap:9px;margin:10px 0 4px;text-align:left}'
+      + '.prs-tc label{display:flex!important;gap:10px;align-items:flex-start;font:400 13.5px/1.45 Barlow,Arial,sans-serif!important;color:rgba(255,255,255,.82)!important;cursor:pointer;text-transform:none!important;letter-spacing:normal!important;margin:0!important;padding:0!important}'
+      + '.prs-tc input[type=checkbox]{appearance:auto;-webkit-appearance:checkbox;width:20px!important;height:20px;min-width:20px;margin:1px 0 0!important;padding:0!important;accent-color:#ea860c;flex-shrink:0}'
+      + '.prs-tc a{color:#ffb45a;font-weight:700;text-decoration:underline}';
+    document.head.appendChild(s);
+  }
+  window.prTermosCaixas = function (base) {
+    _tcCss(); base = base || '';
+    return '<div class="prs-tc">'
+      + '<label><input type="checkbox" data-tc="termos"><span>Li e aceito os <a href="' + base + '/termos.html" target="_blank" rel="noopener">Termos de uso</a> e a <a href="' + base + '/privacidade.html" target="_blank" rel="noopener">Política de privacidade</a>.</span></label>'
+      + '<label><input type="checkbox" data-tc="saude"><span>Autorizo o uso dos meus dados de treino e de saúde (frequência cardíaca, potência, calorias, peso) para calcular meus resultados, zonas e rankings.</span></label>'
+      + '</div>';
+  };
+  window.prTermosLidos = function (raiz) {
+    raiz = raiz || document; var a = raiz.querySelector('[data-tc="termos"]'), b = raiz.querySelector('[data-tc="saude"]');
+    return { aceite_termos: !!(a && a.checked), aceite_saude: !!(b && b.checked) };
+  };
+  window.prTermosChecar = function (base, token, onde, sair) {
+    if (!token || document.getElementById('prsTermos')) return;
+    fetch(base + '/user/me', { headers: { Authorization: 'Bearer ' + token } }).then(function (r) { return r.ok ? r.json() : null; }).then(function (u) {
+      if (!u || !u.termos_pendente || document.getElementById('prsTermos')) return;
+      var o = caixa('<h3>' + (u.termos_versao ? 'TERMOS ATUALIZADOS' : 'ANTES DE CONTINUAR') + '</h3>'
+        + '<p>' + (u.termos_versao ? 'Atualizamos os Termos de uso e a Política de privacidade da ProRider.' : 'Para usar a ProRider, leia e aceite os Termos de uso e a Política de privacidade.') + ' Eles explicam quais dados usamos, para quê, quem vê e como você pode pedir para apagar.</p>'
+        + window.prTermosCaixas(base)
+        + '<div class="prs-ac"><button type="button" data-x>Sair da conta</button><button type="button" class="pri" data-ok>Aceitar e continuar</button></div><div class="prs-msg" id="prsTcMsg"></div>');
+      o.id = 'prsTermos'; var novo = o.cloneNode(true); o.parentNode.replaceChild(novo, o); o = novo;   // sem fechar clicando fora
+      var msg = o.querySelector('#prsTcMsg'), bt = o.querySelector('[data-ok]');
+      o.querySelector('[data-x]').onclick = function () { o.remove(); if (typeof sair === 'function') sair(); };
+      bt.onclick = function () {
+        var v = window.prTermosLidos(o);
+        if (!v.aceite_termos || !v.aceite_saude) { msg.style.color = '#ff9a9a'; msg.textContent = 'Marque as duas caixas para continuar.'; return; }
+        bt.disabled = true; msg.style.color = ''; msg.textContent = 'Salvando…';
+        fetch(base + '/user/termos/aceitar', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token }, body: JSON.stringify({ aceite: true, saude: true, onde: onde || '' }) })
+          .then(function (r) { return r.json(); }).then(function (d) {
+            if (d.error) { msg.style.color = '#ff9a9a'; msg.textContent = d.error; bt.disabled = false; return; }
+            o.remove();
+          }).catch(function () { msg.style.color = '#ff9a9a'; msg.textContent = 'Sem conexão com o servidor.'; bt.disabled = false; });
+      };
+    }).catch(function () {});
   };
 })();

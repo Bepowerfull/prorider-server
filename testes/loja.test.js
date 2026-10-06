@@ -22,7 +22,7 @@ const hook=(event,payment)=>j('POST','/webhook/asaas',{event,payment},null,{'asa
   let as=(await j('POST','/admin/loja/produtos',{nome:'Assinatura mensal',tipo:'assinatura',dias:30,preco:49},SA)).d; ok(as.id,'assinatura criada');
   ok((await j('POST','/admin/loja/produtos',{nome:'X',tipo:'pacote',creditos:0,preco:10},SA)).s===400,'pacote sem crédito recusado');
   console.log('2) Vitrine com vendas desligadas');
-  await j('POST','/user/register',{name:'Aluno Um',email:'al1@x.com',password:'123456'}); const A=(await j('POST','/user/login',{email:'al1@x.com',password:'123456'})).d.token;
+  await j('POST','/user/register',{name:'Aluno Um',email:'al1@x.com',password:'123456',aceite_termos:true,aceite_saude:true}); const A=(await j('POST','/user/login',{email:'al1@x.com',password:'123456',aceite_termos:true,aceite_saude:true})).d.token;
   let v=(await j('GET','/loja',null,A)).d; ok(v.vendas_ligadas===false && v.aulas.length===3 && v.produtos.length===2 && v.professores[0].aulas===3,'vitrine',{aulas:v.aulas.length,prod:v.produtos.length});
   ok(v.aulas.find(x=>x.id===a3.id).tem_acesso && !v.aulas.find(x=>x.id===a1.id).tem_acesso,'grátis liberada, paga bloqueada');
   ok(v.aulas.find(x=>x.id===a1.id).blocos.length===4,'aula traz os blocos do gráfico');

@@ -1249,6 +1249,7 @@ function lpCriar(){
   box.innerHTML='<h3>Criar conta</h3><p>A mesma conta vale no app ProRider. Financeiro da academia: use o e-mail que a academia informou à ProRider.</p>'
     +'<label>Nome</label><input id="cNome" autocomplete="name"><label>E-mail</label><input id="cEmail" type="email" autocomplete="username">'
     +'<label>Senha</label><input id="cSenha" type="password" autocomplete="new-password"><label>Repita a senha</label><input id="cSenha2" type="password" autocomplete="new-password">'
+    +(window.prTermosCaixas?prTermosCaixas(SERVER):'')   // 03/10o
     +'<button class="go" onclick="lpCriarEnviar()">Criar conta e entrar</button><div class="er" id="cErr"></div>';
   m.classList.add('open'); setTimeout(function(){ var i=document.getElementById('cNome'); if(i) i.focus(); },50);
 }
@@ -1258,8 +1259,10 @@ async function lpCriarEnviar(){
   if(!nome||!email) return er.textContent='Preencha nome e e-mail.';
   if(s1.length<6) return er.textContent='A senha precisa de pelo menos 6 caracteres.';
   if(s1!==g('cSenha2')) return er.textContent='As senhas não são iguais.';
+  var tc=window.prTermosLidos?prTermosLidos(document.getElementById('lpModalIn')):{aceite_termos:true,aceite_saude:true};   // 03/10o
+  if(!tc.aceite_termos||!tc.aceite_saude) return er.textContent='Para criar a conta, marque as duas caixas dos Termos e da Privacidade.';
   try{
-    var r=await fetch(SERVER+'/user/register',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:nome,email:email,password:s1})}), d=await r.json();
+    var r=await fetch(SERVER+'/user/register',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:nome,email:email,password:s1,aceite_termos:true,aceite_saude:true,onde:'portal'})}), d=await r.json();
     if(!r.ok) return er.textContent=r.status===409?'Este e-mail já tem conta (do app ou do Portal): feche e use Entrar.':(d.error||'Não consegui criar a conta.');
     if(d.user.financeiro){ localStorage.setItem('pr_fin_token',d.token); localStorage.setItem('pr_fin_user',JSON.stringify(d.user)); location.href='financeiro.html'; return; }
     document.getElementById('lpModalIn').innerHTML='<h3>Conta criada ✓</h3><p style="font-size:15px;color:rgba(255,255,255,.8);line-height:1.6">Se você é o <b>financeiro</b> da academia, peça à ProRider para cadastrar este e-mail na licença; depois é só entrar aqui.<br><br>Se você é <b>aluno</b>, a conta já vale no <a href="/aluno" style="color:#ea860c">app ProRider</a>.</p>';
@@ -2054,6 +2057,7 @@ async function showApp() {
   if (!user.impersonated_by) {
     try { const me = await api('/user/me'); if (me && me.id) { user.financeiro = !!me.financeiro; localStorage.setItem('pr_gestor_user', JSON.stringify(user)); } } catch(e) {}
     if (user.financeiro && ['financeiro','aluno'].includes(user.role)) return irPagamento();
+    try { if (window.prTermosChecar) prTermosChecar(SERVER, token, 'portal', doLogout); } catch(e) {}   // 03/10o: quem ainda não aceitou os Termos
   }
   document.getElementById('loginScreen').style.display = 'none';
   document.getElementById('app').style.display = 'block';

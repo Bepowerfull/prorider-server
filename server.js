@@ -979,6 +979,31 @@ app.get('/ping', async (req, res) => {
 
 // ── Usuários ──────────────────────────────────────────────────
 
+// ══ 03/10o — TERMOS DE USO E POLÍTICA DE PRIVACIDADE ══════════════
+// O texto fica nas páginas public/termos.html e public/privacidade.html.
+// A versão vem da linha <meta name="pr-versao" content="AAAA-MM-DD"> da página de termos:
+// mudou a versão → todo mundo aceita de novo no próximo acesso. (Só corrigir um erro de
+// digitação? Não mude a versão.)
+let TERMOS_VERSAO = '2026-10-06';
+try { const m = require('fs').readFileSync(path.join(__dirname, 'public', 'termos.html'), 'utf8').match(/name="pr-versao"\s+content="([^"]+)"/); if (m) TERMOS_VERSAO = m[1]; } catch (e) {}
+function termosPendente(u) { return !!u && u.role !== 'super_admin' && u.termos_versao !== TERMOS_VERSAO; }
+async function termosRegistrar(userId, email, req, onde, saude) {
+  await db.query('UPDATE users SET termos_versao=$1, termos_aceitos_em=NOW() WHERE id=$2', [TERMOS_VERSAO, userId]);
+  await db.query('INSERT INTO termos_aceites (user_id, email, versao, saude, onde, ip, aparelho) VALUES ($1,$2,$3,$4,$5,$6,$7)',
+    [userId, email, TERMOS_VERSAO, !!saude, String(onde || '').slice(0, 30) || null, ipDe(req), String(req.headers['user-agent'] || '').slice(0, 200)]);
+}
+app.get('/termos/versao', (req, res) => res.json({ versao: TERMOS_VERSAO }));
+app.post('/user/termos/aceitar', authMiddleware, async (req, res) => {
+  const b = req.body || {};
+  if (!b.aceite || !b.saude) return res.status(400).json({ error: 'Marque as duas caixas para continuar.' });
+  try {
+    const u = (await db.query('SELECT id, email FROM users WHERE id=$1', [req.user.id])).rows[0];
+    if (!u) return res.status(404).json({ error: 'Usuário não encontrado' });
+    await termosRegistrar(u.id, u.email, req, b.onde, b.saude);
+    res.json({ ok: true, versao: TERMOS_VERSAO });
+  } catch (e) { res.status(500).json({ error: 'Erro interno' }); }
+});
+
 // Cadastro
 app.post('/user/register', async (req, res) => {
   if (limConta('reg:ip:' + ipDe(req), 60) > 15) return res.status(429).json({ error: 'Muitos cadastros deste aparelho/rede. Tente de novo mais tarde.' });   // 03/10e
@@ -1002,6 +1027,9 @@ app.post('/user/register', async (req, res) => {
 
   if (!email || !name || !password)
     return res.status(400).json({ error: 'email, nome e senha obrigatórios' });
+  // 03/10o: sem o aceite dos Termos e da Política de privacidade não cria a conta
+  if (req.body.aceite_termos !== true || req.body.aceite_saude !== true)
+    return res.status(400).json({ error: 'Para criar a conta, aceite os Termos de uso e a Política de privacidade (as duas caixas).', termos: true });
   try {
     const hash = await bcrypt.hash(password, 10);
     const r = await db.query(
@@ -1011,6 +1039,7 @@ app.post('/user/register', async (req, res) => {
       [email.toLowerCase(), name, hash, peso, ftp, altura, idade, sexo, tmb]
     );
     const user = r.rows[0];
+    await termosRegistrar(user.id, user.email, req, req.body.onde || 'cadastro', true).catch(e => log('termos no cadastro: ' + e.message));
     // 02/10h: e-mail já cadastrado como financeiro de uma licença → vira o financeiro dela
     const finLic = await finLicencaDe(user.email).catch(() => null);
     if (finLic) { await finVincular(finLic, user.email, null); user.role = 'financeiro'; user.license_id = finLic; user.financeiro = true; }
@@ -1043,7 +1072,7 @@ app.post('/user/login', async (req, res) => {
     limZera(kE);
     const token = jwt.sign({ id: user.id, email: user.email, role: user.role, license_id: user.license_id || undefined }, JWT_SECRET, { expiresIn: '30d' });
     const financeiro = !!(await finLicencaDe(user.email).catch(() => null));   // 02/10h: o e-mail do financeiro vai para a página de pagamento
-    res.json({ user: { id: user.id, email: user.email, name: user.name, role: user.role, license_id: user.license_id || null, points: user.points, level: user.level, sexo: user.sexo || null, financeiro, senha_provisoria: !!user.senha_provisoria }, token }); // 26/09b: sexo
+    res.json({ user: { id: user.id, email: user.email, name: user.name, role: user.role, license_id: user.license_id || null, points: user.points, level: user.level, sexo: user.sexo || null, financeiro, senha_provisoria: !!user.senha_provisoria, termos_pendente: termosPendente(user), termos_versao: TERMOS_VERSAO }, token }); // 26/09b: sexo · 03/10o: termos
   } catch(e) {
     log('login error: ' + e.message);
     res.status(500).json({ error: 'Erro interno' });
@@ -1055,12 +1084,12 @@ app.get('/user/me', authMiddleware, async (req, res) => {
   if (!db) return res.status(503).json({ error: 'Banco não disponível' });
   try {
     const r = await db.query(
-      'SELECT id, email, name, role, license_id, points, level, peso, ftp, sexo, idade, altura, nascimento, created_at FROM users WHERE id=$1', // 26/09b: sexo; 26/09e: idade, altura, nascimento (Meu perfil do Portal)
+      'SELECT id, email, name, role, license_id, points, level, peso, ftp, sexo, idade, altura, nascimento, created_at, termos_versao FROM users WHERE id=$1', // 26/09b: sexo; 26/09e: idade, altura, nascimento (Meu perfil do Portal); 03/10o: termos
       [req.user.id]
     );
     if (!r.rows.length) return res.status(404).json({ error: 'Usuário não encontrado' });
     const fin = await finLicencaDe(r.rows[0].email).catch(() => null);   // 03/10a: o app e o Portal mostram o atalho do pagamento
-    res.json(Object.assign(r.rows[0], { financeiro: !!fin, financeiro_licenca: fin || null }));
+    res.json(Object.assign(r.rows[0], { financeiro: !!fin, financeiro_licenca: fin || null, termos_pendente: termosPendente(r.rows[0]), termos_versao_atual: TERMOS_VERSAO }));
   } catch(e) {
     res.status(500).json({ error: 'Erro interno' });
   }
@@ -6399,10 +6428,15 @@ app.post('/display/gravacao/:id/enviar', displayAuth, async (req, res) => {
 // 03/10e — SEGURANÇA E SAÚDE: esqueci a senha, reportar problema,
 // excluir minha conta (LGPD) e a página "Saúde do sistema" do admin
 // ══════════════════════════════════════════════════════════════
-const SERVIDOR_VERSAO = '03/10n';
+const SERVIDOR_VERSAO = '03/10o';
 const _inicioServidor = Date.now();
 let _ultWebhook = null;   // último aviso do Asaas recebido (hora e evento)
 async function segMigrar() {
+  await db.query(`   -- 03/10o: aceite dos Termos de uso e da Política de privacidade (LGPD: prova do aceite)
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS termos_versao TEXT;
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS termos_aceitos_em TIMESTAMPTZ;
+    CREATE TABLE IF NOT EXISTS termos_aceites (id SERIAL PRIMARY KEY, user_id INTEGER REFERENCES users(id) ON DELETE SET NULL, email TEXT,
+      versao TEXT NOT NULL, saude BOOLEAN, onde TEXT, ip TEXT, aparelho TEXT, criado_em TIMESTAMPTZ DEFAULT NOW());`);
   await db.query(`
     CREATE TABLE IF NOT EXISTS sistema_eventos (id SERIAL PRIMARY KEY, nivel TEXT NOT NULL, msg TEXT NOT NULL, created_at TIMESTAMPTZ DEFAULT NOW());
     CREATE INDEX IF NOT EXISTS sistema_eventos_t ON sistema_eventos(created_at DESC);

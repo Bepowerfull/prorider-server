@@ -126,7 +126,7 @@ td{white-space:nowrap}
 var SERVER = (location.hostname === 'localhost' || location.hostname === '127.0.0.1') ? location.origin : 'https://prorider-server-production-5784.up.railway.app';
 var _sup = sessionStorage.getItem('pr_imp_token');   // super admin em modo suporte (mesma aba do Portal)
 var token = _sup || localStorage.getItem('pr_fin_token') || '';
-try { if (typeof prErroConfig === 'function') prErroConfig(SERVER, 'financeiro', function () { return _sup ? '' : token; }, 'Financeiro 03/10h'); } catch (e) {}   // 03/10f
+try { if (typeof prErroConfig === 'function') prErroConfig(SERVER, 'financeiro', function () { return _sup ? '' : token; }, 'Financeiro 03/10o'); } catch (e) {}   // 03/10f
 var user = _sup ? JSON.parse(sessionStorage.getItem('pr_imp_user') || 'null') : JSON.parse(localStorage.getItem('pr_fin_user') || 'null');
 function $(id){ return document.getElementById(id); }
 function esc(t){ return String(t == null ? '' : t).replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
@@ -222,7 +222,7 @@ async function pagar(){
   } catch (e) { if (w) w.close(); mostrarErro('ePagar', 'Sem conexão com o servidor.'); $('pPagNota').textContent = ''; bt.disabled = false; }
 }
 // 02/10h: a entrada é a do Portal (academia.html) — mesma tela para todos
-if (token) painel(); else location.replace('academia.html');
+if (token) { painel(); try { if (!_sup && window.prTermosChecar) prTermosChecar(SERVER, token, 'financeiro', sair); } catch (e) {} } else location.replace('academia.html');   // 03/10o: aceite dos Termos
 </script>
 </body>
 </html>
