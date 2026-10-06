@@ -6295,74 +6295,85 @@ function btConnectKeiser(server, device){
             var gEl=document.getElementById('bigGear'); if(gEl&&gear>0) gEl.textContent=gear;
           }
         });
+        window._prBikeTipo='keiser'; window._prBikeKeiser=true;   // 03/10o: na academia a Keiser é lida pelo dongle da TV
         connDev('bike', device.name, '');
       });
     });
   });
 }
 
-// \u2500\u2500 Stages, Garmin Vector \u2014 Cycling Power Service \u2500\u2500
-function btConnectCyclingPower(server, device){
-  return server.getPrimaryService(BTUUID.CYCLING_POWER).then(function(svc){
-    return svc.getCharacteristic(BTUUID.CHAR_POWER).then(function(ch){
-      return ch.startNotifications().then(function(){
-        ch.addEventListener('characteristicvaluechanged', function(ev){
-          var d=ev.target.value;
-          // flags: byte 0-1; power: bytes 2-3 (sint16)
-          var flags = d.getUint16(0, true);
-          var power = d.getInt16(2, true);
-          _bleWatts=power; _bleTs=Date.now();
-          document.getElementById('bigWatts').textContent=power;
-          // cad\u00EAncia opcional \u2014 bit 2 flag
-          if(flags & 0x0004 && d.byteLength >= 6){
-            var rpm = (d.getUint16(4, true) / 2048) * 60;
-            dRpm = rpm;
-            _bleRpm=rpm; _bleTs=Date.now();
-            document.getElementById('bigRpm').textContent=Math.round(rpm);
-          }
-        });
-        connDev('bike', device.name, '');
-      });
+// ══ 03/10o — BIKES E ROLOS POR BLUETOOTH (padrões abertos) ══════════════
+// FTMS (0x1826 · Indoor Bike Data 0x2AD2): rolos e bikes inteligentes — Wahoo KICKR, Tacx/Garmin,
+//   Elite, Saris, Zwift Hub, JetBlack, Magene, Thinkrider, Van Rysel, Wattbike, Schwinn IC4/IC8, Stages SB20…
+// Cycling Power (0x1818 · 0x2A63): medidores de potência — Stages, Favero Assioma, Garmin Rally/Vector,
+//   4iiii, Quarq, SRM, Shimano, Magene P505 — e muitos rolos (fallback).
+// CSC (0x1816 · 0x2A5B): sensores de cadência/velocidade — só cadência, sem watts.
+// Keiser M3i: proprietário (continua igual, e na academia quem lê é o dongle da TV).
+// Funções puras (testáveis): recebem um DataView e devolvem os números.
+function prFtmsParse(d, st){
+  var f=d.getUint16(0,true), o=2, r={};
+  if(!(f&0x0001)){ r.kmh=d.getUint16(o,true)/100; o+=2; }   // bit 0 = "mais dados": a velocidade vem quando o bit é 0
+  if(f&0x0002) o+=2;                                         // velocidade média
+  if(f&0x0004){ r.rpm=d.getUint16(o,true)/2; o+=2; }         // cadência (0,5 rpm)
+  if(f&0x0008) o+=2;                                         // cadência média
+  if(f&0x0010) o+=3;                                         // distância total
+  if(f&0x0020) o+=2;                                         // resistência
+  if(f&0x0040){ r.watts=d.getInt16(o,true); o+=2; }          // potência
+  if(f&0x0080) o+=2;                                         // potência média
+  if(f&0x0100) o+=5;                                         // energia
+  if(f&0x0200){ if(d.byteLength>o) r.hr=d.getUint8(o); o+=1; } // FC (bikes que leem a cinta)
+  // algumas bikes mandam a potência num pacote e a cadência em outro: guarda o último de cada
+  if(st){ if(r.rpm!=null) st.rpm=r.rpm; if(r.watts!=null) st.watts=r.watts; }
+  return r;
+}
+// cadência a partir das voltas do pedivela (contador + tempo em 1/1024 s)
+function _prCrank(st, revs, t){
+  var out=null;
+  if(st.cRev!=null){
+    var dr=(revs-st.cRev+65536)%65536, dt=((t-st.cT+65536)%65536)/1024;
+    if(dt>0 && dr>0 && dr<20){ out=dr/dt*60; st.cZero=Date.now(); }
+    else if(dr===0 && Date.now()-(st.cZero||0)>3000) out=0;   // parou de pedalar
+  }
+  st.cRev=revs; st.cT=t; return out;
+}
+function prCpsParse(d, st){
+  var f=d.getUint16(0,true), o=2, r={watts:d.getInt16(2,true)}; o=4;
+  if(f&0x0001) o+=1;            // equilíbrio de pedal
+  if(f&0x0004) o+=2;            // torque acumulado
+  if(f&0x0010) o+=6;            // voltas da roda
+  if(f&0x0020 && d.byteLength>=o+4){ var c=_prCrank(st, d.getUint16(o,true), d.getUint16(o+2,true)); if(c!=null) r.rpm=c; o+=4; }
+  return r;
+}
+function prCscParse(d, st){
+  var f=d.getUint8(0), o=1, r={};
+  if(f&0x01) o+=6;              // voltas da roda
+  if(f&0x02 && d.byteLength>=o+4){ var c=_prCrank(st, d.getUint16(o,true), d.getUint16(o+2,true)); if(c!=null) r.rpm=c; }
+  return r;
+}
+// aplica os números na tela e no que vai para a TV
+function _prBikeNum(r){
+  var ag=Date.now();
+  if(r.rpm!=null){ dRpm=r.rpm; _bleRpm=r.rpm; _bleTs=ag; var e1=document.getElementById('bigRpm'); if(e1) e1.textContent=Math.round(r.rpm); }
+  if(r.watts!=null){ _bleWatts=r.watts; _bleTs=ag; var e2=document.getElementById('bigWatts'); if(e2) e2.textContent=r.watts; }
+  if(r.hr>0 && !(window._meuHr && window._meuHr.cinta && ag-window._meuHr.ts<4000)){ try{ _appHr(r.hr); }catch(e){} window._meuHr={v:r.hr,ts:ag}; }
+}
+function _prOuvir(server, svcUuid, charUuid, parse, device, tipo){
+  return server.getPrimaryService(svcUuid).then(function(svc){ return svc.getCharacteristic(charUuid); }).then(function(ch){
+    var st={};
+    return ch.startNotifications().then(function(){
+      ch.addEventListener('characteristicvaluechanged', function(ev){ try{ _prBikeNum(parse(ev.target.value, st)); }catch(e){} });
+      window._prBikeTipo=tipo; window._prBikeKeiser=false;
+      connDev('bike', device.name, '');
     });
   });
 }
-
-// \u2500\u2500 Wahoo KICKR, Tacx Neo, Elite Suito, Schwinn IC8 \u2014 FTMS \u2500\u2500
-function btConnectFTMS(server, device){
-  return server.getPrimaryService(BTUUID.FTMS).then(function(svc){
-    return svc.getCharacteristic(BTUUID.CHAR_FTMS_DATA).then(function(ch){
-      return ch.startNotifications().then(function(){
-        ch.addEventListener('characteristicvaluechanged', function(ev){
-          var d=ev.target.value;
-          var flags=d.getUint16(0, true);
-          var offset=2;
-          // bit 0: Instantaneous Speed (0.01 km/h)
-          if(flags & 0x0001){ offset+=2; }
-          // bit 2: Instantaneous Cadence (0.5 rpm)
-          if(flags & 0x0004){
-            var rpm = d.getUint16(offset, true) * 0.5;
-            dRpm = rpm;
-            _bleRpm=rpm; _bleTs=Date.now();
-            document.getElementById('bigRpm').textContent=Math.round(rpm);
-            offset+=2;
-          }
-          // bit 3: Average Speed \u2014 pular
-          if(flags & 0x0008){ offset+=2; }
-          // bit 4: Total Distance \u2014 pular
-          if(flags & 0x0010){ offset+=3; }
-          // bit 5: Resistance Level \u2014 pular
-          if(flags & 0x0020){ offset+=2; }
-          // bit 6: Instantaneous Power (sint16, watts)
-          if(flags & 0x0040){
-            var power=d.getInt16(offset, true);
-            _bleWatts=power; _bleTs=Date.now();
-            document.getElementById('bigWatts').textContent=power;
-          }
-        });
-        connDev('bike', device.name, '');
-      });
-    });
-  });
+function btConnectFTMS(server, device){ return _prOuvir(server, BTUUID.FTMS, BTUUID.CHAR_FTMS_DATA, prFtmsParse, device, 'ftms'); }
+function btConnectCyclingPower(server, device){ return _prOuvir(server, BTUUID.CYCLING_POWER, BTUUID.CHAR_POWER, prCpsParse, device, 'potencia'); }
+function btConnectCSC(server, device){ return _prOuvir(server, BTUUID.CSC, BTUUID.CHAR_CSC, prCscParse, device, 'cadencia'); }
+// escolhe o melhor jeito de ler: FTMS (watts + cadência) > Cycling Power > só cadência
+function btConnectBike(server, device){
+  return btConnectFTMS(server, device).catch(function(){ return btConnectCyclingPower(server, device); })
+    .catch(function(){ return btConnectCSC(server, device); });
 }
 
 // \u2500\u2500 Polar H10, Polar H9, Garmin HRM, Wahoo TICKR \u2500\u2500
@@ -6389,7 +6400,7 @@ function btConnectHR(server, device){
             if(hrEl2) hrEl2.style.color = '';
           }
           _appHr(hr);
-          window._meuHr={v:hr,ts:Date.now()};   // 26/09d: vai para o Ginasio (cartoes de FC)
+          window._meuHr={v:hr,ts:Date.now(),cinta:true};   // 26/09d: vai para o Ginasio (cartoes de FC)
         });
         connDev('hr', device.name, '');
       });
@@ -8145,12 +8156,18 @@ setInterval(function(){
 // 26/09d — FC DA CINTA LIGADA NO CELULAR VAI PARA O GINASIO. Ate aqui a FC
 // que o celular lia (cinta/relogio) so aparecia no proprio celular; o Ginasio
 // so via a FC que vinha da bike. 1x por segundo, so com dado fresco.
+// 03/10o: também a BIKE/ROLO ligado no celular (FTMS, potência, cadência) — para academias com bikes
+// de outras marcas. A Keiser NÃO vai por aqui: na academia o dongle da TV já lê a Keiser.
 setInterval(function(){
   try{
-    var h=window._meuHr; if(!h || Date.now()-h.ts>4000 || !(h.v>0)) return;
     if(!(typeof wsConn!=='undefined' && wsConn && wsConn.readyState===1)) return;
     var nm=_entrarNome; if(!nm) return;
-    wsConn.send(JSON.stringify({tipo:'dados_aluno',nome:nm,fc:h.v}));
+    var ag=Date.now(), m={tipo:'dados_aluno',nome:nm}, tem=false;
+    var h=window._meuHr; if(h && ag-h.ts<4000 && h.v>0){ m.fc=h.v; tem=true; }
+    if(typeof connected!=='undefined' && connected.bike && !window._prBikeKeiser && typeof _bleTs!=='undefined' && _bleTs && ag-_bleTs<3500){
+      m.watts=Math.max(0,Math.round(_bleWatts||0)); m.rpm=Math.max(0,Math.round(_bleRpm||0)); m.fonte='celular'; tem=true;
+    }
+    if(tem) wsConn.send(JSON.stringify(m));
   }catch(e){}
 },1000);
 var _liveTelInt=null;
@@ -9047,8 +9064,10 @@ scanDevBT=function(type){
   if(old){ old._prManual=true; try{ old.gatt.disconnect(); }catch(e){} _btDev[type]=null; connected[type]=false; }
   _cnUI(type,'busca','Escolha o aparelho na lista que abriu…');
   var opts=type==='hr'?{acceptAllDevices:true,optionalServices:[BTUUID.HEART_RATE]}
-    :{filters:[{namePrefix:'M3'},{namePrefix:'Keiser'},{namePrefix:'KEISER'},{namePrefix:'M3i'},{services:[BTUUID.CYCLING_POWER]},{services:[BTUUID.FTMS]},{services:[BTUUID.CSC]}],
-      optionalServices:[BTUUID.KEISER,BTUUID.CYCLING_POWER,BTUUID.FTMS,BTUUID.CSC]};
+    :{filters:[{namePrefix:'M3'},{namePrefix:'Keiser'},{namePrefix:'KEISER'},{namePrefix:'M3i'},{services:[BTUUID.CYCLING_POWER]},{services:[BTUUID.FTMS]},{services:[BTUUID.CSC]}]
+        // 03/10o: marcas que às vezes não anunciam o serviço — aparecem pelo nome
+        .concat(['KICKR','Wahoo','Tacx','Elite','SUITO','DIRETO','Saris','Zwift','HUB','Wattbike','Stages','Schwinn','IC Bike','IC4','Bowflex','Matrix','ICG','Life','Technogym','Star Trac','Magene','THINK','Van Rysel','D100','D500','JetBlack','Kinetic','Assioma','4iiii','Rally','Favero','Quarq'].map(function(n){ return {namePrefix:n}; })),
+      optionalServices:[BTUUID.KEISER,BTUUID.CYCLING_POWER,BTUUID.FTMS,BTUUID.CSC,BTUUID.HEART_RATE]};
   navigator.bluetooth.requestDevice(opts).then(function(dev){ return _btLigar(type,dev); }).catch(function(err){
     var msg=err.name==='NotFoundError'?'Nenhum aparelho escolhido. Toque em Procurar de novo.'
       :err.name==='NotAllowedError'?'Permissão negada: ligue o Bluetooth e a Localização.'
@@ -9065,8 +9084,7 @@ function _btLigar(type,dev){
     if(type==='hr') return btConnectHR(server,dev);
     var n=(dev.name||'').toLowerCase();
     if(n.indexOf('keiser')!==-1||n.indexOf('m3')!==-1) return btConnectKeiser(server,dev);
-    if(/wahoo|kickr|tacx|elite|suito|neo|schwinn|igs|ic /.test(n)) return btConnectFTMS(server,dev);
-    return btConnectCyclingPower(server,dev).catch(function(){ return btConnectFTMS(server,dev); });
+    return btConnectBike(server,dev);   // 03/10o: FTMS > Cycling Power > cadência
   });
   return Promise.race([liga,tempo]).then(function(){
     _btDev[type]=dev;
@@ -9324,7 +9342,7 @@ go=function(id){
   if(id==='sDetail'||id==='sConnect'){ var n=document.getElementById('bNav'); if(n) n.style.display='none'; }
 };
 
-var APP_BUILD='03/10o';
+var APP_BUILD='03/10p';
 try{ if(typeof prErroConfig==='function') prErroConfig(SERVER_HTTP,'app',function(){ return (typeof prToken!=='undefined'&&prToken)||localStorage.getItem('pr_token')||''; },APP_BUILD); }catch(e){}   // 03/10f: erros do app chegam na Saúde
 // ── 03/10e: no Perfil — reportar um problema e excluir a conta (LGPD) ──
 (function(){
