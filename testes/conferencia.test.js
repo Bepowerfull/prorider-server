@@ -23,6 +23,7 @@ const minhas=r=>((r&&r.registrados)||[]).filter(x=>x.licenca==='CONF0001');
   ok(r.ok&&minhas(r).length===0&&(await sql(`SELECT COUNT(*) FROM pagamentos WHERE license_id='CONF0001'`))==='1','rodar de novo não duplica');
   const av=(await j('GET','/admin/alertas',null,SA)).d.lista.find(a=>a.tipo==='asaas_conferencia');
   ok(av&&av.nivel==='aviso'&&av.email_ok===null&&/1 pagamento/.test(av.txt),'aviso amarelo na Saúde (sinal de webhook falhando), sem e-mail',av&&av.txt);
+  r=(await j('POST','/admin/alertas/'+av.id+'/resolver',null,SA)).d; ok(r.ok&&r.conferido,'"Resolvido" confere de novo com o Asaas e fecha (nada faltando)');
   console.log('2) Estornado no Asaas, aviso não chegou');
   await j('POST',M+'/_pay/'+pago.id,{status:'REFUNDED'});
   r=(await j('POST','/admin/asaas/conferir',null,SA)).d;

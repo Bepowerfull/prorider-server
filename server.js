@@ -6399,7 +6399,7 @@ app.post('/display/gravacao/:id/enviar', displayAuth, async (req, res) => {
 // 03/10e — SEGURANÇA E SAÚDE: esqueci a senha, reportar problema,
 // excluir minha conta (LGPD) e a página "Saúde do sistema" do admin
 // ══════════════════════════════════════════════════════════════
-const SERVIDOR_VERSAO = '03/10m';
+const SERVIDOR_VERSAO = '03/10n';
 const _inicioServidor = Date.now();
 let _ultWebhook = null;   // último aviso do Asaas recebido (hora e evento)
 async function segMigrar() {
@@ -6900,10 +6900,46 @@ app.post('/admin/saude/licenca/:codigo/pausar', adminAuth, async (req, res) => {
     res.json({ ok: true, pausado_ate: ate || null });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
+// 03/10m: antes de fechar, confere se o problema acabou mesmo. Se não acabou, diz o que falta
+// (o admin ainda pode fechar "mesmo assim", ex.: alarme falso — fica registrado).
+async function alertaPendente(a) {
+  const agoraTv = async lic => { for (const s of Object.values(salas)) if (s.licenca === lic && s.professor && s.professor.readyState === WebSocket.OPEN) return true;
+    const t = (await db.query(`SELECT MAX(visto_em) AS v FROM licenca_computadores WHERE license_codigo=$1`, [lic])).rows[0]; return !!(t && t.v && Date.now() - new Date(t.v).getTime() < 180000); };
+  switch (a.tipo) {
+    case 'tv_sem_aula': case 'tv_caiu_aula':
+      return a.licenca && !(await agoraTv(a.licenca)) ? 'A TV dessa academia continua desligada ou sem internet (não fala com o servidor há mais de 3 min).' : null;
+    case 'asaas_recusado':
+      return Date.now() - _webhookRecusadoEm < 3600000 ? 'O Asaas ainda teve aviso recusado na última hora: o ASAAS_WEBHOOK_TOKEN do Railway não confere com o do Asaas.' : null;
+    case 'asaas_conferencia': {
+      const r = await asaasConciliar('ao resolver o aviso');
+      if (!r.ok) return 'Não consegui conferir com o Asaas agora: ' + (r.erros || []).slice(0, 2).join(' · ');
+      const n = r.registrados.length + r.desfeitos.length + r.loja.length;
+      return n ? `A conferência de agora ainda achou ${n} pagamento(s) sem registro (já registrei). O aviso automático do Asaas pode estar falhando.` : null;
+    }
+    case 'backup': { const u = await cfgLer('backup_ultimo', null), b = bkLista()[0];
+      if (u && u.ok === false) return 'O último backup falhou. Clique em "Fazer backup agora".';
+      return !b || Date.now() - new Date(b.em).getTime() > 36 * 3600000 ? 'Não há backup das últimas 36 h. Clique em "Fazer backup agora".' : null; }
+    case 'backup_baixar': { const x = await cfgLer('backup_baixado', null);
+      return !x || Date.now() - new Date(x.em).getTime() > 8 * 86400000 ? 'Ainda não há cópia baixada nos últimos 8 dias. Clique em "Baixar" no backup mais novo.' : null; }
+    case 'erros_pico': { const n = (await db.query(`SELECT COUNT(*)::int AS n FROM sistema_eventos WHERE origem IS NULL AND nivel='erro' AND created_at > NOW() - INTERVAL '10 minutes'`)).rows[0].n;
+      return n >= 10 ? `Ainda são ${n} erros do servidor nos últimos 10 minutos.` : null; }
+    case 'telas_pico': { const n = (await db.query(`SELECT COALESCE(SUM(vezes),0)::int AS n FROM sistema_eventos WHERE origem IS NOT NULL AND nivel='erro' AND created_at > NOW() - INTERVAL '15 minutes'`)).rows[0].n;
+      return n >= 25 ? `Ainda são ${n} erros nas telas nos últimos 15 minutos.` : null; }
+    case 'disco': try { const sf = require('fs').statfsSync(GV_DIR), g = sf.bavail * sf.bsize / 1073741824; return g < 2 ? `Ainda só ${g.toFixed(1)} GB livres para gravações.` : null; } catch (e) { return null; }
+    case 'memoria': { const mb = process.memoryUsage().rss / 1048576; return mb > parseInt(process.env.ALERTA_MEMORIA_MB || '1536', 10) ? `O servidor ainda usa ${Math.round(mb)} MB de memória.` : null; }
+  }
+  return null;
+}
 app.post('/admin/alertas/:id/resolver', adminAuth, async (req, res) => {
   try {
-    const r = await db.query(`UPDATE sistema_alertas SET resolvido_em=NOW(), resolvido_txt=$2 WHERE id=$1 AND resolvido_em IS NULL RETURNING id`, [parseInt(req.params.id, 10) || 0, 'marcado como resolvido por ' + req.user.email]);
-    res.json({ ok: r.rows.length > 0 });
+    const a = (await db.query('SELECT * FROM sistema_alertas WHERE id=$1', [parseInt(req.params.id, 10) || 0])).rows[0];
+    if (!a || a.resolvido_em) return res.json({ ok: false, msg: 'Este aviso já estava fechado.' });
+    const mesmoAssim = !!(req.body || {}).mesmo_assim;
+    const pend = await alertaPendente(a).catch(e => 'Não consegui conferir agora (' + e.message + ').');
+    if (pend && !mesmoAssim) return res.json({ ok: false, pendente: pend });
+    await db.query(`UPDATE sistema_alertas SET resolvido_em=NOW(), resolvido_txt=$2 WHERE id=$1 AND resolvido_em IS NULL`,
+      [a.id, (pend ? 'fechado mesmo sem resolver por ' : 'conferido e resolvido por ') + req.user.email]);
+    res.json({ ok: true, conferido: !pend });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 // LUPINHA: busca por código (E-7F3A, S-1Z, A-3K, R-12), por academia ou por texto do erro

@@ -72,9 +72,16 @@ const emails=async re=>(await j('GET',M+'/_emails')).d.filter(e=>re.test(e.subje
   await rodar(SA); ok((await emails(/Aula Pausa/)).length===n0+1,'retomada: o aviso volta a funcionar');
   const ab=(await j('GET','/admin/alertas',null,SA)).d.lista.find(a=>/Aula Pausa/.test(a.txt)&&!a.resolvido_em);
   ok((await j('POST','/admin/alertas/'+ab.id+'/resolver')).s===401,'"Resolvido" só o admin');
-  r=(await j('POST','/admin/alertas/'+ab.id+'/resolver',null,SA)).d; ok(r.ok,'botão "✓ Resolvido" fecha o aviso');
-  ok(/resolvido por/.test((await sql(`SELECT resolvido_txt FROM sistema_alertas WHERE id=${ab.id}`))),'fica registrado quem resolveu');
+  r=(await j('POST','/admin/alertas/'+ab.id+'/resolver',null,SA)).d; ok(!r.ok&&/continua desligada/.test(r.pendente||''),'"Resolvido" com a TV ainda desligada: NÃO fecha e diz o que falta',r.pendente);
+  ok((await sql(`SELECT COUNT(*) FROM sistema_alertas WHERE id=${ab.id} AND resolvido_em IS NULL`))==='1','o aviso continua em aberto');
+  await j('GET','/display/licenca',null,TV,{'X-PR-Build':'BUILD 03/10m'});   // a TV volta
+  r=(await j('POST','/admin/alertas/'+ab.id+'/resolver',null,SA)).d; ok(r.ok&&r.conferido,'TV ligada de novo: "Resolvido" confere e fecha');
+  ok(/conferido e resolvido por/.test((await sql(`SELECT resolvido_txt FROM sistema_alertas WHERE id=${ab.id}`))),'fica registrado quem resolveu');
   ok(!(await j('POST','/admin/alertas/'+ab.id+'/resolver',null,SA)).d.ok,'resolver de novo não faz nada');
+  await sql(`INSERT INTO sistema_alertas (chave,tipo,nivel,txt) VALUES ('teste_baixar','backup_baixar','aviso','Baixe uma cópia (teste)')`);
+  const bx=+(await sql(`SELECT id FROM sistema_alertas WHERE chave='teste_baixar'`));
+  r=(await j('POST','/admin/alertas/'+bx+'/resolver',null,SA)).d; ok(!r.ok&&/Baixar/.test(r.pendente||''),'backup não baixado: não fecha',r.pendente);
+  r=(await j('POST','/admin/alertas/'+bx+'/resolver',{mesmo_assim:true},SA)).d; ok(r.ok&&!r.conferido&&/mesmo sem resolver/.test(await sql(`SELECT resolvido_txt FROM sistema_alertas WHERE id=${bx}`)),'"fechar mesmo assim" fecha e registra que não estava resolvido');
   const em24=(await j('GET','/admin/saude',null,SA)).d.email; ok(em24.enviados_24h>=5&&em24.falhas_24h===0,'contador da Saúde conta os e-mails enviados de verdade',em24);
   await sql(`DELETE FROM aulas_agenda WHERE nome='Aula Pausa'`);
   await sql(`DELETE FROM sistema_eventos WHERE msg LIKE 'erro de teste %'`); await sql(`DELETE FROM aulas_agenda WHERE nome='Aula Vigia'`);
