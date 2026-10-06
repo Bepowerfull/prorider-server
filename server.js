@@ -6388,7 +6388,7 @@ app.post('/display/gravacao/:id/enviar', displayAuth, async (req, res) => {
 // 03/10e — SEGURANÇA E SAÚDE: esqueci a senha, reportar problema,
 // excluir minha conta (LGPD) e a página "Saúde do sistema" do admin
 // ══════════════════════════════════════════════════════════════
-const SERVIDOR_VERSAO = '03/10i';
+const SERVIDOR_VERSAO = '03/10k';
 const _inicioServidor = Date.now();
 let _ultWebhook = null;   // último aviso do Asaas recebido (hora e evento)
 async function segMigrar() {
@@ -6554,7 +6554,8 @@ app.get('/admin/saude', adminAuth, async (req, res) => {
     else if (/resend\.dev/i.test(from)) al('aviso', 'E-mail sem domínio verificado (EMAIL_FROM é do resend.dev): só entrega para o dono da conta Resend.');
     if (fal) al('erro', fal + ' e-mail(s) falharam nas últimas 24 h.');
   } catch (e) {}
-  out.asaas = { chave: !!ASAAS_API_KEY, webhook_token: !!(process.env.ASAAS_WEBHOOK_TOKEN && process.env.ASAAS_WEBHOOK_TOKEN.length >= 12), ultimo_webhook: _ultWebhook, vendas_loja: !!(await cfgLer('loja_vendas', false)) };
+  out.asaas = { chave: !!ASAAS_API_KEY, webhook_token: !!(process.env.ASAAS_WEBHOOK_TOKEN && process.env.ASAAS_WEBHOOK_TOKEN.length >= 12), ultimo_webhook: _ultWebhook, vendas_loja: !!(await cfgLer('loja_vendas', false)), conferencia: await cfgLer('asaas_conferencia', null).catch(() => null) };   // 03/10k
+  if (out.asaas.conferencia && out.asaas.conferencia.ok === false) al('aviso', 'A conferência diária com o Asaas falhou: ' + (out.asaas.conferencia.erros || []).slice(0, 2).join(' · '));
   if (!out.asaas.chave) al('aviso', 'Asaas sem chave: cobrança automática e loja desligadas.');
   if (out.asaas.chave && !out.asaas.webhook_token) al('erro', 'Falta ASAAS_WEBHOOK_TOKEN: os avisos de pagamento do Asaas são recusados (nada é liberado sozinho).');
   try {
@@ -6580,6 +6581,16 @@ app.get('/admin/saude', adminAuth, async (req, res) => {
   try {
     out.loja = (await db.query(`SELECT COUNT(*) FILTER (WHERE status='pendente' AND created_at < NOW() - INTERVAL '1 day')::int AS pendentes_velhos,
       COUNT(*) FILTER (WHERE status='pago' AND pago_em > NOW() - INTERVAL '24 hours')::int AS pagos_24h FROM loja_pedidos`)).rows[0];
+  } catch (e) {}
+  try {   // 03/10j: backup do servidor
+    const bl = bkLista(), bx = await cfgLer('backup_baixado', null), bu = await cfgLer('backup_ultimo', null);
+    out.backup = { ultimo: bl[0] || null, total: bl.length, baixado: bx, falhou: bu && bu.ok === false ? bu.erro : null, no_volume: !BK_DIR.startsWith(require('os').tmpdir()) };
+    if (process.env.BACKUP_DESLIGADO !== '1') {
+      if (out.backup.falhou) al('erro', 'O último backup do banco falhou: ' + out.backup.falhou);
+      else if (!bl.length || Date.now() - new Date(bl[0].em).getTime() > 36 * 3600000) al('aviso', bl.length ? 'Backup do banco atrasado (mais de 36 h).' : 'Ainda não há backup do banco: clique em "Fazer backup agora".');
+      if (!out.backup.no_volume) al('aviso', 'Backups numa pasta temporária: configure BACKUP_DIR (ou GRAVACOES_TESTE_DIR) num Volume.');
+      if (bl.length && (!bx || Date.now() - new Date(bx.em).getTime() > 8 * 86400000)) al('aviso', 'Baixe uma cópia do backup para fora do Railway (mais de 8 dias sem cópia).');
+    }
   } catch (e) {}
   try {
     out.relatos = (await db.query(`SELECT * FROM suporte_relatos WHERE status='aberto' ORDER BY id DESC LIMIT 50`)).rows;
@@ -6701,6 +6712,14 @@ async function vigiaRodar() {
     // 5) disco das gravações e memória do servidor
     try { const sf = require('fs').statfsSync(GV_DIR), livre = sf.bavail * sf.bsize / 1073741824;
       if (livre < 2) await abre(`disco:${iso}`, 'disco', 'erro', null, `Pouco espaço para gravações: ${livre.toFixed(1)} GB livres`, 'Aumente o Volume no Railway ou apague gravações antigas.'); } catch (e) {}
+    // 03/10j: backup do servidor atrasado (amarelo) ou falhando (vermelho); cópia fora do Railway há mais de 8 dias (amarelo)
+    if (process.env.BACKUP_DESLIGADO !== '1') {
+      const bu = await cfgLer('backup_ultimo', null), bl = bkLista()[0];
+      if (bu && bu.ok === false) await abre(`backup_falhou:${iso}`, 'backup', 'erro', null, 'O backup do banco falhou', 'Motivo: ' + _esc(bu.erro || '?') + '. Abra a Saúde do sistema e clique em "Fazer backup agora".');
+      else if (bl && Date.now() - new Date(bl.em).getTime() > 36 * 3600000) await abre(`backup_atrasado:${iso}`, 'backup', 'aviso', null, 'Backup do banco atrasado (mais de 36 h)', '');
+      const bx = await cfgLer('backup_baixado', null);
+      if (bl && (!bx || Date.now() - new Date(bx.em).getTime() > 8 * 86400000)) await abre(`backup_baixar:${iso.slice(0, 7)}-${Math.floor(new Date().getDate() / 8)}`, 'backup_baixar', 'aviso', null, 'Baixe uma cópia do backup (mais de 8 dias sem cópia fora do Railway)', '');
+    }
     const rss = process.memoryUsage().rss / 1048576;
     if (rss > parseInt(process.env.ALERTA_MEMORIA_MB || '1536', 10)) await abre(`memoria:${new Date().toISOString().slice(0, 10)}:${Math.floor(new Date().getUTCHours() / 6)}`, 'memoria', 'aviso', null, `Servidor usando ${Math.round(rss)} MB de memória`, 'Se continuar subindo, reinicie o serviço no Railway e me avise.');
     _vigiaUltima = new Date().toISOString();
@@ -6709,6 +6728,81 @@ async function vigiaRodar() {
   return out;
 }
 setInterval(() => { vigiaRodar().catch(() => {}); }, VIGIA_SEG * 1000);
+
+// ══════════════════════════════════════════════════════════════
+// 03/10j — BACKUP DO BANCO FEITO PELO PRÓPRIO SERVIDOR (plano B,
+// até contratar o Railway Pro). Toda madrugada (2h–6h, horário de
+// Brasília) salva uma cópia completa de todas as tabelas, compactada
+// (.json.gz), no volume — BACKUP_DIR ou a pasta ao lado das gravações.
+// Guarda as 7 últimas. O super admin baixa pela Saúde do sistema
+// e guarda fora do Railway. Restaurar: ferramentas/restaurar-backup.js
+// ══════════════════════════════════════════════════════════════
+const BK_DIR = process.env.BACKUP_DIR || (process.env.GRAVACOES_TESTE_DIR ? path.join(path.dirname(process.env.GRAVACOES_TESTE_DIR), 'backups') : path.join(require('os').tmpdir(), 'prorider-backups'));
+const BK_GUARDAR = Math.max(2, parseInt(process.env.BACKUP_GUARDAR || '7', 10) || 7);
+try { require('fs').mkdirSync(BK_DIR, { recursive: true }); } catch (e) {}
+let _bkRodando = false;
+function bkLista() {
+  const fs = require('fs');
+  try { return fs.readdirSync(BK_DIR).filter(f => /^prorider_\d{4}-\d\d-\d\d_\d{4}\.json\.gz$/.test(f)).sort().reverse()
+    .map(f => { const st = fs.statSync(path.join(BK_DIR, f)); return { arquivo: f, bytes: st.size, em: st.mtime.toISOString() }; }); } catch (e) { return []; }
+}
+async function bkFazer(motivo) {
+  if (_bkRodando || !db) return { ok: false, erro: 'já tem um backup rodando' };
+  _bkRodando = true; const t0 = Date.now(), fs = require('fs'), zlib = require('zlib');
+  const { d } = _hojeBR(), p2 = n => String(n).padStart(2, '0');
+  const nome = `prorider_${d.getFullYear()}-${p2(d.getMonth() + 1)}-${p2(d.getDate())}_${p2(d.getHours())}${p2(d.getMinutes())}.json.gz`, tmp = path.join(BK_DIR, nome + '.parcial');
+  const cli = await db.connect();
+  try {
+    const gz = zlib.createGzip({ level: 6 }), out = fs.createWriteStream(tmp); gz.pipe(out);
+    const escreve = l => new Promise(ok => { if (gz.write(l + '\n')) ok(); else gz.once('drain', ok); });
+    await cli.query('BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY');   // uma fotografia só, mesmo com o sistema em uso
+    const tabs = (await cli.query(`SELECT tablename FROM pg_tables WHERE schemaname='public' ORDER BY tablename`)).rows.map(x => x.tablename);
+    await escreve(JSON.stringify({ prorider_backup: 1, versao: SERVIDOR_VERSAO, quando: new Date().toISOString(), motivo, tabelas: tabs }));
+    const cont = {};
+    for (const t of tabs) {
+      cont[t] = 0; const q = '"' + t.replace(/"/g, '""') + '"';
+      await cli.query(`DECLARE bk CURSOR FOR SELECT row_to_json(x) AS j FROM ${q} x`);
+      for (;;) { const r = await cli.query('FETCH 1000 FROM bk'); if (!r.rows.length) break; cont[t] += r.rows.length; await escreve(JSON.stringify({ t, rows: r.rows.map(x => x.j) })); }
+      await cli.query('CLOSE bk');
+    }
+    await cli.query('COMMIT');
+    await escreve(JSON.stringify({ fim: true, contagem: cont }));
+    await new Promise((ok, erro) => { out.on('finish', ok); out.on('error', erro); gz.end(); });
+    fs.renameSync(tmp, path.join(BK_DIR, nome));
+    bkLista().slice(BK_GUARDAR).forEach(b => { try { fs.unlinkSync(path.join(BK_DIR, b.arquivo)); } catch (e) {} });
+    const tam = fs.statSync(path.join(BK_DIR, nome)).size;
+    log(`[Backup] ${nome} pronto: ${tabs.length} tabelas, ${Object.values(cont).reduce((a, b) => a + b, 0)} linhas, ${Math.round(tam / 1048576 * 10) / 10} MB em ${Math.round((Date.now() - t0) / 1000)} s (${motivo})`);
+    await cfgGravar('backup_ultimo', { arquivo: nome, em: new Date().toISOString(), bytes: tam, ok: true }).catch(() => {});
+    await vigiaFechar('backup', null, 'Backup do banco em dia').catch(() => {});
+    return { ok: true, arquivo: nome, bytes: tam, contagem: cont };
+  } catch (e) {
+    try { await cli.query('ROLLBACK'); } catch (x) {}
+    try { require('fs').unlinkSync(tmp); } catch (x) {}
+    log('[Backup] ERRO: ' + e.message);
+    await cfgGravar('backup_ultimo', { em: new Date().toISOString(), ok: false, erro: e.message }).catch(() => {});
+    return { ok: false, erro: e.message };
+  } finally { cli.release(); _bkRodando = false; }
+}
+// de 10 em 10 min: faz o backup da madrugada; se o servidor ficou desligado, faz assim que der
+setInterval(() => {
+  if (!db || !_evPronto || process.env.BACKUP_DESLIGADO === '1') return;
+  const ult = bkLista()[0], idade = ult ? Date.now() - new Date(ult.em).getTime() : Infinity, h = _hojeBR().d.getHours();
+  if ((idade > 20 * 3600000 && h >= 2 && h < 6) || idade > 30 * 3600000) bkFazer('automático').catch(() => {});
+}, 10 * 60000);
+app.get('/admin/backup', adminAuth, async (req, res) => {
+  const fs = require('fs'), os = require('os'); let livre = null; try { const sf = fs.statfsSync(BK_DIR); livre = Math.round(sf.bavail * sf.bsize / 1073741824 * 10) / 10; } catch (e) {}
+  res.json({ pasta: BK_DIR, no_volume: !BK_DIR.startsWith(os.tmpdir()), guardar: BK_GUARDAR, livre_gb: livre, rodando: _bkRodando, lista: bkLista(),
+    ultimo: await cfgLer('backup_ultimo', null), baixado: await cfgLer('backup_baixado', null) });
+});
+app.post('/admin/backup/agora', adminAuth, async (req, res) => { log(`[Backup] pedido por ${req.user.email}`); res.json(await bkFazer('pedido por ' + req.user.email)); });
+app.get('/admin/backup/baixar/:arquivo', adminAuth, async (req, res) => {
+  const f = String(req.params.arquivo);
+  if (!/^prorider_\d{4}-\d\d-\d\d_\d{4}\.json\.gz$/.test(f) || !require('fs').existsSync(path.join(BK_DIR, f))) return res.status(404).json({ error: 'Backup não encontrado' });
+  await cfgGravar('backup_baixado', { arquivo: f, em: new Date().toISOString(), por: req.user.email }).catch(() => {});
+  log(`[Backup] ${f} baixado por ${req.user.email}`);
+  await vigiaFechar('backup_baixar', null, 'Cópia do backup baixada').catch(() => {});
+  res.download(path.join(BK_DIR, f), f);
+});
 app.get('/admin/alertas', adminAuth, async (req, res) => {
   try {
     const lista = (await db.query(`SELECT a.*, COALESCE(l.nome_fantasia, l.nome) AS academia FROM sistema_alertas a LEFT JOIN licencas l ON l.codigo=a.licenca
@@ -7412,6 +7506,29 @@ function asaasTokenOk(req) {
   const a = Buffer.from(String(req.headers['asaas-access-token'] || '')), b = Buffer.from(k);
   return a.length === b.length && crypto.timingSafeEqual(a, b);
 }
+// 03/10k: registrar / desfazer um pagamento de licença (usado pelo webhook E pela conferência diária)
+const ASAAS_PAGO_ST = ['CONFIRMED', 'RECEIVED', 'RECEIVED_IN_CASH'];
+const ASAAS_DESFEITO_EV = ['PAYMENT_RECEIVED_IN_CASH_UNDONE', 'PAYMENT_REFUNDED', 'PAYMENT_DELETED',
+  'PAYMENT_CHARGEBACK_REQUESTED', 'PAYMENT_CHARGEBACK_DISPUTE', 'PAYMENT_AWAITING_CHARGEBACK_REVERSAL', 'PAYMENT_REFUND_IN_PROGRESS'];
+const ASAAS_DESFEITO_ST = ['REFUNDED', 'REFUND_IN_PROGRESS', 'CHARGEBACK_REQUESTED', 'CHARGEBACK_DISPUTE', 'AWAITING_CHARGEBACK_REVERSAL'];
+async function asaasPagoRegistrar(l, p, via) {
+  const cod = l.codigo, venc = isoDia(p.dueDate) || proxVenc(l);
+  const metodo = p.status === 'RECEIVED_IN_CASH' ? 'Asaas — marcado como recebido em dinheiro' : ({ CREDIT_CARD: 'Cartão (Asaas)', PIX: 'PIX (Asaas)', BOLETO: 'Boleto (Asaas)' }[p.billingType] || 'Asaas');
+  const dataPg = isoDia(p.clientPaymentDate || p.paymentDate || p.confirmedDate) || dataSP();
+  const cobre = maisMes(venc);
+  await db.query(`INSERT INTO pagamentos (license_id, valor, data_pgto, referencia, metodo, status, origem, asaas_id, venc_ref, cobre_ate, registrado_por, obs)
+    VALUES ($1,$2,$3,$4,$5,'confirmado','asaas',$6,$7,$8,'asaas',$9)
+    ON CONFLICT (asaas_id) DO UPDATE SET status='confirmado', license_id=EXCLUDED.license_id, valor=EXCLUDED.valor, data_pgto=EXCLUDED.data_pgto, metodo=EXCLUDED.metodo, venc_ref=EXCLUDED.venc_ref, cobre_ate=EXCLUDED.cobre_ate`,
+    [cod, Number(p.value) || 0, dataPg, 'Vencimento ' + venc.split('-').reverse().join('/'), metodo, p.id, venc, cobre, via || null]);
+  await db.query("UPDATE licencas SET asaas_aviso=NULL, status=CASE WHEN status='suspensa' THEN 'ativa' ELSE status END WHERE codigo=$1", [cod]);
+  await pgRecalc(cod);
+  log(`[Asaas] ${cod} pago (${p.id}, ${metodo}) cobre ${venc} → ${cobre}${via ? ' · ' + via : ''}`);
+}
+async function asaasPagoDesfazer(cod, asaasId, motivo) {
+  const u = await db.query("UPDATE pagamentos SET status='estornado', obs=COALESCE(obs||' · ','')||$2 WHERE asaas_id=$1 AND status='confirmado' RETURNING venc_ref", [asaasId, motivo]);
+  if (u.rows.length) { await pgRecalc(cod, isoDia(u.rows[0].venc_ref)); log(`[Asaas] ${cod} pagamento ${asaasId} desfeito (${motivo})`); }
+  return u.rows.length > 0;
+}
 app.post('/webhook/asaas', express.json(), async (req, res) => {
   if (!asaasTokenOk(req)) { _webhookRecusadoEm = Date.now(); log('[Asaas webhook] recusado: token ausente ou errado' + (process.env.ASAAS_WEBHOOK_TOKEN ? '' : ' (falta ASAAS_WEBHOOK_TOKEN no Railway)')); return res.status(401).json({ error: 'Token inválido' }); }
   if (!db) return res.status(503).json({ error: 'Banco indisponível' });
@@ -7429,31 +7546,95 @@ app.post('/webhook/asaas', express.json(), async (req, res) => {
     if (!l && p.customer) l = (await db.query('SELECT * FROM licencas WHERE asaas_customer=$1 ORDER BY id LIMIT 1', [p.customer])).rows[0];
     if (!l || !p.id) return res.json({ ok: true, ignorado: 'licença não encontrada' });
     const cod = l.codigo, venc = isoDia(p.dueDate) || proxVenc(l);
-    const PAGO = ['PAYMENT_CONFIRMED', 'PAYMENT_RECEIVED'], DESFEITO = ['PAYMENT_RECEIVED_IN_CASH_UNDONE', 'PAYMENT_REFUNDED', 'PAYMENT_DELETED',
-      'PAYMENT_CHARGEBACK_REQUESTED', 'PAYMENT_CHARGEBACK_DISPUTE', 'PAYMENT_AWAITING_CHARGEBACK_REVERSAL', 'PAYMENT_REFUND_IN_PROGRESS'];
-    const pagoAgora = PAGO.includes(ev.event) || (ev.event === 'PAYMENT_RESTORED' && ['CONFIRMED', 'RECEIVED', 'RECEIVED_IN_CASH'].includes(p.status));
-    if (pagoAgora) {
-      const metodo = p.status === 'RECEIVED_IN_CASH' ? 'Asaas — marcado como recebido em dinheiro' : ({ CREDIT_CARD: 'Cartão (Asaas)', PIX: 'PIX (Asaas)', BOLETO: 'Boleto (Asaas)' }[p.billingType] || 'Asaas');
-      const dataPg = isoDia(p.clientPaymentDate || p.paymentDate || p.confirmedDate) || dataSP();
-      const cobre = maisMes(venc);
-      await db.query(`INSERT INTO pagamentos (license_id, valor, data_pgto, referencia, metodo, status, origem, asaas_id, venc_ref, cobre_ate, registrado_por)
-        VALUES ($1,$2,$3,$4,$5,'confirmado','asaas',$6,$7,$8,'asaas')
-        ON CONFLICT (asaas_id) DO UPDATE SET status='confirmado', license_id=EXCLUDED.license_id, valor=EXCLUDED.valor, data_pgto=EXCLUDED.data_pgto, metodo=EXCLUDED.metodo, venc_ref=EXCLUDED.venc_ref, cobre_ate=EXCLUDED.cobre_ate`,
-        [cod, Number(p.value) || 0, dataPg, 'Vencimento ' + venc.split('-').reverse().join('/'), metodo, p.id, venc, cobre]);
-      await db.query("UPDATE licencas SET asaas_aviso=NULL, status=CASE WHEN status='suspensa' THEN 'ativa' ELSE status END WHERE codigo=$1", [cod]);
-      await pgRecalc(cod);
-      log(`[Asaas] ${cod} pago (${p.id}, ${metodo}) cobre ${venc} → ${cobre}`);
-    } else if (DESFEITO.includes(ev.event)) {
-      const u = await db.query("UPDATE pagamentos SET status='estornado', obs=COALESCE(obs||' · ','')||$2 WHERE asaas_id=$1 AND status='confirmado' RETURNING venc_ref", [p.id, ev.event]);
-      if (u.rows.length) { await pgRecalc(cod, isoDia(u.rows[0].venc_ref)); log(`[Asaas] ${cod} pagamento ${p.id} desfeito (${ev.event})`); }
-    } else if (ev.event === 'PAYMENT_CREDIT_CARD_CAPTURE_REFUSED' || ev.event === 'PAYMENT_REPROVED_BY_RISK_ANALYSIS') {
+    const pagoAgora = ['PAYMENT_CONFIRMED', 'PAYMENT_RECEIVED'].includes(ev.event) || (ev.event === 'PAYMENT_RESTORED' && ASAAS_PAGO_ST.includes(p.status));
+    if (pagoAgora) await asaasPagoRegistrar(l, p);
+    else if (ASAAS_DESFEITO_EV.includes(ev.event)) await asaasPagoDesfazer(cod, p.id, ev.event);
+    else if (ev.event === 'PAYMENT_CREDIT_CARD_CAPTURE_REFUSED' || ev.event === 'PAYMENT_REPROVED_BY_RISK_ANALYSIS') {
       await db.query('UPDATE licencas SET asaas_aviso=$1 WHERE codigo=$2', ['O cartão foi recusado na fatura de ' + venc.split('-').reverse().join('/') + '. Pague de novo com outro cartão.', cod]);
       log(`[Asaas] ${cod} cartão recusado (${p.id})`);
-    } else {
-      await pgRecalc(cod);   // OVERDUE, UPDATED, CREATED…: só recalcula a situação
-    }
+    } else await pgRecalc(cod);   // OVERDUE, UPDATED, CREATED…: só recalcula a situação
     res.json({ ok: true });
   } catch (e) { log(`[Asaas webhook] erro: ${e.message}`); res.status(500).json({ error: 'Erro interno' }); }
+});
+
+// ══════════════════════════════════════════════════════════════
+// 03/10k — CONFERÊNCIA DIÁRIA COM O ASAAS. Se um aviso (webhook) do
+// Asaas não chegou, o pagamento não ficava registrado aqui e a TV podia
+// travar mesmo com a academia em dia. Uma vez por dia o servidor
+// pergunta ao Asaas as cobranças de cada licença (e os pedidos da loja
+// em aberto) e registra o que estiver pago — ou desfaz o que foi
+// estornado. Se achou alguma coisa, abre um aviso amarelo na Saúde:
+// é sinal de que o webhook está falhando.
+// ══════════════════════════════════════════════════════════════
+let _concRodando = false;
+async function asaasListar(qs) {
+  const out = [];
+  for (let off = 0, pg = 0; pg < 10; pg++, off += 100) {
+    const d = await asaasApi('GET', '/payments?' + qs + '&limit=100&offset=' + off);
+    out.push(...(d.data || [])); if (!d.hasMore) break;
+  }
+  return out;
+}
+async function asaasConciliar(motivo) {
+  if (!ASAAS_API_KEY || !db) return { ok: false, erro: 'Asaas não ligado' };
+  if (_concRodando) return { ok: false, erro: 'já está conferindo' };
+  _concRodando = true; const r = { ok: true, em: new Date().toISOString(), motivo, licencas: 0, cobrancas: 0, registrados: [], desfeitos: [], loja: [], erros: [] };
+  try {
+    const ls = (await db.query(`SELECT * FROM licencas WHERE asaas_sub IS NOT NULL OR asaas_customer IS NOT NULL ORDER BY id`)).rows;
+    for (const l of ls) {
+      try {
+        const m = new Map();
+        for (const p of await asaasListar('externalReference=' + encodeURIComponent(l.codigo))) m.set(p.id, p);
+        if (l.asaas_sub) for (const p of await asaasListar('subscription=' + encodeURIComponent(l.asaas_sub))) m.set(p.id, p);
+        r.licencas++; r.cobrancas += m.size;
+        const loc = new Map((await db.query('SELECT asaas_id, status FROM pagamentos WHERE asaas_id = ANY($1)', [[...m.keys()]])).rows.map(x => [x.asaas_id, x.status]));
+        for (const p of m.values()) {
+          if (p.deleted || String(p.externalReference || '').startsWith('loja:')) continue;
+          const st = loc.get(p.id), nome = l.nome_fantasia || l.nome, venc = isoDia(p.dueDate);
+          if (ASAAS_PAGO_ST.includes(p.status) && st !== 'confirmado' && st !== 'desfeito') {   // 'desfeito' = o admin desfez à mão: respeita
+            await asaasPagoRegistrar(l, p, 'registrado pela conferência diária (o aviso do Asaas não tinha chegado)');
+            r.registrados.push({ licenca: l.codigo, academia: nome, asaas_id: p.id, valor: Number(p.value) || 0, vencimento: venc });
+          } else if (ASAAS_DESFEITO_ST.includes(p.status) && st === 'confirmado') {
+            await asaasPagoDesfazer(l.codigo, p.id, p.status + ' (conferência diária)');
+            r.desfeitos.push({ licenca: l.codigo, academia: nome, asaas_id: p.id, status: p.status, vencimento: venc });
+          }
+        }
+      } catch (e) { r.erros.push(l.codigo + ': ' + e.message); }
+    }
+    // loja: pedidos em aberto há até 45 dias
+    const peds = (await db.query(`SELECT id, asaas_id FROM loja_pedidos WHERE status='pendente' AND asaas_id IS NOT NULL AND created_at > NOW() - INTERVAL '45 days'`).catch(() => ({ rows: [] }))).rows;
+    for (const ped of peds) {
+      try {
+        const p = await asaasApi('GET', '/payments/' + encodeURIComponent(ped.asaas_id));
+        if (!p.deleted && ASAAS_PAGO_ST.includes(p.status)) { await lojaWebhook({ event: 'PAYMENT_RECEIVED' }, Object.assign({}, p, { externalReference: 'loja:' + ped.id })); r.loja.push(ped.id); }
+      } catch (e) { r.erros.push('loja ' + ped.id + ': ' + e.message); }
+    }
+    if (r.erros.length) r.ok = false;
+    const n = r.registrados.length + r.desfeitos.length + r.loja.length;
+    log(`[Asaas] conferência (${motivo}): ${r.licencas} licença(s), ${r.cobrancas} cobrança(s), ${r.registrados.length} registrado(s), ${r.desfeitos.length} desfeito(s), ${r.loja.length} pedido(s) da loja` + (r.erros.length ? `, ${r.erros.length} falha(s)` : ''));
+    const { iso } = _hojeBR();
+    if (n && _evPronto) await vigiaAbrir(`asaas_conferencia:${iso}`, 'asaas_conferencia', 'aviso', null, `Conferência com o Asaas: ${n} pagamento(s) não tinham chegado pelo aviso automático`,
+      'Já foram registrados e as licenças estão certas. Se aparecer de novo, o webhook está falhando: confira no Asaas (Integrações → Webhooks → Logs) e o ASAAS_WEBHOOK_TOKEN no Railway.').catch(() => {});
+    if (r.erros.length && _evPronto) await vigiaAbrir(`asaas_conferencia_falhou:${iso}`, 'asaas_conferencia', 'aviso', null, 'A conferência diária com o Asaas não conseguiu ler tudo', _esc(r.erros.slice(0, 3).join(' · '))).catch(() => {});
+  } catch (e) { r.ok = false; r.erros.push(e.message); log('[Asaas] conferência falhou: ' + e.message); }
+  finally { _concRodando = false; }
+  await cfgGravar('asaas_conferencia', r).catch(() => {});
+  return r;
+}
+// de 30 em 30 min: confere uma vez por dia (de dia, longe do backup da madrugada); se o servidor ficou desligado, confere assim que der
+async function asaasConciliarTalvez() {
+  if (!ASAAS_API_KEY || !db || !_evPronto || process.env.ASAAS_CONFERIR_DESLIGADO === '1') return;
+  const u = await cfgLer('asaas_conferencia', null).catch(() => null), idade = u && u.em ? Date.now() - new Date(u.em).getTime() : Infinity, h = _hojeBR().d.getHours();
+  if ((idade > 20 * 3600000 && h >= 7 && h < 22) || idade > 30 * 3600000) await asaasConciliar('automática');
+}
+setInterval(() => { asaasConciliarTalvez().catch(() => {}); }, 30 * 60000);
+setTimeout(() => { asaasConciliarTalvez().catch(() => {}); }, 3 * 60000);
+app.get('/admin/asaas/conferencia', adminAuth, async (req, res) => {
+  res.json({ ligado: !!ASAAS_API_KEY && process.env.ASAAS_CONFERIR_DESLIGADO !== '1', rodando: _concRodando, ultima: await cfgLer('asaas_conferencia', null).catch(() => null) });
+});
+app.post('/admin/asaas/conferir', adminAuth, async (req, res) => {
+  log(`[Asaas] conferência pedida por ${req.user.email}`);
+  res.json(await asaasConciliar('pedida por ' + req.user.email));
 });
 
 app.post('/admin/asaas/assinatura', adminAuth, async (req, res) => {

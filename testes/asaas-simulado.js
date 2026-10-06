@@ -17,6 +17,7 @@ http.createServer((q,r)=>{ let b=''; q.on('data',c=>b+=c); q.on('end',()=>{ cons
     st.subs[id]={...j,id,nextDueDate:mm(j.nextDueDate)}; o={id}; }
   else if((m=u.match(/^\/subscriptions\/(\w+)$/))){ const s=st.subs[m[1]]||(st.subs[m[1]]={id:m[1]}); if(q.method==='DELETE'){ s.deleted=true; o={deleted:true,id:m[1]}; } else { Object.assign(s,j); if(j.updatePendingPayments&&j.value) Object.values(st.pays).filter(p=>p.subscription===m[1]&&p.status==='PENDING').forEach(p=>p.value=j.value); o=s; } }
   else if(q.method==='POST'&&u==='/payments'){ const pid='pay_'+(++n); st.pays[pid]={id:pid,status:'PENDING',invoiceUrl:'https://www.asaas.com/i/'+pid,...j}; o=st.pays[pid]; }
+  else if((m=u.match(/^\/payments\/(\w+)$/))&&q.method==='GET'){ if(st.pays[m[1]]) o=st.pays[m[1]]; else { code=404; o={errors:[{description:'cobrança não encontrada'}]}; } }   // 03/10k
   else if((m=u.match(/^\/payments\/(\w+)$/))&&q.method==='PUT'){ const p=st.pays[m[1]]; Object.assign(p,{value:j.value,dueDate:j.dueDate}); o=p; }
   else if(u.startsWith('/payments')){ const qs=new URLSearchParams(u.split('?')[1]); o={data:Object.values(st.pays).filter(p=>(qs.get('subscription')?p.subscription===qs.get('subscription'):true)&&(qs.get('externalReference')?p.externalReference===qs.get('externalReference'):true)).reverse()}; }
   send(); }); }).listen(3014);

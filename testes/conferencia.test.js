@@ -1,0 +1,45 @@
+// 03/10k — conferência diária com o Asaas: registra pagamento cujo aviso (webhook) não chegou, desfaz estorno, loja
+const B='http://127.0.0.1:3999', M='http://127.0.0.1:3014';
+async function j(m,p,body,tok){const r=await fetch((p.startsWith('http')?'':B)+p,{method:m,headers:{'Content-Type':'application/json',...(tok?{Authorization:'Bearer '+tok}:{})},body:body?JSON.stringify(body):undefined});let d;try{d=await r.json()}catch(e){d=null}return {s:r.status,d};}
+const { sql, pool, ADMIN, ADMIN_SENHA } = require('./comum');
+let f=0; const ok=(c,t,x)=>{ console.log((c?'  OK ':'FALHA ')+t+(x!==undefined?'  → '+JSON.stringify(x):'')); if(!c) f++; };
+const minhas=r=>((r&&r.registrados)||[]).filter(x=>x.licenca==='CONF0001');
+(async()=>{
+  const SA=(await j('POST','/user/login',{email:ADMIN,password:ADMIN_SENHA})).d.token;
+  await sql(`DELETE FROM pagamentos WHERE license_id='CONF0001'`); await sql(`DELETE FROM sistema_alertas WHERE tipo='asaas_conferencia'`);
+  await sql(`INSERT INTO licencas (codigo, nome, status, max_bikes, valor_mensal, asaas_customer, asaas_sub, vencimento) VALUES ('CONF0001','Academia Conferência','ativa',10,5,'cus_conf','sub_conf','2026-10-03')
+    ON CONFLICT (codigo) DO UPDATE SET asaas_sub='sub_conf', asaas_customer='cus_conf', pagamento_ok_ate=NULL, vencimento='2026-10-03'`);
+  console.log('1) Pago no Asaas, mas o aviso não chegou');
+  const pago=(await j('POST',M+'/_add',{subscription:'sub_conf',customer:'cus_conf',externalReference:'CONF0001',value:5,dueDate:'2026-10-03',status:'CONFIRMED',paymentDate:'2026-10-03'})).d;
+  await j('POST',M+'/_add',{subscription:'sub_conf',customer:'cus_conf',externalReference:'CONF0001',value:5,dueDate:'2026-11-03',status:'PENDING'});
+  await j('POST',M+'/_add',{subscription:'sub_conf',customer:'cus_conf',externalReference:'CONF0001',value:5,dueDate:'2026-09-03',status:'CONFIRMED',deleted:true});
+  ok((await j('POST','/admin/asaas/conferir')).s===401,'só o admin pode pedir a conferência');
+  let r=(await j('POST','/admin/asaas/conferir',null,SA)).d;
+  ok(r.ok&&minhas(r).length===1&&minhas(r)[0].asaas_id===pago.id,'achou o pagamento que faltava (ignora fatura em aberto e apagada)',minhas(r));
+  let pg=await sql(`SELECT status, venc_ref, cobre_ate, origem FROM pagamentos WHERE asaas_id='${pago.id}'`);
+  ok(pg==='confirmado|2026-10-03|2026-11-03|asaas','registrado no histórico como pagamento do Asaas',pg);
+  ok((await sql(`SELECT pagamento_ok_ate FROM licencas WHERE codigo='CONF0001'`))==='2026-11-03','licença: pago até 03/11 (a TV não trava)');
+  r=(await j('POST','/admin/asaas/conferir',null,SA)).d;
+  ok(r.ok&&minhas(r).length===0&&(await sql(`SELECT COUNT(*) FROM pagamentos WHERE license_id='CONF0001'`))==='1','rodar de novo não duplica');
+  const av=(await j('GET','/admin/alertas',null,SA)).d.lista.find(a=>a.tipo==='asaas_conferencia');
+  ok(av&&av.nivel==='aviso'&&av.email_ok===null&&/1 pagamento/.test(av.txt),'aviso amarelo na Saúde (sinal de webhook falhando), sem e-mail',av&&av.txt);
+  console.log('2) Estornado no Asaas, aviso não chegou');
+  await j('POST',M+'/_pay/'+pago.id,{status:'REFUNDED'});
+  r=(await j('POST','/admin/asaas/conferir',null,SA)).d;
+  ok(r.desfeitos.some(x=>x.asaas_id===pago.id),'achou o estorno');
+  ok((await sql(`SELECT status FROM pagamentos WHERE asaas_id='${pago.id}'`))==='estornado'&&(await sql(`SELECT COALESCE(pagamento_ok_ate::text,'') FROM licencas WHERE codigo='CONF0001'`))==='','pagamento estornado e licença volta a dever');
+  console.log('3) Loja: pedido pago sem aviso');
+  const uid=(await sql(`INSERT INTO users (email,name,password_hash,role) VALUES ('conf.loja@x.com','Aluno Conf','x','aluno') ON CONFLICT (email) DO UPDATE SET name=EXCLUDED.name RETURNING id`));
+  const pl=(await j('POST',M+'/_add',{value:19.9,status:'RECEIVED',billingType:'PIX'})).d;
+  const ped=await sql(`INSERT INTO loja_pedidos (user_id,tipo,ref_id,descricao,valor,creditos,asaas_id) VALUES (${uid},'pacote',0,'Pacote conf',19.9,3,'${pl.id}') RETURNING id`);
+  r=(await j('POST','/admin/asaas/conferir',null,SA)).d;
+  ok(r.loja.includes(+ped)&&(await sql(`SELECT status FROM loja_pedidos WHERE id=${ped}`))==='pago','pedido da loja marcado como pago');
+  console.log('4) Saúde');
+  const sd=(await j('GET','/admin/saude',null,SA)).d;
+  ok(sd.asaas.conferencia&&sd.asaas.conferencia.ok&&sd.asaas.conferencia.licencas>=1,'Saúde mostra a última conferência');
+  ok((await j('GET','/admin/asaas/conferencia',null,null)).s===401&&(await j('GET','/admin/asaas/conferencia',null,SA)).d.ultima,'situação da conferência só para o admin');
+  await sql(`DELETE FROM loja_pedidos WHERE id=${ped}`); await sql(`DELETE FROM users WHERE email='conf.loja@x.com'`);
+  await sql(`DELETE FROM pagamentos WHERE license_id='CONF0001'`); await sql(`DELETE FROM licencas WHERE codigo='CONF0001'`);
+  await pool.end();
+  console.log(f?`\n${f} FALHA(S)`:'\nconferência: tudo OK'); process.exit(f?1:0);
+})().catch(e=>{ console.error(e); process.exit(1); });

@@ -969,7 +969,7 @@ function lpLogoToque(){}
 setTimeout(lpStats, 300); setInterval(lpStats, 30000);
 
 var adminToken = localStorage.getItem('pr_admin_token') || '';
-try { if (typeof prErroConfig === 'function') prErroConfig(SERVER, 'admin', function () { return adminToken; }, 'Admin 03/10h'); } catch (e) {}   // 03/10f
+try { if (typeof prErroConfig === 'function') prErroConfig(SERVER, 'admin', function () { return adminToken; }, 'Admin 03/10k'); } catch (e) {}   // 03/10f
 var adminUser  = JSON.parse(localStorage.getItem('pr_admin_user') || 'null');
 var allLicencas = [];
 var allAlunos   = [];
@@ -1886,9 +1886,23 @@ async function loadSaude(){
     +card('Gravações', (d.gravacoes.arquivos||0)+' arquivos', !d.gravacoes.pasta_temporaria, (d.gravacoes.tamanho_mb||0)+' MB'+(d.gravacoes.livre_gb!=null?' · '+d.gravacoes.livre_gb+' GB livres':''))
     +card('Licenças', d.licencas.total||0, null, ['em_dia','a_vencer','vencido','suspenso'].filter(k=>sit[k]).map(k=>sit[k]+' '+k.replace('_',' ')).join(' · ')||'—')
     +card('Loja', (d.loja.pagos_24h||0)+' vendas (24 h)', null, (d.loja.pendentes_velhos||0)+' pagamento(s) pendente(s) há +1 dia')
+    +(d.backup?card('Backup do banco', d.backup.ultimo?sdQuando(d.backup.ultimo.em)+(sdQuando(d.backup.ultimo.em)==='agora'?'':' atrás'):'nenhum', !!(d.backup.ultimo&&Date.now()-new Date(d.backup.ultimo.em)<36*3600000&&!d.backup.falhou), (d.backup.total||0)+' guardado(s) · cópia baixada '+(d.backup.baixado?sdQuando(d.backup.baixado.em)+' atrás':'nunca')):'')
     +(()=>{ const t=d.telas_24h||{}, er=Object.values(t).reduce((a,x)=>a+(x.erro||0),0), nm={tv:'TV',app:'App',portal:'Portal',financeiro:'Financeiro',admin:'Admin',outro:'Outro'};
         return card('Telas (24 h)', er?er+' erro(s)':'sem erros', !er, Object.keys(t).map(k=>(nm[k]||k)+' '+((t[k].erro||0)+(t[k].aviso||0))).join(' · ')||'TV, app e Portal avisam sozinhos'); })()
     +'</div>';
+  // 03/10j — backup do banco (plano B até o Railway Pro)
+  h+='<div class="table-wrap" style="margin-bottom:16px" id="sdBackup"><div class="table-header"><h2>Backup do banco</h2></div><div style="padding:14px 18px;color:var(--muted)">Carregando…</div></div>';
+  setTimeout(bkCarregar,0);
+  // 03/10k — conferência diária com o Asaas (pega pagamento cujo aviso não chegou)
+  if(d.asaas&&d.asaas.chave){ const c=d.asaas.conferencia, it=c?[].concat(c.registrados||[],c.desfeitos||[]):[];
+    h+='<div class="table-wrap" style="margin-bottom:16px" id="sdConf"><div class="table-header" style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><h2>Conferência com o Asaas</h2><button class="btn btn-outline btn-sm" onclick="cfAgora(this)">Conferir agora</button></div>'
+      +'<div style="padding:10px 18px;font-size:12.5px;color:var(--muted);line-height:1.6">Uma vez por dia o servidor pergunta ao Asaas as cobranças de todas as licenças e registra o que estiver pago (ou desfaz o que foi estornado), mesmo se o aviso automático não chegou.<br>'
+      +(c?'Última: <b>'+sdData(c.em)+'</b> ('+sdEsc(c.motivo||'')+') · '+(c.licencas||0)+' licença(s), '+(c.cobrancas||0)+' cobrança(s) · '
+        +(it.length||(c.loja||[]).length?'<b style="color:#ffc27a">'+(c.registrados||[]).length+' registrado(s), '+(c.desfeitos||[]).length+' desfeito(s), '+(c.loja||[]).length+' pedido(s) da loja</b>':'<span style="color:#8fe06a">tudo batia ✓</span>')
+        +(c.erros&&c.erros.length?'<br><span style="color:#ff9a9a">⛔ '+sdEsc(c.erros.slice(0,3).join(' · '))+'</span>':'')
+        :'Ainda não rodou.')+'</div>'
+      +(it.length?'<table><thead><tr><th>Academia</th><th>Fatura</th><th>Vencimento</th><th>O que fez</th></tr></thead><tbody>'+it.map(x=>'<tr><td>'+sdEsc(x.academia||x.licenca)+'</td><td style="font-family:monospace;font-size:12px">'+sdEsc(x.asaas_id)+'</td><td>'+sdEsc((x.vencimento||'').split('-').reverse().join('/'))+'</td><td>'+(x.status?'desfeito ('+sdEsc(x.status)+')':'registrado R$ '+Number(x.valor||0).toFixed(2).replace('.',','))+'</td></tr>').join('')+'</tbody></table>':'')
+      +'</div>'; }
   // 03/10g — avisos automáticos (o servidor vigia a cada minuto e manda e-mail)
   if(av&&!av.error){ const ab=av.lista.filter(a=>!a.resolvido_em);
     h+='<div class="table-wrap" style="margin-bottom:16px"><div class="table-header" style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><h2>Avisos automáticos '+(ab.length?'<span style="color:#ff8a8a">· '+ab.length+' em aberto</span>':'')+'</h2>'
@@ -1978,6 +1992,29 @@ async function sdBuscar(){
       :'<tr><td style="white-space:nowrap;font-size:12px">'+sdBola(x.cor||'cinza')+' '+sdData(x.quando)+'<div style="font-family:monospace;color:var(--muted);margin-top:3px">'+sdEsc(x.via||x.ref||'')+'</div></td><td style="font-size:12px">'+sdEsc(x.origem||'')+'<div style="color:var(--muted)">'+sdEsc(x.academia||x.licenca||'—')+'</div></td>'
         +'<td style="font-size:13px;word-break:break-word">'+sdEsc(x.txt)+(x.vezes>1?' <span style="color:var(--muted)">('+x.vezes+' vezes)</span>':'')+(x.detalhe?'<details><summary style="cursor:pointer;color:var(--muted);font-size:11.5px">detalhes</summary><div style="font-family:monospace;font-size:11px;white-space:pre-wrap;color:var(--muted)">'+sdEsc(x.detalhe)+'</div></details>':'')+'</td>'
         +'<td>'+(x.licenca?'<button class="btn btn-outline btn-sm" onclick="sdLicAbrir(\''+sdEsc(x.licenca)+'\',\''+sdEsc(x.ref||'')+'\')">Abrir academia</button>':'')+'</td></tr>').join('')+'</tbody></table></div>';
+}
+// ═══ 03/10j — BACKUP DO BANCO ═══════════════════════════════════
+async function bkCarregar(){
+  const el=document.getElementById('sdBackup'); if(!el) return;
+  const d=await api('/admin/backup').catch(()=>null); if(!d||d.error){ el.querySelector('div:last-child').textContent='Não consegui ler os backups.'; return; }
+  const mb=b=>(b/1048576).toFixed(b<10485760?2:1)+' MB';
+  el.innerHTML='<div class="table-header" style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><h2>Backup do banco</h2><div style="display:flex;gap:8px"><button class="btn btn-outline btn-sm" onclick="bkAgora(this)"'+(d.rodando?' disabled':'')+'>'+(d.rodando?'Fazendo…':'Fazer backup agora')+'</button></div></div>'
+    +'<div style="padding:10px 18px;font-size:12.5px;color:var(--muted);line-height:1.6">O servidor faz uma cópia completa do banco <b>toda madrugada</b> e guarda as últimas '+d.guardar+'. '
+    +(d.no_volume?'Ficam no volume do servidor':'<span style="color:#ff9a9a">Estão numa pasta temporária (configure BACKUP_DIR num Volume)</span>')+(d.livre_gb!=null?' · '+d.livre_gb+' GB livres':'')+'.<br>'
+    +'<b style="color:#ffc27a">Uma vez por semana, clique em "Baixar" no mais novo e guarde no seu computador ou nuvem</b> — é a cópia fora do Railway. Última cópia baixada: '+(d.baixado?sdData(d.baixado.em)+' ('+sdEsc(d.baixado.arquivo)+')':'<b style="color:#ff9a9a">nunca</b>')+'.'
+    +(d.ultimo&&d.ultimo.ok===false?'<br><span style="color:#ff9a9a">⛔ O último backup falhou: '+sdEsc(d.ultimo.erro||'')+'</span>':'')+'</div>'
+    +'<table><thead><tr><th>Backup</th><th>Feito em</th><th>Tamanho</th><th></th></tr></thead><tbody>'
+    +(d.lista.length?d.lista.map((b,i)=>'<tr><td style="font-family:monospace;font-size:12.5px">'+sdEsc(b.arquivo)+(i===0?' <span style="color:#8fe06a;font-family:inherit">· mais novo</span>':'')+'</td><td style="font-size:12.5px">'+sdData(b.em)+'</td><td style="font-size:12.5px">'+mb(b.bytes)+'</td><td><button class="btn btn-'+(i===0?'primary':'outline')+' btn-sm" onclick="bkBaixar(\''+sdEsc(b.arquivo)+'\',this)">Baixar</button></td></tr>').join('')
+      :'<tr><td colspan="4" style="text-align:center;padding:20px;color:var(--muted)">Nenhum backup ainda. Clique em "Fazer backup agora".</td></tr>')+'</tbody></table>';
+}
+async function cfAgora(b){ b.disabled=true; b.textContent='Conferindo…'; const r=await api('/admin/asaas/conferir',{method:'POST'}).catch(()=>null); b.textContent=r&&r.ok?'Pronto ✓':'Falhou: '+((r&&(r.erros||[]).join(' · '))||(r&&r.erro)||'sem conexão'); setTimeout(loadSaude,1200); }   // 03/10k
+async function bkAgora(b){ b.disabled=true; b.textContent='Fazendo… (pode levar 1 min)'; const r=await api('/admin/backup/agora',{method:'POST'}).catch(()=>null); b.textContent=r&&r.ok?'Pronto ✓':'Falhou: '+((r&&r.erro)||'sem conexão'); setTimeout(()=>{ bkCarregar(); loadSaude(); },1200); }
+async function bkBaixar(arq,b){
+  const t=b.textContent; b.disabled=true; b.textContent='Baixando…';
+  try{ const r=await fetch(SERVER+'/admin/backup/baixar/'+encodeURIComponent(arq),{headers:{Authorization:'Bearer '+adminToken}}); if(!r.ok) throw new Error('erro '+r.status);
+    const bl=await r.blob(), a=document.createElement('a'); a.href=URL.createObjectURL(bl); a.download=arq; document.body.appendChild(a); a.click(); setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); },3000);
+    b.textContent='Baixado ✓'; setTimeout(()=>{ bkCarregar(); },1500);
+  }catch(e){ b.textContent='Falhou ('+e.message+')'; b.disabled=false; setTimeout(()=>{ b.textContent=t; },4000); }
 }
 async function avEmail(on){ await api('/admin/alertas/email',{method:'POST',body:JSON.stringify({ligado:on})}); loadSaude(); }
 async function avLigar(on){ await api('/admin/alertas/ligar',{method:'POST',body:JSON.stringify({ligado:on})}); loadSaude(); }
