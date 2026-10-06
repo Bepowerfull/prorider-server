@@ -969,7 +969,7 @@ function lpLogoToque(){}
 setTimeout(lpStats, 300); setInterval(lpStats, 30000);
 
 var adminToken = localStorage.getItem('pr_admin_token') || '';
-try { if (typeof prErroConfig === 'function') prErroConfig(SERVER, 'admin', function () { return adminToken; }, 'Admin 03/10k'); } catch (e) {}   // 03/10f
+try { if (typeof prErroConfig === 'function') prErroConfig(SERVER, 'admin', function () { return adminToken; }, 'Admin 03/10m'); } catch (e) {}   // 03/10f
 var adminUser  = JSON.parse(localStorage.getItem('pr_admin_user') || 'null');
 var allLicencas = [];
 var allAlunos   = [];
@@ -1910,7 +1910,7 @@ async function loadSaude(){
       +'<button class="btn btn-outline btn-sm" onclick="avRodar(this)">Verificar agora</button><button class="btn btn-outline btn-sm" onclick="avTeste(this)">Mandar e-mail de teste</button></div></div>'
       +'<div style="padding:10px 18px;font-size:12.5px;color:var(--muted)">O servidor confere tudo a cada '+(av.intervalo_s>=60?Math.round(av.intervalo_s/60)+' min':av.intervalo_s+' s')+'. Tudo aparece aqui; '+(av.email_vermelhos?'só os 🔴 (agir agora) também vão por e-mail para <b>'+sdEsc((av.destinos||[]).join(', ')||'ninguém')+'</b>':'nenhum vai por e-mail')+(av.email||!av.email_vermelhos?'':' <span style="color:#ff8a8a">(e-mail desligado no servidor)</span>')+'. Última verificação: '+(av.ultima?(sdQuando(av.ultima)==='agora'?'agora':sdQuando(av.ultima)+' atrás'):'ainda não')+'.<br>Avisa quando: a TV está desligada perto da aula da grade · a TV cai no meio da aula · muitos erros de uma vez · o Asaas está sendo recusado · pouco espaço para gravações · memória alta · banco fora do ar.</div>'
       +'<table><thead><tr><th>Quando</th><th>Aviso</th><th>Academia</th><th>E-mail</th><th>Situação</th></tr></thead><tbody>'
-      +(av.lista.length?av.lista.map(a=>'<tr><td style="white-space:nowrap;font-size:12px">'+new Date(a.criado_em).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})+'</td><td>'+(a.nivel==='erro'?'🔴 ':'🟠 ')+sdEsc(a.txt)+'</td><td style="font-size:12px">'+(a.licenca?'<a href="#" onclick="event.preventDefault();sdLicAbrir(\''+sdEsc(a.licenca)+'\',\'A-'+a.id.toString(36).toUpperCase()+'\')" style="color:#ffb45a">'+sdEsc(a.academia||a.licenca)+'</a>':'—')+'</td><td style="font-size:12px">'+(a.email_ok?'✓ enviado':a.email_ok===false?'<span style="color:#ffc27a" title="'+sdEsc(a.email_erro||'')+'">não saiu</span>':'<span style="color:var(--muted)">só no painel</span>')+'</td><td style="font-size:12px">'+(a.resolvido_em?'<span style="color:#8fe06a">✓ '+sdEsc(a.resolvido_txt||'resolvido')+'</span>':'<b style="color:#ff8a8a">em aberto</b>')+'</td></tr>').join('')
+      +(av.lista.length?av.lista.map(a=>'<tr><td style="white-space:nowrap;font-size:12px">'+new Date(a.criado_em).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})+'</td><td>'+(a.nivel==='erro'?'🔴 ':'🟠 ')+sdEsc(a.txt)+'</td><td style="font-size:12px">'+(a.licenca?'<a href="#" onclick="event.preventDefault();sdLicAbrir(\''+sdEsc(a.licenca)+'\',\'A-'+a.id.toString(36).toUpperCase()+'\')" style="color:#ffb45a">'+sdEsc(a.academia||a.licenca)+'</a>':'—')+'</td><td style="font-size:12px">'+(a.email_ok?'✓ enviado':a.email_ok===false?'<span style="color:#ffc27a" title="'+sdEsc(a.email_erro||'')+'">não saiu</span>':'<span style="color:var(--muted)">só no painel</span>')+'</td><td style="font-size:12px">'+(a.resolvido_em?'<span style="color:#8fe06a">✓ '+sdEsc(a.resolvido_txt||'resolvido')+'</span>':'<b style="color:#ff8a8a">em aberto</b> <button class="btn btn-outline btn-sm" style="margin-left:6px;padding:2px 8px" onclick="avResolver('+a.id+',this)" title="Já resolvi / não precisa">✓ Resolvido</button>')+'</td></tr>').join('')
         :'<tr><td colspan="5" style="text-align:center;padding:22px;color:var(--muted)">Nenhum aviso nos últimos 7 dias.</td></tr>')+'</tbody></table></div>'; }
   h+='<div class="table-wrap" style="margin-bottom:16px"><div class="table-header"><h2>Problemas reportados ('+d.relatos.length+')</h2></div><table><thead><tr><th>Quando</th><th>Quem</th><th>Onde</th><th>O que aconteceu</th><th></th></tr></thead><tbody>'
     +(d.relatos.length?d.relatos.map(r=>'<tr><td style="white-space:nowrap;font-size:12px">'+new Date(r.created_at).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})+'</td><td>'+sdEsc(r.nome||'—')+'<div style="font-size:11px;color:var(--muted)">'+sdEsc(r.email||'')+(r.license_id?' · '+sdEsc(r.license_id):'')+'</div></td><td style="font-size:12px">'+sdEsc(r.origem)+'<div style="font-size:11px;color:var(--muted)">'+sdEsc(r.tela)+' · '+sdEsc(r.versao)+'</div></td><td style="max-width:520px">'+sdEsc(r.texto)+'</td><td><button class="btn btn-outline btn-sm" onclick="sdResolver('+r.id+')">Resolvido</button></td></tr>').join('')
@@ -1930,7 +1930,7 @@ async function loadSaude(){
 }
 // ═══ 03/10h — SEMÁFORO, PAINEL DA ACADEMIA E LUPINHA ═══════════
 const SD_COR={vermelho:'#e5484d',amarelo:'#f5a524',verde:'#46a758',cinza:'#6b6b76'};
-const SD_COR_TXT={vermelho:'Agir agora',amarelo:'Olhar quando der',verde:'Tudo certo',cinza:'Sem TV instalada'};
+const SD_COR_TXT={vermelho:'Agir agora',amarelo:'Olhar quando der',verde:'Tudo certo',cinza:'Sem TV ou pausada'};
 const sdBola=c=>'<span style="display:inline-block;width:11px;height:11px;border-radius:50%;background:'+SD_COR[c]+';box-shadow:0 0 0 3px '+SD_COR[c]+'33;flex:none"></span>';
 const sdData=t=>t?new Date(t).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}):'—';
 async function sdSemaforo(){
@@ -1957,6 +1957,11 @@ async function sdLicAbrir(cod, destacar){
       +'<div style="font-size:13px;color:'+SD_COR[L.cor]+';margin-top:4px;font-weight:700">'+SD_COR_TXT[L.cor]+'</div></div>'
       +'<div style="display:flex;gap:8px"><button class="btn btn-outline btn-sm" onclick="impersonar(\''+sdEsc(L.codigo)+'\',\''+sdEsc(L.nome).replace(/'/g,'')+'\')">Entrar no Portal dela</button><button class="btn btn-outline btn-sm" onclick="sdLicFechar()">Fechar ✕</button></div></div>'
     +(L.motivos.length?'<div class="pr-warn" style="margin-bottom:12px;'+(L.cor==='vermelho'?'border-color:rgba(214,45,45,.5);background:rgba(214,45,45,.08);color:#ff9a9a':'')+'">'+L.motivos.map(sdEsc).join('<br>')+'</div>':'<div class="pr-warn" style="margin-bottom:12px;border-color:rgba(93,177,61,.45);background:rgba(93,177,61,.08);color:#8fe06a">✅ Nenhum problema agora.</div>')
+    // 03/10m: pausar os avisos desta academia (ex.: ainda não começou a usar)
+    +'<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px;font-size:13px;color:var(--muted)">'
+      +(L.pausado_ate?'⏸ Avisos pausados até <b style="color:#fff">'+sdEsc(L.pausado_ate.split('-').reverse().join('/'))+'</b> <button class="btn btn-outline btn-sm" onclick="sdPausar(\''+sdEsc(L.codigo)+'\',null)">Retomar avisos agora</button>'
+        :'Pausar os avisos desta academia até <input type="date" id="sdPausaAte" min="'+new Date().toISOString().slice(0,10)+'" style="appearance:auto;background:var(--card,#1b1b1f);color:#fff;border:1px solid var(--border);border-radius:6px;padding:4px 6px"> <button class="btn btn-outline btn-sm" onclick="sdPausar(\''+sdEsc(L.codigo)+'\',document.getElementById(\'sdPausaAte\').value)">Pausar</button> <span style="font-size:11.5px">(ex.: academia que ainda não começou — sem e-mail de TV desligada)</span>')
+    +'</div>'
     +'<div class="stats-grid" style="margin-bottom:12px">'
       +'<div class="stat-card"><div class="label">TV</div><div class="value" style="font-size:20px;color:'+(L.tv_online?'#5db13d':'#fff')+'">'+(L.tvs?(L.tv_online?'online':'offline'):'sem TV')+'</div><div style="font-size:11.5px;color:var(--muted)">'+(d.tvs.map(t=>sdEsc(t.nome_computador||'PC')+' · '+sdEsc(t.build||'?')+' · '+sdData(t.visto_em)).join('<br>')||'—')+'</div></div>'
       +'<div class="stat-card"><div class="label">Última aula</div><div class="value" style="font-size:20px">'+(L.ultima_aula?sdData(L.ultima_aula):'—')+'</div></div>'
@@ -1966,6 +1971,13 @@ async function sdLicAbrir(cod, destacar){
     +'<div id="sdLicLinha"></div>';
   sdLicFiltro('tudo', null, destacar);
 }
+async function sdPausar(cod, ate){   // 03/10m
+  if(ate===''){ alert('Escolha a data.'); return; }
+  const r=await api('/admin/saude/licenca/'+encodeURIComponent(cod)+'/pausar',{method:'POST',body:JSON.stringify({ate:ate})}).catch(()=>null);
+  if(!r||r.error){ alert((r&&r.error)||'Sem conexão'); return; }
+  sdLicAbrir(cod); loadSaude();
+}
+async function avResolver(id,b){ b.disabled=true; const r=await api('/admin/alertas/'+id+'/resolver',{method:'POST'}).catch(()=>null); if(r&&r.ok) loadSaude(); else b.disabled=false; }
 function sdLicFiltro(f, btn, destacar){
   if(btn) document.querySelectorAll('#sdLicFil button').forEach(b=>b.className='btn btn-'+(b===btn?'primary':'outline')+' btn-sm');
   const d=window._sdLic; if(!d) return;

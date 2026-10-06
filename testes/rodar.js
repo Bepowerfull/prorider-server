@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // ═══════════════════════════════════════════════════════════════════
-// ProRider — TESTES AUTOMÁTICOS (03/10k)
+// ProRider — TESTES AUTOMÁTICOS (03/10m)
 // Roda o servidor de verdade contra um BANCO DE TESTE vazio, com o Asaas e o
 // Resend simulados, e passa por pagamento, loja, desafios e segurança.
 //
