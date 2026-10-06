@@ -6388,7 +6388,7 @@ app.post('/display/gravacao/:id/enviar', displayAuth, async (req, res) => {
 // 03/10e — SEGURANÇA E SAÚDE: esqueci a senha, reportar problema,
 // excluir minha conta (LGPD) e a página "Saúde do sistema" do admin
 // ══════════════════════════════════════════════════════════════
-const SERVIDOR_VERSAO = '03/10k';
+const SERVIDOR_VERSAO = '03/10l';
 const _inicioServidor = Date.now();
 let _ultWebhook = null;   // último aviso do Asaas recebido (hora e evento)
 async function segMigrar() {
@@ -7671,6 +7671,19 @@ app.post('/admin/asaas/assinatura', adminAuth, async (req, res) => {
     res.json({ ok: true, customer_id: cust.id, subscription_id: sub.id });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
+
+// 03/10l: desligamento limpo. A cada deploy o Railway manda SIGTERM para o servidor antigo;
+// sem isto o processo saía com erro e o Railway mandava e-mail de "Deployment crashed" à toa.
+let _desligando = false;
+function desligar(sinal) {
+  if (_desligando) return; _desligando = true;
+  log(`[Servidor] ${sinal} recebido (deploy novo ou parada): desligando com calma`);
+  setTimeout(() => process.exit(0), 8000).unref();           // no máximo 8 s
+  try { wss.clients.forEach(c => { try { c.close(1012, 'servidor reiniciando'); } catch (e) {} }); } catch (e) {}   // TVs e celulares reconectam sozinhos no servidor novo
+  server.close(async () => { try { if (db) await db.end(); } catch (e) {} process.exit(0); });
+}
+process.on('SIGTERM', () => desligar('SIGTERM'));
+process.on('SIGINT', () => desligar('SIGINT'));
 
 server.listen(PORT, () => {
   log(`ProRider Server v2.0 rodando na porta ${PORT}`);
