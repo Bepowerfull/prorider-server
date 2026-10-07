@@ -73,6 +73,11 @@ const poolConfig = DB_URL
 
 if (poolConfig) {
   db = new Pool(poolConfig);
+  // 03/10s: o banco do Railway fica em UTC. Sem isto, depois das 21h "hoje" (CURRENT_DATE)
+  // virava amanhã — a reserva da aula das 21h sumia do app — e a conta dos minutos até a
+  // próxima aula (contagem e início automático na TV) saía errada em horas. Toda conexão
+  // passa a usar o horário de Brasília.
+  db.on('connect', c => { c.query("SET TIME ZONE 'America/Sao_Paulo'").catch(() => {}); });
   db.connect()
     .then(client => { client.release(); log('PostgreSQL conectado ✅'); })
     .catch(e => { db = null; log('PostgreSQL ERRO: ' + e.message); });
@@ -2803,7 +2808,7 @@ app.get('/display/proxima-aula', displayAuth, async (req, res) => {
   const MINUTOS = 10;
   try {
     const licId = req.user.license_id;
-    const diaN  = new Date().getDay();
+    const diaN  = _hojeBR().d.getDay();   // 03/10s: dia de Brasília (o servidor fica em UTC)
 
     const sessaoAtiva = await db.query(
       "SELECT * FROM sessoes_ao_vivo WHERE license_id=$1 AND status='em_andamento' ORDER BY inicio_real DESC LIMIT 1",
@@ -3406,7 +3411,7 @@ app.get('/academia/financeiro', finAuth, async (req, res) => {
           if (ab.length && (ab[0].dueDate !== alvo || ab.some((x, k) => x.dueDate !== maisMes(alvo, k)))) await asaasSyncLic(licId);
         }
         const d = await asaasApi('GET', '/payments?externalReference=' + encodeURIComponent(licId) + '&limit=12');
-        faturas = (d.data || []).map(x => ({ id: x.id, valor: x.value, status: x.status, vencimento: x.dueDate, pago_em: x.paymentDate || x.clientPaymentDate || null,
+        faturas = (d.data || []).map(x => ({ id: x.id, valor: x.value, status: x.status, vencimento: x.dueDate, pago_em: x.paymentDate || x.clientPaymentDate || x.confirmedDate || null,
           url: x.invoiceUrl || null, recibo: x.transactionReceiptUrl || null,
           cartao: x.creditCard && x.creditCard.creditCardNumber ? { final: String(x.creditCard.creditCardNumber).slice(-4), bandeira: x.creditCard.creditCardBrand || '' } : null }));
       } catch (e) { erroAsaas = 'Não consegui ler as faturas agora (' + e.message + ').'; }
@@ -3474,7 +3479,7 @@ app.get('/gestor/proxima-aula', gestorAuth, async (req, res) => {
   const MINUTOS = Math.min(60, Math.max(1, parseInt(req.query.antecedencia) || 10));
   try {
     const licId = req.user.license_id;
-    const diaN  = new Date().getDay(); // 0=Dom..6=Sab (servidor usa UTC, mini PC envia tz se precisar)
+    const diaN  = _hojeBR().d.getDay(); // 0=Dom..6=Sab — 03/10s: dia de Brasília (o servidor fica em UTC)
 
     // ── 1. Verificar se há sessão em_andamento (aula ainda rolando) ──
     const sessaoAtiva = await db.query(
@@ -4936,7 +4941,7 @@ app.get('/sessao/status', async (req, res) => {
     }
 
     // Próxima aula agendada (mesmo que não haja sessão ativa)
-    const diaN = new Date().getDay();
+    const diaN = _hojeBR().d.getDay();   // 03/10s: dia de Brasília
     const proxAula = await db.query(`
       SELECT a.*, p.name AS professor_nome,
         EXTRACT(EPOCH FROM (
@@ -5197,8 +5202,8 @@ app.get('/gestor/leaderboard', gestorAuth, async (req, res) => {
 app.get('/gestor/relatorio', gestorAuth, async (req, res) => {
   if (!db) return res.status(503).json({ error: 'Banco indisponível' });
   const licId = req.user.license_id;
-  const mes   = parseInt(req.query.mes  || new Date().getMonth() + 1);
-  const ano   = parseInt(req.query.ano  || new Date().getFullYear());
+  const mes   = parseInt(req.query.mes  || _hojeBR().d.getMonth() + 1);
+  const ano   = parseInt(req.query.ano  || _hojeBR().d.getFullYear());
   try {
     const [totais, porSemana, topAlunos, zonas, aulasMes] = await Promise.all([
       // Totais do mês
@@ -6455,7 +6460,9 @@ app.post('/display/gravacao/:id/enviar', displayAuth, async (req, res) => {
 // 03/10e — SEGURANÇA E SAÚDE: esqueci a senha, reportar problema,
 // excluir minha conta (LGPD) e a página "Saúde do sistema" do admin
 // ══════════════════════════════════════════════════════════════
-const SERVIDOR_VERSAO = '03/10s';
+const SERVIDOR_VERSAO = '03/10v';
+// 03/10v: a TV certa tem o mesmo número do servidor (o pacote sobe os dois juntos)
+function tvVersaoOk(b) { return String(b || '').trim() === 'BUILD ' + SERVIDOR_VERSAO; }
 const _inicioServidor = Date.now();
 let _ultWebhook = null;   // último aviso do Asaas recebido (hora e evento)
 async function segMigrar() {
@@ -6647,7 +6654,10 @@ app.get('/admin/saude', adminAuth, async (req, res) => {
   try {
     const tv = (await db.query(`SELECT lc.license_codigo, COALESCE(l.nome_fantasia, l.nome) AS academia, lc.nome_computador, lc.build, lc.visto_em
       FROM licenca_computadores lc LEFT JOIN licencas l ON l.codigo=lc.license_codigo ORDER BY lc.visto_em DESC LIMIT 40`)).rows;
-    out.tvs = { lista: tv, online: tv.filter(x => Date.now() - new Date(x.visto_em).getTime() < 5 * 60000).length };
+    out.tvs = { lista: tv, online: tv.filter(x => Date.now() - new Date(x.visto_em).getTime() < 5 * 60000).length, versao_atual: 'BUILD ' + SERVIDOR_VERSAO };
+    // 03/10v: TV vista nos últimos 14 dias numa versão diferente da do servidor
+    const velhas = tv.filter(x => x.build && Date.now() - new Date(x.visto_em).getTime() < 14 * 86400000 && !tvVersaoOk(x.build));
+    if (velhas.length) al('aviso', velhas.length + ' TV(s) com versão do Ginásio diferente da atual (BUILD ' + SERVIDOR_VERSAO + '): ' + velhas.map(x => (x.academia || x.license_codigo) + ' — ' + x.build).join('; ') + '. Reinstale a versão do pacote mais novo.');
   } catch (e) {}
   try {
     const ls = (await db.query('SELECT * FROM licencas')).rows, sit = {};
@@ -6922,6 +6932,8 @@ async function semaforoLicencas(soCodigo) {
   const er = new Map((await db.query(`SELECT licenca, SUM(vezes) FILTER (WHERE nivel='erro')::int AS e, SUM(vezes) FILTER (WHERE nivel='aviso')::int AS a FROM sistema_eventos WHERE licenca IS NOT NULL AND created_at > NOW() - INTERVAL '24 hours' GROUP BY 1`)).rows.map(x => [x.licenca, x]));
   const rel = new Map((await db.query(`SELECT license_id, COUNT(*)::int AS n FROM suporte_relatos WHERE status='aberto' AND license_id IS NOT NULL GROUP BY 1`)).rows.map(x => [x.license_id, x.n]));
   const ult = new Map((await db.query(`SELECT license_id, MAX(inicio) AS u FROM aulas_tv GROUP BY 1`).catch(() => ({ rows: [] }))).rows.map(x => [x.license_id, x.u]));
+  // 03/10v: TV com versão do Ginásio diferente da do servidor (cópia errada na instalação)
+  const tvVer = (await db.query(`SELECT license_codigo AS c, nome_computador AS n, build AS b FROM licenca_computadores WHERE visto_em > NOW() - INTERVAL '14 days' AND build IS NOT NULL`)).rows;
   const salaAberta = new Set(); for (const s of Object.values(salas)) if (s.licenca && s.professor && s.professor.readyState === WebSocket.OPEN) salaAberta.add(s.licenca);
   return ls.map(l => {
     const t = tv.get(l.codigo), online = salaAberta.has(l.codigo) || !!(t && t.v && Date.now() - new Date(t.v).getTime() < 180000);
@@ -6933,6 +6945,7 @@ async function semaforoLicencas(soCodigo) {
     if (sit === 'vencido') am.push('Pagamento vencido');
     const e = er.get(l.codigo) || {}; if (e.e) am.push(e.e + ' erro(s) nas telas em 24 h');
     if (rel.get(l.codigo)) am.push(rel.get(l.codigo) + ' problema(s) reportado(s) em aberto');
+    tvVer.filter(x => x.c === l.codigo && !tvVersaoOk(x.b)).forEach(x => am.push('TV "' + (x.n || 'sem nome') + '" com ' + x.b + '; a versão atual é BUILD ' + SERVIDOR_VERSAO + ' (instalação errada ou não atualizada)'));
     if (t && t.v && Date.now() - new Date(t.v).getTime() > 86400000 * 2 && Date.now() - new Date(t.v).getTime() < 86400000 * 14) am.push('TV sem falar com o servidor há ' + Math.round((Date.now() - new Date(t.v).getTime()) / 86400000) + ' dias');
     const cor = vm.length ? 'vermelho' : am.length ? 'amarelo' : !t ? 'cinza' : 'verde';
     return { codigo: l.codigo, nome: l.nome_fantasia || l.nome, cor, motivos: vm.concat(am), tv_online: online, tv_visto: t ? t.v : null, tvs: t ? t.n : 0, build: t ? t.b : null,

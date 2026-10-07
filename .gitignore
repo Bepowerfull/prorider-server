@@ -1,0 +1,5 @@
+node_modules/
+app-lojas/node_modules
+app-lojas/android/.gradle
+app-lojas/android/app/build
+app-lojas/ios/DerivedData

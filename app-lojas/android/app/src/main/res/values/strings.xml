@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">ProRider</string>
+    <string name="title_activity_main">ProRider</string>
+    <string name="package_name">br.app.prorider</string>
+    <string name="custom_url_scheme">br.app.prorider</string>
+</resources>

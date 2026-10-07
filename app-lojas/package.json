@@ -1,0 +1,22 @@
+{
+  "name": "prorider-app",
+  "version": "1.0.0",
+  "private": true,
+  "description": "ProRider — app das lojas (Android e iPhone). Abre o app do aluno de app.prorider.app.br com Bluetooth nativo.",
+  "scripts": {
+    "sync": "cap sync",
+    "android": "cap open android",
+    "ios": "cap open ios",
+    "icones": "capacitor-assets generate --iconBackgroundColor '#0d0d0f' --iconBackgroundColorDark '#0d0d0f' --splashBackgroundColor '#0d0d0f' --splashBackgroundColorDark '#0d0d0f'"
+  },
+  "dependencies": {
+    "@capacitor-community/bluetooth-le": "^8.3.0",
+    "@capacitor/core": "^8.5.2",
+    "@capacitor/android": "^8.5.2",
+    "@capacitor/ios": "^8.5.2"
+  },
+  "devDependencies": {
+    "@capacitor/assets": "^3.0.5",
+    "@capacitor/cli": "^8.5.2"
+  }
+}

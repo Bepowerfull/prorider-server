@@ -969,7 +969,7 @@ function lpLogoToque(){}
 setTimeout(lpStats, 300); setInterval(lpStats, 30000);
 
 var adminToken = localStorage.getItem('pr_admin_token') || '';
-try { if (typeof prErroConfig === 'function') prErroConfig(SERVER, 'admin', function () { return adminToken; }, 'Admin 03/10s'); } catch (e) {}   // 03/10f
+try { if (typeof prErroConfig === 'function') prErroConfig(SERVER, 'admin', function () { return adminToken; }, 'Admin 03/10v'); } catch (e) {}   // 03/10f
 var adminUser  = JSON.parse(localStorage.getItem('pr_admin_user') || 'null');
 var allLicencas = [];
 var allAlunos   = [];
@@ -1919,7 +1919,7 @@ async function loadSaude(){
     +(d.relatos.length?d.relatos.map(r=>'<tr><td style="white-space:nowrap;font-size:12px">'+new Date(r.created_at).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})+'</td><td>'+sdEsc(r.nome||'—')+'<div style="font-size:11px;color:var(--muted)">'+sdEsc(r.email||'')+(r.license_id?' · '+sdEsc(r.license_id):'')+'</div></td><td style="font-size:12px">'+sdEsc(r.origem)+'<div style="font-size:11px;color:var(--muted)">'+sdEsc(r.tela)+' · '+sdEsc(r.versao)+'</div></td><td style="max-width:520px">'+sdEsc(r.texto)+'</td><td><button class="btn btn-outline btn-sm" onclick="sdResolver('+r.id+')">Resolvido</button></td></tr>').join('')
       :'<tr><td colspan="5" style="text-align:center;padding:22px;color:var(--muted)">Nenhum problema reportado em aberto.</td></tr>')+'</tbody></table></div>';
   h+='<div class="table-wrap" style="margin-bottom:16px"><div class="table-header"><h2>TVs (Ginásio)</h2></div><table><thead><tr><th>Academia</th><th>Computador</th><th>Versão</th><th>Visto</th></tr></thead><tbody>'
-    +((d.tvs.lista||[]).map(t=>{ const on=Date.now()-new Date(t.visto_em)<300000; return '<tr><td>'+sdEsc(t.academia||t.license_codigo)+'</td><td>'+sdEsc(t.nome_computador||'—')+'</td><td>'+sdEsc(t.build||'—')+'</td><td><span style="color:'+(on?'#5db13d':'var(--muted)')+'">'+(on?'● online':sdQuando(t.visto_em)+' atrás')+'</span></td></tr>'; }).join('')||'<tr><td colspan="4" style="text-align:center;padding:20px;color:var(--muted)">Nenhuma TV ativada.</td></tr>')+'</tbody></table></div>';
+    +((d.tvs.lista||[]).map(t=>{ const on=Date.now()-new Date(t.visto_em)<300000; return '<tr><td>'+sdEsc(t.academia||t.license_codigo)+'</td><td>'+sdEsc(t.nome_computador||'—')+'</td><td>'+(t.build&&d.tvs.versao_atual&&t.build!==d.tvs.versao_atual?'<span style="color:#ffb45a;font-weight:700" title="Versão diferente da atual ('+sdEsc(d.tvs.versao_atual)+')">⚠ '+sdEsc(t.build)+'</span>':sdEsc(t.build||'—'))+'</td><td><span style="color:'+(on?'#5db13d':'var(--muted)')+'">'+(on?'● online':sdQuando(t.visto_em)+' atrás')+'</span></td></tr>'; }).join('')||'<tr><td colspan="4" style="text-align:center;padding:20px;color:var(--muted)">Nenhuma TV ativada.</td></tr>')+'</tbody></table></div>';
   // 03/10f: o que a TV, o app e o Portal mandaram sozinhos (o mesmo erro soma em "vezes")
   const nmO={tv:'📺 TV',app:'📱 App',portal:'🏢 Portal',financeiro:'💳 Financeiro',admin:'🛠 Admin',outro:'?'};
   const tl=d.telas||[];

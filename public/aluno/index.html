@@ -1,6 +1,92 @@
 ﻿<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
+<script>
+// ══ 03/10s — BLUETOOTH NO APP DAS LOJAS (Android e iPhone) ═══════════════════
+// No app instalado (Capacitor) o WebView não tem Web Bluetooth. Este trecho cria um
+// navigator.bluetooth igual ao do Chrome por cima do plugin nativo (BluetoothLe), e o
+// resto do app (Keiser, FTMS, potência, cadência, cinta, carga automática) funciona igual.
+// No navegador comum não faz nada.
+(function(){
+  function nativo(){ try{ return !!(window.Capacitor && Capacitor.isNativePlatform && Capacitor.isNativePlatform() && Capacitor.Plugins && Capacitor.Plugins.BluetoothLe); }catch(e){ return false; } }
+  function instalar(){
+    if(window._prBleNativo || !nativo()) return !!window._prBleNativo;
+    var P=Capacitor.Plugins.BluetoothLe, fila=Promise.resolve(), iniciado=null;
+    function q(fn){ var p=fila.then(fn); fila=p.catch(function(){}); return p; }
+    function ini(){ if(!iniciado) iniciado=q(function(){ return P.initialize({androidNeverForLocation:true}); }).catch(function(e){ iniciado=null; throw e; }); return iniciado; }
+    function hex2dv(h){ var b=[]; h=String(h||'').replace(/[^0-9a-f]/gi,''); for(var i=0;i+1<h.length;i+=2) b.push(parseInt(h.substr(i,2),16)); return new DataView(new Uint8Array(b).buffer); }
+    function buf2hex(v){ var u=v instanceof DataView?new Uint8Array(v.buffer,v.byteOffset,v.byteLength):(v instanceof ArrayBuffer?new Uint8Array(v):new Uint8Array(v.buffer||v)); return Array.prototype.map.call(u,function(n){ return ('0'+n.toString(16)).slice(-2); }).join(''); }
+    function uu(x){ x=String(x).toLowerCase(); return /^[0-9a-f]{4}$/.test(x)?'0000'+x+'-0000-1000-8000-00805f9b34fb':x; }
+    function erro(nome,msg){ var e=new Error(msg||nome); e.name=nome; return e; }
+    function Ev(){ this._l={}; }
+    Ev.prototype.addEventListener=function(n,f){ (this._l[n]=this._l[n]||[]).push(f); };
+    Ev.prototype.removeEventListener=function(n,f){ this._l[n]=(this._l[n]||[]).filter(function(x){ return x!==f; }); };
+    Ev.prototype._emit=function(n,ev){ (this._l[n]||[]).slice().forEach(function(f){ try{ f(ev); }catch(e){ console.error(e); } }); };
+    function Car(dev,svc,c){ Ev.call(this); this.uuid=c.uuid; this.service={uuid:svc}; this.properties=c.properties||{}; this._d=dev; this.value=null; }
+    Car.prototype=Object.create(Ev.prototype);
+    Car.prototype.startNotifications=function(){ var s=this, d=s._d.id, k='notification|'+d+'|'+s.service.uuid+'|'+s.uuid;
+      return q(function(){ return P.addListener(k,function(ev){ s.value=hex2dv(ev&&ev.value); s._emit('characteristicvaluechanged',{target:s}); }); })
+        .then(function(h){ s._d._ouvintes.push(h); return q(function(){ return P.startNotifications({deviceId:d,service:s.service.uuid,characteristic:s.uuid}); }); }).then(function(){ return s; }); };
+    Car.prototype.stopNotifications=function(){ var s=this; return q(function(){ return P.stopNotifications({deviceId:s._d.id,service:s.service.uuid,characteristic:s.uuid}); }).then(function(){ return s; }); };
+    Car.prototype.readValue=function(){ var s=this; return q(function(){ return P.read({deviceId:s._d.id,service:s.service.uuid,characteristic:s.uuid}); }).then(function(r){ s.value=hex2dv(r&&r.value); return s.value; }); };
+    Car.prototype.writeValueWithResponse=function(v){ var s=this; return q(function(){ return P.write({deviceId:s._d.id,service:s.service.uuid,characteristic:s.uuid,value:buf2hex(v)}); }); };
+    Car.prototype.writeValue=Car.prototype.writeValueWithResponse;
+    Car.prototype.writeValueWithoutResponse=function(v){ var s=this; return q(function(){ return P.writeWithoutResponse({deviceId:s._d.id,service:s.service.uuid,characteristic:s.uuid,value:buf2hex(v)}); }); };
+    function Dev(id,nome){ Ev.call(this); var d=this; this.id=id; this.name=nome||''; this._svcs=[]; this._ouvintes=[];
+      this.gatt={ device:d, connected:false,
+        connect:function(){ var g=this;
+          return ini().then(function(){ return q(function(){ return P.addListener('disconnected|'+id,function(){ g.connected=false; d._limpar(); d._emit('gattserverdisconnected',{target:d}); }); }); })
+            .then(function(h){ d._ouvintes.push(h); return q(function(){ return P.connect({deviceId:id}); }); })
+            .then(function(){ return q(function(){ return P.getServices({deviceId:id}); }); })
+            .then(function(r){ d._svcs=(r&&r.services)||[]; g.connected=true; return g; }); },
+        disconnect:function(){ var g=this; g.connected=false; q(function(){ return P.disconnect({deviceId:id}); }).catch(function(){}); },
+        getPrimaryService:function(u){ u=uuEx(u); var s=d._svcs.filter(function(x){ return String(x.uuid).toLowerCase()===u; })[0];
+          if(!s) return Promise.reject(erro('NotFoundError','Serviço não encontrado: '+u));
+          return Promise.resolve({ uuid:u, device:d, getCharacteristic:function(c){ c=uuEx(c); var k=(s.characteristics||[]).filter(function(x){ return String(x.uuid).toLowerCase()===c; })[0];
+            return k?Promise.resolve(new Car(d,u,{uuid:c,properties:k.properties})):Promise.reject(erro('NotFoundError','Característica não encontrada: '+c)); } }); } }; }
+    function uuEx(x){ return uu(typeof x==='number'?('0000'+x.toString(16)).slice(-4):x); }
+    Dev.prototype=Object.create(Ev.prototype);
+    Dev.prototype._limpar=function(){ this._ouvintes.forEach(function(h){ try{ h.remove(); }catch(e){} }); this._ouvintes=[]; };
+    // escolha do aparelho: procura por perto e mostra a lista (o filtro é o mesmo do Chrome)
+    function combina(o,r){ if(o.acceptAllDevices) return !!(r.device&&(r.device.name||r.localName));
+      var nome=(r.device&&r.device.name)||r.localName||'', svcs=(r.uuids||[]).map(function(x){ return String(x).toLowerCase(); });
+      return (o.filters||[]).some(function(f){ var ok=true;
+        if(f.services) ok=ok&&f.services.some(function(s){ return svcs.indexOf(uuEx(s))>=0; });
+        if(f.namePrefix) ok=ok&&nome.indexOf(f.namePrefix)===0;
+        if(f.name) ok=ok&&nome===f.name; return ok&&(f.services||f.namePrefix||f.name); }); }
+    function requestDevice(o){
+      o=o||{};
+      return ini().then(function(){ return new Promise(function(res,rej){
+        var achados={}, fim=false, cx=document.createElement('div');
+        cx.style.cssText='position:fixed;inset:0;z-index:2147483000;background:rgba(0,0,0,.72);display:flex;align-items:flex-end;justify-content:center;font-family:Barlow,Arial,sans-serif;';
+        cx.innerHTML='<div style="width:100%;max-width:520px;max-height:75vh;overflow:auto;background:#16161a;border-radius:18px 18px 0 0;padding:18px 16px 26px;color:#fff;">'
+          +'<b style="font-size:18px;display:block;margin-bottom:4px">Escolha o aparelho</b><small id="prBleSt" style="color:rgba(255,255,255,.55)">Procurando por perto… pedale para acordar a bike</small>'
+          +'<div id="prBleLista" style="margin:14px 0 12px;display:flex;flex-direction:column;gap:8px"></div>'
+          +'<button id="prBleCanc" style="width:100%;padding:13px;border-radius:12px;border:1px solid rgba(255,255,255,.15);background:transparent;color:#fff;font-size:15px">Cancelar</button></div>';
+        document.body.appendChild(cx);
+        function acabar(dev){ if(fim) return; fim=true; clearTimeout(t); q(function(){ return P.stopLEScan(); }).catch(function(){}); if(sh) try{ sh.remove(); }catch(e){} try{ cx.remove(); }catch(e){}
+          if(dev) res(dev); else rej(erro('NotFoundError','Nenhum aparelho escolhido')); }
+        cx.querySelector('#prBleCanc').onclick=function(){ acabar(null); };
+        var lista=cx.querySelector('#prBleLista'), sh=null;
+        function desenhar(){ lista.innerHTML=''; Object.keys(achados).forEach(function(id){ var a=achados[id], b=document.createElement('button');
+          b.style.cssText='text-align:left;padding:13px 14px;border-radius:12px;border:1px solid rgba(255,255,255,.1);background:#202026;color:#fff;font-size:15px';
+          b.innerHTML='<b>'+String(a.nome||'Aparelho').replace(/[<>&]/g,'')+'</b><small style="float:right;color:rgba(255,255,255,.45)">'+(a.rssi>-70?'perto':a.rssi>-85?'médio':'longe')+'</small>';
+          b.onclick=function(){ acabar(new Dev(id,a.nome)); }; lista.appendChild(b); }); }
+        var t=setTimeout(function(){ var st=cx.querySelector('#prBleSt'); if(st&&!Object.keys(achados).length) st.textContent='Nada encontrado ainda. Confira se o Bluetooth está ligado e se a bike está acordada.'; },15000);
+        q(function(){ return P.addListener('onScanResult',function(r){ if(fim||!r||!r.device||!combina(o,r)) return; var id=r.device.deviceId;
+          var novo=!achados[id]; achados[id]={nome:r.device.name||r.localName||'',rssi:r.rssi||-99}; if(novo) desenhar(); }); })
+          .then(function(h){ sh=h; return q(function(){ return P.requestLEScan({allowDuplicates:false}); }); })
+          .catch(function(e){ if(!fim){ fim=true; try{ cx.remove(); }catch(x){} rej(erro(/permiss|denied|unauthor/i.test(e&&e.message)?'NotAllowedError':/disabled|off|desligad/i.test(e&&e.message)?'InvalidStateError':'NotFoundError',(e&&e.message)||'Bluetooth indisponível')); } });
+      }); });
+    }
+    try{ Object.defineProperty(navigator,'bluetooth',{value:{requestDevice:requestDevice,getAvailability:function(){ return Promise.resolve(true); }},configurable:true}); }catch(e){ try{ navigator.bluetooth={requestDevice:requestDevice}; }catch(e2){} }
+    window._prBleNativo=true; window._prBleNativoTeste={hex2dv:hex2dv,buf2hex:buf2hex,combina:combina,Dev:Dev};
+    return true;
+  }
+  if(!instalar()){ document.addEventListener('DOMContentLoaded',instalar); window.addEventListener('load',instalar); }
+})();
+</script>
+
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
@@ -9416,7 +9502,7 @@ go=function(id){
   if(id==='sDetail'||id==='sConnect'){ var n=document.getElementById('bNav'); if(n) n.style.display='none'; }
 };
 
-var APP_BUILD='03/10s';
+var APP_BUILD='03/10v';
 try{ if(typeof prErroConfig==='function') prErroConfig(SERVER_HTTP,'app',function(){ return (typeof prToken!=='undefined'&&prToken)||localStorage.getItem('pr_token')||''; },APP_BUILD); }catch(e){}   // 03/10f: erros do app chegam na Saúde
 // ── 03/10e: no Perfil — reportar um problema e excluir a conta (LGPD) ──
 (function(){

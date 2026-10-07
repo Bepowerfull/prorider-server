@@ -1,0 +1,23 @@
+{
+  "appId": "br.app.prorider",
+  "appName": "ProRider",
+  "webDir": "www",
+  "server": {
+    "url": "https://app.prorider.app.br/aluno/",
+    "allowNavigation": ["app.prorider.app.br"],
+    "errorPath": "erro.html",
+    "cleartext": false
+  },
+  "android": { "allowMixedContent": false },
+  "ios": { "contentInset": "never" },
+  "plugins": {
+    "BluetoothLe": {
+      "displayStrings": {
+        "scanning": "Procurando…",
+        "cancel": "Cancelar",
+        "availableDevices": "Aparelhos por perto",
+        "noDeviceFound": "Nenhum aparelho encontrado"
+      }
+    }
+  }
+}
