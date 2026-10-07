@@ -2,11 +2,11 @@
 setlocal
 title ProRider - gerar o programa da TV
 rem ============================================================
-rem  ProRider - GERAR O PROGRAMA DA TV (03/10x)
+rem  ProRider - GERAR O PROGRAMA DA TV (07/10b)
 rem  Confere se os arquivos certos estao no lugar certo e so
 rem  entao roda o "npm run dist". Evita instalar versao velha.
 rem ============================================================
-set VERSAO=03/10x
+set VERSAO=07/10b
 set APP=%~dp0
 for %%I in ("%APP%.") do set PASTA=%%~nxI
 
@@ -19,7 +19,7 @@ if /I not "%PASTA%"=="app" goto ERRO_PASTA
 if not exist "%APP%..\package.json" goto ERRO_PASTA
 dir /b /ad "%APP%ProRider_1_GINASIO_*" >nul 2>&1 && goto ERRO_SUB
 findstr /C:"var PR_BUILD='BUILD %VERSAO%';" "%APP%script.js" >nul || goto ERRO_VER
-for %%F in (ginasio.html script.js telas-pv.js style.css bled112.js brasoes.js logo-prorider.png) do if not exist "%APP%%%F" (set FALTA=%%F& goto ERRO_FALTA)
+for %%F in (ginasio.html script.js telas-pv.js style.css bled112.js antplus.js brasoes.js logo-prorider.png) do if not exist "%APP%%%F" (set FALTA=%%F& goto ERRO_FALTA)
 
 echo  [OK] arquivos da versao %VERSAO% direto na pasta app
 echo.
@@ -61,7 +61,7 @@ goto FIM
 :ERRO_VER
 echo  [ERRO] O script.js de app\ NAO e da versao %VERSAO%.
 for /f "tokens=*" %%L in ('findstr /C:"var PR_BUILD=" "%APP%script.js"') do echo         Encontrado: %%L
-echo         Extraia o zip ProRider_1_GINASIO_03-10x.zip DIRETO em app\
+echo         Extraia o zip ProRider_1_GINASIO_07-10b.zip DIRETO em app\
 echo         (substituindo os arquivos) e rode de novo.
 goto FIM
 :ERRO_FALTA

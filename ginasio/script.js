@@ -1,6 +1,6 @@
 // Versao visivel na tela inicial (canto inferior direito) — 24/09b.
 // Trocar AQUI e na linha do BUILD no fim do arquivo a cada versao.
-var PR_BUILD='BUILD 03/10x';
+var PR_BUILD='BUILD 07/10b';
 // ═══ 03/10f — A TV NÃO PERDE NADA SEM INTERNET + ERROS CHEGAM SOZINHOS NA SAÚDE ═══
 // _prFilaPost(caminho, corpo, rotulo, extra): manda agora; se a internet ou o servidor
 // falharem, guarda no computador (localStorage 'pr_fila', até 7 dias) e tenta de novo a
@@ -928,6 +928,10 @@ window.addEventListener('load', function(){
         _parIniciarLiveBLED112(); // scan permanente desde o boot
       }, null); // falha silenciosa se porta não autorizada (utilizador não ligou o dongle)
     }catch(e){}
+  }, 3500);
+  // 07/10b: bikes ANT+ pareadas → liga o pendrive ANT+ (separado do BLED112: um não segura o outro)
+  setTimeout(function(){
+    try{ _parIniciarLiveANT(); }catch(e){ console.warn('[ANT+] '+e.message); }
   }, 3500);
 
   // Tick sempre-ativo da grade de Potência (não depende do dongle nem de isPlaying)
@@ -3170,6 +3174,8 @@ function iniciarWS(){
   try{
     wsProf=new WebSocket(SERVER_URL);
     var _wsProfThis=wsProf;
+    // 03/10y: conexão que não abre em 10 s (internet sumida, Wi-Fi com portal) conta como falha e entra no religar
+    setTimeout(function(){ if(wsProf===_wsProfThis && _wsProfThis.readyState===0){ try{ _wsProfThis.onclose&&_wsProfThis.onclose(); }catch(e){} try{ _wsProfThis.close(); }catch(e){} } },10000);
     wsProf.onopen=function(){
       if(!wsProf||wsProf!==_wsProfThis) return; // conexao obsoleta/fechada — nao envia (evita crash null.send)
       wsReconDelay=3000; // reset delay
@@ -3177,24 +3183,35 @@ function iniciarWS(){
       wsSetStatus('ok');
       // 26/09e: token do display -> a sala sabe a academia e o aluno fica ligado a ela
       wsProf.send(JSON.stringify({tipo:'criar_sala',codigo:salaCode,display_token:(_gymDisplayToken&&_gymDisplayToken!=='dev-bypass')?_gymDisplayToken:undefined}));
-      if(window._fimAulaPendente){ window._fimAulaPendente=false; try{ wsProf.send(JSON.stringify({tipo:'fim_aula'})); console.log('[ProRider] fim de aula pendente enviado ao reconectar.'); }catch(e){} }
+      if(window._fimAulaPendente && (!window._fimAulaSala || window._fimAulaSala===salaCode)){ try{ wsProf.send(JSON.stringify({tipo:'fim_aula'})); window._fimEnviadoEm=Date.now(); console.log('[ProRider] fim de aula pendente enviado ao reconectar.'); }catch(e){} }
       // Keepalive de 25s. Eram 4 MINUTOS: proxies (o do Railway inclusive)
       // derrubam WebSocket ocioso por volta de 60s, e fora da aula nao existe
       // trafego nenhum — a conexao caia sozinha e parecia "servidor caindo".
       if(wsKeepAlive) clearInterval(wsKeepAlive);
+      // 03/10y: batimento de 5 em 5 s. Se a internet da academia some SEM AVISO, a conexão fica
+      // "aberta" e muda por minutos. Sem resposta do servidor em 15 s, a TV desiste dela e
+      // religa sozinha (de 5 em 5 s em aula) — a aula continua na TV o tempo todo.
+      window._wsUltMsg=Date.now();
+      try{ wsProf.send(JSON.stringify({tipo:'ping',v:2})); window._pingEnviadoEm=Date.now(); }catch(e){}   // já avisa o servidor do batimento rápido
       wsKeepAlive=setInterval(function(){
-        if(wsProf&&wsProf.readyState===1){
-          try{ wsProf.send(JSON.stringify({tipo:'ping'})); }catch(e){}
+        if(!wsProf||wsProf!==_wsProfThis) return;
+        if(wsProf.readyState===1){
+          try{ wsProf.send(JSON.stringify({tipo:'ping',v:2})); window._pingEnviadoEm=Date.now(); }catch(e){}
+          if(Date.now()-(window._wsUltMsg||0)>15000){
+            try{ console.warn('[ProRider] servidor mudo há '+Math.round((Date.now()-window._wsUltMsg)/1000)+' s — sem internet? religando.'); }catch(e){}
+            var _morto=wsProf; try{ _morto.onclose&&_morto.onclose(); }catch(e){} try{ _morto.close(); }catch(e){}
+          }
         }
-      }, 25*1000);
+      }, 5*1000);
       // Relay de dados das bikes (ginásio → celular do aluno): ~4 Hz
       if(_wsRelayInt) clearInterval(_wsRelayInt);
       _wsRelayInt=setInterval(_wsEnviarBikesLive, 250);
       setTimeout(_wsEnviarSalaInfo, 600); // config da sala assim que abre
     };
     wsProf.onmessage=function(e){
+      window._wsUltMsg=Date.now();   // 03/10y: o servidor está falando
       var d;try{d=JSON.parse(e.data);}catch(err){return;}
-      if(d.tipo==='pong') return; // resposta do keepalive
+      if(d.tipo==='pong'){ if(window._fimAulaPendente&&window._fimEnviadoEm&&(window._pingEnviadoEm||0)>window._fimEnviadoEm){ window._fimAulaPendente=false; } return; } // resposta do keepalive (03/10y: confirma o fim da aula)
       if(d.tipo==='set_ftp'&&d.nome){
         // Aluno trocou o FTP ao vivo pelo app. Atualiza o ftpBase → %FTP recalcula na próxima leitura.
         // Sem recálculo retroativo (médias e histórico ficam como estão).
@@ -3279,10 +3296,21 @@ function iniciarWS(){
           clearTimeout(window._semSalaT);
           window._semSalaT=setTimeout(function(){
             var saiu=false;
+            if(typeof isPlaying!=='undefined'&&isPlaying&&boxMode==='live') return;   // 03/10y: em aula, quem caiu continua na bike (ver aluno_saiu)
             Object.keys(alunosMap).forEach(function(n){ var a=alunosMap[n]; if(a && a._semSala && Date.now()-a._semSala>=85000){ delete alunosMap[n]; saiu=true; try{ console.log('[ProRider] '+n+' nao voltou para a sala — removido da tela.'); }catch(e){} } });
             if(saiu){ try{ renderAlunos(); _renderPreAlunos(); atualizaQR(); atualizaRanking(); }catch(e){} _wsEnviarSalaInfo(); }
           },90000);
         }catch(e){}
+      }
+      // 03/10y: CELULAR CAIU NO MEIO DA AULA (internet do aluno). Antes a TV tirava o aluno e a bike dele
+      // (que continua sendo pedalada) virava "Aluno 03": aparecia um aluno a mais no ranking e no resumo,
+      // e as calorias/distância do aluno de verdade recomeçavam do zero quando ele voltava.
+      // Agora, com a aula rodando, ele fica na bike (o dongle continua somando para ELE); se não voltar até
+      // o fim, sai da tela no fim da aula, mas os números entram no resumo.
+      if(d.tipo==='aluno_saiu'&&d.nome&&alunosMap[d.nome]&&!alunosMap[d.nome]._virtual&&typeof isPlaying!=='undefined'&&isPlaying&&boxMode==='live'){
+        alunosMap[d.nome]._semSala=Date.now();
+        try{ console.log('[ProRider] '+d.nome+' perdeu a conexão — continua na bike '+alunosMap[d.nome].bike+' até voltar.'); }catch(e){}
+        return;
       }
       if(d.tipo==='aluno_saiu'&&d.nome){
         delete alunosMap[d.nome];
@@ -3320,11 +3348,29 @@ function iniciarWS(){
   }catch(e){wsProf=null;wsSetStatus('offline');}
 }
 
+// 03/10y: FIM DE AULA QUE NÃO CHEGOU (TV sem internet na hora de encerrar e depois saiu da tela da aula).
+// Abre uma conexão curta só para isso, de 10 em 10 s por até 30 min: retoma a sala, manda o fim e fecha.
+// Sem isso os celulares ficavam "em aula" até o servidor desistir da sala.
+function _prFimPendenteLoop(codigo){
+  if(!codigo||window._PR_OFFLINE) return; var ini=Date.now(), tm=null;
+  function tentar(){
+    if(!window._fimAulaPendente||window._fimAulaSala!==codigo||Date.now()-ini>30*60000){ return; }
+    var w; try{ w=new WebSocket(SERVER_URL); }catch(e){ tm=setTimeout(tentar,10000); return; }
+    var ok=false, to=setTimeout(function(){ try{ w.close(); }catch(e){} },8000);
+    w.onopen=function(){ try{
+      w.send(JSON.stringify({tipo:'criar_sala',codigo:codigo,display_token:(_gymDisplayToken&&_gymDisplayToken!=='dev-bypass')?_gymDisplayToken:undefined}));
+      w.send(JSON.stringify({tipo:'fim_aula'})); w.send(JSON.stringify({tipo:'ping',v:2})); }catch(e){} };
+    w.onmessage=function(e){ try{ var d=JSON.parse(e.data); if(d.tipo==='pong'){ ok=true; window._fimAulaPendente=false; console.log('[ProRider] fim da aula entregue aos celulares (a internet tinha caído).'); clearTimeout(to); try{ w.close(); }catch(er){} } }catch(er){} };
+    w.onclose=function(){ clearTimeout(to); if(!ok) tm=setTimeout(tentar,10000); };
+  }
+  tentar();
+}
 function encerrarWS(){
   // Avisa os alunos que a aula acabou ANTES de fechar o socket.
   // Todo caminho de encerramento (Encerrar, Voltar ao início, fim de sessão) passa por aqui,
   // então o app sempre recebe o fim — não depende só do "Encerrar" com confirmação.
   try{ if(wsProf && wsProf.readyState===WebSocket.OPEN && salaCode){ wsProf.send(JSON.stringify({tipo:'fim_aula'})); } }catch(e){}
+  try{ if(window._fimAulaPendente && window._fimAulaSala && window._fimAulaSala===salaCode) setTimeout(function(c){ return function(){ _prFimPendenteLoop(c); }; }(salaCode),1500); }catch(e){}
   if(wsKeepAlive){clearInterval(wsKeepAlive);wsKeepAlive=null;}
   if(wsReconTimer){clearTimeout(wsReconTimer);wsReconTimer=null;}
   if(wsProf){wsProf.close();wsProf=null;}
@@ -4437,8 +4483,10 @@ function ctrlConfirmYes(){
   var m=document.getElementById('modalEncerrar');if(m)m.classList.remove('active');
   // 26/09d: se o servidor estiver fora nesta hora, o aviso fica guardado e sai
   // assim que a conexao voltar (antes se perdia e os celulares seguiam em aula)
-  if(wsProf&&wsProf.readyState===WebSocket.OPEN) wsProf.send(JSON.stringify({tipo:'fim_aula'}));
-  else window._fimAulaPendente=true;
+  // 03/10y: a conexão pode estar "aberta" e morta (internet sumiu sem aviso): o fim fica pendente até
+  // um batimento DEPOIS dele voltar do servidor (prova de que chegou). Senão vai de novo ao religar.
+  window._fimAulaPendente=true; window._fimAulaSala=salaCode; window._fimEnviadoEm=0;
+  if(wsProf&&wsProf.readyState===WebSocket.OPEN){ try{ wsProf.send(JSON.stringify({tipo:'fim_aula'})); window._fimEnviadoEm=Date.now(); }catch(e){} }
   ctrlSetScreen(0);if(qbAberta)fecharQB();
   try{ if(typeof stopEverything==='function')stopEverything(); }catch(e){ console.error('[ProRider] stopEverything error:',e); }
   var lc=document.getElementById('liveClass');if(lc)lc.style.display='flex';
@@ -5616,10 +5664,55 @@ function _parScanBike(num){
       if(instr) instr.textContent='Scan cancelado.';
     });
   } else {
-    // ANT+ — fallback para file://
+    // 07/10b: ANT+ de verdade, pelo pendrive ANT+ (Web Serial ou WebUSB)
+    if(typeof ANTPLUS!=='undefined' && (('serial' in navigator) || ('usb' in navigator) || ANTPLUS._transporteTeste)){ _parScanBikeANT(num); return; }
     _parScanFallback(num);
   }
 }
+
+// ══ 07/10b — PAREAMENTO E LEITURA PELO PENDRIVE ANT+ ══════════════════════
+// Mesma tela e mesma lista do BLED112. A bike pareada fica no parBikeMap com mac 'ANT:<nº>:<tipo>'
+// e bled112:true (= "lida por dongle na TV"): cartões, %FTP, relay para os celulares e resumo
+// funcionam igual à Keiser.
+var _antLiveAtivo=false;
+function _parScanBikeANT(num){
+  var instr=document.getElementById('parInstrucao');
+  function iniciar(){
+    _bled112ScanResults={};
+    if(instr) instr.textContent='Bike '+num+': procurando bikes ANT+ (gire o pedal da bike '+num+')…';
+    _parMostrarListaBLED112(num, {}, 'ANT+');
+    ANTPLUS.startScan(function(device){
+      if(device.antTipo===0x78) return;            // cinta de FC não é bike
+      try{ _prProcessDevice(device); }catch(e){}   // bikes já pareadas continuam vivas durante a procura
+      var key=device.mac, novo=!_bled112ScanResults[key];
+      _bled112ScanResults[key]=device;
+      if(novo){ console.log('[ANT+] Encontrado:',device.name,'RSSI:'+device.rssi); _parMostrarListaBLED112(num, _bled112ScanResults, 'ANT+'); }
+    }).catch(function(e){ if(instr) instr.textContent='Erro no ANT+: '+(e.message||e); _parPararScanDe(num); });
+    if(_bled112ScanTimer) clearTimeout(_bled112ScanTimer);
+    _bled112ScanTimer=setTimeout(function(){
+      var q=Object.keys(_bled112ScanResults).length;
+      if(instr && parScanningBike===num) instr.textContent='Procura concluída. '+q+' bike(s) ANT+ encontrada(s).';
+      if(q===0){ try{ _parFecharListaBLED112(); }catch(e){} _parPararScanDe(num); try{ _parToast&&_parToast('Nenhuma bike ANT+ encontrada. Gire o pedal (a bike só transmite pedalando) e tente de novo.'); }catch(e){} _parIniciarLiveANT(); }
+    },12000);
+  }
+  if(!ANTPLUS.connected){
+    if(instr) instr.textContent='Conectando ao pendrive ANT+…';
+    ANTPLUS.connect(true).then(iniciar).catch(function(e){
+      if(instr) instr.textContent='Pendrive ANT+: '+(e.message||e);
+      try{ _parToast&&_parToast('Pendrive ANT+ não encontrado. Ligue o pendrive e tente de novo.'); }catch(x){}
+      _parPararScanDe(num);
+    });
+  } else iniciar();
+}
+function _parIniciarLiveANT(){
+  if(typeof ANTPLUS==='undefined') return;
+  var temAnt=Object.keys(parBikeMap||{}).some(function(n){ var b=parBikeMap[n]; return b&&b.ant; });
+  if(!temAnt) return;
+  var ligar=function(){ ANTPLUS.startScan(function(device){ try{ _prProcessDevice(device); }catch(e){} }).catch(function(){}); _antLiveAtivo=true; };
+  if(ANTPLUS.connected) return ligar();
+  ANTPLUS.connect(false).then(ligar).catch(function(e){ console.warn('[ANT+] '+(e.message||e)+' — tento de novo em 30 s'); setTimeout(_parIniciarLiveANT,30000); });
+}
+try{ if(typeof ANTPLUS!=='undefined'){ ANTPLUS.onQueda=function(){ _antLiveAtivo=false; console.warn('[ANT+] pendrive desconectou — religando…'); setTimeout(_parIniciarLiveANT,3000); }; } }catch(e){}
 
 /**
  * Scan via BLED112 para a bike `num`.
@@ -5726,7 +5819,7 @@ function _bled112ListFocar(){
   });
 }
 
-function _parMostrarListaBLED112(num, devices){
+function _parMostrarListaBLED112(num, devices, rotulo){
   var instr=document.getElementById('parInstrucao');
   var keys=Object.keys(devices);
   _bled112ListNum=num;
@@ -5746,13 +5839,13 @@ function _parMostrarListaBLED112(num, devices){
   }
 
   var html='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">'
-    +'<span style="color:#fff;font-weight:700;font-size:14px;letter-spacing:1px;">BLED112 — Bike '+num+'</span>'
+    +'<span style="color:#fff;font-weight:700;font-size:14px;letter-spacing:1px;">'+(rotulo||'BLED112')+' — Bike '+num+'</span>'
     +'<span style="color:rgba(255,255,255,.3);font-size:10px;">[A] Confirmar &nbsp; [B] Cancelar</span>'
     +'</div>';
 
   if(keys.length===0){
     html+='<div style="color:rgba(255,255,255,.4);font-size:12px;text-align:center;padding:20px 0;">'
-      +'<div style="margin-bottom:8px;">A procurar dispositivos BLE...</div>'
+      +'<div style="margin-bottom:8px;">'+(rotulo==='ANT+'?'Procurando bikes ANT+… gire o pedal':'A procurar dispositivos BLE...')+'</div>'
       +'<div style="width:24px;height:24px;border:2px solid rgba(41,95,232,.4);border-top-color:#295fe8;'
       +'border-radius:50%;animation:spin .8s linear infinite;margin:0 auto;"></div>'
       +'</div>';
@@ -5764,7 +5857,7 @@ function _parMostrarListaBLED112(num, devices){
         +'style="padding:10px 14px;margin-bottom:6px;border-radius:8px;cursor:pointer;'
         +'background:rgba(41,95,232,.15);border:1px solid rgba(41,95,232,.3);transition:background .15s;">'
         +'<div style="color:#fff;font-weight:600;font-size:13px;">'+d.name+'</div>'
-        +'<div style="color:rgba(255,255,255,.4);font-size:11px;margin-top:3px;">RSSI: '+d.rssi+' dBm</div>'
+        +'<div style="color:rgba(255,255,255,.4);font-size:11px;margin-top:3px;">'+(d.ant?(d.watts||0)+' W · '+(d.cadence||0)+' rpm · ':'')+'RSSI: '+d.rssi+' dBm</div>'
         +'</div>';
     });
   }
@@ -5787,7 +5880,7 @@ function _parSelecionarBLED112(num, key){
   if(!device) return;
 
   // Parar scan e fechar lista
-  BLED112.stopScan();
+  if(device.ant){ try{ ANTPLUS.stopScan(); }catch(e){} } else BLED112.stopScan();
   if(_bled112ScanTimer){ clearTimeout(_bled112ScanTimer); _bled112ScanTimer=null; }
   var listEl=document.getElementById('bled112DevList');
   if(listEl) listEl.remove();
@@ -5802,8 +5895,11 @@ function _parSelecionarBLED112(num, key){
     mac:device.mac,
     addrType:device.addrType,
     rssi:device.rssi||null,
-    bled112:true
+    bled112:true,
+    ant:!!device.ant   // 07/10b
   };
+  if(device.ant){ _parPararScanDe(); _parSalvar(); _parAtualizarCard(null, num, parBikeMap[num]); _parIniciarLiveANT();
+    setTimeout(function(){ var l=document.getElementById('bled112DevList'); if(l) l.remove(); },800); return; }
   _parPararScanDe();
   _parSalvar();
   _parAtualizarCard(null, num, parBikeMap[num]);
@@ -5859,94 +5955,100 @@ var _bled112Falhas    = 0; // reinicios seguidos sem receber byte nenhum
 var _preAulaRemedida  = false; // evita repetir a montagem da lista em laco
 var _bled112Watchdog  = null;
 
+// 07/10b: dados de UMA bike lida por dongle (BLED112/Keiser ou pendrive ANT+) entram aqui.
+function _prProcessDevice(device){
+  var agora = Date.now();
+  if(device && device.review) return;   // 07/10a: Keiser mostrando o resumo (aluno parou): não é número ao vivo
+  Object.keys(parBikeMap).forEach(function(num){
+    var b = parBikeMap[num];
+    if(!b || !b.bled112 || !b.mac || b.mac !== device.mac) return;
+    b.watts    = device.watts     || 0;
+    b.rpm      = device.cadence   || 0;
+    b.gear     = device.gear      || 0;
+    b.bpm      = device.heartRate || b.bpm || 0;
+    b.rssi     = device.rssi      || b.rssi;
+    b._lastSeen = agora; // presença — usado pelo watchdog para limpar bikes que saíram
+    if(device.bikeId>0) b._kid = device.bikeId;   // 07/10a: nº da Keiser (console) — vai para o app ler a bike direto
+    window._bleLastData = agora; // watchdog do indicador de sinal BT
+    // DOM do pareamento — só reescreve se mudou (evita thrash na main thread → menos travada de vídeo)
+    var wEl = document.getElementById('parW'+num);
+    var rEl = document.getElementById('parR'+num);
+    if(wEl && b._wDom!==b.watts){ wEl.textContent = b.watts; b._wDom=b.watts; }
+    if(rEl && b._rDom!==b.rpm){ rEl.textContent = b.rpm; b._rDom=b.rpm; }
+
+    var bikeN = parseInt(num);
+    if(typeof alunosMap === 'undefined') return;
+    // 23/09e: a bike 99 (professor) era descartada AQUI, antes de tudo — por isso
+    // pareava e transmitia mas nunca aparecia na aula, e o professor logado nela
+    // no app ficava com 0 W. Agora entra como as outras (cartao 'Professor').
+
+    var vNome = _nomeVirtual(bikeN);
+
+    // Existe aluno REAL logado nesta bike? (fez login + escolheu a bike via QR)
+    var alunoReal = null;
+    Object.keys(alunosMap).forEach(function(nome){
+      var a = alunosMap[nome];
+      if(a && !a._virtual && parseInt(a.bike) === bikeN) alunoReal = a;
+    });
+
+    if(alunoReal){
+      // OVERLAY: dados BLE entram no aluno real; FTP usa o FTP DELE (não o 150 base)
+      alunoReal.watts = b.watts; alunoReal.rpm = b.rpm;
+      alunoReal.gear  = b.gear||0;                 // marcha
+      if(b.bpm) alunoReal.bpm = b.bpm;             // FC vinda da cinta pela Keiser
+      alunoReal._bledSrc = true; alunoReal._lastSeen = agora;
+      var rbase = alunoReal.ftpBase || 150;
+      var rpct  = Math.round((b.watts||0) / rbase * 100);
+      alunoReal.ftp  = rpct;
+      alunoReal.zona = _zonaFromPct(rpct);
+      if((b.watts||0) > (alunoReal.potMax||0)) alunoReal.potMax = b.watts;
+      // ACUMULA kcal e distância (antes ficavam zerados nas bikes reais -> desafio mostrava 0.00)
+      var _dtR=(agora-(alunoReal._accLast||agora))/1000;
+      if(_dtR>0 && _dtR<10){
+        alunoReal._kcalF=(alunoReal._kcalF||0)+(b.watts||0)*_dtR/3600*3.6;
+        alunoReal._distF=(alunoReal._distF||0)+Math.round(b.rpm||0)*0.007*_dtR/60;
+        alunoReal.kcal=Math.round(alunoReal._kcalF);
+        alunoReal.dist=parseFloat(alunoReal._distF.toFixed(2));
+      }
+      alunoReal._accLast=agora;
+      // se ainda existir um virtual desta bike (aluno acabou de logar), substitui-o
+      if(alunosMap[vNome] && alunosMap[vNome]._virtual) delete alunosMap[vNome];
+    } else {
+      // SEM aluno logado: a bike aparece como aluno virtual SÓ POR ESTAR transmitindo
+      // (presença), mesmo a 0 W. FTP base 150, nome pelo número da bike.
+      var pct = Math.round((b.watts||0) / 150 * 100);
+      if(!alunosMap[vNome]){
+        alunosMap[vNome] = { nome:vNome, bike:bikeN, ftpBase:150, ftp:pct,
+          watts:b.watts, rpm:b.rpm, bpm:(b.bpm||0), gear:(b.gear||0), zona:_zonaFromPct(pct), kcal:0, dist:0,
+          potMax:b.watts, _bledSrc:true, _virtual:true, _lastSeen:agora };
+      } else {
+        var v = alunosMap[vNome];
+        v.watts = b.watts; v.rpm = b.rpm; v.ftp = pct; v.zona = _zonaFromPct(pct);
+        v.gear = b.gear||0; if(b.bpm) v.bpm = b.bpm;   // 23/09e: marcha e FC tambem na bike sem login
+        v._bledSrc = true; v._lastSeen = agora;
+        if((b.watts||0) > (v.potMax||0)) v.potMax = b.watts;
+        var _dtV=(agora-(v._accLast||agora))/1000;
+        if(_dtV>0 && _dtV<10){
+          v._kcalF=(v._kcalF||0)+(b.watts||0)*_dtV/3600*3.6;
+          v._distF=(v._distF||0)+Math.round(b.rpm||0)*0.007*_dtV/60;
+          v.kcal=Math.round(v._kcalF);
+          v.dist=parseFloat(v._distF.toFixed(2));
+        }
+        v._accLast=agora;
+      }
+    }
+  });
+  if(!device.ant){ _bled112LastTick = Date.now();
+  _bled112Falhas = 0; }   // 07/10b: dado do ANT+ não conta como sinal do BLED112   // chegou dado: zera a contagem de falhas
+}
+
+
 function _parIniciarLiveBLED112(){
   if(_bled112LiveActive) return;
   _bled112LiveActive = true;
   _bled112LastTick   = Date.now();
 
-  function _processDevice(device){
-    var agora = Date.now();
-    Object.keys(parBikeMap).forEach(function(num){
-      var b = parBikeMap[num];
-      if(!b || !b.bled112 || !b.mac || b.mac !== device.mac) return;
-      b.watts    = device.watts     || 0;
-      b.rpm      = device.cadence   || 0;
-      b.gear     = device.gear      || 0;
-      b.bpm      = device.heartRate || b.bpm || 0;
-      b.rssi     = device.rssi      || b.rssi;
-      b._lastSeen = agora; // presença — usado pelo watchdog para limpar bikes que saíram
-      window._bleLastData = agora; // watchdog do indicador de sinal BT
-      // DOM do pareamento — só reescreve se mudou (evita thrash na main thread → menos travada de vídeo)
-      var wEl = document.getElementById('parW'+num);
-      var rEl = document.getElementById('parR'+num);
-      if(wEl && b._wDom!==b.watts){ wEl.textContent = b.watts; b._wDom=b.watts; }
-      if(rEl && b._rDom!==b.rpm){ rEl.textContent = b.rpm; b._rDom=b.rpm; }
-
-      var bikeN = parseInt(num);
-      if(typeof alunosMap === 'undefined') return;
-      // 23/09e: a bike 99 (professor) era descartada AQUI, antes de tudo — por isso
-      // pareava e transmitia mas nunca aparecia na aula, e o professor logado nela
-      // no app ficava com 0 W. Agora entra como as outras (cartao 'Professor').
-
-      var vNome = _nomeVirtual(bikeN);
-
-      // Existe aluno REAL logado nesta bike? (fez login + escolheu a bike via QR)
-      var alunoReal = null;
-      Object.keys(alunosMap).forEach(function(nome){
-        var a = alunosMap[nome];
-        if(a && !a._virtual && parseInt(a.bike) === bikeN) alunoReal = a;
-      });
-
-      if(alunoReal){
-        // OVERLAY: dados BLE entram no aluno real; FTP usa o FTP DELE (não o 150 base)
-        alunoReal.watts = b.watts; alunoReal.rpm = b.rpm;
-        alunoReal.gear  = b.gear||0;                 // marcha
-        if(b.bpm) alunoReal.bpm = b.bpm;             // FC vinda da cinta pela Keiser
-        alunoReal._bledSrc = true; alunoReal._lastSeen = agora;
-        var rbase = alunoReal.ftpBase || 150;
-        var rpct  = Math.round((b.watts||0) / rbase * 100);
-        alunoReal.ftp  = rpct;
-        alunoReal.zona = _zonaFromPct(rpct);
-        if((b.watts||0) > (alunoReal.potMax||0)) alunoReal.potMax = b.watts;
-        // ACUMULA kcal e distância (antes ficavam zerados nas bikes reais -> desafio mostrava 0.00)
-        var _dtR=(agora-(alunoReal._accLast||agora))/1000;
-        if(_dtR>0 && _dtR<10){
-          alunoReal._kcalF=(alunoReal._kcalF||0)+(b.watts||0)*_dtR/3600*3.6;
-          alunoReal._distF=(alunoReal._distF||0)+Math.round(b.rpm||0)*0.007*_dtR/60;
-          alunoReal.kcal=Math.round(alunoReal._kcalF);
-          alunoReal.dist=parseFloat(alunoReal._distF.toFixed(2));
-        }
-        alunoReal._accLast=agora;
-        // se ainda existir um virtual desta bike (aluno acabou de logar), substitui-o
-        if(alunosMap[vNome] && alunosMap[vNome]._virtual) delete alunosMap[vNome];
-      } else {
-        // SEM aluno logado: a bike aparece como aluno virtual SÓ POR ESTAR transmitindo
-        // (presença), mesmo a 0 W. FTP base 150, nome pelo número da bike.
-        var pct = Math.round((b.watts||0) / 150 * 100);
-        if(!alunosMap[vNome]){
-          alunosMap[vNome] = { nome:vNome, bike:bikeN, ftpBase:150, ftp:pct,
-            watts:b.watts, rpm:b.rpm, bpm:(b.bpm||0), gear:(b.gear||0), zona:_zonaFromPct(pct), kcal:0, dist:0,
-            potMax:b.watts, _bledSrc:true, _virtual:true, _lastSeen:agora };
-        } else {
-          var v = alunosMap[vNome];
-          v.watts = b.watts; v.rpm = b.rpm; v.ftp = pct; v.zona = _zonaFromPct(pct);
-          v.gear = b.gear||0; if(b.bpm) v.bpm = b.bpm;   // 23/09e: marcha e FC tambem na bike sem login
-          v._bledSrc = true; v._lastSeen = agora;
-          if((b.watts||0) > (v.potMax||0)) v.potMax = b.watts;
-          var _dtV=(agora-(v._accLast||agora))/1000;
-          if(_dtV>0 && _dtV<10){
-            v._kcalF=(v._kcalF||0)+(b.watts||0)*_dtV/3600*3.6;
-            v._distF=(v._distF||0)+Math.round(b.rpm||0)*0.007*_dtV/60;
-            v.kcal=Math.round(v._kcalF);
-            v.dist=parseFloat(v._distF.toFixed(2));
-          }
-          v._accLast=agora;
-        }
-      }
-    });
-    _bled112LastTick = Date.now();
-    _bled112Falhas = 0;   // chegou dado: zera a contagem de falhas
-  }
+  var _processDevice=_prProcessDevice;   // 07/10b: a mesma entrada serve ao BLED112 e ao ANT+
 
   function _scanLoop(){
     if(!_bled112LiveActive) return;
@@ -6028,7 +6130,8 @@ function _gymIniciarLiveTick(){
 
 /** Cancela o scan BLED112 e fecha o painel */
 function _parCancelarBLED112(){
-  BLED112.stopScan();
+  try{ BLED112.stopScan(); }catch(e){}
+  try{ if(typeof ANTPLUS!=='undefined'&&ANTPLUS.connected){ ANTPLUS.stopScan(); _parIniciarLiveANT(); } }catch(e){}   // 07/10b
   if(_bled112ScanTimer){ clearTimeout(_bled112ScanTimer); _bled112ScanTimer=null; }
   var listEl=document.getElementById('bled112DevList');
   if(listEl) listEl.remove();
@@ -7692,7 +7795,9 @@ function _wsEnviarSalaInfo(){
     if(ocup.indexOf(n)<0){ ocup.push(n); ocupantes[n]=_rv[b].nome; } }); } }catch(e){}
   bikes.sort(function(x,y){return x-y;});
   var num=(typeof parNumBikes!=='undefined')?parNumBikes:bikes.length;
-  try{ wsProf.send(JSON.stringify({tipo:'sala_info', numBikes:num, bikes:bikes, ocupadas:ocup, ocupantes:ocupantes, aula:_gymAulaAtualInfo()})); }catch(e){}
+  // 07/10a: nº de cada bike na TV → nº da Keiser no console (o app das lojas lê a Keiser direto pelo nº dela)
+  var keiser={}; Object.keys(parBikeMap).forEach(function(num){ var b=parBikeMap[num]; if(b&&b._kid) keiser[parseInt(num)]=b._kid; });
+  try{ wsProf.send(JSON.stringify({tipo:'sala_info', numBikes:num, bikes:bikes, ocupadas:ocup, ocupantes:ocupantes, keiser:keiser, aula:_gymAulaAtualInfo()})); }catch(e){}
 }
 
 // Dados ao vivo de todas as bikes transmitindo (cada aluno filtra a sua pelo número).
@@ -10585,7 +10690,7 @@ checkSpotifyCallback();
   v.addEventListener('emptied',function(){ _amostras=[]; document.documentElement.style.removeProperty('--prVidCrop'); });
   v.addEventListener('playing',function(){ setTimeout(medir,500); });
 })();
-try{ console.log('%c[ProRider] BUILD 03/10x — TV volta sozinha quando o servidor reinicia no meio da aula (tenta de 5 em 5 s) e manda a propria saude (memoria, fps, tempo ligada) para a Saude + 03/10w: ativacao pelo codigo da TV (secreto, Admin > Licencas) + 03/10v: GERAR_PROGRAMA_DA_TV.bat confere a versao antes de gerar o programa + 03/10s: fim de aula nao conta mais como queda do servidor (sem aviso falso na Saude), resumo da aula com o codigo da sala, cartoes com o numero sempre inteiro (100% e zona nao cortam) e nome sem passar por baixo da bike + 03/10r: TV conversa com o servidor pelo endereco novo app.prorider.app.br + 03/10q: musica e video do Dropbox baixados pelo endereco direto do arquivo + 03/10p: bike/rolo de outras marcas (FTMS, potencia) ligado no celular do aluno aparece na TV; a Keiser continua pelo dongle + 03/10n: TV parada volta sozinha para a tela de espera (aulas de hoje) depois de 10 min sem uso, mesmo com o controle ligado; nunca durante a aula, aula pausada, contagem, gravacao, sessao livre ou na tela do QR + 03/10h: erro da TV mostra um codigo pequeno no canto (E-XXXX) para buscar na lupinha da Saude + 03/10f: sem internet a TV guarda o resumo da aula, o resultado do campeonato e a ficha da gravacao e envia sozinha quando a conexao volta (ate 7 dias); erros e avisos da TV chegam sozinhos na Saude do sistema + 03/10c: gravacao avisa na TV (nao comecou / salva / enviada ao app / falhou) + 03/10a: tela de transicao de segmento entra cobrindo a tela principal (sem o corte do grafico/video) + 02/10j: aula em rede: nas outras academias o professor principal vira o fundo (sem video) ou um quadrinho no canto (com video); na principal, com video escolhido, a camera so grava/transmite; musica e video por link baixados antes da aula (C:\ProRider\Cache, apagados em 2 dias); video da aula por link + 02/10f: musica por LINK (Dropbox/Google Drive) com o pendrive de reserva; aula em rede: START da mae libera 5 min antes do horario, as outras seguem sozinhas 5 min depois se ela nao comecar, RECOMECAR em todas nos primeiros 5 min (alunos continuam conectados) + 02/10e: AULA AO VIVO EM REDE: a academia que criou o desafio ao vivo da a aula; as outras entram por "Aula ao vivo em rede" no inicio, comecam junto com o START dela, seguem pausa e avanco, e mostram o video e a voz do professor num quadro + 02/10c: trilha do Construtor: varias musicas em sequencia, cada uma no trecho escolhido (de/ate), no mesmo relogio da aula + 02/10b: gravação = câmera limpa + roteiro da aula (aula gravada no app com os números do aluno), envio para teste + 02/10a: desafio entre academias (resumo de cada aula, placar ao vivo entre academias), gravar a aula (câmera + faixa da aula) e transmitir no app (WebRTC) e no YouTube Live (ffmpeg), quem está na bike reservada vira presente + 01/10f: reservas com bike: quem reservou aparece na bike reservada na tela do QR (amarelo; verde pedalando) e a bike fica bloqueada para os outros no app + 01/10e: telas de preparar a aula com o visual de volta (CSS completo), graficos de perfil proporcionais ao tempo, START responde na hora, menos carga + 01/10d: tela de espera opcao 2: logo original centralizado (maior) e as aulas de hoje passando embaixo + 01/10c: logo original em todas as telas + logo original (raio + PRO RIDER) em todas as telas + 01/10a: CAMPEONATO (Tour/Giro/Vuelta/Mundial): a TV acha a etapa de hoje, soma sprint e montanha bloco a bloco, manda o resultado no fim e mostra a classificacao como 3a tela do fim da aula; camisa ao lado do nome (grade de bikes, ranking) + 30/09f: camera ao vivo em cartao proprio na tela de configurar a aula + telas de preparar a aula no visual do Portal (inicio com 3 opcoes, Minhas aulas com QR no card e pendrive, aulas do sistema em grade com perfil, lista com detalhe, configurar aula com MP3/Spotify/sem musica e pendrive/YouTube/camera/sem video, QR com os dois codigos grandes e as bikes ao vivo) + YouTube de fundo sincronizado + contagem 3-2-1 com o play do Spotify + tela final com jornada, zonas e destaques + logo original em todas as telas + desafio do Construtor chega na aula + grafico 2 ~25% maior (sobe 32 px acima dos circulos) + grafico 2 no tamanho do projeto em qualquer TV (alturas no desenho 1920x1080, nao em vh) + tela de imersao cobrindo a TV inteira + SELECT: para teste/desafio, 2o SELECT volta ao grafico, sai da imersao + brasões novos (Aquecimento, Cadência, Pelotão antes do Bronze) + aulas do dia em cartões grandes na tela de espera (professor, tipo, duração, reservas, contagem regressiva, km e kcal do clube) + brasão ao lado do nome no ranking + aluno do totem (sem celular) na bike + nome/professor da aula aberta vão ao servidor (faixa verde do app) + ranking da TV com os campos escolhidos no Portal (ordem e colunas) + versao do Ginasio aparece no Portal + aluno da sala fica ligado a academia + novo mapa (RB=QR, Y=FC, LB+RB 5 s=espaco) + tela de frequencia cardiaca (bike ou cinta do celular) + fim de aula chega ao celular (pendente, ao fechar, sala encerrada) + fim de aula e ranking no padrao novo + modo espaco (LB+RB 1 s: tela escura com estrelas na velocidade da sala) + teste FTP: so entra quem pedala nos 10 primeiros s; resultado vai ao celular + lista da tela do QR sem rolagem + ranking >20 em rodizio de 10 s, nome e foto maiores + fluidez: anel do teste FTP a cada quadro pelo relogio real, desafio e FTP 10x/s, cartoes e ranking ~7x/s atualizados no lugar, agulha do perfil 5x/s + trocas de tela com esmaecimento rapido + teste de FTP na tela nova (ao vivo e resultado com podio por evolucao) + FTP pela MEDIA do teste x fator (antes: instante / fator) + grafico antigo desativado; esconder as caixas faz o grafico descer e crescer 30% + desafio fluido (4x/s, atualiza no lugar, kcal fracionaria, corda e barras deslizando; pico de potencia so dentro do desafio) + resultado do desafio congelado no fim + ranking com muitos alunos sem corte (linhas encolhem para caber, nome maior em duas colunas) + desafio automatico no bloco (construtor: tipo, modo e segundos; comeca sozinho e termina com o bloco) + desafio CABO DE GUERRA (corda pelo esforco de agora em %FTP) + podio no resultado final + barra de progresso por aluno + desafios equilibrados pelo FTP (kcal em pontos, potencia media em %FTP; potencia maxima bruta) + reconexao: confere os alunos com o servidor e libera a bike de quem nao voltou + desafio Homens x Mulheres com tela nova (10 por lado, troca a cada 5 s, sem rolagem) + resultado individual enviado ao celular + grafico 2 cabe entre os circulos + INICIO/FIM so no comeco e no fim da aula + mini grafico das telas de cartoes no mesmo eixo de tempo (sem os ~5 s de diferenca) + lobby: linha branca do perfil removida + coluna 3 sem sobreposicao (so CSS) + agulha do progresso andando no perfil da tela do QR + grafico 2 25% maior + altura 15% mais contrastada + largura mais proporcional ao tempo + caixas do rodape 25% maiores (texto se ajusta) + linha do perfil da pre-aula atras das barras + TrainingPeaks do pendrive + faixa preta gravada no video cortada sozinha + versao na tela inicial + linha do BUILD consertada + grade da sala limitada pelas bikes da licenca (/display/licenca) + grafico 2 troca de pagina na hora (nao fica atrasado conforme a tela) + bike 99 do professor aparece na aula e vai no relay + marcha e FC tambem nas bikes sem login + bled112.js unificado (Electron + Chrome) + marcha e FC nos cartoes + FC na lista do lobby + perfil do lobby alinhado (barras e linha no mesmo eixo) + cartao AULA SELECIONADA sem transbordar + QR sem dica flutuante + Meta FTP < 55% + 401 no pareamento oferece reativar + video travado no topo (faixa preta) + grafico 2: veu virou apagamento so nos cartoes + em pe/sentado pela borda de cima (sem P/S) + video de fundo cobrindo a tela inteira + gasto calorico pela mesma conta do app do aluno + painel de opcoes (quickbar) no visual das caixas do rodape + barra ao vivo ocupando a largura toda e com a posicao (de pe/sentado) + apagamento recortado bloco a bloco + pre-aula reorganizada + grafico pagina em telas + tela final: nome da aula, legenda alinhada + TSS na pre-aula e na tela final + protocolo de 60 min e fatores alinhados + grafico do topo acompanha pausa/avanco + lista de alunos sem rolagem + barras de rolagem removidas + dongle BLE: prova de vida, deteccao da velocidade e liberacao correta do leitor entre tentativas','color:#ea860c;font-weight:700;'); }catch(e){}
+try{ console.log('%c[ProRider] BUILD 07/10b — pendrive ANT+ na TV (bikes que so falam ANT+: Schwinn Echelon2, Spinner Blade ION, ICG TFT 1.0...) lidas todas ao mesmo tempo, como a Keiser + 07/10a: atualizacao automatica pelo servidor (assinada, de madrugada, volta sozinha se falhar), Keiser: resumo (review) ignorado e nº da Keiser enviado ao app + 03/10z: internet da academia caindo: a TV percebe em 15 s e religa sozinha, o aluno que cai continua na bike (sem aluno fantasma no resumo), o fim da aula chega aos celulares quando a internet volta + 03/10x: TV volta sozinha quando o servidor reinicia no meio da aula (tenta de 5 em 5 s) e manda a propria saude (memoria, fps, tempo ligada) para a Saude + 03/10w: ativacao pelo codigo da TV (secreto, Admin > Licencas) + 03/10v: GERAR_PROGRAMA_DA_TV.bat confere a versao antes de gerar o programa + 03/10s: fim de aula nao conta mais como queda do servidor (sem aviso falso na Saude), resumo da aula com o codigo da sala, cartoes com o numero sempre inteiro (100% e zona nao cortam) e nome sem passar por baixo da bike + 03/10r: TV conversa com o servidor pelo endereco novo app.prorider.app.br + 03/10q: musica e video do Dropbox baixados pelo endereco direto do arquivo + 03/10p: bike/rolo de outras marcas (FTMS, potencia) ligado no celular do aluno aparece na TV; a Keiser continua pelo dongle + 03/10n: TV parada volta sozinha para a tela de espera (aulas de hoje) depois de 10 min sem uso, mesmo com o controle ligado; nunca durante a aula, aula pausada, contagem, gravacao, sessao livre ou na tela do QR + 03/10h: erro da TV mostra um codigo pequeno no canto (E-XXXX) para buscar na lupinha da Saude + 03/10f: sem internet a TV guarda o resumo da aula, o resultado do campeonato e a ficha da gravacao e envia sozinha quando a conexao volta (ate 7 dias); erros e avisos da TV chegam sozinhos na Saude do sistema + 03/10c: gravacao avisa na TV (nao comecou / salva / enviada ao app / falhou) + 03/10a: tela de transicao de segmento entra cobrindo a tela principal (sem o corte do grafico/video) + 02/10j: aula em rede: nas outras academias o professor principal vira o fundo (sem video) ou um quadrinho no canto (com video); na principal, com video escolhido, a camera so grava/transmite; musica e video por link baixados antes da aula (C:\ProRider\Cache, apagados em 2 dias); video da aula por link + 02/10f: musica por LINK (Dropbox/Google Drive) com o pendrive de reserva; aula em rede: START da mae libera 5 min antes do horario, as outras seguem sozinhas 5 min depois se ela nao comecar, RECOMECAR em todas nos primeiros 5 min (alunos continuam conectados) + 02/10e: AULA AO VIVO EM REDE: a academia que criou o desafio ao vivo da a aula; as outras entram por "Aula ao vivo em rede" no inicio, comecam junto com o START dela, seguem pausa e avanco, e mostram o video e a voz do professor num quadro + 02/10c: trilha do Construtor: varias musicas em sequencia, cada uma no trecho escolhido (de/ate), no mesmo relogio da aula + 02/10b: gravação = câmera limpa + roteiro da aula (aula gravada no app com os números do aluno), envio para teste + 02/10a: desafio entre academias (resumo de cada aula, placar ao vivo entre academias), gravar a aula (câmera + faixa da aula) e transmitir no app (WebRTC) e no YouTube Live (ffmpeg), quem está na bike reservada vira presente + 01/10f: reservas com bike: quem reservou aparece na bike reservada na tela do QR (amarelo; verde pedalando) e a bike fica bloqueada para os outros no app + 01/10e: telas de preparar a aula com o visual de volta (CSS completo), graficos de perfil proporcionais ao tempo, START responde na hora, menos carga + 01/10d: tela de espera opcao 2: logo original centralizado (maior) e as aulas de hoje passando embaixo + 01/10c: logo original em todas as telas + logo original (raio + PRO RIDER) em todas as telas + 01/10a: CAMPEONATO (Tour/Giro/Vuelta/Mundial): a TV acha a etapa de hoje, soma sprint e montanha bloco a bloco, manda o resultado no fim e mostra a classificacao como 3a tela do fim da aula; camisa ao lado do nome (grade de bikes, ranking) + 30/09f: camera ao vivo em cartao proprio na tela de configurar a aula + telas de preparar a aula no visual do Portal (inicio com 3 opcoes, Minhas aulas com QR no card e pendrive, aulas do sistema em grade com perfil, lista com detalhe, configurar aula com MP3/Spotify/sem musica e pendrive/YouTube/camera/sem video, QR com os dois codigos grandes e as bikes ao vivo) + YouTube de fundo sincronizado + contagem 3-2-1 com o play do Spotify + tela final com jornada, zonas e destaques + logo original em todas as telas + desafio do Construtor chega na aula + grafico 2 ~25% maior (sobe 32 px acima dos circulos) + grafico 2 no tamanho do projeto em qualquer TV (alturas no desenho 1920x1080, nao em vh) + tela de imersao cobrindo a TV inteira + SELECT: para teste/desafio, 2o SELECT volta ao grafico, sai da imersao + brasões novos (Aquecimento, Cadência, Pelotão antes do Bronze) + aulas do dia em cartões grandes na tela de espera (professor, tipo, duração, reservas, contagem regressiva, km e kcal do clube) + brasão ao lado do nome no ranking + aluno do totem (sem celular) na bike + nome/professor da aula aberta vão ao servidor (faixa verde do app) + ranking da TV com os campos escolhidos no Portal (ordem e colunas) + versao do Ginasio aparece no Portal + aluno da sala fica ligado a academia + novo mapa (RB=QR, Y=FC, LB+RB 5 s=espaco) + tela de frequencia cardiaca (bike ou cinta do celular) + fim de aula chega ao celular (pendente, ao fechar, sala encerrada) + fim de aula e ranking no padrao novo + modo espaco (LB+RB 1 s: tela escura com estrelas na velocidade da sala) + teste FTP: so entra quem pedala nos 10 primeiros s; resultado vai ao celular + lista da tela do QR sem rolagem + ranking >20 em rodizio de 10 s, nome e foto maiores + fluidez: anel do teste FTP a cada quadro pelo relogio real, desafio e FTP 10x/s, cartoes e ranking ~7x/s atualizados no lugar, agulha do perfil 5x/s + trocas de tela com esmaecimento rapido + teste de FTP na tela nova (ao vivo e resultado com podio por evolucao) + FTP pela MEDIA do teste x fator (antes: instante / fator) + grafico antigo desativado; esconder as caixas faz o grafico descer e crescer 30% + desafio fluido (4x/s, atualiza no lugar, kcal fracionaria, corda e barras deslizando; pico de potencia so dentro do desafio) + resultado do desafio congelado no fim + ranking com muitos alunos sem corte (linhas encolhem para caber, nome maior em duas colunas) + desafio automatico no bloco (construtor: tipo, modo e segundos; comeca sozinho e termina com o bloco) + desafio CABO DE GUERRA (corda pelo esforco de agora em %FTP) + podio no resultado final + barra de progresso por aluno + desafios equilibrados pelo FTP (kcal em pontos, potencia media em %FTP; potencia maxima bruta) + reconexao: confere os alunos com o servidor e libera a bike de quem nao voltou + desafio Homens x Mulheres com tela nova (10 por lado, troca a cada 5 s, sem rolagem) + resultado individual enviado ao celular + grafico 2 cabe entre os circulos + INICIO/FIM so no comeco e no fim da aula + mini grafico das telas de cartoes no mesmo eixo de tempo (sem os ~5 s de diferenca) + lobby: linha branca do perfil removida + coluna 3 sem sobreposicao (so CSS) + agulha do progresso andando no perfil da tela do QR + grafico 2 25% maior + altura 15% mais contrastada + largura mais proporcional ao tempo + caixas do rodape 25% maiores (texto se ajusta) + linha do perfil da pre-aula atras das barras + TrainingPeaks do pendrive + faixa preta gravada no video cortada sozinha + versao na tela inicial + linha do BUILD consertada + grade da sala limitada pelas bikes da licenca (/display/licenca) + grafico 2 troca de pagina na hora (nao fica atrasado conforme a tela) + bike 99 do professor aparece na aula e vai no relay + marcha e FC tambem nas bikes sem login + bled112.js unificado (Electron + Chrome) + marcha e FC nos cartoes + FC na lista do lobby + perfil do lobby alinhado (barras e linha no mesmo eixo) + cartao AULA SELECIONADA sem transbordar + QR sem dica flutuante + Meta FTP < 55% + 401 no pareamento oferece reativar + video travado no topo (faixa preta) + grafico 2: veu virou apagamento so nos cartoes + em pe/sentado pela borda de cima (sem P/S) + video de fundo cobrindo a tela inteira + gasto calorico pela mesma conta do app do aluno + painel de opcoes (quickbar) no visual das caixas do rodape + barra ao vivo ocupando a largura toda e com a posicao (de pe/sentado) + apagamento recortado bloco a bloco + pre-aula reorganizada + grafico pagina em telas + tela final: nome da aula, legenda alinhada + TSS na pre-aula e na tela final + protocolo de 60 min e fatores alinhados + grafico do topo acompanha pausa/avanco + lista de alunos sem rolagem + barras de rolagem removidas + dongle BLE: prova de vida, deteccao da velocidade e liberacao correta do leitor entre tentativas','color:#ea860c;font-weight:700;'); }catch(e){}
 
 // 26/09d: fechar o programa (ou a janela) avisa os celulares que a aula acabou.
 // Sem isto, o celular so descobria 3 minutos depois (prazo do servidor).
@@ -10624,4 +10729,55 @@ window.addEventListener('beforeunload',function(){
   }
   setTimeout(_enviar,15000);
   setInterval(_enviar,parseInt(window._PR_SAUDE_MS||60000,10));
+})();
+
+// ── 07/10a: ATUALIZAÇÃO AUTOMÁTICA DA TV (pelo servidor, sem pendrive nem TeamViewer) ────────
+// O programa da TV precisa ter o atualizador (atualizador-tv.js + preload → window.prAtualizador).
+// A cada 10 min a TV pergunta ao servidor. Se houver versão nova para esta academia, ela só instala
+// quando estiver PARADA na tela de espera (sem aula, sem pré-aula, sem gravação) e dentro da janela
+// (padrão 02:00–05:00, no relógio do próprio computador da TV) — ou na hora, se o Admin pediu
+// "atualizar agora". Quem confere a assinatura e grava os arquivos é o programa (processo principal).
+// Depois de abrir a versão nova, a tela se CONFIRMA em 60 s; se travar, o programa volta sozinho.
+(function(){
+  var _errosAtu=0, _avisouSemSuporte=false, _tentouEm={};
+  window.addEventListener('error',function(){ _errosAtu++; });
+  function tk(){ return (typeof _gymDisplayToken!=='undefined'&&_gymDisplayToken&&_gymDisplayToken!=='dev-bypass')?_gymDisplayToken:''; }
+  function contar(etapa,de,para,msg){ var t=tk(); if(!t) return;
+    fetch(SERVER_HTTP+'/display/atualizacao/status',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+t,'X-PR-Build':PR_BUILD},
+      body:JSON.stringify({etapa:etapa,de:de||'',para:para||'',msg:msg||''})}).catch(function(){}); }
+  function naJanela(j){ var m=String(j||'02:00-05:00').match(/^(\d\d):(\d\d)-(\d\d):(\d\d)$/); if(!m) return false;
+    var n=new Date(), x=n.getHours()*60+n.getMinutes(), a=(+m[1])*60+(+m[2]), b=(+m[3])*60+(+m[4]); return a<=b?(x>=a&&x<b):(x>=a||x<b); }
+  function parada(){ try{ if(typeof isPlaying!=='undefined'&&isPlaying) return false; return typeof boxMode!=='undefined'&&boxMode==='idle'; }catch(e){ return false; } }
+  window._prAtuPodeAgora=parada;
+  async function checar(){
+    var t=tk(); if(!t||window._PR_OFFLINE) return;
+    var r; try{ r=await (await fetch(SERVER_HTTP+'/display/atualizacao',{headers:{'Authorization':'Bearer '+t,'X-PR-Build':PR_BUILD},cache:'no-store'})).json(); }catch(e){ return; }
+    window._prAtuUltima=r;
+    if(!r||r.nada||!r.versao) return;
+    if(!window.prAtualizador){ if(!_avisouSemSuporte){ _avisouSemSuporte=true; contar('sem_suporte',PR_BUILD.replace('BUILD ',''),r.versao,'o programa da TV ainda não tem o atualizador: instalar uma vez pelo GERAR_PROGRAMA_DA_TV.bat'); } return; }
+    if(!(r.agora||naJanela(r.janela))||!parada()) return;
+    if(_tentouEm[r.versao]&&Date.now()-_tentouEm[r.versao]<3600000) return;   // falhou há pouco: tenta de novo em 1 h
+    _tentouEm[r.versao]=Date.now();
+    var de=PR_BUILD.replace('BUILD ','');
+    try{ console.log('[ProRider] atualização automática: instalando a '+r.versao+'…'); }catch(e){}
+    contar('baixando',de,r.versao,'');
+    var res=null; try{ res=await window.prAtualizador.instalar({versao:r.versao,url:r.url,sha256:r.sha256,assinatura:r.assinatura}); }catch(e){ res={ok:false,erro:(e&&e.message)||String(e)}; }
+    if(res&&res.ok){ contar('instalada',de,r.versao,'reabrindo na versão nova'); }
+    else{ contar('erro',de,r.versao,(res&&res.erro)||'falhou'); try{ prErroTv('Atualização automática da TV falhou ('+r.versao+'): '+((res&&res.erro)||'?'),'aviso'); }catch(e){} }
+  }
+  // ao abrir: confirma a versão nova (ou conta que voltou para a anterior)
+  setTimeout(async function(){
+    if(!window.prAtualizador) return;
+    var e=null; try{ e=await window.prAtualizador.estado(); }catch(x){ return; }
+    if(e&&e.falhou&&e.falhou.em&&Date.now()-new Date(e.falhou.em).getTime()<86400000&&localStorage.getItem('pr_atu_falha_contada')!==e.falhou.em){
+      localStorage.setItem('pr_atu_falha_contada',e.falhou.em); contar('voltou',e.falhou.versao,e.falhou.versao,e.falhou.motivo||''); }
+    if(!e||!e.pendente) return;
+    var ok=(typeof iniciarWS==='function')&&(typeof BLED112!=='undefined')&&_errosAtu===0&&document.getElementById('idleScreen');
+    if(!ok){ try{ console.warn('[ProRider] versão nova abriu com problema — não confirmo; o programa volta sozinho para a anterior.'); }catch(x){} return; }
+    var c=null; try{ c=await window.prAtualizador.confirmar(PR_BUILD); }catch(x){}
+    if(c&&c.ok) contar('ok',e.anterior||'',e.atual||PR_BUILD.replace('BUILD ',''),'confirmada');
+  },parseInt(window._PR_ATU_CONFIRMAR_MS||60000,10));
+  setTimeout(checar,parseInt(window._PR_ATU_PRIMEIRA_MS||90000,10));
+  setInterval(checar,parseInt(window._PR_ATU_MS||600000,10));
+  window._prAtuChecar=checar;
 })();

@@ -942,6 +942,9 @@ async function runMigrations() {
     setTimeout(() => geoPreencherFaltando().catch(e => log('geo backfill: ' + e.message)), 15000);
     // 03/10w: código da TV separado do código da licença (que é público: aparece na página da academia)
     await db.query(`ALTER TABLE licencas ADD COLUMN IF NOT EXISTS codigo_tv TEXT`);
+    // 07/10a: atualização automática da TV (por academia) e o que aconteceu na última
+    await db.query(`ALTER TABLE licencas ADD COLUMN IF NOT EXISTS tv_auto_atualizar BOOLEAN DEFAULT FALSE, ADD COLUMN IF NOT EXISTS tv_atualizar_agora TIMESTAMPTZ`);
+    await db.query(`ALTER TABLE licenca_computadores ADD COLUMN IF NOT EXISTS atualizacao JSONB`);
     await garantirCodigoTv();
 
   } catch(e) {
@@ -1572,6 +1575,7 @@ wss.on('connection', (ws) => {
   ws.on('message', async (raw) => {
     let msg;
     try { msg = JSON.parse(raw); } catch (e) { return; }
+    ws._ultMsg = Date.now(); if (msg.tipo === 'ping' && msg.v === 2) ws._pingRapido = true;   // 03/10y: TV viva?
     // 03/10w: mensagens que só a TV (professor da sala) pode mandar. Antes, qualquer um que
     // entrasse na sala podia encerrar a aula de todos ou mandar um gráfico falso.
     if (WS_SO_TV.has(msg.tipo) && ws._tipo !== 'professor') return;
@@ -1747,7 +1751,8 @@ wss.on('connection', (ws) => {
         const salaCode = ws._salaCode; // socket do professor
         if (!salaCode || !salas[salaCode]) return;
         const sala = salas[salaCode];
-        const info = { tipo: 'sala_info', numBikes: msg.numBikes || 0, bikes: msg.bikes || [], ocupadas: msg.ocupadas || [], ocupantes: (msg.ocupantes && typeof msg.ocupantes === 'object') ? msg.ocupantes : {}, trancadas: [...(sala.trancadas || [])] }; // 26/09b: ocupantes = {bike: nome}
+        const info = { tipo: 'sala_info', numBikes: msg.numBikes || 0, bikes: msg.bikes || [], ocupadas: msg.ocupadas || [], ocupantes: (msg.ocupantes && typeof msg.ocupantes === 'object') ? msg.ocupantes : {}, trancadas: [...(sala.trancadas || [])],
+          keiser: (() => { const k = {}; if (msg.keiser && typeof msg.keiser === 'object') for (const [b, id] of Object.entries(msg.keiser).slice(0, 300)) { const nb = parseInt(b, 10), ni = parseInt(id, 10); if (nb > 0 && nb < 1000 && ni > 0 && ni <= 255) k[nb] = ni; } return k; })() };   // 07/10a: nº da bike → nº da Keiser // 26/09b: ocupantes = {bike: nome}
         sala.lastSalaInfo = info; // cache: novo observador recebe o mapa na hora
         // 29/09a: nome/professor da aula escolhida na pré-aula (faixa verde do app e totem)
         // Nova pré-aula depois de uma aula encerrada (mesma sala): volta a
@@ -2022,7 +2027,7 @@ wss.on('connection', (ws) => {
       // Encerramento DELIBERADO continua imediato: vem pela mensagem
       // 'fim_aula', tratada acima, nao por aqui.
       if (sala.professor && sala.professor !== ws) return; // 26/09b: conexao antiga; o Ginasio ja voltou por outra
-      log(`Professor caiu da sala ${salaCode} — aguardando ate 3 min antes de encerrar`);
+      log(`Professor caiu da sala ${salaCode} — aguardando a TV voltar (3 min; 20 min com aula rodando)`);
       sala.profCaiuEm = Date.now();
     } else if (ws._tipo === 'aluno' && ws._nome) {
       // 26/09b: so tira o aluno se ESTA conexao ainda e a dele. Se ele ja
@@ -2682,6 +2687,57 @@ async function displayAuth(req, res, next) {
 }
 
 // Grade do dia (leitura, para o mini PC)
+// ══ 07/10a — ATUALIZAÇÃO AUTOMÁTICA DA TV ════════════════════════════
+// O pacote assinado (ferramentas/montar-atualizacao-tv.js) fica em public/ginasio/atualizacao/.
+// A TV pergunta aqui; só recebe se a academia estiver com a atualização LIGADA (Admin → Licenças),
+// se a versão dela for outra e se o manifesto for da GINASIO_VERSAO deste servidor. A TV decide a
+// hora (madrugada, sem aula) e só aceita pacote com a assinatura da ProRider.
+let _manTv = null, _manTvLido = 0;
+function manifestoTv() {
+  if (Date.now() - _manTvLido < 60000) return _manTv; _manTvLido = Date.now();
+  try { const m = JSON.parse(require('fs').readFileSync(path.join(__dirname, 'public', 'ginasio', 'atualizacao', 'manifesto.json'), 'utf8'));
+    _manTv = (m && m.versao === GINASIO_VERSAO && /^[\w.-]+\.prpack$/.test(m.arquivo || '') && /^[0-9a-f]{64}$/.test(m.sha256 || '') && m.assinatura) ? m : null;
+  } catch (e) { _manTv = null; }
+  return _manTv;
+}
+app.get('/display/atualizacao', displayAuth, async (req, res) => {
+  try {
+    if (!db || req.user.role !== 'display') return res.json({ nada: true });
+    const m = manifestoTv(); if (!m) return res.json({ nada: true, motivo: 'sem_pacote' });
+    if (String(req.headers['x-pr-build'] || '').trim() === 'BUILD ' + m.versao) return res.json({ nada: true, motivo: 'em_dia' });
+    const l = (await db.query('SELECT tv_auto_atualizar, tv_atualizar_agora FROM licencas WHERE codigo=$1', [req.user.license_id])).rows[0];
+    if (!l || !l.tv_auto_atualizar) return res.json({ nada: true, motivo: 'desligada', disponivel: m.versao });
+    const base = (process.env.TV_ATUALIZACAO_BASE || 'https://app.prorider.app.br').replace(/\/$/, '');
+    res.json({ versao: m.versao, url: base + '/ginasio/atualizacao/' + m.arquivo, sha256: m.sha256, assinatura: m.assinatura, tamanho: m.tamanho,
+      janela: process.env.TV_JANELA || '02:00-05:00', agora: !!(l.tv_atualizar_agora && Date.now() - new Date(l.tv_atualizar_agora).getTime() < 6 * 3600000) });
+  } catch (e) { res.status(500).json({ nada: true }); }
+});
+app.post('/display/atualizacao/status', displayAuth, async (req, res) => {
+  if (!db || req.user.role !== 'display' || !req.user.device_id) return res.json({ ok: false });
+  const b = req.body || {}, etapa = String(b.etapa || '').slice(0, 20);
+  if (!/^(baixando|instalada|ok|erro|voltou|sem_suporte)$/.test(etapa)) return res.status(400).json({ ok: false });
+  const d = { etapa, de: String(b.de || '').slice(0, 30), para: String(b.para || '').slice(0, 30), msg: String(b.msg || '').slice(0, 200), em: new Date().toISOString() };
+  try {
+    await db.query('UPDATE licenca_computadores SET atualizacao=$1 WHERE license_codigo=$2 AND device_id=$3', [d, req.user.license_id, req.user.device_id]);
+    if (etapa === 'ok') await db.query('UPDATE licencas SET tv_atualizar_agora=NULL WHERE codigo=$1', [req.user.license_id]);
+    log(`TV ${req.user.license_id}/${req.user.device_id}: atualização ${etapa} ${d.de}→${d.para} ${d.msg}`);
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ ok: false }); }
+});
+app.post('/admin/licencas/:codigo/tv-atualizacao', adminAuth, async (req, res) => {
+  if (!db) return res.status(503).json({ error: 'Banco indisponível' });
+  try {
+    const b = req.body || {}, sets = [], vals = [];
+    if (typeof b.ligado === 'boolean') { vals.push(b.ligado); sets.push('tv_auto_atualizar=$' + vals.length); }
+    if (b.agora === true) sets.push('tv_atualizar_agora=NOW()');
+    if (!sets.length) return res.status(400).json({ error: 'nada para mudar' });
+    vals.push(req.params.codigo);
+    const r = await db.query(`UPDATE licencas SET ${sets.join(', ')} WHERE codigo=$${vals.length} RETURNING tv_auto_atualizar, tv_atualizar_agora`, vals);
+    if (!r.rows.length) return res.status(404).json({ error: 'licença não encontrada' });
+    res.json({ ok: true, ...r.rows[0], disponivel: (manifestoTv() || {}).versao || null });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 // 03/10x: a TV manda a própria saúde a cada minuto (memória do JavaScript, nós da tela, quadros por
 // segundo, tempo ligada, aula em andamento). Fica o último na lista de TVs e um histórico de 3 dias
 // (um ponto a cada 5 min) para ver se a memória cresce numa aula longa.
@@ -5242,17 +5298,34 @@ app.get('/gestor/relatorio', gestorAuth, async (req, res) => {
 // intervalo recebia "Sala não encontrada", e o código na tela do Ginásio já não
 // valia mais. Agora a sala só é removida depois de 3 MINUTOS sem professor.
 const CARENCIA_SALA_MS = 3 * 60 * 1000;
+// 03/10y: com a AULA RODANDO, a TV que some (internet da academia caiu) tem 20 min para voltar:
+// a aula continua na TV com o dongle, e os celulares (no 4G) não são expulsos.
+const CARENCIA_AULA_MS = parseInt(process.env.CARENCIA_AULA_S || '1200', 10) * 1000;
+// 03/10y: TV SEM SINAL. A cada 5 s: com aula em andamento, a TV calada há mais de 15 s (TV 03/10y
+// manda batimento de 5 em 5 s; as antigas, 40 s) ou desconectada → os celulares são avisados
+// ("a TV da academia está sem internet") e, quando ela volta, o aviso sai.
+setInterval(() => {
+  const agora = Date.now();
+  for (const [codigo, sala] of Object.entries(salas)) {
+    if (!sala || sala.estado.encerrada || !(sala.estado.iniciada || (sala.aoVivoEm && agora - sala.aoVivoEm < 600000))) { sala && (sala.tvSemSinal = null); continue; }
+    const p = sala.professor, aberto = p && p.readyState === WebSocket.OPEN;
+    const calada = !aberto || agora - (p._ultMsg || 0) > (p._pingRapido ? 15000 : 40000);
+    if (calada && !sala.tvSemSinal) { sala.tvSemSinal = agora; try { broadcastAlunos(codigo, { tipo: 'tv_sem_sinal' }); } catch (e) {} log(`TV sem sinal na sala ${codigo} (aula em andamento)`); }
+    else if (!calada && sala.tvSemSinal) { log(`TV voltou na sala ${codigo} após ${Math.round((agora - sala.tvSemSinal) / 1000)} s`); sala.tvSemSinal = null; try { broadcastAlunos(codigo, { tipo: 'tv_voltou' }); } catch (e) {} }
+  }
+}, 5000);
 setInterval(() => {
   const agora = Date.now();
   for (const [codigo, sala] of Object.entries(salas)) {
     const profOk = sala.professor && sala.professor.readyState === WebSocket.OPEN;
     if (profOk) { sala.profCaiuEm = null; continue; }
+    const _emAula = !sala.estado.encerrada && (sala.estado.iniciada || (sala.aoVivoEm && (sala.profCaiuEm || agora) - sala.aoVivoEm < 120000));
     // 26/09d: antes, havendo alunos na sala, o prazo nunca corria — com o
     // Ginasio fechado direto, os celulares ficavam "em aula" para sempre.
     // Agora os 3 minutos contam mesmo com alunos; no fim eles recebem
     // 'sala_encerrada' e o app fecha a aula e mostra o resultado.
     if (!sala.profCaiuEm) { sala.profCaiuEm = agora; continue; }   // começa a contar
-    if (agora - sala.profCaiuEm >= CARENCIA_SALA_MS) {
+    if (agora - sala.profCaiuEm >= (_emAula ? CARENCIA_AULA_MS : CARENCIA_SALA_MS)) {
       // avisa quem ainda estiver na sala ANTES de apaga-la, para o app do aluno
       // poder limpar o codigo guardado e nao tentar voltar para uma sala morta
       try { broadcastAlunos(codigo, { tipo: 'sala_encerrada' }); } catch(e) {}
@@ -6418,10 +6491,10 @@ app.post('/display/gravacao/:id/enviar', displayAuth, async (req, res) => {
 // 03/10e — SEGURANÇA E SAÚDE: esqueci a senha, reportar problema,
 // excluir minha conta (LGPD) e a página "Saúde do sistema" do admin
 // ══════════════════════════════════════════════════════════════
-const SERVIDOR_VERSAO = '03/10y';
+const SERVIDOR_VERSAO = '07/10b';
 // 03/10y: versão do Ginásio que vai junto com este servidor. Pacote só de servidor/site não muda isto,
 // e as TVs não precisam ser reinstaladas. Mude junto com o PR_BUILD do Ginásio.
-const GINASIO_VERSAO = '03/10x';
+const GINASIO_VERSAO = '07/10b';
 // 03/10v: a TV certa tem o mesmo número do servidor (o pacote sobe os dois juntos)
 function tvVersaoOk(b) { return String(b || '').trim() === 'BUILD ' + GINASIO_VERSAO; }
 const _inicioServidor = Date.now();
@@ -6634,10 +6707,12 @@ app.get('/admin/saude', adminAuth, async (req, res) => {
     if (livre !== null && livre < 2) al('erro', 'Pouco espaço para gravações: ' + livre + ' GB livres.');
   } catch (e) {}
   try {
-    const tv = (await db.query(`SELECT lc.license_codigo, COALESCE(l.nome_fantasia, l.nome) AS academia, lc.nome_computador, lc.device_id, lc.build, lc.visto_em, lc.saude, lc.saude_em,
+    const tv = (await db.query(`SELECT lc.license_codigo, COALESCE(l.nome_fantasia, l.nome) AS academia, lc.nome_computador, lc.device_id, lc.build, lc.visto_em, lc.saude, lc.saude_em, lc.atualizacao, l.tv_auto_atualizar,
         (SELECT h.d->>'mem_mb' FROM tv_saude h WHERE h.license_codigo=lc.license_codigo AND h.device_id=lc.device_id AND h.em < NOW() - INTERVAL '55 minutes' AND h.em > NOW() - INTERVAL '2 hours' ORDER BY h.em DESC LIMIT 1) AS mem_1h
       FROM licenca_computadores lc LEFT JOIN licencas l ON l.codigo=lc.license_codigo ORDER BY lc.visto_em DESC LIMIT 40`)).rows;
-    out.tvs = { lista: tv, online: tv.filter(x => Date.now() - new Date(x.visto_em).getTime() < 5 * 60000).length, versao_atual: 'BUILD ' + GINASIO_VERSAO };
+    out.tvs = { lista: tv, online: tv.filter(x => Date.now() - new Date(x.visto_em).getTime() < 5 * 60000).length, versao_atual: 'BUILD ' + GINASIO_VERSAO, pacote_auto: (manifestoTv() || {}).versao || null };   // 07/10a
+    tv.filter(x => x.atualizacao && /^(erro|voltou)$/.test(x.atualizacao.etapa) && Date.now() - new Date(x.atualizacao.em).getTime() < 3 * 86400000)
+      .forEach(x => al('aviso', 'TV ' + (x.academia || x.license_codigo) + ': atualização automática ' + (x.atualizacao.etapa === 'voltou' ? 'VOLTOU para a versão anterior' : 'falhou') + ' (' + x.atualizacao.para + '): ' + x.atualizacao.msg));
     // 03/10v: TV vista nos últimos 14 dias numa versão diferente da do servidor
     const velhas = tv.filter(x => x.build && Date.now() - new Date(x.visto_em).getTime() < 14 * 86400000 && !tvVersaoOk(x.build));
     if (velhas.length) al('aviso', velhas.length + ' TV(s) com versão do Ginásio diferente da atual (BUILD ' + GINASIO_VERSAO + '): ' + velhas.map(x => (x.academia || x.license_codigo) + ' — ' + x.build).join('; ') + '. Reinstale a versão do pacote mais novo.');

@@ -969,7 +969,7 @@ function lpLogoToque(){}
 setTimeout(lpStats, 300); setInterval(lpStats, 30000);
 
 var adminToken = localStorage.getItem('pr_admin_token') || '';
-try { if (typeof prErroConfig === 'function') prErroConfig(SERVER, 'admin', function () { return adminToken; }, 'Admin 03/10y'); } catch (e) {}   // 03/10f
+try { if (typeof prErroConfig === 'function') prErroConfig(SERVER, 'admin', function () { return adminToken; }, 'Admin 07/10b'); } catch (e) {}   // 03/10f
 var adminUser  = JSON.parse(localStorage.getItem('pr_admin_user') || 'null');
 var allLicencas = [];
 var allAlunos   = [];
@@ -1166,7 +1166,7 @@ function renderLicencas(list) {
       <td>${l.max_bikes||'—'}</td>
       <td>${l.total_alunos||0}</td>
       <td style="color:var(--muted)">${fmtQuando(l.ultima_aula)}</td>
-      <td>${tvStatus(l)}</td>
+      <td>${tvStatus(l)}<div class="lic-sub" title="07/10a: a TV se atualiza sozinha de madrugada (sem aula), com o pacote assinado pela ProRider"><a href="#" style="color:${l.tv_auto_atualizar?'#8fe06a':'var(--muted)'}" onclick="event.preventDefault();tvAutoAtu('${l.codigo}',${!l.tv_auto_atualizar})">⟳ auto ${l.tv_auto_atualizar?'ligada':'desligada'}</a>${l.tv_auto_atualizar?` · <a href="#" style="color:#7fb2ff" onclick="event.preventDefault();tvAutoAtu('${l.codigo}',null,true)">atualizar agora</a>`:''}</div></td>
       <td>
         <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
           <button class="btn btn-sm btn-entrar" title="Entrar como gestor desta academia" onclick="impersonar('${l.codigo}','${nmq}')">Entrar →</button>
@@ -1866,6 +1866,21 @@ async function ljCortesia(tipo,id){
 
 // ═══ 03/10e — SAÚDE DO SISTEMA ════════════════════════════════
 // 03/10x: saúde da TV (memória, quadros por segundo, tempo ligada, aula) — clique em "histórico" para ver a memória ao longo do tempo
+// 07/10a: atualização automática da TV — ligar/desligar por academia e "atualizar agora" (sem esperar a madrugada)
+async function tvAutoAtu(cod, ligado, agora){
+  if(agora && !confirm('Atualizar a TV desta academia AGORA (assim que ela estiver sem aula), sem esperar a madrugada?')) return;
+  const body={}; if(typeof ligado==='boolean') body.ligado=ligado; if(agora) body.agora=true;
+  const r=await api('/admin/licencas/'+encodeURIComponent(cod)+'/tv-atualizacao',{method:'POST',body:JSON.stringify(body)}).catch(()=>null);
+  if(!r||!r.ok){ alert((r&&r.error)||'Sem conexão'); return; }
+  if(agora) alert(r.disponivel?'Pedido enviado: a TV instala a '+r.disponivel+' em até 10 min, se estiver sem aula.':'Pedido salvo, mas ainda não há pacote assinado no servidor.');
+  try{ loadLicencas(); }catch(e){}
+}
+function sdTvAtu(t){
+  const a=t.atualizacao; if(!a) return t.tv_auto_atualizar?'<span style="color:var(--muted)">⟳ auto ligada</span>':'';
+  const cor={ok:'#8fe06a',erro:'#ff8a8a',voltou:'#ffb45a',baixando:'#7fb2ff',instalada:'#7fb2ff',sem_suporte:'var(--muted)'}[a.etapa]||'inherit';
+  const txt={ok:'atualizou',erro:'falhou',voltou:'voltou à anterior',baixando:'baixando',instalada:'instalada, confirmando',sem_suporte:'programa sem atualizador'}[a.etapa]||a.etapa;
+  return '<span style="color:'+cor+'" title="'+sdEsc(a.msg||'')+'">⟳ '+txt+(a.para?' '+sdEsc(a.para):'')+' · '+sdQuando(a.em)+'</span>';
+}
 function sdHm(m){ m=Math.round(m||0); return m>=60?Math.floor(m/60)+'h'+String(m%60).padStart(2,'0'):m+' min'; }
 function sdTvSaude(t){
   const x=t.saude; if(!x||!t.saude_em) return '<span style="color:var(--muted)">—</span>';
@@ -1949,7 +1964,7 @@ async function loadSaude(){
     +(d.relatos.length?d.relatos.map(r=>'<tr><td style="white-space:nowrap;font-size:12px">'+new Date(r.created_at).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})+'</td><td>'+sdEsc(r.nome||'—')+'<div style="font-size:11px;color:var(--muted)">'+sdEsc(r.email||'')+(r.license_id?' · '+sdEsc(r.license_id):'')+'</div></td><td style="font-size:12px">'+sdEsc(r.origem)+'<div style="font-size:11px;color:var(--muted)">'+sdEsc(r.tela)+' · '+sdEsc(r.versao)+'</div></td><td style="max-width:520px">'+sdEsc(r.texto)+'</td><td><button class="btn btn-outline btn-sm" onclick="sdResolver('+r.id+')">Resolvido</button></td></tr>').join('')
       :'<tr><td colspan="5" style="text-align:center;padding:22px;color:var(--muted)">Nenhum problema reportado em aberto.</td></tr>')+'</tbody></table></div>';
   h+='<div class="table-wrap" style="margin-bottom:16px"><div class="table-header"><h2>TVs (Ginásio)</h2></div><table><thead><tr><th>Academia</th><th>Computador</th><th>Versão</th><th>Visto</th><th>Saúde da TV</th></tr></thead><tbody>'
-    +((d.tvs.lista||[]).map(t=>{ const on=Date.now()-new Date(t.visto_em)<300000; return '<tr><td>'+sdEsc(t.academia||t.license_codigo)+'</td><td>'+sdEsc(t.nome_computador||'—')+'</td><td>'+(t.build&&d.tvs.versao_atual&&t.build!==d.tvs.versao_atual?'<span style="color:#ffb45a;font-weight:700" title="Versão diferente da atual ('+sdEsc(d.tvs.versao_atual)+')">⚠ '+sdEsc(t.build)+'</span>':sdEsc(t.build||'—'))+'</td><td><span style="color:'+(on?'#5db13d':'var(--muted)')+'">'+(on?'● online':sdQuando(t.visto_em)+' atrás')+'</span></td><td style="font-size:12px">'+sdTvSaude(t)+'</td></tr>'; }).join('')||'<tr><td colspan="5" style="text-align:center;padding:20px;color:var(--muted)">Nenhuma TV ativada.</td></tr>')+'</tbody></table></div>';
+    +((d.tvs.lista||[]).map(t=>{ const on=Date.now()-new Date(t.visto_em)<300000; return '<tr><td>'+sdEsc(t.academia||t.license_codigo)+'</td><td>'+sdEsc(t.nome_computador||'—')+'</td><td>'+(t.build&&d.tvs.versao_atual&&t.build!==d.tvs.versao_atual?'<span style="color:#ffb45a;font-weight:700" title="Versão diferente da atual ('+sdEsc(d.tvs.versao_atual)+')">⚠ '+sdEsc(t.build)+'</span>':sdEsc(t.build||'—'))+'</td><td><span style="color:'+(on?'#5db13d':'var(--muted)')+'">'+(on?'● online':sdQuando(t.visto_em)+' atrás')+'</span></td><td style="font-size:12px">'+sdTvSaude(t)+(sdTvAtu(t)?'<br>'+sdTvAtu(t):'')+'</td></tr>'; }).join('')||'<tr><td colspan="5" style="text-align:center;padding:20px;color:var(--muted)">Nenhuma TV ativada.</td></tr>')+'</tbody></table></div>';
   // 03/10f: o que a TV, o app e o Portal mandaram sozinhos (o mesmo erro soma em "vezes")
   const nmO={tv:'📺 TV',app:'📱 App',portal:'🏢 Portal',financeiro:'💳 Financeiro',admin:'🛠 Admin',outro:'?'};
   const tl=d.telas||[];

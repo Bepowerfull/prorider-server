@@ -86,6 +86,9 @@ const zona = p => p <= 55 ? 'z1' : p <= 75 ? 'z2' : p <= 90 ? 'z3' : p <= 105 ? 
   const fotos = fs.mkdtempSync(path.join(os.tmpdir(), 'prorider-ensaio-17-')); await p.screenshot({ path: path.join(fotos, 'cartoes_15.png') });
   await p.evaluate(() => ctrlSetScreen(4)); await espera(1200); await p.screenshot({ path: path.join(fotos, 'ranking_15.png') }); await p.evaluate(() => ctrlSetScreen(0));
 
+  // 07/10a: a Keiser mostrando o RESUMO (aluno parou) não pode virar número ao vivo na TV
+  await p.evaluate(() => { for (let k = 0; k < 3; k++) window.__dongle({ mac: 'AA:BB:CC:00:00:01', watts: 999, cadence: 0, gear: 12, heartRate: 0, review: true }); });
+  ok(await p.evaluate(() => Object.values(alunosMap).every(a => a.watts !== 999)), 'pacote de resumo da Keiser (review) não aparece como watts ao vivo');
   console.log('3) Fim da aula');
   await p.evaluate(() => ctrlConfirmYes()); await espera(5000);
   ok(cels.every(w => w.fim), 'os 15 celulares receberam o fim da aula', cels.filter(w => w.fim).length);

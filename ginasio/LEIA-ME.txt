@@ -1,4 +1,18 @@
-ProRider — BUILD 03/10x (Ginasio)
+ProRider — BUILD 07/10b (Ginasio)
+
+07/10b: PENDRIVE ANT+ (arquivo novo antplus.js). Na tela de pareamento, escolha ANT+
+e gire o pedal de cada bike: a TV le todas as bikes ANT+ ao mesmo tempo (Schwinn
+Echelon2, Spinner Blade ION, ICG TFT 1.0...). Precisa do antplus.js na pasta app.
+
+07/10a: ATUALIZACAO AUTOMATICA pelo servidor. Com o atualizador no programa da TV
+(pasta atualizador-tv, instalado UMA vez), a TV baixa a versao nova assinada pela
+ProRider de madrugada, sem aula, e volta sozinha para a anterior se algo der errado.
+Keiser: o resumo que o console mostra depois que o aluno para nao vira mais watts ao vivo.
+
+03/10z: se a internet da academia cair no meio da aula, a aula continua na TV;
+a TV percebe em 15 s e religa sozinha quando a internet volta. Aluno cujo celular
+cai continua na bike (nada de aluno fantasma no resumo). Se a aula terminar sem
+internet, o fim chega aos celulares assim que a conexao voltar.
 
 03/10x: se o servidor reiniciar no meio da aula, a TV religa sozinha (de 5 em 5 s)
 e a aula continua; os celulares esperam a TV voltar. A TV manda a propria saude

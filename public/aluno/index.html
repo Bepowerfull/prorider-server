@@ -64,7 +64,8 @@
           +'<div id="prBleLista" style="margin:14px 0 12px;display:flex;flex-direction:column;gap:8px"></div>'
           +'<button id="prBleCanc" style="width:100%;padding:13px;border-radius:12px;border:1px solid rgba(255,255,255,.15);background:transparent;color:#fff;font-size:15px">Cancelar</button></div>';
         document.body.appendChild(cx);
-        function acabar(dev){ if(fim) return; fim=true; clearTimeout(t); q(function(){ return P.stopLEScan(); }).catch(function(){}); if(sh) try{ sh.remove(); }catch(e){} try{ cx.remove(); }catch(e){}
+        try{ window.prKeiser&&prKeiser.pausar(); }catch(e){}   // 07/10a: uma procura de cada vez
+        function acabar(dev){ if(fim) return; fim=true; clearTimeout(t); q(function(){ return P.stopLEScan(); }).catch(function(){}).then(function(){ try{ window.prKeiser&&prKeiser.voltar(); }catch(e){} }); if(sh) try{ sh.remove(); }catch(e){} try{ cx.remove(); }catch(e){}
           if(dev) res(dev); else rej(erro('NotFoundError','Nenhum aparelho escolhido')); }
         cx.querySelector('#prBleCanc').onclick=function(){ acabar(null); };
         var lista=cx.querySelector('#prBleLista'), sh=null;
@@ -74,11 +75,37 @@
           b.onclick=function(){ acabar(new Dev(id,a.nome)); }; lista.appendChild(b); }); }
         var t=setTimeout(function(){ var st=cx.querySelector('#prBleSt'); if(st&&!Object.keys(achados).length) st.textContent='Nada encontrado ainda. Confira se o Bluetooth está ligado e se a bike está acordada.'; },15000);
         q(function(){ return P.addListener('onScanResult',function(r){ if(fim||!r||!r.device||!combina(o,r)) return; var id=r.device.deviceId;
-          var novo=!achados[id]; achados[id]={nome:r.device.name||r.localName||'',rssi:r.rssi||-99}; if(novo) desenhar(); }); })
+          var nm=r.device.name||r.localName||''; try{ var _mk=r.manufacturerData&&(r.manufacturerData['258']!=null?r.manufacturerData['258']:r.manufacturerData[258]); var _k=_mk!=null&&kParse(_mk); if(_k&&_k.id>0) nm='Keiser M3 nº '+_k.id; }catch(e){}   // 07/10a: 20 Keiser iguais → mostra o nº de cada uma
+          var novo=!achados[id]||achados[id].nome!==nm; achados[id]={nome:nm,rssi:r.rssi||-99}; if(novo) desenhar(); }); })
           .then(function(h){ sh=h; return q(function(){ return P.requestLEScan({allowDuplicates:false}); }); })
           .catch(function(e){ if(!fim){ fim=true; try{ cx.remove(); }catch(x){} rej(erro(/permiss|denied|unauthor/i.test(e&&e.message)?'NotAllowedError':/disabled|off|desligad/i.test(e&&e.message)?'InvalidStateError':'NotFoundError',(e&&e.message)||'Bluetooth indisponível')); } });
       }); });
     }
+    // ══ 07/10a — KEISER DIRETO NO CELULAR ══════════════════════════════════
+    // A Keiser M3i não aceita conexão: ela ANUNCIA os números no ar (como um rádio), para quantos
+    // aparelhos quiserem ouvir — o dongle da TV e o celular ao mesmo tempo. Formato oficial
+    // (dev.keiser.com/mseries/direct), depois do código da Keiser 0x0102:
+    //  [0] versão maior [1] versão menor [2] tipo do dado [3] nº da bike (0–200)
+    //  [4-5] cadência×10 [6-7] FC×10 [8-9] watts [10-11] kcal [12] min [13] s [14-15] distância [16] marcha (versão ≥ 6.21)
+    //  tipo 0x00 e 0x80–0xE3 = tempo real; 0x01–0x63 e 0xFF = resumo depois que parou (ignorado).
+    function kParse(h){ var b=[]; h=String(h||'').replace(/[^0-9a-f]/gi,''); for(var i=0;i+1<h.length;i+=2) b.push(parseInt(h.substr(i,2),16));
+      if(b.length>=19 && b[0]===0x02 && b[1]===0x01) b=b.slice(2);   // alguns aparelhos entregam com o código 0x0102 na frente
+      if(b.length<12) return null;
+      var t=b[2]; return { real:(t===0x00)||(t>=0x80&&t<=0xE3), id:b[3], rpm:Math.round((b[4]|(b[5]<<8))/10), hr:Math.round((b[6]|(b[7]<<8))/10),
+        w:b[8]|(b[9]<<8), kcal:b[10]|(b[11]<<8), g:(b.length>=17&&(b[0]>6||(b[0]===6&&b[1]>=21)))?b[16]:0, ver:b[0]+'.'+b[1] }; }
+    var kOuv=[], kLig=false, kH=null, kPausa=false, kRest=null;
+    function kDesligar(){ if(kRest){ clearInterval(kRest); kRest=null; } if(kH){ try{ kH.remove(); }catch(e){} kH=null; }
+      if(kLig){ kLig=false; q(function(){ return P.stopLEScan(); }).catch(function(){}); } }
+    function kLigar(){ if(kLig||kPausa||!kOuv.length) return; kLig=true;
+      ini().then(function(){ return q(function(){ return P.addListener('onScanResult',function(r){ var m=r&&r.manufacturerData, h=m&&(m['258']!=null?m['258']:m[258]); if(h==null) return;
+          var k=kParse(h); if(!k) return; k.deviceId=r.device&&r.device.deviceId; k.rssi=r.rssi; kOuv.slice().forEach(function(f){ try{ f(k); }catch(e){ console.error(e); } }); }); }); })
+        .then(function(h){ kH=h; return q(function(){ return P.requestLEScan({allowDuplicates:true}); }); })
+        .catch(function(e){ console.warn('[ProRider] Keiser: a procura não começou ('+((e&&e.message)||e)+')'); kDesligar(); });
+      // iPhone perde pacotes numa procura longa (aviso da própria Keiser): recomeça a cada 60 s
+      kRest=setInterval(function(){ if(!kLig) return; q(function(){ return P.stopLEScan(); }).then(function(){ return q(function(){ return P.requestLEScan({allowDuplicates:true}); }); }).catch(function(){}); },60000); }
+    window.prKeiser={ parse:kParse,
+      ouvir:function(f){ kOuv.push(f); kLigar(); return function(){ kOuv=kOuv.filter(function(x){ return x!==f; }); if(!kOuv.length) kDesligar(); }; },
+      pausar:function(){ kPausa=true; kDesligar(); }, voltar:function(){ kPausa=false; kLigar(); }, ligado:function(){ return kLig; } };
     try{ Object.defineProperty(navigator,'bluetooth',{value:{requestDevice:requestDevice,getAvailability:function(){ return Promise.resolve(true); }},configurable:true}); }catch(e){ try{ navigator.bluetooth={requestDevice:requestDevice}; }catch(e2){} }
     window._prBleNativo=true; window._prBleNativoTeste={hex2dv:hex2dv,buf2hex:buf2hex,combina:combina,Dev:Dev};
     return true;
@@ -2496,10 +2523,17 @@ function connectQR(code){
   }
   var statusEl=document.getElementById('qrStatus');
   if(statusEl){statusEl.textContent='Conectando...';statusEl.style.color='#ea860c';}
+  // 03/10y: INTERNET LENTA. A nova tentativa (de 4 em 4 s) criava outra conexão enquanto a anterior
+  // ainda estava abrindo; quando a antiga abria, ela mandava pela NOVA (ainda abrindo) e dava erro.
+  // Agora: tentativa ainda abrindo há menos de 10 s → espera ela; e cada conexão só fala por ela mesma.
+  if(wsConn && wsConn.readyState===0 && wsConn._prCodigo===code && Date.now()-(wsConn._prIni||0)<10000) return;
+  if(wsConn && wsConn.readyState===0){ try{ wsConn.onopen=null; wsConn.onclose=null; wsConn.onmessage=null; wsConn.close(); }catch(e){} }
   try{
-    wsConn=new WebSocket(SERVER_URL);
-    wsConn._prCodigo=code;
+    var _wsEste=new WebSocket(SERVER_URL);
+    wsConn=_wsEste;
+    wsConn._prCodigo=code; wsConn._prIni=Date.now();
     wsConn.onopen=function(){
+      if(wsConn!==_wsEste){ try{ _wsEste.close(); }catch(e){} return; }   // 03/10y: conexão velha que abriu tarde
       var nome=document.getElementById('profNome');
       var nomeVal=_prNomeAluno();
       if(_bikeSelNum){
@@ -2541,7 +2575,7 @@ function connectQR(code){
       }catch(_e){}
 
       if(data.tipo==='sala_info'){
-        _salaInfo={ numBikes:data.numBikes||0, bikes:data.bikes||[], ocupadas:data.ocupadas||[], ocupantes:data.ocupantes||{}, trancadas:data.trancadas||[] }; // 26/09b: + ocupantes e trancadas (trancadas nao era guardado)
+        _salaInfo={ numBikes:data.numBikes||0, bikes:data.bikes||[], ocupadas:data.ocupadas||[], ocupantes:data.ocupantes||{}, trancadas:data.trancadas||[], keiser:data.keiser||{} }; // 26/09b: + ocupantes e trancadas (trancadas nao era guardado)
         _bikeCacheSalvar(_salaInfo.bikes);
         if(_salaInfo.numBikes) _numBikesCacheSalvar(_salaInfo.numBikes);
         var sb=document.getElementById('sBikeSel');
@@ -2552,6 +2586,7 @@ function connectQR(code){
         for(var _i=0;_i<data.bikes.length;_i++){
           if(parseInt(data.bikes[_i].b)===parseInt(_bikeSelNum)){
             var bd=data.bikes[_i];
+            if(!(liveRelay && liveRelay.local && Date.now()-liveRelay.ts<2500))   // 07/10a: a Keiser lida direto no celular manda (chega antes)
             liveRelay={ w:bd.w||0, r:bd.r||0, ftp:bd.ftp||0, z:bd.z||'z1', g:bd.g||0, hr:bd.hr||0, ts:Date.now() };
             break;
           }
@@ -2563,6 +2598,10 @@ function connectQR(code){
         // o ginasio manda um por aluno; cada celular pega o seu
         try{ var _eu=_entrarNome||(prUser&&prUser.name)||''; if(!_eu || String(data.nome)===String(_eu) || (prUser&&String(data.nome)===String(prUser.name))) _ftpResultadoApp(data); }catch(e){ _ftpResultadoApp(data); }
       }
+      // 03/10y: A INTERNET DA ACADEMIA CAIU. A aula continua na TV (o dongle lê as bikes), mas os
+      // números não chegam ao celular. Faixa fixa explicando; some sozinha quando a TV volta.
+      if(data.tipo==='tv_sem_sinal'){ _prTvAviso(true); return; }
+      if(data.tipo==='tv_voltou' || data.tipo==='update_aula' || data.tipo==='bikes_live'){ if(window._prTvAvisoOn) _prTvAviso(false); if(data.tipo==='tv_voltou') return; }
       if(data.tipo==='fim_aula' || data.tipo==='sala_encerrada'){
         // Professor encerrou a aula no ginásio → encerra no app e mostra resultados
         // (antes a tela só congelava porque o app não tratava essas mensagens)
@@ -2718,6 +2757,7 @@ function connectQR(code){
       }
     };
     wsConn.onclose=function(){
+      if(wsConn!==_wsEste) return;   // 03/10y: fechou uma conexão antiga; a atual segue
       wsConn=null;
       var _sl=document.getElementById('sLive');
       var _emAula=(typeof lInt!=='undefined' && lInt) || (_sl && _sl.classList.contains('active'));
@@ -5816,7 +5856,48 @@ function _prLimparAulaAnterior(motivo){
   try{ var gn=document.getElementById('graficoNativo'); if(gn) gn.style.display=''; }catch(e){}
   try{ console.log('[ProRider] estado da aula anterior limpo ('+(motivo||'-')+').'); }catch(e){}
 }
+// ══ 07/10a — NA AULA DA ACADEMIA, O CELULAR LÊ A PRÓPRIA KEISER (app das lojas) ══
+// O dongle da TV continua lendo todas as bikes (ranking, cartões, resumo). O celular ouve a SUA
+// bike direto, pelo nº da Keiser que a TV mandou (sala_info.keiser), e o ponteiro mexe na hora,
+// mesmo com a internet ruim ou fora. Sem dado direto por 2,5 s, volta a valer o que vem da TV.
+setInterval(function(){
+  try{
+    if(!window.prKeiser) return;
+    var sl=document.getElementById('sLive'), emAula=!!(sl&&sl.classList.contains('active')&&_bikeSelNum&&_entrarCodigo);
+    var kid=0; if(emAula){ var mp=(_salaInfo&&_salaInfo.keiser)||{}; kid=parseInt(mp[_bikeSelNum]||mp[String(_bikeSelNum)]||0,10)||0; }
+    if(kid && window._kGymId!==kid){ if(window._kGymOff){ window._kGymOff(); window._kGymOff=null; } }
+    if(kid && !window._kGymOff){
+      window._kGymId=kid;
+      window._kGymOff=prKeiser.ouvir(function(k){ if(!k.real||k.id!==window._kGymId) return;
+        var f=0; try{ f=parseInt(_ftpDoAluno(),10)||0; }catch(e){}
+        liveRelay={ w:k.w, r:k.rpm, ftp:f>0?Math.round(k.w/f*100):0, z:(liveRelay&&liveRelay.z)||'z1', g:k.g, hr:k.hr, ts:Date.now(), local:true };
+        window._kGymUlt=Date.now(); });
+      console.log('[ProRider] lendo a Keiser nº '+kid+' direto no celular (bike '+_bikeSelNum+' da sala).');
+    } else if(!kid && window._kGymOff){ window._kGymOff(); window._kGymOff=null; window._kGymId=0; }
+  }catch(e){}
+},2000);
+// Em casa (ou sem TV): conectar a Keiser pela lista lê o anúncio dela, sem conexão (ela não aceita conexão).
+function btConnectKeiserAnuncio(device){
+  if(window._kCasaOff){ try{ window._kCasaOff(); }catch(e){} window._kCasaOff=null; }
+  var id=device.id;
+  window._kCasaOff=prKeiser.ouvir(function(k){ if(k.deviceId!==id||!k.real) return;
+    dRpm=k.rpm; if(k.g>0) dGear=k.g; _bleRpm=k.rpm; _bleWatts=k.w; _bleTs=Date.now();
+    try{ document.getElementById('bigRpm').textContent=Math.round(k.rpm); document.getElementById('bigWatts').textContent=k.w; var gEl=document.getElementById('bigGear'); if(gEl&&k.g>0) gEl.textContent=k.g; if(k.hr>0&&!connected.hr&&typeof _appHr==='function') _appHr(k.hr); }catch(e){} });
+  window._prBikeTipo='keiser'; window._prBikeKeiser=true;
+  connDev('bike', device.name||'Keiser M3', '');
+  return Promise.resolve();
+}
+function _prTvAviso(on){
+  window._prTvAvisoOn=!!on;
+  var e=document.getElementById('prTvAviso');
+  if(on && !e){ e=document.createElement('div'); e.id='prTvAviso';
+    e.style.cssText='position:fixed;top:calc(env(safe-area-inset-top,0px) + 10px);left:50%;transform:translateX(-50%);z-index:99998;background:rgba(234,134,12,.96);color:#fff;padding:10px 16px;border-radius:14px;font-size:13px;font-weight:700;max-width:92vw;text-align:center;box-shadow:0 4px 18px rgba(0,0,0,.4);line-height:1.35';
+    e.innerHTML='📡 A TV da academia está sem internet.<br><span style="font-weight:500;font-size:12px">A aula continua na TV. Seus números voltam aqui assim que ela reconectar.</span>';
+    document.body.appendChild(e); }
+  if(e) e.style.display=on?'block':'none';
+}
 function _encerrarAulaApp(){
+  try{ _prTvAviso(false); }catch(e){}
   _prEsquecerSala('professor encerrou');
   var sl=document.getElementById('sLive');
   var emAula=(typeof lInt!=='undefined' && lInt) || (sl && sl.classList.contains('active'));
@@ -6336,6 +6417,8 @@ function scanDevBT(type){
   navigator.bluetooth.requestDevice(btOptions)
   .then(function(device){
     st.textContent='Connecting to '+(device.name||'device')+'...';
+    // 07/10a: no app das lojas, a Keiser M3 é lida pelo anúncio (ela não aceita conexão)
+    if(type!=='hr' && window.prKeiser && /keiser|^m3/i.test(device.name||'')) return btConnectKeiserAnuncio(device);
     return device.gatt.connect().then(function(server){
       if(type==='hr'){
         return btConnectHR(server, device);
@@ -8163,6 +8246,10 @@ function _tentarConexaoWS(wsUrl, token, dadosSessao){
     };
     ws.onmessage = function(e){
       var data = JSON.parse(e.data);
+      // 03/10y: A INTERNET DA ACADEMIA CAIU. A aula continua na TV (o dongle lê as bikes), mas os
+      // números não chegam ao celular. Faixa fixa explicando; some sozinha quando a TV volta.
+      if(data.tipo==='tv_sem_sinal'){ _prTvAviso(true); return; }
+      if(data.tipo==='tv_voltou' || data.tipo==='update_aula' || data.tipo==='bikes_live'){ if(window._prTvAvisoOn) _prTvAviso(false); if(data.tipo==='tv_voltou') return; }
       if(data.tipo==='fim_aula' || data.tipo==='sala_encerrada'){
         // mesmo encerramento do caminho QR — evita congelar quando entrou por sessão
         _encerrarAulaApp(); return;
@@ -8172,6 +8259,7 @@ function _tentarConexaoWS(wsUrl, token, dadosSessao){
         for(var _i=0;_i<data.bikes.length;_i++){
           if(parseInt(data.bikes[_i].b)===parseInt(_bikeSelNum)){
             var bd=data.bikes[_i];
+            if(!(liveRelay && liveRelay.local && Date.now()-liveRelay.ts<2500))   // 07/10a: a Keiser lida direto no celular manda (chega antes)
             liveRelay={ w:bd.w||0, r:bd.r||0, ftp:bd.ftp||0, z:bd.z||'z1', g:bd.g||0, hr:bd.hr||0, ts:Date.now() };
             break;
           }
@@ -8183,7 +8271,7 @@ function _tentarConexaoWS(wsUrl, token, dadosSessao){
         try{ var _eu=_entrarNome||(prUser&&prUser.name)||''; if(!_eu || String(data.nome)===String(_eu) || (prUser&&String(data.nome)===String(prUser.name))) _ftpResultadoApp(data); }catch(e){ _ftpResultadoApp(data); }
       }
       if(data.tipo==='sala_info'){
-        _salaInfo={ numBikes:data.numBikes||0, bikes:data.bikes||[], ocupadas:data.ocupadas||[], ocupantes:data.ocupantes||{}, trancadas:data.trancadas||[] }; // 26/09b: + ocupantes e trancadas (trancadas nao era guardado)
+        _salaInfo={ numBikes:data.numBikes||0, bikes:data.bikes||[], ocupadas:data.ocupadas||[], ocupantes:data.ocupantes||{}, trancadas:data.trancadas||[], keiser:data.keiser||{} }; // 26/09b: + ocupantes e trancadas (trancadas nao era guardado)
         if(_salaInfo.numBikes) _numBikesCacheSalvar(_salaInfo.numBikes);
       }
       if((data.tipo==='conectado' || data.tipo==='entrou_sala') && window._ftpReenvio && Date.now()-window._ftpReenvio<5000 && wsConn===ws){
@@ -8729,7 +8817,7 @@ updateProfileUI = function() {
          + ' fill="none" stroke="'+col(fm)+'" stroke-width="30" stroke-linecap="'+cap+'"/>';
     }
     g.innerHTML=out;
-    try{ console.log('%c[ProRider Aluno] BUILD 03/10x — servidor reiniciou no meio da aula: o celular espera a TV voltar (ate 90 s) em vez de encerrar a aula + 03/10h: erro mostra codigo (E-XXXX) e vai junto no Reportar + 03/10f: erros do app chegam sozinhos na Saude do sistema + 03/10e: esqueci a senha por e-mail, reportar problema, excluir conta + 03/10c: loja (comprar aulas, pacotes, assinatura), desafios reais (21 dias, Quebra FTP, ranking, grupos), pré-treino igual ao da TV, Bluetooth novo + 02/10f: aula recomeçada zera os números da largada + 02/10d: caixas da aula gravada mais justas e nas pontas da tela; aulas gravadas abertas a qualquer login na fase de teste + 02/10b: aula gravada na Loja (vídeo do professor + gráfico e números do próprio aluno, ranking com quem fez ao vivo) + lista de espera na reserva, assistir a aula ao vivo, arquivo .tcx para Strava/Garmin, desafio entre academias no início + 01/10b: reserva com escolha da bike (mapa das bikes, a reservada aparece como SUA na hora de entrar) + 01/10a: campeonato no app (posição, camisas, próxima etapa) + camisas conquistadas no perfil + logo original no início + 30/09e: Construtor do celular = o mesmo Construtor online do computador (mesmas funções, mesma conta) + Perto de mim na lupinha (GPS do celular, distância até a academia, aula ao vivo no topo) + faixa verde da aula ao vivo na academia + aulas de hoje na grade + brasões novos (subiu de nível) + Criar aula do Portal abre direto o Construtor (/aluno#construtor) + FC da cinta do celular vai para o Ginasio; Avg. HR = media da aula; aula termina quando a sala some + resultado do teste de FTP da aula no celular (1 min; automatico grava, senao pergunta) + home do professor: sai o Build Workout antigo (com senha), fica Agenda + Treino do Treinador + Construtor de Treino + voltar para a propria bike depois de reabrir o app + relogio do bloco anda sem bike transmitindo + vigia: reentra na sala se a aula parar de chegar + resultado do desafio no celular (10 s, toque fecha) + sexo enviado na entrada da sala (desafio Homens x Mulheres) + aluno sem nome nao entra mais como "-" na sala + leitor do app aceita o QR de Minhas Aulas do Ginasio + aula anterior nao fica mais grudada (fim da aula fecha o socket em qualquer tela; QR de outra sala troca de sala) + gauge com FTP e BLOCO simetricos + marcha e FC na aula da academia + %FTP com o FTP da gaveta na hora + FTP da gaveta vai para a sala na hora + FTP tambem na entrada pela reserva + Revisar o treino mostra a aula do Ginasio + caloria por watt (kJ/eficiencia) + basal Mifflin-St Jeor no cadastro + historico gravado no aparelho + FTP na gaveta + card 1080x1920 reposicionado + 6 protocolos de FTP + TSS + teste de 3 min + fator do teste de 5 min corrigido (era 1,05) + explicacao de FTP em cada teste + gaveta esconde pela propria altura + importacao de treino do TrainingPeaks (grade 2x2 na tela inicial + construtor) com tela de conferencia (botoes acima da navegacao) + corrigido: aula aberta por objeto agora e a que roda + botao Revisar o treino na gaveta + FTP e peso persistem no aparelho + gauge reequilibrado + textos do Brasil + codigo de sala normalizado (QR do navegador deixava a sala inexistente) + faixa de voltar corrigida + reconexao nao trava mais + sala encerrada limpa o codigo guardado + VISTA DA SALA + card comprido de Construtor para professor + fim da corrida no login','color:#ea860c;font-weight:700;'); }catch(e){}
+    try{ console.log('%c[ProRider Aluno] BUILD 07/10a — app das lojas le a Keiser direto (anuncio), lista com o numero de cada Keiser + 03/10z: aviso "TV da academia sem internet" e internet lenta sem conexao dupla + 03/10x: servidor reiniciou no meio da aula: o celular espera a TV voltar (ate 90 s) em vez de encerrar a aula + 03/10h: erro mostra codigo (E-XXXX) e vai junto no Reportar + 03/10f: erros do app chegam sozinhos na Saude do sistema + 03/10e: esqueci a senha por e-mail, reportar problema, excluir conta + 03/10c: loja (comprar aulas, pacotes, assinatura), desafios reais (21 dias, Quebra FTP, ranking, grupos), pré-treino igual ao da TV, Bluetooth novo + 02/10f: aula recomeçada zera os números da largada + 02/10d: caixas da aula gravada mais justas e nas pontas da tela; aulas gravadas abertas a qualquer login na fase de teste + 02/10b: aula gravada na Loja (vídeo do professor + gráfico e números do próprio aluno, ranking com quem fez ao vivo) + lista de espera na reserva, assistir a aula ao vivo, arquivo .tcx para Strava/Garmin, desafio entre academias no início + 01/10b: reserva com escolha da bike (mapa das bikes, a reservada aparece como SUA na hora de entrar) + 01/10a: campeonato no app (posição, camisas, próxima etapa) + camisas conquistadas no perfil + logo original no início + 30/09e: Construtor do celular = o mesmo Construtor online do computador (mesmas funções, mesma conta) + Perto de mim na lupinha (GPS do celular, distância até a academia, aula ao vivo no topo) + faixa verde da aula ao vivo na academia + aulas de hoje na grade + brasões novos (subiu de nível) + Criar aula do Portal abre direto o Construtor (/aluno#construtor) + FC da cinta do celular vai para o Ginasio; Avg. HR = media da aula; aula termina quando a sala some + resultado do teste de FTP da aula no celular (1 min; automatico grava, senao pergunta) + home do professor: sai o Build Workout antigo (com senha), fica Agenda + Treino do Treinador + Construtor de Treino + voltar para a propria bike depois de reabrir o app + relogio do bloco anda sem bike transmitindo + vigia: reentra na sala se a aula parar de chegar + resultado do desafio no celular (10 s, toque fecha) + sexo enviado na entrada da sala (desafio Homens x Mulheres) + aluno sem nome nao entra mais como "-" na sala + leitor do app aceita o QR de Minhas Aulas do Ginasio + aula anterior nao fica mais grudada (fim da aula fecha o socket em qualquer tela; QR de outra sala troca de sala) + gauge com FTP e BLOCO simetricos + marcha e FC na aula da academia + %FTP com o FTP da gaveta na hora + FTP da gaveta vai para a sala na hora + FTP tambem na entrada pela reserva + Revisar o treino mostra a aula do Ginasio + caloria por watt (kJ/eficiencia) + basal Mifflin-St Jeor no cadastro + historico gravado no aparelho + FTP na gaveta + card 1080x1920 reposicionado + 6 protocolos de FTP + TSS + teste de 3 min + fator do teste de 5 min corrigido (era 1,05) + explicacao de FTP em cada teste + gaveta esconde pela propria altura + importacao de treino do TrainingPeaks (grade 2x2 na tela inicial + construtor) com tela de conferencia (botoes acima da navegacao) + corrigido: aula aberta por objeto agora e a que roda + botao Revisar o treino na gaveta + FTP e peso persistem no aparelho + gauge reequilibrado + textos do Brasil + codigo de sala normalizado (QR do navegador deixava a sala inexistente) + faixa de voltar corrigida + reconexao nao trava mais + sala encerrada limpa o codigo guardado + VISTA DA SALA + card comprido de Construtor para professor + fim da corrida no login','color:#ea860c;font-weight:700;'); }catch(e){}
   }
   if(document.readyState!=='loading') buildGaugeArc();
   else document.addEventListener('DOMContentLoaded', buildGaugeArc);
@@ -9234,11 +9322,12 @@ scanDev=function(type){
 scanDevBT=function(type){
   var old=_btDev[type];
   if(old){ old._prManual=true; try{ old.gatt.disconnect(); }catch(e){} _btDev[type]=null; connected[type]=false; }
+  if(type!=='hr' && window._kCasaOff){ try{ window._kCasaOff(); }catch(e){} window._kCasaOff=null; }   // 07/10a
   _cnUI(type,'busca','Escolha o aparelho na lista que abriu…');
   var opts=type==='hr'?{acceptAllDevices:true,optionalServices:[BTUUID.HEART_RATE]}
     :{filters:[{namePrefix:'M3'},{namePrefix:'Keiser'},{namePrefix:'KEISER'},{namePrefix:'M3i'},{services:[BTUUID.CYCLING_POWER]},{services:[BTUUID.FTMS]},{services:[BTUUID.CSC]}]
         // 03/10o: marcas que às vezes não anunciam o serviço — aparecem pelo nome
-        .concat(['KICKR','Wahoo','Tacx','Elite','SUITO','DIRETO','Saris','Zwift','HUB','Wattbike','Stages','Schwinn','IC Bike','IC4','Bowflex','Matrix','ICG','Life','Technogym','Star Trac','Magene','THINK','Van Rysel','D100','D500','JetBlack','Kinetic','Assioma','4iiii','Rally','Favero','Quarq'].map(function(n){ return {namePrefix:n}; })),
+        .concat(['KICKR','Wahoo','Tacx','Elite','SUITO','DIRETO','Saris','Zwift','HUB','Wattbike','Stages','Schwinn','IC Bike','IC4','Bowflex','Matrix','ICG','Life','Technogym','Star Trac','Magene','THINK','Van Rysel','D100','D500','JetBlack','Kinetic','Assioma','4iiii','Rally','Favero','Quarq','PM5','Spinner','SPIN','Precor','BH ','Exercycle','Stages IC','IC5','IC6','IC7','IC8','CXP','Group Cycle'].map(function(n){ return {namePrefix:n}; })),
       optionalServices:[BTUUID.KEISER,BTUUID.CYCLING_POWER,BTUUID.FTMS,BTUUID.CSC,BTUUID.HEART_RATE]};
   navigator.bluetooth.requestDevice(opts).then(function(dev){ return _btLigar(type,dev); }).catch(function(err){
     var msg=err.name==='NotFoundError'?'Nenhum aparelho escolhido. Toque em Procurar de novo.'
@@ -9252,6 +9341,8 @@ scanDevBT=function(type){
 function _btLigar(type,dev){
   _cnUI(type,'busca','Conectando em '+(dev.name||'aparelho')+'…');
   var tempo=new Promise(function(_,rej){ setTimeout(function(){ rej(new Error('TEMPO')); },20000); });
+  // 07/10a: no app das lojas a Keiser M3 é lida pelo anúncio (não aceita conexão; não "cai")
+  if(type!=='hr' && window.prKeiser && /keiser|^m3/i.test(dev.name||'')){ return btConnectKeiserAnuncio(dev).then(function(){ _btDev[type]=dev; }); }
   var liga=dev.gatt.connect().then(function(server){
     if(type==='hr') return btConnectHR(server,dev);
     var n=(dev.name||'').toLowerCase();
@@ -9514,7 +9605,7 @@ go=function(id){
   if(id==='sDetail'||id==='sConnect'){ var n=document.getElementById('bNav'); if(n) n.style.display='none'; }
 };
 
-var APP_BUILD='03/10x';
+var APP_BUILD='07/10a';
 try{ if(typeof prErroConfig==='function') prErroConfig(SERVER_HTTP,'app',function(){ return (typeof prToken!=='undefined'&&prToken)||localStorage.getItem('pr_token')||''; },APP_BUILD); }catch(e){}   // 03/10f: erros do app chegam na Saúde
 // ── 03/10e: no Perfil — reportar um problema e excluir a conta (LGPD) ──
 (function(){

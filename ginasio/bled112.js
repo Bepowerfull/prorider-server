@@ -84,6 +84,10 @@
           // i+18..i+19 = distância
           // i+20 = gear (se build minor >= 21)
           var buildMinor = data[i+5];
+          // 07/10a: tipo do dado (i+6). 0x00 e 0x80–0xE3 = tempo real; 0x01–0x63 e 0xFF = "review"
+          // (o console mostrando o RESUMO depois que o aluno parou). O review não é número ao vivo.
+          var _dt = data[i+6];
+          result.review     = (_dt >= 0x01 && _dt <= 0x63) || _dt === 0xFF;
           result.bikeId     = data[i+7];
           result.cadence    = ((data[i+8]  | (data[i+9] <<8)) / 10) | 0;
           result.heartRate  = ((data[i+10] | (data[i+11]<<8)) / 10) | 0;
@@ -257,7 +261,8 @@
           watts:     adParsed ? adParsed.watts      : 0,
           cadence:   adParsed ? adParsed.cadence    : 0,
           heartRate: adParsed ? adParsed.heartRate  : 0,
-          gear:      adParsed ? adParsed.gear       : 0
+          gear:      adParsed ? adParsed.gear       : 0,
+          review:    adParsed ? !!adParsed.review   : false
         });
       }
       return;
