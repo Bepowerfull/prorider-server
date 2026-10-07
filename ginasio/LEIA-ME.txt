@@ -1,0 +1,1715 @@
+ProRider — BUILD 03/10s (Ginasio)
+
+03/10s: o fim da aula nao conta mais como "servidor caiu" (antes cada aula
+mandava o aviso falso "A TV perdeu a conexao" para a Saude); o resumo da aula
+vai com o codigo da sala; nos cartoes de potencia e cadencia o numero cabe
+inteiro (100% e o nome da zona nao cortam mais com poucos alunos) e o nome do
+aluno nao passa por baixo do "BIKE 3".
+
+03/10r: a TV passa a falar com o servidor pelo endereco novo
+https://app.prorider.app.br (o login da TV continua; nao precisa reativar).
+
+03/10q: musica e video que vem por link do Dropbox sao baixados pelo endereco
+direto do arquivo (dl.dropboxusercontent.com), mais confiavel que o anterior.
+
+03/10p: bikes de OUTRAS MARCAS na aula. O aluno conecta a bike (ou rolo/medidor
+com Bluetooth padrao FTMS ou Potencia) no proprio celular e os numeros dele
+aparecem no cartao da TV (watts, cadencia, %FTP, zona, kcal, km). A Keiser
+continua igual, lida pelo dongle da TV — e o dongle tem prioridade.
+
+03/10o: o Ginasio e o mesmo da 03/10n; so o numero da versao mudou
+(a novidade e no app e no Portal: Termos de uso e Politica de privacidade).
+
+03/10n: TV parada volta sozinha para a tela de espera (logo + aulas de hoje)
+depois de 10 minutos sem ninguem mexer. Antes, com o controle (joystick) ligado,
+ela nunca voltava e ficava parada no menu ou na tela de fim de aula.
+Nunca volta sozinha: com a aula rodando, aula pausada no meio, contagem 3-2-1,
+gravando/transmitindo, sessao livre ou na tela do QR (aula preparada antes,
+com os alunos chegando e entrando).
+O painel antigo "Grade de hoje" da direita saiu (sem internet ficava
+"carregando" por cima do relogio).
+
+03/10m, 03/10l, 03/10k, 03/10j e 03/10i: o Ginasio e o mesmo da 03/10h; so o numero da versao mudou.
+(03/10k a 03/10m: as novidades sao no servidor e no admin: conferencia diaria dos
+pagamentos com o Asaas, desligamento limpo a cada deploy, pausar avisos por academia.)
+
+03/10h: quando a TV da erro, aparece um codigo pequeno no canto de baixo
+(ex.: "⚠ E-7F3A") por 10 segundos. O professor passa o codigo para a ProRider,
+que acha o erro na lupinha da Saude do sistema.
+
+03/10g: o Ginasio e o mesmo da 03/10f; so o numero da versao mudou
+(a novidade e no servidor: avisos automaticos por e-mail).
+
+03/10f: TV sem internet nao perde nada. O resumo da aula, o resultado do
+campeonato e a ficha da gravacao ficam guardados no computador e vao sozinhos
+quando a internet volta (tenta a cada 30 s, guarda ate 7 dias, mesmo se o
+programa for fechado). Erros e avisos da TV (camera que nao abriu, internet que
+caiu, envio da gravacao que parou) chegam sozinhos na "Saude do sistema" do admin.
+
+03/10e: o Ginasio era o mesmo da 03/10c; so o numero da versao mudou.
+
+------------------------------------------------------------------------
+
+ProRider — BUILD 03/10d (Ginasio)
+
+03/10d: o Ginasio e o mesmo da 03/10c; so o numero da versao mudou
+(a mudanca e no painel do admin).
+
+------------------------------------------------------------------------
+
+ProRider — BUILD 03/10c (Ginasio)
+
+03/10c — GRAVACAO COM AVISO NA TELA:
+- Se a camera nao abrir, a TV avisa "GRAVACAO NAO COMECOU" (antes so ia
+  para o console, e a aula terminava sem gravar sem ninguem saber).
+- No fim da aula: "Gravacao salva: <arquivo> (MB)"; depois "Gravacao no
+  app (Loja -> Aulas gravadas)" quando o envio termina; ou o motivo se
+  ficou so no computador (sem servidor local, sem internet, envio parou).
+- Lembrete: para gravar, no cartao da CAMERA escolha "Gravar" ou "Gravar e
+  transmitir". "No fundo" so mostra o professor, nao grava.
+- Arquivo que mudou: telas-pv.js (e script.js so no numero da versao).
+
+------------------------------------------------------------------------
+
+ProRider — BUILD 03/10b (Ginasio)
+
+03/10b: o Ginasio e o mesmo da 03/10a; so o numero da versao mudou
+(as mudancas sao no pagamento: servidor e paginas do site).
+
+------------------------------------------------------------------------
+
+ProRider — BUILD 03/10a (Ginasio)
+
+03/10a:
+- TELA DE TRANSICAO DE SEGMENTO: entra quase na hora (0,12 s) e cobre a
+  tela principal (fundo escuro quase opaco). Antes entrava em 0,6 s com
+  fundo 65% transparente, e dava para ver por um instante o grafico e o
+  video se redesenhando por baixo (o "corte"). A saida continua suave.
+- Licenca SUSPENSA (pagamento vencido ha mais de 5 dias): a ativacao da TV
+  agora tambem avisa "LICENCA SUSPENSA" (antes so a renovacao travava).
+- Arquivos que mudaram: script.js e style.css.
+
+------------------------------------------------------------------------
+
+ProRider — BUILD 02/10m (Ginasio)
+
+02/10k, 02/10l e 02/10m: o Ginasio e o mesmo da 02/10j; so o numero da versao mudou
+(as mudancas sao no Portal e no Construtor).
+
+------------------------------------------------------------------------
+
+ProRider — BUILD 02/10j (Ginasio)
+
+02/10j, combinado com o Mario (AULA EM REDE):
+- Academia principal: com video escolhido (pendrive, YouTube ou link), o
+  fundo e o VIDEO; a camera so grava e transmite (o professor esta na sala).
+  Sem video, a camera continua no fundo, como antes.
+- Outras academias: recebem a camera LIMPA e a voz do professor.
+    * aula com video -> video de fundo + o rosto do professor no canto;
+    * aula sem video -> o professor e o fundo da tela.
+  Placar das academias no canto de cima a direita.
+- MUSICA E VIDEO POR LINK sao BAIXADOS ANTES: assim que a aula em rede
+  aparece (ate 1 h antes), o servidor local baixa tudo para
+  C:\ProRider\Cache e na hora toca do disco. Ordem: pendrive -> ja baixado
+  -> internet. Arquivos sem uso ha 2 dias sao apagados sozinhos.
+- servidor-local.js MUDOU (cache): troque junto com o Ginasio.
+
+------------------------------------------------------------------------
+
+ProRider — BUILD 02/10i (Ginasio)
+
+02/10g, 02/10h e 02/10i: o Ginasio e o mesmo da 02/10f; so o numero da versao mudou
+(as mudancas sao no servidor e no Portal: pagamento da licenca).
+
+------------------------------------------------------------------------
+
+ProRider — BUILD 02/10f (Ginasio)
+
+02/10f, pedido do Mario:
+- MUSICA POR LINK: no Construtor, cada musica pode ter o link do Dropbox (ou
+  Google Drive). A TV toca pela internet. Sem link (ou se o link nao abrir),
+  toca do pendrive pelo mesmo nome.
+- AULA EM REDE:
+  * o START da academia que criou o desafio so libera 5 min antes do horario;
+  * se ela nao comecar ate 5 min depois do horario, o START das outras libera
+    e elas seguem sozinhas com a mesma aula;
+  * RECOMECAR: nos primeiros 5 min, o SELECT da academia que criou o desafio
+    vira "Recomecar a aula em rede": todas voltam a tela do QR, os alunos
+    continuam conectados, tudo e zerado (a gravacao da largada e descartada).
+
+------------------------------------------------------------------------
+
+ProRider — BUILD 02/10e (Ginasio)
+
+02/10e, pedido do Mario: AULA AO VIVO EM REDE (desafio ao vivo entre academias)
+- A academia que CRIOU o desafio ao vivo e a "mae": abre a aula normalmente
+  (de preferencia com Camera ao vivo -> "Gravar e transmitir"). Ao chegar na
+  tela do QR, a aula vai para as outras academias.
+- Nas outras academias, o inicio mostra "AULA AO VIVO EM REDE" (de 1 h antes
+  a 2 h depois do horario do desafio). START -> configurar (a musica vem do
+  pendrive DAQUI, pelos mesmos nomes) -> tela do QR, esperando.
+- O START da mae comeca todas. Pausa, avanco e pulo de bloco tambem.
+- Se uma TV nao comecou, o START dela entra no ponto em que a aula esta.
+- Se a mae transmite, o video e a voz do professor aparecem num quadro no
+  canto de cima.
+
+------------------------------------------------------------------------
+
+ProRider — BUILD 02/10d (Ginasio)
+
+02/10d: o Ginasio e o mesmo da 02/10c; so o numero da versao mudou
+(as mudancas desta versao sao no servidor e no app do aluno).
+
+------------------------------------------------------------------------
+
+ProRider — BUILD 02/10c (Ginasio)
+
+02/10c (sobre a 02/10b), pedido do Mario:
+- A aula montada no Construtor com VARIAS MUSICAS toca todas em sequencia,
+  cada uma no trecho escolhido ("toca de ... ate ..."), no mesmo relogio da
+  aula. Os MP3 precisam estar no pendrive com o mesmo nome.
+- Musica que falta no pendrive vira silencio so no trecho dela.
+
+------------------------------------------------------------------------
+
+ProRider — BUILD 02/10b (Ginasio)
+
+02/10b (sobre a 02/10a), combinado com o Mario:
+- GRAVAR agora grava so a CAMERA LIMPA (video + voz) e um ROTEIRO da aula
+  (a cada segundo: bloco, segundo do bloco, tela que a TV mostrava, pausa e
+  desafio). No celular, o app toca o video e monta o grafico, as bolas e as
+  telas com os numeros do PROPRIO aluno. Arquivo menor: ~0,6 GB por aula.
+- Na pasta C:\ProRider\Gravacoes ficam o .webm e o .json da aula.
+- Depois da aula, a TV manda a gravacao para o servidor de TESTE (em
+  segundo plano). As 5 ultimas da academia aparecem no app, em Loja ->
+  Aulas gravadas, por 72 h.
+- "Gravar e transmitir" continua montando o quadro com a faixa da aula para
+  o app ao vivo e o YouTube.
+- servidor-local.js mudou de novo (roteiro e envio): troque tambem.
+
+------------------------------------------------------------------------
+
+ProRider — BUILD 02/10a (Ginasio)
+
+02/10a (sobre a 01/10f), pedido do Mario:
+- DESAFIO ENTRE ACADEMIAS: toda aula que termina manda um resumo ao
+  servidor. Se a academia tem um desafio AO VIVO no horario, aparece a faixa
+  com o placar das academias no canto de cima e o resultado no fim.
+- GRAVAR E TRANSMITIR (Configurar aula -> Camera ao vivo, com <- ->):
+    Desligada / No fundo / Gravar / Gravar e transmitir.
+  Grava a camera com a faixa da aula (zona, tempo, FTP, RPM, perfil e o
+  professor) em C:\ProRider\Gravacoes\. Transmite no app (os alunos tocam em
+  "Assistir ao vivo"; ate 15 pessoas, configuravel no Portal) e no YouTube
+  Live da academia (chave no Portal -> Gravar e transmitir).
+  O som vem do microfone do computador (o da camera USB serve).
+  ATENCAO: musica com direitos autorais pode ser silenciada pelo YouTube.
+- YOUTUBE LIVE PRECISA DO FFMPEG (gratuito):
+    1. baixe o "ffmpeg release essentials" para Windows (gyan.dev);
+    2. descompacte em C:\ProRider\ffmpeg  (fica C:\ProRider\ffmpeg\bin\ffmpeg.exe);
+    3. reabra o programa. Na tela de configurar a aula aparece "YouTube Live".
+  Sem o ffmpeg, grava e transmite no app normalmente; so o YouTube fica de fora.
+  O ffmpeg tambem deixa a gravacao com a duracao certa (para avancar o video).
+- RESERVAS: quem esta na bike reservada (pedalando, com ou sem app) vira
+  "presente"; quem nao chegou ate 5 min depois do comeco libera a bike para a
+  lista de espera.
+- O servidor-local.js mudou (rotas /gravacao e /yt): troque tambem esse arquivo.
+
+------------------------------------------------------------------------
+
+ProRider — BUILD 01/10f (Ginasio)
+
+01/10f (sobre a 01/10e), pedido do Mario — RESERVA COM A BIKE:
+- Tela do QR (Entrar na aula): quem reservou a aula pelo app aparece NA BIKE
+  RESERVADA, com nome e foto, em cartao amarelo tracejado "reservou ·
+  aguardando" — mesmo antes de chegar ou pedalar.
+- Se a pessoa sobe na bike reservada e pedala (mesmo sem abrir o app), o
+  cartao fica VERDE com o nome dela e os watts.
+- Quem entra pelo app aparece normal (o cartao da reserva some).
+- A bike reservada vai como OCUPADA para o app dos outros alunos; para quem
+  reservou, ela aparece como "SUA RESERVA".
+- Os alunos demo nunca ficam numa bike reservada.
+- A TV busca as reservas da aula de agora (ate 90 min antes ate o fim da
+  aula) ao abrir a tela do QR e a cada 20 s.
+
+------------------------------------------------------------------------
+
+ProRider — BUILD 01/10e (Ginasio)
+
+01/10e (sobre a 01/10d) — CORRECAO IMPORTANTE, pedido do Mario:
+- O style.css do 01/10d saiu CORTADO (perdeu ~130 linhas do fim). Por isso
+  as telas "De onde vem a aula", "Configurar aula", "Entrar na aula (QR)",
+  o YouTube de fundo e a contagem do Spotify apareciam sem visual
+  (texto solto, QR jogado, tudo baguncado). Arquivo restaurado completo.
+- GRAFICOS DO PERFIL (lista de aulas, detalhe, previa da configuracao):
+  largura agora e exatamente proporcional ao tempo de cada bloco. Antes
+  cada bloco tinha 2 px de vao fixo, entao aula com muitos blocos curtos
+  (pendrive) ficava esticada e fora do eixo de minutos.
+- CONTROLE: o START na tela inicial funciona direto. Antes so funcionava
+  depois de mexer no direcional, parecia que o controle nao respondia.
+- MAIS LEVE: a previa da configuracao so redesenha quando muda (cenario
+  animado a 30 quadros/s); o ajuste do texto das caixas do topo na aula ao
+  vivo so e refeito quando o texto muda (recalculo de pagina 3x menor).
+
+------------------------------------------------------------------------
+
+ProRider — BUILD 01/10d (Ginasio)
+
+01/10d (sobre a 01/10c), opcao 2 aprovada pelo Mario:
+- TELA DE ESPERA: logo original (raio + PRO/RIDER + linha + "cycling
+  performance") SEMPRE CENTRALIZADO, um pouco maior (PRO/RIDER em 190 px),
+  com um brilho laranja suave atras. Fundo quadriculado de sempre.
+- Com aula no dia: o logo sobe um pouco e as AULAS DE HOJE passam
+  RODANDO na parte de baixo (esquerda para a direita sem parar, sem painel
+  e sem faixa de outra cor). Ao vivo em verde, proxima em laranja com
+  "COMECA EM N MIN", aulas feitas mais apagadas.
+- Nome da academia e data no canto de cima a esquerda; relogio grande no
+  canto de cima a direita.
+- Sem aula no dia: so o logo, centralizado.
+- A lista e atualizada sem a faixa pular (so o relogio muda a cada minuto).
+
+------------------------------------------------------------------------
+
+ProRider — BUILD 01/10c (Ginasio)
+
+01/10c (sobre a 01/10b), pedido do Mario:
+- TELA DE ESPERA volta a ser a ORIGINAL: fundo quadriculado, o raio, PRO
+  em branco e RIDER em degrade, a linha e "cycling performance".
+- Com aula no dia, a GRADE DE HOJE aparece FLUTUANDO a direita, no mesmo
+  fundo (sem painel, sem faixa de outra cor); o logo desliza um pouco para
+  a esquerda. Ao vivo em verde, proxima em laranja com a contagem.
+- LOGO: o arquivo logo-prorider.png agora e o logo ORIGINAL (raio + PRO
+  RIDER + cycling performance), o mesmo da tela de espera. Como todas as
+  telas usam esse arquivo, ele trocou em todo lugar de uma vez (TV, Portal,
+  Construtor, app, e-mails).
+
+------------------------------------------------------------------------
+
+ProRider — BUILD 01/10b (Ginasio)
+
+01/10b (sobre a 01/10a): TELA DE ESPERA do jeito que o Mario pediu.
+- No meio, o SIMBOLO (raio) com o LOGO colorido embaixo, o nome da
+  academia e a data; embaixo, km e kcal do clube.
+- Na lateral direita, a GRADE DE HOJE: horario grande, aula, professor,
+  reservas; a aula AO VIVO em verde e a PROXIMA em laranja com a contagem
+  ("COMECA EM 55 MIN"); as ja feitas ficam apagadas.
+- Sem aula hoje: so o simbolo e o logo, como sempre.
+
+------------------------------------------------------------------------
+
+ProRider — BUILD 01/10a (Ginasio)
+
+01/10a (sobre a 30/09f): CAMPEONATO.
+- O gestor cria no Portal (menu Campeonatos) um Tour de France (camisa
+  amarela), Giro d'Italia (rosa), La Vuelta (vermelha) ou Mundial
+  (arco-iris do campeao) e marca aulas da grade como ETAPAS.
+- Ao abrir a tela do QR, a TV pergunta ao servidor se a aula de agora e
+  etapa (de 1 h antes a 3 h depois do horario da grade). Se for, aparece
+  "Etapa N de M · nome do campeonato" no alto.
+- Durante a aula a TV soma os pontos de SPRINT (blocos Z6/Z7 de ate 90 s)
+  e de MONTANHA (blocos Z4+ de 2 min ou mais, em pe ou em etapa de
+  montanha) pelo %FTP de cada aluno.
+- No fim, a TV manda o resultado (WPP, sprint, montanha) e o servidor
+  devolve a classificacao. Ela aparece como a 3a tela do fim da aula:
+  AULA CONCLUIDA -> RANKING -> CAMPEONATO -> inicio.
+- A camisa aparece ao lado do nome na grade de bikes e no ranking do fim.
+  Quem ganhou camisa em campeonato leva a camisa para qualquer academia.
+- Aula que nao e etapa: nada muda.
+
+------------------------------------------------------------------------
+
+ProRider — BUILD 30/09f (Ginasio)
+
+30/09f (sobre a 30/09e): CAMERA AO VIVO EM CARTAO PROPRIO na tela
+Configurar aula (aprovado pelo Mario). A camera (notebook ou USB no mini PC)
+nao fica mais escondida entre as opcoes de video: tem o cartao "3 · Camera
+ao vivo" (Camera no fundo da aula / Desligada), mostra quantas cameras o
+computador encontrou e ja anuncia "em breve: gravar a aula para o app ·
+transmitir ao vivo". Camera ligada = o professor aparece atras do grafico,
+no lugar do video e do cenario. Ordem: Musica → Video → Camera → Cenario →
+Iniciar.
+
+------------------------------------------------------------------------
+
+ProRider — BUILD 30/09e (Ginasio)
+
+30/09e (sobre a 30/09b): TELAS DE PREPARAR A AULA NO VISUAL DO PORTAL
+(aprovadas pelo Mario) + YouTube + Spotify + tela final + logo original.
+
+ARQUIVOS NOVOS: telas-pv.js (as telas novas; o ginasio.html carrega depois
+do script.js) e logo-prorider.png (logo original). Os dois TEM de estar na
+pasta junto com o ginasio.html.
+
+1) INICIO: Aulas do sistema · Minhas aulas · Sessao livre + cartoes com a
+   grade de hoje, a academia e o sistema online.
+2) MINHAS AULAS: "De onde vem a aula?" — DA MINHA CONTA (o QR ja aparece
+   no cartao; o professor le com o app logado e as aulas dele chegam — vale
+   em QUALQUER academia) ou DO PENDRIVE.
+3) AULAS DO SISTEMA: 5 objetivos em grade (3 colunas) com o perfil de cada
+   tipo. Setas: esquerda/direita anda 1, cima/baixo anda uma linha.
+4) LISTA DE AULAS com painel de detalhe e "Usar esta aula". B volta para
+   onde veio.
+5) CONFIGURAR AULA: musica (MP3 do pendrive / Spotify / sem musica),
+   video (pendrive / YouTube / camera / sem video), cenario (so sem video)
+   e o resumo com a previa. Cima/baixo escolhe a parte; esquerda/direita
+   troca a opcao; START escolhe/avanca.
+6) QR CODE: dois QRs grandes (entrar na aula / baixar o app), bikes da sala
+   ao vivo (verde = pedalando, com W e FC), contadores e perfil da aula.
+7) YOUTUBE DE FUNDO: toca sem som, comecando no ponto que faz a chegada
+   bater com o fim do bloco principal, e acompanha pausa e avanco da aula.
+   Precisa de internet. Sem anuncio so com o navegador logado em YouTube
+   Premium. Se nao tocar, a aula segue com o cenario animado.
+8) CONTAGEM 3-2-1 COM PLAYLIST: "No JA, de play no Spotify"; no fim aparece
+   "JA!" e a aula comeca.
+9) TELA FINAL: painel da esquerda com grafico mais baixo, faixa das partes,
+   minutos, tempo em cada zona maior e destaques.
+10) CORRECAO: o desafio montado no Construtor agora chega na aula.
+
+------------------------------------------------------------------------
+
+ProRider — BUILD 30/09b (Ginasio)
+
+30/09b (sobre a 30/09a): GRAFICO DA AULA ~25% MAIOR. Ele pode subir 32 px
+(do desenho 1920x1080) acima do topo dos circulos: so o nome do segmento e
+os rotulos das zonas passam dessa linha; os cartoes ficam na faixa dos
+circulos. A regra do RT continua: sem as caixas, o grafico desce e cresce
+30% (agora chega a 100% da altura projetada em 1920x1080).
+
+------------------------------------------------------------------------
+
+ProRider — BUILD 30/09a (Ginasio)
+
+30/09a (sobre a 29/09b) — correcoes do teste do Mario na TV:
+
+1) GRAFICO DA AULA NO TAMANHO DO PROJETO EM QUALQUER TV. As alturas dos
+   blocos eram medidas pela altura da janela (vh) e, por cima disso, o
+   programa aplica o zoom que encaixa o desenho 1920x1080 na TV. Numa TV
+   ou notebook com a escala do Windows em 125%/150% o grafico encolhia
+   duas vezes (ficava uns 35-40% menor). Agora as alturas sao do desenho
+   1920x1080 e o grafico fica igual ao aprovado em qualquer tela.
+2) TELA DE IMERSAO (LB+RB 5 s) COBRINDO A TV INTEIRA. Ela ficava so no
+   canto de cima, a esquerda, pelo mesmo motivo (zoom). Agora cobre tudo.
+3) REGRA DO SELECT:
+   - teste de FTP ou desafio rodando: 1o SELECT PARA na hora e mostra o
+     resultado; 2o SELECT fecha o resultado e volta ao GRAFICO PRINCIPAL;
+   - tela de imersao: SELECT sai e volta ao grafico principal (B e
+     LB+RB tambem saem);
+   - sem nada disso: SELECT pergunta se quer encerrar a aula (direcional
+     escolhe, START confirma), como antes.
+
+COMO CONFIRMAR: tela inicial com BUILD 30/09a. Na aula, o grafico ocupa
+a mesma proporcao da tela em qualquer TV; LB+RB 5 s escurece a TV inteira.
+
+------------------------------------------------------------------------
+
+ProRider — BUILD 29/09b (Ginasio)
+
+29/09b (sobre a 29/09a): brasoes novos (Aquecimento, Cadencia e Pelotao antes
+do Bronze; escada mais espacada). Arquivo brasoes.js atualizado.
+
+------------------------------------------------------------------------
+
+ProRider — BUILD 29/09a (Ginasio)
+
+O QUE MUDOU NA 29/09a (sobre a 26/09e):
+
+1) TELA DE ESPERA COM AS AULAS DO DIA EM CARTOES GRANDES: horario, tipo da
+   aula, professor, duracao e reservas. A aula de agora (verde, AO VIVO) ou a
+   proxima (laranja, com contagem regressiva) fica em destaque. No rodape:
+   as aulas ja feitas hoje e os km e kcal do clube. Sem aula hoje, volta a
+   tela do logo. Os 5 toques para reativar a licenca agora sao no nome
+   PRORIDER do canto de cima.
+2) BRASAO ao lado do nome no Ranking (botao B), vindo do app do aluno.
+3) ALUNO DO TOTEM: quem entra pelo tablet da porta (sem celular) aparece na
+   bike escolhida com nome, foto e FTP; os numeros vem da bike normalmente.
+4) A aula aberta (nome e professor) vai para o servidor: e o que faz a faixa
+   verde "Entrar na aula" aparecer no app e no totem.
+5) Arquivo novo: brasoes.js (desenho dos brasoes). Vai junto na pasta.
+
+COMO CONFIRMAR: tela inicial com BUILD 29/09a; com aulas na grade de hoje,
+a tela de espera mostra os cartoes grandes.
+
+------------------------------------------------------------------------
+
+ProRider — BUILD 26/09e (Ginasio)
+
+O QUE MUDOU NA 26/09e (sobre a 26/09d) — LIGACAO COM O PORTAL NOVO:
+
+1) RANKING DA TV (botao B) COM OS CAMPOS DO PORTAL: o gestor escolhe no
+   Portal (menu "Ranking na TV") quais colunas aparecem — zona, RPM, %FTP,
+   watts, kcal, FC, pontos — em que ordem, e por qual o ranking e ordenado
+   (pontos, kcal, potencia ou %FTP). O Ginasio recebe isso na ativacao e a
+   cada 15 minutos, e guarda no aparelho (sem internet, vale o ultimo).
+   Sem configuracao, o ranking fica exatamente como era.
+   A coluna nova FC mostra a FC atual (bike ou cinta do celular).
+2) VERSAO DO GINASIO NO PORTAL: o Ginasio avisa a versao (BUILD) ao servidor;
+   o super admin ve em "Licencas" qual BUILD esta em cada TV, se esta online
+   e quando falou pela ultima vez, com o aviso "atualizar" quando e antiga.
+3) ALUNO LIGADO A ACADEMIA: ao abrir a sala, o Ginasio manda o token da
+   licenca; quem entra pelo QR passa a ser aluno desta academia sozinho
+   (aparece na lista de alunos do gestor, sem cadastro manual).
+
+COMO CONFIRMAR: na tela inicial aparece BUILD 26/09e; no Console (F12) a
+linha "[ProRider] BUILD 26/09e". Depois de salvar o ranking no Portal,
+reabra o programa: o Console mostra "ranking da TV: ..." com os campos.
+
+------------------------------------------------------------------------
+
+ProRider — BUILD 26/09d (Ginasio)
+
+O QUE MUDOU NA 26/09d (sobre a 26/09c) — FLUIDEZ:
+
+1) ANEL DO TESTE DE FTP: anda a cada quadro da tela, pelo relogio real
+   (antes: saltava 1x por segundo). O relogio do teste tambem passou a
+   contar pelo relogio real.
+2) DESAFIO E TESTE DE FTP: atualizam 10x por segundo (antes 4x), com barras,
+   anel e corda deslizando.
+3) CARTOES DE POTENCIA/ROTACAO E RANKING: ~7x por segundo (antes 4x) e
+   atualizados NO LUGAR — antes a grade inteira era refeita a cada vez, o
+   que deixava tudo "quebrado". As barras de rotacao deslizam.
+4) AGULHA DO PERFIL (tela do QR): 5x por segundo (antes 1x).
+
+5) MODO ESPACO: segurando LB + RB por 5 SEGUNDOS durante a aula, a TV fica
+   escura, so com estrelas vindo em direcao a quem olha (hiperespaco). A
+   velocidade das estrelas segue o esforco da sala (%FTP medio de quem pedala).
+   Segurar LB + RB de novo por 5 s (ou apertar B) volta. A aula continua por baixo.
+   No teclado: Shift + E.
+6) TESTE DE FTP — QUEM PARTICIPA: so quem mandou dados (pedal rodando) nos
+   10 PRIMEIROS SEGUNDOS do teste. Quem ficou parado ate os 10 s ou chegou
+   depois fica fora e o FTP dele nao muda. Encerrando antes do fim, vale o
+   resultado do momento.
+7) RESULTADO DO FTP NO CELULAR: cada aluno recebe o proprio novo FTP (o
+   servidor nao repassava esta mensagem — corrigido no server.js 26/09d).
+8) TELA DO QR NA AULA: lista de alunos SEM ROLAGEM, com nomes e fotos
+   grandes ocupando o espaco. Se nao couber todo mundo, mostra uma parte por
+   10 s e depois o resto (o titulo mostra "1-11").
+9) RANKING: acima de 20 alunos mostra 20 por vez, trocando a cada 10 s
+   (indicador "1o ao 20o de 23" no topo). Nome e foto maiores.
+
+10) NOVO MAPA DO CONTROLE NA AULA:
+      X = Potencia · A = Rotacao · B = Ranking
+      Y = FREQUENCIA CARDIACA (tela nova)
+      RB (toque) = QR Code (antes era o Y) — abre ao soltar o botao
+      RT = esconde as caixas (grafico cresce)
+      LB + RB segurados 5 s = modo espaco (nao abre o QR)
+11) TELA DE FREQUENCIA CARDIACA (Y): cartoes com bpm, zona e % da FC maxima
+    (220 - idade, ou 190). A FC vem da bike OU da cinta/relogio ligado no
+    celular do aluno (antes a do celular nao chegava ao Ginasio). Sem FC:
+    "sem cinta".
+12) FC ALINHADA EM TODO LUGAR: o coracao nas telas de desafio mostrava o tempo
+    de aula — agora o tempo tem o icone de relogio. Cartoes, lista do QR e
+    relay para o celular usam a mesma fonte de FC.
+13) FIM DE AULA NA TELA NOVA (aprovado): "Aula concluida" com a jornada da
+    aula, tempo em cada zona, TSS, kcal da turma, potencia e FC media e o podio
+    WPP; e o RANKING DA AULA com podio, classificacao (rodizio de 10 s acima de
+    20) e destaques (media, tempo no alvo, maior gasto, maior pico).
+14) FIM DE AULA CHEGA AO CELULAR: se o servidor estiver fora na hora de
+    encerrar, o aviso fica guardado e sai quando a conexao voltar; fechar o
+    programa tambem avisa os celulares.
+
+COMO CONFERIR: tela inicial, canto inferior direito -> BUILD 26/09d
+
+------------------------------------------------------------------------
+
+ProRider — BUILD 26/09c (Ginasio)
+
+O QUE MUDOU NA 26/09c (sobre a 26/09b):
+
+1) RANKING COM MUITOS ALUNOS SEM CORTE (foto da TV, 21 alunos): com 11 linhas
+   por coluna, numeros, nomes e posicoes saiam cortados. Agora, em duas
+   colunas, sai o nome da zona embaixo do nome (o selo Z1..Z7 ja mostra) e as
+   unidades embaixo dos numeros (o cabecalho ja mostra), o nome ganha mais
+   largura, e as letras encolhem so o necessario para cada linha caber.
+
+2) RESULTADO DO DESAFIO CONGELADO: ao encerrar qualquer desafio, os numeros
+   do resultado ficam parados no valor do fim (antes continuavam mudando com
+   a turma pedalando). Quem entra depois nao aparece. Um novo desafio comeca
+   do zero.
+
+3) DESAFIO FLUIDO: o relogio e os numeros do desafio atualizam 4x por
+   segundo e a tela muda so o que mudou (sem redesenhar tudo): segundos
+   certinhos, barras, anel e corda deslizando. As kcal sobem aos poucos (sem
+   degraus). Potencia maxima agora e o pico DENTRO do desafio (antes pegava o
+   pico da aula inteira).
+4) GRAFICO ANTIGO DESATIVADO: fica so o grafico novo (cartoes). LB nao
+   alterna mais. Com o botao que esconde as caixas (RT), as caixas somem e o
+   grafico DESCE para o lugar delas e cresce 30% na altura; apertando de novo,
+   volta ao normal.
+
+5) TROCA DE TELA COM ESMAECIMENTO: Potencia, Rotacao, QR e Ranking entram
+   esmaecendo (0,22 s) e a que sai some por baixo (0,18 s). Rapido, mas a
+   troca fica redonda. Desafio e resultados tambem entram esmaecendo.
+6) TESTE DE FTP NA TELA NOVA (padrao dos desafios): ao vivo, duas colunas com
+   a projecao de FTP de cada aluno (verde = acima do FTP atual, cinza =
+   abaixo; o risco branco na barra e o FTP atual), relogio do teste no
+   centro. Resultado final com podio da MAIOR EVOLUCAO (%) e o novo FTP.
+7) FTP CALCULADO PELA MEDIA DO TESTE (igual ao app do aluno): FTP = potencia
+   media do teste x fator (20 min x 0,95; 10 min x 0,90; 5 min x 0,87;
+   3 min x 0,85). Antes o Ginasio usava a potencia do ULTIMO INSTANTE
+   dividida pelo fator — o que inflava o resultado.
+
+COMO CONFERIR: tela inicial, canto inferior direito -> BUILD 26/09c
+
+------------------------------------------------------------------------
+
+ProRider — BUILD 26/09b (Ginasio)
+
+O QUE MUDOU NA 26/09b (sobre a 25/09a) — tela de espera da aula (lobby):
+
+1) PERFIL DA AULA SEM A LINHA BRANCA: a linha continua que contornava as
+   barras saiu de vez. Ficam so as barras coloridas.
+2) COLUNA DA DIREITA SEM SOBREPOSICAO: o cartao AULA SELECIONADA (video,
+   musica, status da sala) nao invade mais o PERFIL DA AULA. Agora e o QR do
+   browser que encolhe para caber — resolvido so com CSS, sem depender de
+   calculo na hora de abrir (era isso que falhava na TV).
+3) AULA EM ANDAMENTO NO PERFIL: na tela do QR aberta durante a aula (botao Y),
+   o PERFIL DA AULA mostra onde a turma esta: um risco com um ponto branco que
+   anda a cada segundo, e a parte ja pedalada fica escurecida. As barras
+   passaram a usar o mesmo eixo de tempo da aula, entao o risco cai no bloco
+   certo. Antes a agulha existia mas so era movida numa tela e desenhada
+   noutra — por isso nunca aparecia.
+
+4) GRAFICO DE CARTOES CABE ENTRE OS CIRCULOS: margens mais curtas e a
+   altura dos cartoes se ajusta sozinha para o grafico (do nome do segmento
+   ate a faixa de informacao) ficar entre o topo e a base dos dois circulos.
+   A mesma zona tem a mesma altura em todas as telas.
+5) INICIO / FIM: "INICIO" so aparece quando a tela mostra o comeco da aula, e
+   ja nao fica por baixo do circulo da esquerda. "FIM" so aparece no ultimo
+   bloco da aula (fim do desaquecimento). No meio da aula fica so a seta.
+6) "VOCE ESTA AQUI" nao cai mais em cima do nome do segmento.
+7) MINI GRAFICO DAS TELAS DE CARTOES (Potencia, Rotacao, Ranking): as barras
+   passaram a ser desenhadas no mesmo eixo de tempo do escurecimento. Antes os
+   vaos entre as barras deslocavam o desenho e a marca ficava uns 5 s fora do
+   lugar em relacao ao grafico da aula.
+
+8) DESAFIO HOMENS x MULHERES COM TELA NOVA (no modelo enviado pelo Mario):
+   homens a esquerda (azul), mulheres a direita (rosa), relogio do desafio no
+   centro com o anel dividido azul x rosa pela media de cada grupo, e embaixo
+   media dos homens, media das mulheres, zona atual e tempo de aula.
+   SEM ROLAGEM: 10 por lado; com mais de 10, a lista troca sozinha para os
+   proximos a cada 5 s ("11-14 de 14"). Vence o grupo com a MAIOR MEDIA POR
+   PESSOA (a soma favoreceria o grupo com mais gente). A mesma tela vira o
+   RESULTADO FINAL ao encerrar (START ou toque fecham; some sozinha em 30 s,
+   ou 60 s quando a lista troca de pagina).
+   ATUALIZADO: a coluna do meio ficou mais estreita e os nomes maiores. Os
+   TRES modos usam agora esta tela: Todos x Todos (duas colunas: 1-10 e
+   11-20; com mais de 20, troca a cada 5 s), Homens x Mulheres e Equipes
+   (laranja x azul). Em Equipes o vencedor tambem passou a ser pela MEDIA
+   por pessoa (antes era a soma). A ultima pagina mostra sempre os 10
+   ultimos, para a coluna nunca ficar com um nome sozinho.
+9) RESULTADO NO CELULAR: ao encerrar qualquer desafio, cada aluno recebe a
+   propria colocacao (no grupo e no geral) e o valor; o app mostra por 10 s.
+   Alunos que entram pelo app passam a mandar o sexo da conta; bike sem login
+   continua contando como homem.
+
+11) DESAFIOS EQUILIBRADOS: cada um compete contra o proprio FTP.
+    Gasto calorico conta PONTOS (kcal ajustadas ao FTP: kcal x 200 / FTP);
+    Potencia media vira % DO FTP; Distancia ja e equilibrada (vem da
+    cadencia); Potencia maxima continua BRUTA, em watts (sprint).
+
+12) PODIO NO RESULTADO FINAL: cada coluna mostra os 3 primeiros num podio
+    (1o no meio, mais alto) e a lista segue do 4o em diante. Ao vivo, 1-2-3
+    ficam sem destaque (so o lider tem um brilho). Cada aluno tem uma barra
+    sob o nome, proporcional ao lider. A tela do desafio agora usa medidas
+    fixas do desenho 1920x1080 — nao corta mais em TV maior que 1920.
+
+13) CABO DE GUERRA: novo desafio (Equipes ou Homens x Mulheres). A corda
+    anda a cada segundo para o lado que esta se esforcando mais AGORA (% do
+    FTP de cada um). Chegou na ponta, acaba. O professor para quando quiser.
+14) DESAFIO AUTOMATICO NO BLOCO: no construtor, dentro do bloco, escolha o
+    desafio, o modo e quantos segundos ele dura. Na aula ele comeca sozinho
+    quando faltar esse tempo para o fim do bloco e termina junto com o bloco,
+    com resultado na TV e no celular.
+
+10) RECONEXAO: quando o Ginasio religa ao servidor, ele confere quais alunos
+    o servidor ainda tem na sala. Quem nao estiver la deixa de ocupar a bike
+    na hora e, se nao voltar em 90 s, sai da tela (se voltar, continua com os
+    numeros).
+
+COMO CONFERIR: tela inicial, canto inferior direito -> BUILD 26/09b
+               F12 -> Console -> filtro BUILD -> [ProRider] BUILD 26/09b
+
+------------------------------------------------------------------------
+
+ProRider — BUILD 25/09a (Ginasio)
+
+O QUE MUDOU NA 25/09a (sobre a 24/09b):
+
+1) GRAFICO DE CARTOES 25% MAIOR, e depois 15% mais diferenca de altura entre
+   os blocos (z1 6,25vh -> z7 19,2vh). Zonas, "voce esta aqui" e as caixas do
+   rodape (proximo bloco, tempo, posicao, RPM, FTP, segmento, aula total)
+   tambem 25% maiores; se um texto nao couber, a letra diminui so o necessario.
+   A LARGURA nao cresceu 25%: o grafico ja vai de um circulo ao outro.
+2) BLOCO MAIS "GORDINHO" QUANTO MAIS LONGO: a largura agora cresce com o tempo
+   elevado a 1,3. Um bloco de 60 s fica 6x mais largo que um de 15 s (antes 4x).
+3) PERFIL DA PRE-AULA: a linha branca passou para TRAS das barras — so aparece
+   como contorno.
+4) TREINO DO TRAININGPEAKS NO PENDRIVE: o .json exportado do TrainingPeaks
+   (o mesmo que o app do aluno ja abria) agora aparece na lista do pendrive.
+   Posicao vira "Sentado"; cadencia ausente fica 80-90. Arquivo .json que nao
+   for aula agora avisa no Console em vez de sumir calado.
+5) FAIXA PRETA NO VIDEO: com o video ja travado no topo (24/09a) a faixa
+   continuou — ela esta GRAVADA no arquivo. Agora o Ginasio mede as linhas
+   pretas em cima e embaixo em 3 momentos e, se a tarja se confirmar (de 1,5% a
+   20% da altura), amplia o video so o bastante para ela sair da tela.
+   Console:  [ProRider] video ... cortada automaticamente: ampliado 6%.
+
+COMO CONFERIR: tela inicial, canto inferior direito -> BUILD 25/09a
+
+------------------------------------------------------------------------
+
+ProRider — BUILD 24/09b (Ginasio)
+
+O QUE MUDOU NA 24/09b (sobre a 24/09a):
+
+1) A VERSAO APARECE NA TELA INICIAL, no canto inferior direito, embaixo de
+   SISTEMA PRONTO (antes dizia "Ver. 2.1.0" fixo). Nao precisa mais de F12.
+2) A linha do BUILD no Console saia como  false 'color:...'  — o texto tinha
+   aspas simples dentro ('< 55%') que partiam a frase. Consertado.
+   Foi por isso que a 24/09a, que JA estava na TV, nao mostrava a versao.
+
+COMO CONFERIR: tela inicial, canto inferior direito -> BUILD 24/09b
+    (ou F12 no Console, filtro BUILD)
+
+------------------------------------------------------------------------
+
+ProRider — BUILD 24/09a (Ginasio)
+
+O QUE MUDOU NA 24/09a (sobre a 23/09e):
+
+1) A GRADE DA SALA RESPEITA AS BIKES DA LICENCA.
+   A licenca e vendida por quantidade de bikes. O Ginasio pergunta ao servidor
+   (/display/licenca, e tambem na ativacao e na renovacao) quantas bikes a
+   licenca tem e nao deixa a grade passar disso — nem no ajuste manual.
+   Se a grade estava maior, e reduzida sozinha e o Console avisa:
+       [ProRider] licenca com 20 bikes — grade reduzida de 30 para 20.
+   O app do aluno mostra para escolher exatamente essa grade.
+   PRECISA do servidor novo (mesmo pacote). Com o servidor antigo, nada muda.
+
+COMO CONFERIR (F12 no Console, filtro BUILD):
+    [ProRider] BUILD 24/09a ...
+
+------------------------------------------------------------------------
+
+ProRider — BUILD 23/09e (Ginasio)
+
+O QUE MUDOU NA 23/09e (sobre a 23/09d):
+
+1) GRAFICO ATRASADO OU ADIANTADO CONFORME A TELA — causa encontrada e corrigida.
+   No grafico de cartoes, quando o segmento nao cabe numa tela ele vira
+   "paginas". Dentro de um mesmo segmento, a troca de pagina so era desenhada
+   quando outra coisa redesenhava o grafico (troca de segmento, troca de tela).
+   Ate la a TV continuava com os cartoes da pagina ANTERIOR e a agulha andava
+   por cima de blocos errados. Trocar de tela redesenhava e o grafico "pulava"
+   para o sitio certo. Agora ele redesenha sozinho no momento da troca.
+   Simulado com 60 blocos (3 paginas): antes, ao passar para a pagina 2, a tela
+   ficava na 1; agora vira na hora, em todas as passagens.
+
+2) BIKE 99 (PROFESSOR) APARECE NA AULA.
+   Ela nao estava escondida: era DESCARTADA logo na leitura, antes de tudo —
+   pareava e transmitia, mas nunca entrava na grade. Agora entra como as outras,
+   com o cartao "Professor" (ou o nome de quem estiver logado nela), e vai no
+   relay para o app: o professor na bike 99 pelo celular passa a ver os watts,
+   e a Vista da sala mostra a 99 conectada.
+
+3) Marcha e FC tambem nos cartoes das bikes SEM login (antes so nas com login).
+
+Nada na leitura das bikes foi alterado.
+
+COMO CONFERIR (F12 no Console, filtro BUILD):
+    [ProRider] BUILD 23/09e ...
+
+------------------------------------------------------------------------
+
+ProRider — BUILD 23/09d (Ginasio)
+
+O QUE MUDOU NA 23/09d (sobre a 23/09c):
+
+1) bled112.js UNIFICADO. Ate aqui havia dois: o do executavel (com o caminho
+   Electron para abrir a porta serial) e o das pastas (sem ele). Agora e um
+   so, que serve aos dois:
+     - no executavel (Electron): pede a porta direto com requestPort, igual
+       ao que o executavel ja fazia;
+     - no Chrome/Edge (PRORIDER.bat): o caminho de sempre, sem mudanca.
+   Nada na leitura das bikes foi alterado — so a abertura da porta.
+   Este arquivo pode ir para o executavel E para as pastas.
+
+COMO CONFERIR (F12 no Console, filtro BUILD):
+    [ProRider] BUILD 23/09d ...
+
+------------------------------------------------------------------------
+
+ProRider — BUILD 23/09c (Ginasio)
+
+O QUE MUDOU NA 23/09c (sobre a 23/09b):
+
+1) MARCHA E FREQUENCIA CARDIACA nos cartoes dos alunos (telas de FTP e RPM).
+   Ja eram lidas da Keiser, mas nenhum cartao mostrava. Agora o rodape do
+   cartao tem:  WPP 3.2   ♥ 148   M 14   ...   210 W
+   (so aparecem quando ha valor: sem cinta, sem coracao).
+2) A FC tambem aparece na lista de alunos do lobby — ela lia um campo (hr)
+   que a leitura da bike nao preenche (a Keiser grava em bpm).
+
+COMO CONFERIR (F12 no Console, filtro BUILD):
+    [ProRider] BUILD 23/09c ...
+
+------------------------------------------------------------------------
+
+ProRider — BUILD 23/09b (Ginasio)
+
+O QUE MUDOU NA 23/09b (sobre a 23/09a):
+
+1) PERFIL DA AULA no lobby: a linha branca e as barras voltaram a coincidir.
+   As barras eram itens flex com vao de 4px entre elas; com 69 blocos os vaos
+   somavam ~270px e a linha (que usa so a duracao) ficava para tras. Agora as
+   barras sao posicionadas pela mesma conta da linha e da agulha (_prSec).
+
+2) AULA SELECIONADA (lobby, coluna da direita) nao transborda mais.
+   As linhas de Musica e Status da sala saiam do cartao e ficavam por cima do
+   perfil. Agora o QR do browser encolhe o necessario (piso de 110px).
+
+3) Os QR Codes nao mostram mais a dica flutuante com o endereco quando o rato
+   para em cima (a biblioteca punha um title no elemento).
+
+4) Meta FTP nos paineis da aula: bloco sem piso saia "--–55%". Agora "< 55%",
+   igual ao circulo da aula.
+
+5) MINHAS AULAS: 401 no pareamento deixou de aparecer como "SEM LIGACAO".
+   Agora diz "GINASIO NAO AUTENTICADO" e o A abre a reativacao ali mesmo.
+   A causa continua do lado do servidor: fixar o JWT_SECRET no Railway.
+
+6) FAIXA PRETA EM CIMA DO VIDEO — travada.
+   A posicao do video na aula agora e fixada com !important no CSS: nem um
+   estilo escrito na tag nem um JS consegue tira-lo do topo. E o Console diz,
+   meio segundo depois de o video comecar:
+       [ProRider] video no topo: ok (top 0, altura 1080px)
+   ou, se descer:
+       [ProRider] VIDEO FORA DO LUGAR — topo 60px ...  (com a causa)
+   E mede o proprio arquivo:
+       [ProRider] video 1920x1080 · tela 1920x1080 · sem faixa preta no arquivo
+   ou  ... O PROPRIO ARQUIVO tem faixa preta em cima: ~60 px do video
+   Se a faixa aparecer na TV, estas duas linhas dizem de onde ela vem.
+
+COMO CONFERIR (F12 no Console):
+    [ProRider] BUILD 23/09b ...
+    [ProRider] video no topo: ok ...
+
+------------------------------------------------------------------------
+
+ProRider — BUILD 23/09a (Ginasio)
+
+O QUE MUDOU (so no grafico de cartoes — o LB alterna para ele):
+
+1) O veu deixou de ser pelicula.
+   Antes ele nascia colado no #pg2 inteiro (top:0 / bottom:0) e por isso
+   escurecia tambem as zonas, o eixo e a faixa de proximos segmentos.
+   Agora ele e medido e grudado exatamente na caixa dos cartoes, e o fundo
+   colorido saiu: no lugar dele entrou dessaturacao. O trecho ja percorrido
+   perde a cor e escurece — o grafico e apagado, nao coberto.
+
+2) Em pe / sentado deixou de ser letra.
+   A bolinha com P / S saiu. Em pe = fio claro na borda de cima do bloco.
+   Sentado = borda de cima na propria cor do bloco, sem detalhe.
+
+NADA MAIS FOI ALTERADO. O grafico, os blocos, as zonas e o resto da tela
+continuam exatamente como estavam.
+
+COMO INSTALAR
+  Copiar os arquivos para as duas pastas de sempre e reiniciar o PRORIDER.bat:
+    OneDrive\Documentos\ProRider\Ginasio\
+    C:\ProRider\Ginasio\
+
+COMO CONFERIR (F12 no Console):
+    [ProRider] BUILD 23/09a — grafico 2: veu virou apagamento ...
+
+3) Video de fundo voltou a cobrir a tela inteira.
+   O <video id="backgroundVideo"> tinha position:relative escrito direto na tag,
+   e estilo na tag vence a folha de estilo. Com relative, o inset:0 do CSS era
+   ignorado: o video virava elemento em fluxo, nascia empurrado para baixo
+   (a faixa preta em cima) e transbordava embaixo. Tirando so o position:relative,
+   o CSS original volta a valer — position:absolute; inset:0; object-fit:cover.
+
+4) Gasto calorico refeito — e agora e o MESMO nos dois apps.
+   Antes: Ginasio usava 0,14 x watts x horas (200 W em 1 h = 28 kcal) e o app do
+   aluno usava so tempo (duracao x 0,06 = 216 kcal/h para todo mundo).
+   Agora os dois usam trabalho mecanico medido:
+       kJ = watts x segundos / 1000
+       kcal = kJ / 4,184 / 0,24        (eficiencia bruta do ciclismo, ~24%)
+   200 W em 1 h = 717 kcal nos dois lados.
+   IMPORTANTE: os numeros de kcal do ranking vao subir MUITO em relacao ao que
+   voce via ontem. Isso e a correcao, nao um erro.
+
+5) Painel de opcoes (quickbar) no visual do resto do sistema.
+   Era a unica parte da tela fora do padrao: fundo branco translucido, canto
+   redondo de 14, fonte padrao e destaque AZUL.
+   Agora usa a mesma linguagem das caixas do rodape (.pg2i):
+     fundo rgba(5,12,22,.66) · borda 1px rgba(255,255,255,.11) · raio 9
+     desfoque atras · Barlow Condensed · rotulo 11px com espacamento 2,4
+   Destaque passou de azul para laranja, como o resto do sistema. O azul era a
+   cor da zona 2 e confundia.
+   Nenhum botao, atalho ou comportamento mudou — so a aparencia.
+
+6) Barra AO VIVO (abaixo do grafico, acima das caixas) — nas 4 telas.
+   Vale para Potencia, Rotacao, Ranking e QR Code: sao a mesma barra.
+   - Os itens agora DIVIDEM a largura toda. Antes o ultimo tinha margin-left:auto,
+     que jogava "Conectados" para o canto direito e abria um vao morto no meio.
+   - Entrou POSICAO: mostra "De pe" ou "Sentado" do bloco atual, em laranja
+     quando e de pe. Serve de guia do que esta acontecendo na aula.
+   - Rotulos com o mesmo espacamento das outras caixas (2,4) e valor um pouco
+     maior (20px).
+
+7) Apagamento agora e RECORTADO bloco a bloco.
+   O veu anterior media a caixa inteira dos cartoes e escurecia o retangulo todo:
+   pegava o vao entre os blocos e o espaco vazio acima dos mais baixos, virando
+   uma mancha cinza por cima do conjunto.
+   Agora cada bloco tem o seu proprio veu, dentro dele, cortado no formato do
+   cartao (overflow:hidden). A largura de cada um e o quanto daquele bloco ja
+   passou. So o desenho perde a cor — o que esta em volta fica limpo.
+
+8) Tela de pre-aula: a coluna ALUNOS CONECTADOS saia pela borda direita.
+   A grade e 1fr 1fr 340px. Numa grade, a coluna 1fr nao encolhe abaixo do
+   proprio conteudo (min-width:auto e o padrao do CSS). Como os dois QR Codes
+   tem tamanho fixo, quando nao cabiam a primeira coluna crescia e empurrava as
+   demais: a terceira ficava fora da tela, com os nomes cortados no meio e a
+   coluna de watts e batimentos invisivel.
+   Correcao: min-width:0 nos paineis e QR limitado a largura disponivel.
+
+9) Tela de pre-aula reorganizada (substitui o item 8).
+   A coluna fixa de 340px para os alunos saiu. Agora sao DUAS colunas:
+     esquerda  = QR Codes e codigo da sala
+     direita   = AULA SELECIONADA em cima, ALUNOS CONECTADOS embaixo
+   A lista de alunos ocupa o espaco que antes ficava vazio sob o grafico e se
+   reparte em quantas colunas couberem: cada nome recebe no minimo 250px, entao
+   ela vira 2 colunas (ou 3 numa tela bem larga) sozinha. Essa e a regra — nao
+   depende do tamanho do grafico nem de quantos blocos o professor colocou.
+   A densidade da linha passou a contar alunos POR COLUNA, nao o total.
+
+10) Grafico agora VIRA DE TELA em vez de esticar.
+    O bloco mantem SEMPRE a largura padrao — nunca encolhe para caber.
+    Quando o segmento nao cabe, o grafico mostra o que cabe e o restante
+    aparece na proxima virada, assim que a agulha passa do ultimo bloco.
+    Onde corta: de preferencia logo DEPOIS de um bloco de descanso (z1 ou z2),
+    para a tela seguinte comecar ja na intensidade em vez de abrir no meio de
+    um esforco. Sem descanso no trecho final, corta na capacidade cheia.
+    Quando ha mais de uma tela, o rotulo do segmento mostra TELA 1/2, 2/2 etc.
+    Segmento que cabe inteiro continua exatamente como era — uma tela so.
+
+11) Tela final (Aula Concluida) — tres correcoes.
+    a) O nome da aula aparecia so como "AULA". A tela lia o nome do campo do
+       construtor, que fica vazio quando a aula e aberta pela biblioteca ou pela
+       pre-aula. Agora procura o nome tambem no cabecalho e na tela de pre-aula.
+    b) Os nomes dos segmentos ficavam amontoados no meio, longe dos blocos que
+       descreviam: a legenda era centralizada e nao acompanhava a largura dos
+       grupos. Agora cada rotulo recebe o mesmo peso do seu segmento e fica
+       embaixo dele.
+    c) "1 blocos" virou "1 bloco".
+
+12) TSS agora aparece tambem na pre-aula e na tela final.
+    Ja existia na tela de selecao de aulas; a conta (calcularTSS) esta correta e
+    nao foi alterada. Agora o numero aparece tambem ao lado de duracao e blocos
+    na tela de pre-aula, e como quarta caixa na tela de Aula Concluida.
+
+13) Testes de FTP — protocolos e fatores alinhados com o app do aluno.
+    ATENCAO: o app do aluno estava com o teste de 5 min usando fator 1,05.
+    Um esforco de 5 minutos e MUITO acima do FTP, entao o fator tem de ser
+    MENOR que 1. Com 1,05 o app entregava um FTP cerca de 20% inflado, e o
+    mesmo aluno fazendo o mesmo teste no Ginasio (0,87) recebia outro numero.
+    Corrigido no app para 0,87, igual ao daqui.
+    Tabela agora identica nos dois: 3=0,85 · 5=0,87 · 10=0,90 · 20=0,95 · 60=1,00.
+    Acrescentado o protocolo de 60 min no menu do Ginasio.
+    Rampa e 2x8 seguem so no app: dependem de logica que o teste do Ginasio,
+    que e "maximo por N minutos", nao comporta.
+
+14) Sincronia — checkup completo de pausa, avanco e retrocesso.
+    JA ESTAVA CERTO: pausar para musica e video; retomar realinha os dois;
+    saltar bloco reancora a midia com tolerancia apertada; o avanco rapido
+    realinha a cada passo; voltar de minimizado realinha na hora.
+    ESTAVA ERRADO: o grafico do topo (telas de rotacao, cadencia e potencia).
+    Ele so era redesenhado pelo laco de animacao, que NAO roda com a aula
+    pausada. Resultado: avancar ou voltar blocos com a aula parada mexia no
+    relogio, na musica e no video, e o grafico ficava para tras — o "deficit".
+    Agora o avanco rapido, a pausa e a retomada redesenham o grafico, a linha do
+    tempo, a tela ao vivo e a barra de progresso total no mesmo ponto da midia.
+
+15) Nenhum aluno escondido e nenhuma barra de rolagem.
+    a) A lista da pre-aula mostrava 15 de 16 conectados — o ultimo ficava
+       escondido atras da rolagem. Agora o numero de colunas e calculado a
+       partir da altura disponivel: conta quantas linhas cabem e abre colunas
+       suficientes para nao sobrar ninguem. So aperta a altura da linha se
+       mesmo assim nao couber.
+    b) Barra de rolagem removida de TODO o sistema. Isto e uma tela projetada
+       numa academia, nao um site: ninguem arrasta barra com o mouse. A rolagem
+       em si continua funcionando por roda, toque e teclado — so o desenho da
+       barra sai. A pagina inteira nao rola mais (html,body overflow hidden).
+
+16) PORTA ZUMBI do dongle BLE — deteccao.
+    Sintoma: o log diz "Conectado via Web Serial", o scan inicia, e nao chega
+    byte nenhum; o dongle nem acende. O watchdog reinicia o scan para sempre.
+    Causa: depois de o Windows re-enumerar o USB, a autorizacao guardada no
+    Chrome aponta para a enumeracao ANTIGA. O open() passa, o write() passa, e
+    nada chega ao dongle. O sistema dava isso como "conectado".
+    Agora, logo apos abrir a porta, manda-se um system_hello e espera-se
+    resposta por 1,5s. Sem resposta, fecha a porta e diz no Console que e porta
+    zumbi, com a solucao. E se o watchdog reiniciar 3 vezes sem um unico byte,
+    avisa na tela para tirar e por o pendrive BLE.
+    SOLUCAO MANUAL quando acontecer: tirar e por o dongle, e limpar a
+    autorizacao em chrome://settings/content/serialPorts (depois o sistema
+    pergunta a porta de novo, ja na enumeracao nova).
+
+17) Dongle BLE: velocidade da porta descoberta automaticamente.
+    O codigo abria a COM sempre em 256000 baud. Se o firmware do dongle estiver
+    noutra velocidade — 115200 e o padrao de fabrica do BLED112 — a porta abre
+    sem erro, o comando sai sem erro, chega como ruido do outro lado, o dongle
+    nao entende, nao responde e NAO ACENDE. Igualzinho a uma porta morta.
+    Agora tenta 256000, 115200, 57600, 38400 e 9600, mandando system_hello em
+    cada uma e esperando resposta por 1,2s. A que responder fica guardada e e a
+    primeira a ser tentada nas proximas vezes.
+    No Console aparece: "dongle respondeu a NNNN baud" — anotar esse numero.
+    Se nenhuma responder, ele diz isso claramente e lista o que fazer.
+
+18) Escala automatica da altura do grafico.
+    A regua ia sempre de z1 a z7. Numa aula que so usa z1 e z2 — endurance de
+    marcha pesada, onde o esforco vem da cadencia e nao da potencia — os blocos
+    ficavam todos no pe da regua, praticamente iguais, e a diferenca entre
+    esforco e recuperacao sumia da tela.
+    Agora: aula que percorre muitas zonas (amplitude maior que 55 pontos de
+    %FTP) usa a regua cheia, como sempre. Aula espremida em poucas zonas estica
+    a regua so naquela faixa, entre 35% e 100% da altura.
+    AS CORES NAO MUDAM NUNCA. z2 continua azul, z5 continua laranja — senao a
+    leitura de intensidade por cor deixaria de valer. So a altura se adapta.
+    Dentro da faixa usa-se o %FTP do bloco, nao so a zona: e o que separa um
+    bloco de 70-75% de um de 61-71%, que caem os dois em z2.
+    A faixa e da AULA INTEIRA, nao do segmento, para a regua nao mudar a cada
+    virada de tela.
+
+19) Lista de alunos da pre-aula voltava a UMA coluna, cortando alunos.
+    A montagem lia a altura disponivel para calcular quantas linhas cabem. Se
+    nesse instante o painel ainda nao tivesse sido desenhado, a altura voltava
+    ZERO e o calculo concluia que cabiam 99 linhas — ou seja, que uma coluna
+    bastava. Resultado: coluna unica e os ultimos alunos fora da tela. Como as
+    barras de rolagem foram removidas, o corte ficava invisivel.
+    Agora, sem altura valida, nao se force coluna nenhuma: deixa o CSS decidir e
+    refaz a montagem no quadro seguinte, quando a altura ja existe.
+    E o minimo por coluna baixou de 210px para 170px, para caberem duas colunas
+    tambem em notebook de tela pequena.
+
+20) Dongle: agora testa TODAS as portas autorizadas ate uma RESPONDER.
+    No teste de 16/09 o Console mostrou "portas autorizadas: 40 | candidatas: 40".
+    Cada vez que o Windows re-enumera o dongle, o Chrome guarda mais uma
+    autorizacao no perfil, e elas se acumulam. Quase todas sao fantasmas: abrem
+    sem erro e nao tem nada do outro lado.
+    O codigo ficava com a primeira que ABRISSE — por isso anunciava "Conectado
+    via Web Serial" e o dongle nem acendia.
+    Agora ele fica com a primeira que RESPONDER ao system_hello, percorrendo a
+    lista inteira e testando as velocidades em cada uma. Se nenhuma responder e
+    houver muitas autorizadas, avisa no Console para limpar o perfil.
+
+    LIMPEZA RECOMENDADA (reduz 40 autorizacoes para 1):
+      chrome://settings/content/serialPorts -> apagar todas -> abrir o ProRider
+      de novo e autorizar uma vez.
+    No executavel (Electron) isto deixa de existir: o programa escolhe a porta
+    pelo fabricante, sem autorizacao guardada.
+
+21) Corrigido o erro da prova de vida do dongle (bug introduzido na 16/09b).
+    No Console aparecia:
+      readLoop terminou: TypeError: Failed to execute 'getReader' on
+      'ReadableStream': ... streams that are not yet locked to a reader
+    A cada tentativa de velocidade era aberto um leitor novo da porta sem soltar
+    o anterior. Na segunda tentativa o fluxo ainda estava preso e tudo falhava
+    dali em diante — inclusive a varredura das outras candidatas.
+    Agora existe _soltarPorta(): cancela o leitor, solta o escritor e espera o
+    laco de leitura sair antes da tentativa seguinte.
+
+22) Pre-aula reorganizada de novo: a lista de alunos virou faixa de largura
+    total, embaixo das duas colunas. O painel dos QR deixou de esticar ate o fim
+    da tela — era ele que deixava aquele vazio enorme sob o codigo da sala,
+    enquanto os alunos se espremiam numa coluna estreita.
+    Foto passou de 36 para 58px, nome de 15 para 18px, e os numeros (batimento e
+    watts) sairam da direita e foram para baixo do nome: some o vao morto entre
+    o nome e a medicao, e sobra largura para nomes compridos.
+
+23) Overlay de QR durante a aula: era uma bolinha de 8px, o nome espremido no
+    meio e a rotacao encostada na direita. Agora tem foto de 38px (ou iniciais
+    na cor da zona), nome em 15px e, abaixo, rotacao e watts. A barra lateral
+    esquerda de cada linha mostra a cor da zona do aluno.
+
+24) AGULHA DO GRAFICO marcava o bloco errado (grave).
+    _pg2Pag() procurava o bloco atual com todos.indexOf(workout[currentBlockIndex]).
+    indexOf compara IDENTIDADE DE OBJETO. Quando o construtor duplica um bloco —
+    uma recuperacao repetida, por exemplo — todas as copias sao o MESMO objeto,
+    e o indexOf devolvia sempre a primeira. A agulha marcava um bloco anterior e
+    os mostradores mostravam a intensidade de outro ponto da aula, alem de
+    embaralhar a virada de tela.
+    Agora a posicao e contada POR POSICAO (_pg2IdxAtual): conta quantos blocos do
+    mesmo segmento vem antes de currentBlockIndex. Nao depende de identidade.
+
+25) Fogo e raio removidos dos blocos fortes.
+    O fogo acima do bloco Zone 6 e o raio acima do Zone 7 eram desenhados por
+    CSS (::after). Na tela projetada refletiam e sobravam por cima do desenho.
+    Retirados tambem os emojis dos NOMES das zonas ("Zone 6 - Anaerobic",
+    "Zone 7 - Neuromuscular").
+    Os blocos continuam se destacando pela cor e pela animacao propria. Uma
+    animacao nova para blocos fortes fica para quando decidirmos o que desenhar.
+
+26) URGENTE — bike SEM SINAL continuava mostrando numero.
+    O cartao marcava "SEM SINAL" e ao lado exibia o ultimo watt e a ultima
+    rotacao recebidos. Bike parada seguia marcando 128 W na tela enquanto o
+    painel da propria bike mostrava 12 W.
+    Numero velho na tela e pior que numero nenhum: o professor decide em cima
+    dele. Agora, sem sinal, os valores viram travessao e o cartao fica esmaecido.
+    O tempo de corte continua o mesmo: 3,5s sem pacote = sem sinal.
+
+    ATENCAO ao modo ALUNOS DEMO: com ele ligado, o sistema cria alunos
+    simulados com watts inventados. Desligar no menu secreto antes de qualquer
+    teste com bike real, senao os numeros se misturam.
+
+27) TELA PRETA ao iniciar a aula com video — buraco na protecao.
+    O video so recebia play() no evento 'canplaythrough'. Esse evento pode nunca
+    disparar (arquivo longo, codec pesado, leitura de pendrive) e aí nao
+    acontecia nada: nem play, nem fundo animado. Tela preta ate o fim.
+    A protecao existente tambem so agia se readyState<2 — video carregado porem
+    parado passava batido. Era o caso do pendrive: a musica tocava e o video nao.
+    Agora o play e disparado por qualquer um de tres eventos (canplaythrough,
+    canplay, loadeddata), aos 3s ele e forcado assim mesmo, e aos 6s ha uma
+    conferencia: se o video estiver pausado ou nao tiver avancado, cai para o
+    fundo animado e AVISA no Console e na tela, em vez de ficar preto em silencio.
+
+28) ALUNOS DEMO nao se mistura mais com bike real.
+    simularAlunos() grava no MESMO alunosMap dos alunos de verdade — nao havia
+    separacao nenhuma. Agora:
+      - o demo nao liga se houver bike real transmitindo (menos de 3,5s de idade);
+      - se uma bike real aparecer com o demo rodando, o demo se desliga sozinho;
+      - cada aluno simulado fica marcado com _demo:true.
+    Mesmo assim, o certo continua sendo desligar o demo no menu secreto antes de
+    testar com bike real.
+
+29) Escolha de musica nao "fixava" e a janela sobrevivia a troca de tela.
+    a) _bgSubListaSelecionar() so registrava a escolha DEPOIS de ler os
+       metadados do mp3 (await onloadedmetadata, sem limite de tempo). A janela
+       fechava na hora e a tela seguia mostrando "SEM MUSICA" ate o arquivo
+       terminar de carregar do pendrive — e, se o evento nunca disparasse, a
+       escolha nunca se fixava. Era o mesmo tipo de erro da tela preta do video.
+       Agora a escolha vale na hora e a duracao entra depois, com limite de 8s.
+       Sem a duracao a musica toca; so nao ha sincronia de fim, e isso e avisado
+       no Console.
+    b) A janela de MUSICAS/VIDEOS e fixa na tela toda. Mudando de tela com ela
+       aberta, ela continuava flutuando por cima da tela nova — a "tela bugada"
+       sobre a lista de aulas. Agora ela se fecha sozinha quando a tela de
+       configurar a aula deixa de estar visivel.
+
+30) BLUETOOTH FUNCIONANDO — NAO MEXER.
+    Em 17/09 o dongle passou a conectar rapido e as bikes a reportar RPM e watts
+    corretos, batendo com o painel da propria bike. A partir daqui, bled112.js e
+    a camada de sincronizacao das bikes NAO devem ser alterados sem motivo
+    forte. Esta build so muda layout (style.css) e o demo (script.js);
+    bled112.js esta byte a byte igual ao da 16/09h.
+
+31) Cartao do aluno cortava o numero e o nome da zona.
+    O valor muda de largura a cada leitura (91 -> 158 -> 234) e a linha nao
+    encolhia: o numero escapava do cartao e "NEUROMUSCULAR"/"THRESHOLD"
+    apareciam cortados no meio da palavra.
+    Correcao so de CSS: min-width:0 nos itens de flex (e o que autoriza um item
+    a ficar menor que o proprio conteudo), overflow:hidden no cartao e
+    reticencias no nome da zona. Nenhuma linha de leitura de dados foi tocada.
+
+32) ALUNOS DEMO voltou a ligar.
+    Na 16/09g o demo foi bloqueado quando havia bike real transmitindo, para nao
+    misturar simulado com medido. Com as bikes funcionando, o bloqueio passou a
+    disparar sempre e o demo nao ligava mais — nem pelo controle nem pelo mouse.
+    Agora ele liga sempre (e uma decisao deliberada, feita no menu secreto) e
+    apenas AVISA quando ha bike real na sala. Tambem nao se desliga mais sozinho.
+
+33) DEMO e BIKE REAL podem conviver — resposta a duvida de 17/09.
+    Nao ha conflito tecnico: o aluno simulado NAO recebe numero de bike e NAO
+    toca no parBikeMap, que e o mapa alimentado pelo Bluetooth. Sao caminhos
+    separados. Alguem entrando ao vivo na bike 6 nao disputa lugar com ninguem.
+    O unico problema era de leitura: na tela os dois ficavam identicos, e numa
+    demonstracao com alguem entrando ao vivo nao dava para saber qual era o real.
+    Agora o aluno simulado leva uma marca discreta "DEMO" no canto do cartao e ao
+    lado do nome na lista da pre-aula.
+    Os simulados continuam entrando no ranking — numa demonstracao isso e
+    desejavel, porque a sala parece cheia e disputada.
+
+34) VIDEO nao rodava — endereco temporario invalidado pelo pendrive.
+    No Console de 17/09:
+      Failed to load resource: net::ERR_REQUEST_RANGE_NOT_SATISFIABLE  blob:...
+      video play() recusado: The element has no supported sources.
+      VIDEO nao rodou (o arquivo nao carregou)
+    Nao era codec nem formato. O endereco temporario (blob:) do video era criado
+    quando a aula era CONFIGURADA e so usado quando ela COMECAVA, minutos depois.
+    Com o arquivo num pendrive, basta o Windows re-enumerar a unidade nesse
+    intervalo para esse endereco apontar para o vazio.
+    Agora o endereco e refeito a partir do arquivo no instante de iniciar a aula,
+    e o anterior e liberado. No Console aparece:
+      [ProRider] endereco do video refeito na hora de iniciar (N bytes).
+    Se a releitura falhar, o motivo e escrito no Console.
+    Tambem corrigido: o aviso "VIDEO nao rodou" saia tres vezes; agora sai uma.
+
+35) Barras do grafico 2 aumentadas 20% (pedido de 17/09).
+    Com a regua antiga os blocos ficavam parecidos demais e so a cor os
+    diferenciava. As duas variaveis de altura subiram 20%:
+      --pg2h1: 4.6  -> 5.52 vh
+      --pg2h7: 9.4  -> 11.28 vh
+    O teto do clamp tambem subiu (120px -> 144px), senao a zona 7 seria cortada
+    justamente onde a diferenca mais importa; o piso foi de 40px para 48px.
+    Numa tela de 1080 as alturas ficam assim:
+      z1 60px (era 50) · z4 91px (era 76) · z7 122px (era 102)
+    A escala automatica (item 18) continua valendo e acompanha os novos valores.
+    Mexe SO em altura: largura, cores, vao e cantos seguem iguais.
+
+36) BLUETOOTH CAIA NO MEIO DO PAREAMENTO — erro meu, corrigido.
+    No Console de 17/09, depois de as bikes aparecerem normalmente:
+      [BLED112] 12s sem dados — reiniciando a porta.
+      Uncaught (in promise) TypeError: Failed to execute 'close' on
+      'SerialPort': Cannot cancel a locked stream
+    O vigia que reinicia a porta apos 12s sem pacote fechava a porta com o
+    LEITOR AINDA PRESO. O erro estourava, a reabertura nunca acontecia, e o
+    Bluetooth morria levando as bikes da tela junto — bem no fim do pareamento,
+    quando faltavam duas.
+    E o mesmo problema que foi corrigido na prova de vida (item 21); este outro
+    trecho tinha passado batido.
+    Agora o vigia chama _soltarPorta() — cancela o leitor, solta o escritor e
+    espera o laco sair — antes de fechar, e em seguida agenda a religacao.
+
+    ATENCAO: 12s sem pacote e pouco se a sala estiver vazia e ninguem pedalando,
+    porque a Keiser so transmite com o pedal girando. Se o reinicio ficar
+    aparecendo a toa fora de aula, o tempo pode ser aumentado — mas so depois de
+    confirmar que nao atrapalha durante a aula.
+
+37) Pre-aula: com 18 alunos so apareciam duas linhas de nomes.
+    Os QR Codes ocupavam quase toda a altura e sobrava uma tira fina para a
+    faixa dos alunos. Nao importava quantas colunas o codigo abrisse: a altura
+    nao dava, e o resto ficava fora da tela (sem barra de rolagem, invisivel).
+    Duas correcoes:
+      - a faixa dos alunos passou a ter piso de 230px e prioridade na grade;
+      - os QR passaram a ceder altura (max 32vh) em vez de empurrar a lista.
+    Alem disso, o calculo de quantas linhas cabem usava as alturas ANTIGAS de
+    linha, de antes de a foto e o nome crescerem (item 22). Ele achava que
+    cabiam mais linhas do que cabem. Corrigido para as alturas reais.
+    Com 230px de faixa: 3 linhas na densidade media, 6 colunas para 18 alunos.
+
+38) Telas de POTENCIA (X) e ROTACAO (A) piscavam e nao apareciam.
+    ctrlSetScreen() ALTERNA: chamada duas vezes seguidas com o mesmo numero,
+    abre e fecha na hora. Era isso que acontecia — o mesmo apertar chegava por
+    dois caminhos (leitura do controle no quadro seguinte, ou controle e teclado
+    ao mesmo tempo). Por isso o sintoma aparecia nos dois.
+    Agora chamadas repetidas com o MESMO numero dentro de 300ms sao ignoradas, e
+    o Console registra quando isso acontece:
+      [ProRider] ignorando 2o disparo da tela N em XXms
+    Trocar de painel ou fechar de proposito (n=0) continua passando sempre.
+    Se a mensagem aparecer muito no Console, o disparo duplo esta na leitura do
+    controle e vale corrigir na origem — mas a trava ja resolve o sintoma.
+
+39) ERRO MEU — as telas de POTENCIA e ROTACAO nao desenhavam nada.
+    O Console acusou 211 erros iguais:
+      Uncaught ReferenceError: n is not defined
+        at mk (script.js:2788)
+        at atualizaCards (script.js:2799)
+    Ao acrescentar a marca DEMO no cartao (item 33) eu usei "al[n]", mas dentro
+    da funcao mk() o aluno se chama "a" — "n" nao existe ali. A montagem do
+    cartao estourava ANTES de desenhar, a cada atualizacao.
+    Resultado: os paineis abriam (a trava do item 38 funcionou) mas ficavam
+    vazios, e o erro se repetia varias vezes por segundo.
+    Corrigido para "a._demo". A marca DEMO continua funcionando.
+
+    LICAO: a trava do item 38 mascarou o sintoma sem revelar a causa. O painel
+    "piscava" por duas razoes somadas — disparo duplo E conteudo que nao
+    desenhava. So o Console mostrou a segunda.
+
+40) MUSICA parou de tocar — regressao introduzida por mim no item 29.
+    Ao fazer a escolha da musica "valer na hora" (para a tela nao ficar dizendo
+    SEM MUSICA ate o mp3 carregar), o carregamento do arquivo virou assincrono.
+    Consequencia nao prevista: iniciando a aula logo depois de escolher, o
+    endereco do arquivo ainda NAO existia e a musica simplesmente nao tocava.
+    Corrigido com a mesma solucao do video (item 34): o endereco e refeito a
+    partir do arquivo no instante de iniciar a aula. Isso resolve as DUAS
+    causas de uma vez — a corrida da escolha recente e o endereco morto do
+    pendrive.
+    No Console aparece:
+      [ProRider] endereco da musica refeito na hora de iniciar (N bytes).
+    E, se houver musica escolhida sem endereco, o Console avisa em vez de a aula
+    rodar em silencio sem explicacao.
+
+    LICAO: a correcao do item 29 resolveu o sintoma visivel (a tela) e criou um
+    problema invisivel (o arquivo). Mudanca que troca "esperar" por "fazer
+    depois" precisa garantir o resultado no momento do uso.
+
+41) TRAVAMENTO com o F12 aberto — e blindagem contra a causa.
+    Na 17/09g o erro do item 39 disparava a cada atualizacao, 10x por segundo.
+    Com o DevTools aberto, o navegador guarda a PILHA DE CHAMADAS de cada erro:
+    centenas de pilhas por minuto travam a tela. Foi por isso que o travamento
+    apareceu justamente ao abrir o F12, e nao antes.
+    A origem ja foi corrigida (item 39), mas a fragilidade continuava: qualquer
+    erro futuro dentro de atualizaCards() abortaria o ciclo INTEIRO — inclusive
+    atualizaLiveBar(), que vem depois — e se repetiria indefinidamente.
+    Agora cada funcao de desenho roda isolada (_prSeguro):
+      - o erro e registrado no Console UMA vez, nao a cada quadro;
+      - o resto do ciclo continua rodando;
+      - no Console, prErros() lista os erros e quantas vezes ocorreram.
+    Isso nao esconde defeito: mostra uma vez, com a contagem, em vez de inundar.
+
+42) Escala do grafico refeita — o item 35 nao resolveu o que era pedido.
+    O pedido era ver MAIS DIFERENCA de altura entre uma zona e a seguinte. O que
+    foi feito no item 35 subiu os dois extremos 20%, proporcionalmente: tudo
+    ficou maior, mas a distancia entre z1 e z7 passou de 52px para 62px — 10px,
+    imperceptivel. Por isso "nao dava para notar".
+    Agora a base fica perto do original e o topo sobe muito:
+      original        z1 50px ... z7 102px   diferenca 52px   degrau ~9px
+      tentativa 20%   z1 60px ... z7 122px   diferenca 62px   degrau ~10px
+      agora           z1 54px ... z7 151px   diferenca 97px   degrau ~16px
+    (--pg2h1 5.0vh, --pg2h7 14.0vh, clamp 46px a 168px; valores numa tela 1080.)
+    O degrau medio quase dobrou em relacao ao original.
+    SE O BLOCO MAIS ALTO ENCOSTAR nas caixas de baixo, reduzir --pg2h7 para 12.5
+    e o teto do clamp para 150px — e o unico ajuste necessario.
+
+43) Janela de scan do pareamento nao prende mais a tela.
+    Se o scan terminava sem achar nada, a janela ficava aberta dizendo
+    "A procurar dispositivos BLE..." indefinidamente e a tela parecia travada —
+    o controle nao respondia porque a janela seguia no comando.
+    Agora, ao fim dos 10s:
+      - sem dispositivos: a janela se fecha sozinha e explica que as Keiser so
+        transmitem com o pedal girando;
+      - e ha uma rede de seguranca aos 20s: se o scan nao terminar por qualquer
+        motivo, a janela fecha e o controle volta.
+
+    IMPORTANTE: isto impede a tela de PRENDER o utilizador. NAO e a correcao do
+    travamento relatado em 17/09 na tela de pareamento, cuja causa ainda nao foi
+    identificada. Se travar de novo, e preciso o Console no momento do
+    travamento (F12 -> Console) para achar a origem.
+
+44) Duas bikes ficavam marcadas como PROCURANDO ao mesmo tempo.
+    Varios pontos do codigo faziam apenas "parScanningBike=null" ao encerrar o
+    scan. A variavel ficava certa, mas NINGUEM REDESENHAVA O CARTAO: ele seguia
+    escrito PROCURANDO ate algo forcar um redesenho. Indo para a bike seguinte,
+    ficavam duas presas no mesmo estado.
+    Agora existe _parPararScanDe(num), que limpa o estado, cancela os temporizadores
+    e redesenha o cartao. Ela e usada em todos os caminhos de encerramento:
+    erro ao iniciar, scan sem dispositivos, rede de seguranca dos 20s, e ao
+    comecar o scan de outra bike.
+    O cartao tambem sai de PROCURANDO quando o scan termina COM dispositivos —
+    a janela de escolha segue aberta, mas o cartao nao fica mentindo.
+
+    OBSERVADO E NAO CORRIGIDO: o watchdog de 12s do bled112.js reinicia a porta
+    quando nao chega pacote. Na tela de pareamento, com a sala parada, ele
+    dispara a toa (nenhuma bike transmite sem pedal girando) e pode derrubar a
+    porta justamente durante o pareamento. A correcao seria pausar o watchdog
+    enquanto a tela de pareamento estiver aberta — mas isso mexe no bled112.js,
+    que esta congelado desde 17/09 por decisao (item 30). Fazer so com pedido
+    explicito.
+
+45) TRAVAMENTO DEPOIS DE UM TEMPO ABERTO — causa encontrada.
+    ATENCAO: esta build MEXE no bled112.js, congelado desde o item 30. Por isso
+    ela e entregue SEPARADA da 17/09m, para comparacao lado a lado.
+
+    O sintoma era caracteristico: nao travava na hora, travava depois de a tela
+    ficar aberta um tempo. Isso e acumulo, nao erro pontual.
+    Causa: _readLoop() so termina quando a porta FECHA (while _port.readable).
+    O watchdog reinicia a porta SEM fechar, entao nascia um laco novo e o velho
+    continuava vivo, disputando o mesmo leitor. Com a sala parada o watchdog
+    dispara a cada 12s (nenhuma bike transmite sem pedal girando): em dez
+    minutos, dezenas de lacos — ate a tela travar e o controle parar de
+    responder.
+    Duas correcoes:
+      a) GERACAO: cada reinicio da porta avanca um contador; o laco confere a sua
+         geracao a cada volta e sai sozinho se ficou velho. Testado: 50 reinicios
+         deixam 1 laco vivo, nao 51.
+      b) O watchdog NAO reinicia a porta enquanto a tela de pareamento estiver
+         aberta (window.PR_PAREANDO), porque ali reiniciar e sempre a toa.
+
+    COMO COMPARAR AS DUAS VERSOES:
+      17/09m — sem mexer no bled112.js (Bluetooth exatamente como esta hoje)
+      17/09n — com estas duas correcoes
+    Testar a 17/09n primeiro: parear as bikes e DEIXAR A TELA ABERTA 10 minutos
+    sem pedalar. Se nao travar e o pareamento seguir funcionando, ela e a boa.
+    Se o Bluetooth piorar em qualquer aspecto, voltar para a 17/09m e avisar.
+
+46) Correcao do item 45b no lugar certo — era a TELA, nao o scan.
+    No teste da 17/09n o vigia continuou disparando: o aviso PR_PAREANDO era
+    ligado ao COMECAR o scan e desligado ao termina-lo, mas a tela de pareamento
+    continua aberta depois disso. Doze segundos apos o fim do scan o vigia
+    reiniciava a porta e comecava a tempestade de reconexao vista no Console
+    (requestPort falhou -> DONGLE_NAO_RESPONDE -> tentando reconectar, em ciclo).
+    Agora o aviso e ligado em abrirPareamento() e desligado em fecharPareamento():
+    enquanto a tela estiver aberta, o vigia nao reinicia a porta.
+    A correcao das geracoes (item 45a) continua valendo e protege o resto do
+    sistema, onde o vigia segue ativo e util.
+
+47) O cartao tambem precisava sair de PROCURANDO ao CANCELAR.
+    A correcao do item 44 cobriu os caminhos de FIM de scan, mas nao os de
+    cancelamento (botao B) nem os de conexao bem-sucedida por outros caminhos.
+    Neles o codigo ainda so fazia "parScanningBike=null", sem redesenhar — por
+    isso a bike 01 continuava marcada como PROCURANDO no teste da 17/09n.
+    Agora TODOS os caminhos passam por _parPararScanDe(), que limpa o estado,
+    cancela os temporizadores e redesenha o cartao.
+
+48) VIDEO e MUSICA continuavam nao rodando — a correcao nao alcancava o caminho
+    usado na academia.
+    No Console de 17/09 apareceu:
+      GET blob:http://localhost:3000/... net::ERR_REQUEST_RANGE_NOT_SATISFIABLE
+      VIDEO nao rodou (o arquivo nao carregou)
+      MUSICA nao carregou — a aula roda sem som
+    E NAO apareceram as linhas "endereco do video/musica refeito na hora de
+    iniciar". Ou seja: a correcao dos itens 34 e 40 nao rodou.
+    Motivo: ela dependia do arquivo ter vindo pela JANELA DE ESCOLHA, que guarda
+    a referencia do arquivo. Mas na academia o video e a musica vem da VARREDURA
+    AUTOMATICA do pendrive (declarados no .prorider), um caminho que guardava
+    apenas o endereco temporario — e e esse endereco que morre quando o Windows
+    re-enumera a unidade.
+    Agora esse caminho tambem guarda a referencia (window._prVideoHandle e
+    window._prMusicaHandle, via _prAcharHandle), e o arranque da aula usa a
+    referencia venha ela de onde vier.
+    CONFERIR NO CONSOLE ao iniciar a aula:
+      [ProRider] endereco do video refeito na hora de iniciar (N bytes).
+      [ProRider] endereco da musica refeito na hora de iniciar (N bytes).
+    Se essas linhas nao aparecerem, a referencia nao foi guardada e o problema e
+    outro — avisar.
+
+49) CAUSA RAIZ do video e da musica: os arquivos vem com 0 BYTES.
+    A correcao do item 48 funcionou — as linhas apareceram no Console. Mas com o
+    tamanho entre parenteses:
+      [ProRider] endereco do video refeito na hora de iniciar (0 bytes).
+      [ProRider] endereco da musica refeito na hora de iniciar (0 bytes).
+    Um arquivo de 0 bytes nao tem trecho para entregar: daí o
+    ERR_REQUEST_RANGE_NOT_SATISFIABLE e o "has no supported sources".
+    Isso acontece quando a AUTORIZACAO DA PASTA esta velha. O navegador guarda a
+    permissao do pendrive (IndexedDB); se a unidade saiu, trocou de letra ou o
+    programa foi reinstalado, a referencia continua valida mas nao aponta mais
+    para arquivo nenhum — e a leitura devolve vazio em vez de erro.
+
+    SOLUCAO PRATICA (nao e codigo): voltar a tela de escolha do pendrive e
+    SELECIONAR A PASTA DE NOVO. Isso renova a autorizacao.
+
+    O que esta build faz:
+      a) NAO troca mais um endereco bom por um vazio (o codigo anterior
+         substituia e piorava a situacao);
+      b) avisa no Console e na tela, com o motivo e o que fazer;
+      c) confere a leitura JA NA VARREDURA do pendrive, nao so na hora de
+         iniciar a aula — descobrir isso com a sala cheia e tarde demais.
+
+50) ERRO MEU NA 17/09r — a checagem do pendrive travava o sistema.
+    A 17/09r acrescentou uma verificacao "cedo" da leitura do pendrive. Ela foi
+    colocada DENTRO do fluxo de carregamento, com await. Com a referencia morta,
+    getFile() pode ficar pendurado sem responder nem dar erro — e o carregamento
+    inteiro para. Resultado: sistema travado, sem video, sem musica, sem nada.
+    A ideia era boa; o lugar estava errado.
+    Agora:
+      - a checagem roda SOLTA (nao esperada), com limite de 3s, e so vira aviso;
+      - as leituras no arranque da aula tem limite de 4s (Promise.race): se nao
+        responderem, o Console avisa e a aula segue com o endereco que tinha,
+        em vez de ficar pendurada.
+
+    REGRA que fica: nada que dependa do pendrive pode ser esperado sem limite de
+    tempo no caminho critico. Unidade removivel pode nao responder nunca.
+
+51) Pre-aula: os QR ainda comiam a altura da lista de alunos.
+    O limite de 32vh do item 37 era frouxo demais: numa tela de 1440px cada QR
+    ficava com ~460px de altura, e a faixa dos alunos sobrava com o minimo.
+    Com a sala cheia, os nomes de baixo saiam da tela — e, sem barra de rolagem,
+    sumiam sem aviso.
+    Agora:
+      - QR limitado a 21vh (o codigo e lido pelo celular a dois metros; metade
+        do tamanho anterior basta e sobra);
+      - a faixa dos alunos tem piso de 300px e fica com o resto da altura.
+    Resultado por tela:
+      900px  -> QR 189px, faixa ~521px,  6 linhas (20 alunos em 4 colunas)
+      1080px -> QR 227px, faixa ~663px,  8 linhas (20 alunos em 3 colunas)
+      1440px -> QR 302px, faixa ~948px, 12 linhas (20 alunos em 2 colunas)
+
+52) AULA DO SISTEMA ficava com tela preta indo e voltando — estado vazando.
+    As referencias do video e da musica (window._prVideoHandle, _prMusicaHandle,
+    _bgSelVideoItem, _bgSelMusicItem, videoObjectUrl, mp3ObjectUrl) eram globais
+    e NUNCA eram limpas ao trocar de aula.
+    Carregando uma aula do pendrive e depois uma aula do sistema, a segunda
+    herdava a midia da primeira — e aulas do sistema nao tem video nenhum. O
+    resultado era a tela preta piscando e voltando.
+    Agora existe _prLimparMidiaDaAula(), chamada no inicio dos DOIS caminhos de
+    carregamento (loadFromLibrary, do sistema; abrirAula, do pendrive). Ela
+    libera os enderecos temporarios, zera as referencias e para os elementos de
+    video e audio.
+    No Console aparece: [ProRider] estado de midia da aula anterior limpo.
+
+54) PRE-AULA refeita no molde da tela de QR da aula (pedido de 17/09).
+    Antes: duas colunas em cima (QR | aula) e os alunos numa faixa embaixo. A
+    faixa vivia apertada — foi a origem dos itens 22, 37, 44 e 51, todos
+    tentando arrumar altura para os nomes.
+    Agora, tres colunas de altura inteira:
+      COL 1  QR do app + codigo da sala
+      COL 2  ALUNOS CONECTADOS (coluna alta, e onde o espaco deve estar)
+      COL 3  QR do navegador + aula selecionada + midia + status
+      FAIXA  perfil da aula, largura total embaixo
+    A coluna dos alunos passa a ter a altura toda da tela, entao cabem de 8 a 12
+    linhas conforme a resolucao — 20 alunos entram em UMA coluna na maioria das
+    telas. O problema de nomes sumindo por baixo deixa de existir por desenho,
+    nao por ajuste de medida.
+
+55) Topo da pre-aula: removida a faixa de Aula / Duracao / Blocos / Zona /
+    Conectados.
+    Ela repetia o que ja aparece em AULA SELECIONADA (coluna 3) e no titulo de
+    ALUNOS CONECTADOS (coluna 2). Tirar a faixa devolve altura as tres colunas.
+    Ficam no topo apenas a marca e o botao de sair.
+    O que continua visivel e era o pedido: o MP3 e o VIDEO escolhidos, com a
+    marca de confirmacao, na coluna 3.
+    As funcoes que preenchiam as caixas removidas usam set(), que ignora
+    elemento inexistente — nada quebra. Para voltar atras, basta recolocar o
+    bloco, que esta marcado por comentario no ginasio.html.
+
+56) PENDRIVE ACHADO PELO SERVIDOR LOCAL — fim dos enderecos temporarios.
+    O navegador nao pode varrer unidades: exige que o utilizador escolha a pasta,
+    e a autorizacao guardada apodrece quando o pendrive muda. Foi a origem dos
+    arquivos de 0 bytes e do ERR_REQUEST_RANGE_NOT_SATISFIABLE do dia inteiro.
+    Do lado do Node isso nao existe. O servidor-local.js agora:
+      - procura em todas as unidades uma pasta  <unidade>:\ProRider  e so aceita
+        se houver conteudo dentro (evita pegar um C:\ProRider vazio);
+      - lista videos, musicas e aulas ate 2 niveis de profundidade — cobre
+        ProRider\video\ e ProRider\musica\ como o Mario descreveu;
+      - responde em  /pendrive  (JSON) e serve cada arquivo em  /midia?p=<caminho>
+        COM SUPORTE A RANGE, que e o que permite posicionar o video;
+      - recusa qualquer caminho fora da pasta do pendrive.
+    No sistema, _bgScanPendrive() tenta o caminho nativo primeiro. Havendo,
+    video e musica passam a usar ENDERECO FIXO em vez de blob:. Endereco fixo
+    nao expira, nao depende de permissao e aceita Range.
+    Sem o servidor (navegador puro), tudo continua funcionando como antes.
+    No Console aparece:
+      [ProRider] pendrive achado pelo servidor local: H:\ProRider (N video(s)...)
+      [ProRider] video escolhido por endereco fixo: <arquivo>
+
+57) O endereco fixo faltava no caminho MAIS usado: a aula do pendrive.
+    No teste de 18/09 o Console mostrou DUAS tentativas:
+      1a) aula do pendrive (arquivo declarado pelo NOME no .prorider) —
+          criou endereco temporario, deu 0 bytes, nao rodou;
+      2a) video e musica escolhidos a mao — endereco fixo, funcionou.
+    A conversao do item 56 cobriu so a escolha manual. A aula do pendrive, que e
+    o caminho usado na academia, continuava no metodo antigo.
+    Agora ela tambem procura o nome declarado na lista do servidor local e usa o
+    endereco fixo. A busca tolera caminho com pasta, maiuscula/minuscula e
+    diferenca de extensao.
+    No Console:
+      [ProRider] video da aula por endereco fixo: <arquivo>
+      [ProRider] musica da aula por endereco fixo: <arquivo>
+    Nao achando no servidor, cai no metodo antigo — nada fica pior.
+
+    Tambem corrigido: os avisos "nao consegui reler o arquivo ... : fixo" eram
+    console.error, mas nao sao falha — e o codigo avisando que o endereco ja e
+    fixo e nao ha nada a refazer. Viraram mensagem informativa.
+
+58) RANKING com linhas sobrepostas quando ha muitos alunos.
+    Com 30 alunos (15 por coluna), o conteudo de cada linha ficava mais alto que
+    a fatia de altura dela e transbordava POR CIMA da linha seguinte: nomes,
+    posicoes e numeros apareciam fantasmas uns sobre os outros.
+    Tres correcoes, todas de CSS/densidade:
+      - as linhas passam a dividir a altura em partes IGUAIS
+        (grid-auto-rows: minmax(0,1fr)) e nenhuma pode exceder a sua parte;
+      - cada linha ganhou overflow:hidden, entao nao invade a vizinha;
+      - a letra ENCOLHE conforme a quantidade: rk-medio a partir de 10 linhas
+        por coluna, rk-apertado a partir de 14.
+    Assim o ranking continua legivel de longe com turma pequena e cabe inteiro
+    com turma cheia, sem sobrepor.
+
+59) Ranking mais largo e com foto maior, no espirito do RESULTADO FINAL.
+    Estava preso a 1050px no meio da tela: fileiras estreitas e muito espaco
+    vazio nas laterais. Agora:
+      - coluna unica vai ate 1500px; duas colunas ganham respiro lateral e
+        separacao maior entre elas;
+      - a foto do aluno cresceu (ate 68px) — e ela que o professor reconhece de
+        longe. Quem nao tem foto continua com as iniciais na cor da zona;
+      - as linhas viraram pilulas mais encorpadas, como as do resultado final;
+      - nos modos densos (10+ e 14+ por coluna) a foto encolhe junto com a letra
+        e o nome da zona sai (ja esta no badge Z1..Z6), para a linha nao estourar.
+
+60) Foto do aluno tambem no RANQUEAMENTO WPP (tela final).
+    O podio e a lista do 4o em diante mostravam so as iniciais. Agora usam a
+    FOTO do aluno quando existir — e ela que se reconhece na tela grande — com
+    a borda na cor da posicao (ouro/prata/bronze). Sem foto, continuam as
+    iniciais, como antes.
+    Com isto, a foto aparece nas quatro telas onde o aluno e mostrado: pre-aula,
+    cartoes da aula, overlay de QR e ranqueamento final.
+
+61) CICLO INFINITO de reconexao do dongle — risco real durante a aula.
+    No Console de 18/09, dezenas de repeticoes deste ciclo:
+      requestPort falhou: Must be handling a user gesture
+      DONGLE_NAO_RESPONDE
+      tentando reconectar...
+    O erro "user gesture" NUNCA se resolve sozinho: pedir a porta exige um
+    clique do utilizador. O sistema ficava tentando o impossivel para sempre,
+    gastando processador e enchendo o Console — e, com o F12 aberto, isso chega
+    a travar a tela (ver item 41).
+    Se o dongle caisse no meio da aula, essa tempestade comecaria com alunos na
+    sala.
+    Agora esse erro especifico PAUSA a reconexao automatica e escreve no Console
+    o que fazer: abrir o pareamento e clicar em conectar. Qualquer conexao feita
+    a mao religa a reconexao automatica (BLED112.retomarReconexao / connect).
+    Os outros erros continuam com a repeticao progressiva de 2s a 10s, como antes.
+
+62) BIKE "SEM SINAL" MOSTRANDO 191 W — dado simulado passando por medido.
+    Visto em 18/09: a BIKE 01 aparecia marcada como SEM SINAL e, ao lado,
+    191 W e 92 rpm.
+    Nao eram os alunos demo. A origem e _parIniciarLiveSimulado(), o gerador de
+    dados usado para testar o pareamento sem dongle (entra pelo caminho de
+    fallback, quando o BLED112 falha). Ele escrevia numeros inventados no
+    parBikeMap E DIRETO NO HTML do cartao, uma vez por segundo — por cima da
+    regra do item 26, que troca o valor por travessao quando nao ha sinal.
+    Numero inventado indistinguivel do medido e o pior defeito possivel neste
+    sistema: o professor decide em cima dele.
+    Agora:
+      - a bike fica marcada com _sim e o cartao diz SIMULADO, em amarelo de
+        aviso, em vez de mentir "sem sinal";
+      - _lastSeen e atualizado, entao o estado deixa de ser contraditorio;
+      - o Console e a tela avisam quando o modo simulado comeca;
+      - _parPararLiveSimulado() remove a marca ao limpar a posicao.
+
+    REGRA: qualquer numero que nao venha da bike precisa estar marcado na tela.
+
+63) GRAFICO SE DESORGANIZANDO AO ALTERNAR DE TELA — causa encontrada.
+    Relato de 19/09, depois da aula com 13 alunos: seguindo a aula direto o
+    grafico anda certo; alternando entre telas (teste de FTP, desafio, potencia,
+    rotacao, ranking) ele repete trechos, atrasa em relacao aos cartoes e o
+    ultimo bloco chega a nao aparecer. Musica e video seguem corretos.
+    Causa: _pg2Capacidade() calcula quantos blocos cabem MEDINDO A LARGURA do
+    elemento pg2Cards. Com uma tela aberta por cima, o grafico fica escondido e
+    clientWidth vem ZERO — e a funcao devolvia 999, ou seja, "cabe tudo numa
+    pagina so". O grafico era recalculado sem paginacao e, ao voltar, os cortes
+    eram refeitos em outro ponto. Dai a repeticao e o desalinhamento.
+    Correcao: guardar a ultima capacidade medida com largura valida e usa-la
+    quando a largura nao estiver disponivel. O desenho deixa de mudar enquanto
+    a tela esta escondida.
+    Simulado com o segmento main_1 da aula MIX MARIO 64 (42 blocos):
+      antes  visivel 3 telas | escondido 1 tela  | ao voltar 3 telas (cortes novos)
+      depois visivel 3 telas | escondido 3 telas | ao voltar 3 telas (identico)
+
+    REGRA: nenhum calculo de layout pode depender de medida feita com o
+    elemento escondido. Largura zero significa "nao sei", nao "cabe tudo".
+
+64) Perfil da PRE-AULA (tela do QR) com linha continua.
+    Pedido de Mario. O perfil embaixo da tela de QR mostrava so as barras.
+    Agora tem uma linha continua branca por cima, ligando o topo de cada bloco,
+    como no grafico da aula.
+    Duas melhorias que vieram junto:
+      - a largura de cada bloco passou a ser proporcional a DURACAO (flex:d),
+        nao mais igual para todos (flex:1). O desenho agora respeita o tempo:
+        um bloco de 4 min ocupa o dobro de um de 2 min.
+      - as barras ficaram mais discretas (opacidade .55) para a linha ler bem.
+    A linha e um SVG sobreposto com viewBox 0 0 100 100 e preserveAspectRatio
+    none, entao acompanha qualquer largura de tela.
+
+65) GRAFICO REPETINDO E AGULHA ANDANDO PARA TRAS — causa real.
+    O item 63 (largura medida com a tela escondida) era um problema verdadeiro,
+    mas NAO era este. Duas fotos da aula de 19/09 provaram:
+      15:45 — segmento 13:35 restantes, agulha perto do FIM da pagina
+      15:50 — segmento 08:53 restantes, agulha de volta ao SEGUNDO bloco
+    Cinco minutos depois e a agulha tinha ANDADO PARA TRAS, ainda em TELA 1/2.
+    Causa: _pg2Blocos() usava workout.filter(segmentId === sid), juntando todos
+    os blocos daquele segmento de QUALQUER parte da aula. Numa aula com
+    segmentos intercalados (main, rec, main, rec, main) isso remontava uma lista
+    falsa de blocos seguidos; _pg2IdxAtual() contava do mesmo jeito e o indice
+    apontava para o lugar errado dessa lista.
+    Correcao: _pg2Faixa() devolve o TRECHO CONTINUO que contem o bloco atual —
+    anda para tras e para frente enquanto o segmentId for o mesmo. Blocos e
+    indice passam a vir dai.
+    Simulado com aula intercalada (5 ativacao, 8 main, 2 rec, 8 main, 2 rec,
+    8 main, 1 cooldown):
+      antes:  lista de 24 blocos, indice pulando (8, 13, 19)
+      depois: lista de 8 por grupo, indice sempre dentro da faixa
+
+    REGRA: segmento nao e um rotulo espalhado pela aula — e um trecho continuo.
+    Agrupar por igualdade de nome desfaz a ordem real dos blocos.
+
+66) DIAGNOSTICO da repeticao do grafico (temporario, nao muda comportamento).
+    Duas linhas novas no Console:
+    a) [pg2] bloco N (seg X) | faixa do segmento A-B | pagina P/T |
+       desenhando blocos I-F da faixa | k=K | aula Ss
+       Sai so quando o estado MUDA. Se a pagina voltar, acrescenta
+       "<<< PAGINA VOLTOU".
+    b) [pg2] BLOCO RECUOU: de N para M — sai em vermelho se currentBlockIndex
+       diminuir durante a aula, que e o suspeito principal.
+    Como usar: rodar a aula alternando telas como no dia 19/09 e, quando a
+    repeticao aparecer, fotografar o Console. As linhas dizem se o bloco
+    recuou, se a pagina voltou, ou se o desenho ficou parado enquanto o tempo
+    andava — cada caso aponta para um ponto diferente do codigo.
+    REMOVER depois de identificado.
+
+67) MINHAS AULAS — aulas do professor vindas da nuvem, com pareamento por QR.
+    Desenho do Mario (20/09). Em CARREGAR AULA aparecem duas origens:
+      DO PENDRIVE   — como sempre.
+      MINHAS AULAS  — o Ginasio mostra um QR; o professor escaneia com o app
+                      ja logado; o servidor confere que ele e professor DESTA
+                      unidade e devolve as aulas dele.
+    A identificacao vem ANTES de escolher a aula. O QR da sala so aparece na
+    pre-aula, com a aula ja escolhida — por isso nao servia.
+    Da nuvem vem so o arquivo da aula. Video e musica continuam no pendrive,
+    pasta ProRider, achados PELO NOME gravado no arquivo, via servidor local.
+    As aulas entram na mesma usbList do pendrive: abrirAula() carrega sem
+    nenhuma mudanca e a lista e a mesma tela de sempre.
+    Controle: setas escolhem, A confirma, B volta — tambem pelo teclado.
+    Seguranca: o codigo vale ~2 minutos e uma unica vez; o servidor nega se o
+    professor nao tiver linha em professor_licencas para a licenca do Ginasio.
+    Contrato das rotas: ProRider_MINHAS_AULAS_20-09.docx.
+    ATENCAO: o pareamento usa o token do display (pr_display_token). O 401 em
+    /display/agenda pendente desde 14/09 indica que esse token pode estar
+    invalido — se estiver, MINHAS AULAS mostra "Ginasio nao autenticado".
+
+68) O 401 EM /display/agenda (pendente desde 14/09) — causa e correcao.
+    O token do display e um JWT SEM expiracao, assinado com JWT_SECRET. Com
+    o token presente, 401 so acontece se jwt.verify falha — ou seja, se a
+    chave JWT_SECRET do servidor MUDOU depois de o Ginasio ser ativado.
+    Esse token nunca mais volta a valer. E o Ginasio IGNORAVA o 401: guardava
+    o token morto para sempre, sem grade do dia, sem countdown automatico —
+    e sem MINHAS AULAS, que usa a mesma credencial.
+    Agora, ao receber 401: registra o motivo no Console, descarta o token e
+    abre a tela de ativacao. NUNCA durante uma aula (boxMode 'live') — nesse
+    caso so avisa e espera a aula acabar.
+    Para resolver HOJE, sem esta build: na tela de espera, tocar 5 vezes no
+    logo — abre a ativacao; digitar o codigo da licenca.
+    No servidor (ver documento): JWT_SECRET precisa estar FIXO nas variaveis
+    do Railway, e o codigo nao pode ter uma chave de reserva escrita nele.
+
+69) LICENCA: UM COMPUTADOR POR LICENCA + RENOVACAO A CADA 15 DIAS.
+    Decisoes do Mario (20/09):
+      - licenca vendida roda em UM computador; ativar noutro desliga o
+        anterior — o ultimo ganha. A demo roda em 3, para os testes.
+      - a cada 15 dias o servidor confere licenca ativa e pagamento em dia;
+        se nao estiver, o Ginasio bloqueia com "LICENCA SUSPENSA".
+    Neste lado:
+      - _gymDeviceId(): identidade criada na 1a execucao, guardada no
+        computador. NAO e o IP (muda sozinho e derrubaria a academia).
+      - /display/ativar agora envia device_id e nome_computador.
+      - _gymRenovarLicenca(): ao abrir e a cada 6 h; renova quando faltam
+        menos de 3 dias OU quando o token e do tipo antigo, permanente —
+        assim os Ginasios ja instalados migram sozinhos.
+      - 401 -> pede o codigo de novo (com aviso se foi outro computador).
+        403 -> tela LICENCA SUSPENSA.
+      - NADA disto interrompe uma aula em curso: fica pendente e e aplicado
+        quando a aula termina.
+      - Se o servidor ainda nao tiver /display/renovar (404), segue com o
+        token atual, sem alarde. Pode instalar antes do servidor.
+
+70) Compatibilidade com o servidor publicado (documento do dev de 22/09).
+    O dev implementou POST /professor/treinos com o corpo { nome, dados } —
+    o app enviava { nome, json }. O treino seria salvo vazio, sem erro visivel.
+    Agora os dois lados aceitam os dois nomes:
+      - o app envia 'dados' E 'json';
+      - o Ginasio le t.dados, senao t.json, senao t.treino;
+      - o token do pareamento e aceite como token, prof_session ou
+        prof_session_token;
+      - a lista de treinos e aceite como .treinos, .aulas ou array puro.
+    REGRA: quando duas partes sao escritas por pessoas diferentes, o cliente
+    aceita mais do que o servidor promete. Custa tres linhas e evita uma falha
+    silenciosa.
+
+71) Revisao chamada a chamada contra o documento do dev (22/09).
+    Alem do campo do treino (item 70), mais quatro pontos ficaram tolerantes:
+      - codigo do pareamento: codigo | code | pareamento; validade:
+        expira_em_seg | expires_in | ttl (senao 120 s). Se o codigo nao vier,
+        avisa na tela em vez de mostrar um QR vazio.
+      - status: confirmado | confirmed | ok | aceite; negado | denied |
+        recusado. Se o token chegar com outro status, segue e avisa no Console.
+      - /display/renovar: envia device_id E o token no corpo, alem do cabecalho.
+      - reservas (app): aceita nome | name, bike_numero | bike, e a lista sob
+        reservas | rows | data | array puro.
+    Nenhuma destas exige mudanca no servidor.
+
+72) Agulha no perfil da tela de QR (pedido do Mario, 23/09).
+    Durante a aula a tela do QR fica aberta na parede, e o perfil embaixo era
+    um desenho parado. Agora tem um risco branco com um ponto que anda,
+    mostrando em que altura da aula a turma esta — util para quem chega no
+    meio.
+    Usa calcDoneSec(), o MESMO calculo do mini grafico do topo, para os dois
+    andarem juntos. O relogio so corre enquanto a tela do QR esta aberta.

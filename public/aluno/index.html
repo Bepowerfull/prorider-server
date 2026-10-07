@@ -796,6 +796,7 @@ input[type=file]{display:none}
       <button class="cn-btn" id="btnBike" onclick="scanDev('bike')">Procurar</button>
     </div>
     <div class="cn-live" id="liveBike"><span><b id="cnW">—</b>WATTS</span><span><b id="cnRpm">—</b>RPM</span></div>
+    <div id="cnErg" onclick="prErgAlternar()" style="display:none;align-items:center;gap:10px;margin:8px 16px 0;padding:12px 14px;border-radius:14px;background:#16161a;border:1px solid rgba(255,255,255,.08);cursor:pointer;"></div>
     <div class="found-list" id="fndBike" style="display:none"></div>
     <div class="cn-gap"></div>
     <div class="cn-dev" id="devHR">
@@ -6377,6 +6378,77 @@ function btConnectBike(server, device){
     .catch(function(){ return btConnectCSC(server, device); });
 }
 
+// ══ 03/10s — CARGA AUTOMÁTICA (ERG) EM ROLOS E BIKES INTELIGENTES (FTMS) ══════
+// Quando o aparelho aceita comandos (Fitness Machine Control Point 0x2AD9), o
+// app manda a potência-alvo de cada bloco: FTP do aluno × meio da faixa de %FTP
+// do bloco. Vale na aula do app, na aula ao vivo da academia e na aula gravada.
+// O aluno liga/desliga na tela de conectar (fica guardado no aparelho) e, na
+// aula, um toque na etiqueta "ERG" solta a carga na hora.
+// Comandos FTMS: 0x00 pedir controle · 0x07 começar · 0x05 potência (W, int16)
+//                0x08 0x01 parar (o rolo volta a ficar livre). Resposta: 0x80, comando, 1=ok.
+BTUUID.CHAR_FTMS_CP='00002ad9-0000-1000-8000-00805f9b34fb';
+var _erg={cp:null, fila:Promise.resolve(), ctrl:false, alvo:0, env:0, envTs:0, liga:false, recusas:0};
+try{ _erg.liga=localStorage.getItem('pr_erg')==='1'; }catch(e){}
+function _ergEscrever(bytes){
+  var cp=_erg.cp; if(!cp) return Promise.resolve(false);
+  var v=new Uint8Array(bytes);
+  _erg.fila=_erg.fila.then(function(){ return cp.writeValueWithResponse?cp.writeValueWithResponse(v):cp.writeValue(v); })
+    .then(function(){ return true; },function(e){ console.warn('[ERG] comando não chegou ao rolo: '+((e&&e.message)||e)); return false; });
+  return _erg.fila;
+}
+function _ergPreparar(server, device){
+  _erg.cp=null; _erg.ctrl=false; _erg.env=0;
+  return server.getPrimaryService(BTUUID.FTMS).then(function(s){ return s.getCharacteristic(BTUUID.CHAR_FTMS_CP); })
+    .then(function(cp){ return cp.startNotifications().then(function(){
+      cp.addEventListener('characteristicvaluechanged',function(ev){ var d=ev.target.value;
+        if(d.byteLength>=3&&d.getUint8(0)===0x80&&d.getUint8(2)!==1){ _erg.recusas++; console.warn('[ERG] o aparelho recusou o comando 0x'+d.getUint8(1).toString(16)+' (código '+d.getUint8(2)+')'); } });
+      _erg.cp=cp;
+      if(device&&!device._prErgOuvindo){ device._prErgOuvindo=true; device.addEventListener('gattserverdisconnected',function(){ _erg.cp=null; _erg.ctrl=false; _erg.env=0; _ergUI(); }); }
+      _ergUI(); }); })
+    .catch(function(){ _erg.cp=null; _ergUI(); });   // aparelho só mostra os números (sem controle): segue normal
+}
+var _btConnectFTMSSoLer=btConnectFTMS;
+btConnectFTMS=function(server, device){ return _btConnectFTMSSoLer(server, device).then(function(){ return _ergPreparar(server, device); }); };
+// potência-alvo agora (0 = sem alvo: fora da aula, pausada ou bloco sem %FTP)
+function _ergAlvoAgora(){
+  var b=null, g=window._prErgGrv;
+  if(g&&Date.now()-g.ts<3000){ if(g.pausa) return 0; b=g.b; }
+  else { var t=document.getElementById('sLive'); if(!t||!t.classList.contains('active')||isPaused) return 0; b=(aulaGrafico||[])[aulaBlocoIdx]; }
+  if(!b) return 0;
+  var mn=parseFloat(b.ftpMin)||0, mx=parseFloat(b.ftpMax)||0;
+  if(!mn&&!mx) return 0;
+  if(!mx||mx>200) mx=mn+20;          // Z7 vem como 150–999
+  if(!mn) mn=Math.max(0,mx-20);
+  var ftp=parseInt(_ftpDoAluno(),10)||0; if(ftp<=0) return 0;
+  return Math.max(30,Math.min(1500,Math.round(ftp*(mn+mx)/200)));
+}
+function _ergTick(){
+  var alvo=(_erg.liga&&_erg.cp)?_ergAlvoAgora():0;
+  _erg.alvo=alvo;
+  if(alvo>0){
+    if(!_erg.ctrl){ _erg.ctrl=true; _ergEscrever([0x00]); _ergEscrever([0x07]); }
+    if(Math.abs(alvo-_erg.env)>=3||Date.now()-_erg.envTs>15000){ _erg.env=alvo; _erg.envTs=Date.now(); _ergEscrever([0x05,alvo&255,(alvo>>8)&255]); }
+  } else if(_erg.ctrl){ _erg.ctrl=false; _erg.env=0; _ergEscrever([0x08,0x01]); }
+  _ergUI();
+}
+setInterval(_ergTick,1000);
+function prErgAlternar(){
+  _erg.liga=!_erg.liga; try{ localStorage.setItem('pr_erg',_erg.liga?'1':'0'); }catch(e){}
+  try{ showToast(_erg.liga?'Carga automática ligada: o rolo segue o alvo de cada bloco.':'Carga automática desligada: o rolo fica livre.',_erg.liga?'#1f5a2a':'#333'); }catch(e){}
+  _ergTick();
+}
+function _ergUI(){
+  var r=document.getElementById('cnErg');
+  if(r){ r.style.display=_erg.cp?'flex':'none';
+    r.innerHTML='<div style="flex:1;min-width:0"><b style="display:block;font-size:14px">⚙️ Carga automática (ERG)</b><small style="color:rgba(255,255,255,.55);font-size:12px">o rolo ajusta a força sozinho para o alvo de cada bloco</small></div>'
+      +'<span style="flex-shrink:0;padding:6px 12px;border-radius:20px;font-weight:800;font-size:12px;'+(_erg.liga?'background:#5db13d;color:#08130a':'background:rgba(255,255,255,.1);color:rgba(255,255,255,.7)')+'">'+(_erg.liga?'LIGADA':'DESLIGADA')+'</span>'; }
+  var p=document.getElementById('ergPill'), ver=!!(_erg.cp&&_erg.liga&&_erg.alvo>0);
+  if(!p&&ver){ p=document.createElement('div'); p.id='ergPill'; p.onclick=prErgAlternar;
+    p.style.cssText='position:fixed;left:12px;bottom:84px;z-index:9999;padding:7px 12px;border-radius:18px;background:rgba(20,20,26,.88);border:1px solid #5db13d;color:#fff;font:700 13px Barlow,Arial,sans-serif;';
+    document.body.appendChild(p); }
+  if(p){ p.style.display=ver?'block':'none'; if(ver) p.innerHTML='⚙️ ERG <b style="color:#8fe06a">'+_erg.alvo+' W</b> <small style="opacity:.6">· tocar para soltar</small>'; }
+}
+
 // \u2500\u2500 Polar H10, Polar H9, Garmin HRM, Wahoo TICKR \u2500\u2500
 function btConnectHR(server, device){
   return server.getPrimaryService(BTUUID.HEART_RATE).then(function(svc){
@@ -8745,6 +8817,7 @@ function grvTick(primeiro){
   if(dTipo){ if(!ac.des||ac.des.tipo!==dTipo||dSeg<(ac.des.ult||0)){ ac.des={tipo:dTipo,kcal0:prKcal(ac.wN?ac.wS/ac.wN:0,ac.tot,prPesoKg()),dist0:grvKm(),wS:0,wN:0,pico:0,ult:dSeg}; }
     ac.des.ult=dSeg; if(contando){ ac.des.wS+=pct; ac.des.wN++; if(w>ac.des.pico) ac.des.pico=w; } } else ac.des=null;
   var rA=b.rpm||[0,0], fA=b.ftp||[0,0];
+  window._prErgGrv={b:{ftpMin:fA[0],ftpMax:fA[1]},pausa:!!(v.paused||pausaTV),ts:Date.now()};   // 03/10s: carga automática do rolo
   document.getElementById('grvRpm').textContent=tem?rpm:'—'; document.getElementById('grvRpmAlvo').textContent='alvo '+rA[0]+'–'+rA[1];
   // bola da direita: % do FTP grande, na cor da zona em que ele está; alvo embaixo; watts pequeno
   var pEl=document.getElementById('grvPct'); pEl.innerHTML=tem?pct+'<span style="font-size:.5em">%</span>':'—'; pEl.style.color=tem?(zC[zMeu]||'#fff'):'#fff';
@@ -9343,7 +9416,7 @@ go=function(id){
   if(id==='sDetail'||id==='sConnect'){ var n=document.getElementById('bNav'); if(n) n.style.display='none'; }
 };
 
-var APP_BUILD='03/10r';
+var APP_BUILD='03/10s';
 try{ if(typeof prErroConfig==='function') prErroConfig(SERVER_HTTP,'app',function(){ return (typeof prToken!=='undefined'&&prToken)||localStorage.getItem('pr_token')||''; },APP_BUILD); }catch(e){}   // 03/10f: erros do app chegam na Saúde
 // ── 03/10e: no Perfil — reportar um problema e excluir a conta (LGPD) ──
 (function(){

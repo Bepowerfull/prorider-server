@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // ═══════════════════════════════════════════════════════════════════
-// ProRider — TESTES AUTOMÁTICOS (03/10r)
+// ProRider — TESTES AUTOMÁTICOS (03/10s)
 // Roda o servidor de verdade contra um BANCO DE TESTE vazio, com o Asaas e o
 // Resend simulados, e passa por pagamento, loja, desafios e segurança.
 //
@@ -30,7 +30,8 @@ const PORTA = parseInt(process.env.TEST_PORT || '3999'), PORTA_MOCK = 3014;
 const SERVIDOR = path.join(RAIZ, 'server.js');
 const pgCfg = { host: u.hostname, port: parseInt(u.port || '5432'), user: decodeURIComponent(u.username), password: decodeURIComponent(u.password), database: u.pathname.slice(1), ssl: false };
 const ADMIN = 'admin@teste.local', ADMIN_SENHA = 'teste123';
-const TESTES = ['pagamento', 'loja', 'desafios', 'seguranca', 'telas', 'vigia', 'conferencia', 'termos', 'bluetooth', 'dominio', 'backup'];
+const TESTES = ['pagamento', 'loja', 'desafios', 'seguranca', 'telas', 'vigia', 'conferencia', 'termos', 'bluetooth', 'erg', 'dominio', 'tv', 'backup'];
+const SO = (process.env.SO || '').split(',').filter(Boolean);   // 03/10s: SO=tv roda só esse grupo
 const espera = ms => new Promise(r => setTimeout(r, ms));
 const filhos = [];
 function sair(c) { filhos.forEach(p => { try { p.kill(); } catch (e) {} }); process.exit(c); }
@@ -44,7 +45,7 @@ process.on('SIGINT', () => sair(130));
   console.log('▶ banco zerado');
   const mock = spawn(process.execPath, [path.join(__dirname, 'asaas-simulado.js')], { stdio: 'ignore' }); filhos.push(mock);
   const pasta = fs.mkdtempSync(path.join(os.tmpdir(), 'prorider-teste-'));
-  const env = { PATH: process.env.PATH, HOME: process.env.HOME || os.tmpdir(), PORT: String(PORTA), JWT_SECRET: 'teste-' + Date.now(),
+  const env = { PATH: process.env.PATH, HOME: process.env.HOME || os.tmpdir(), ...(process.env.PLAYWRIGHT_BROWSERS_PATH ? { PLAYWRIGHT_BROWSERS_PATH: process.env.PLAYWRIGHT_BROWSERS_PATH } : {}), PORT: String(PORTA), JWT_SECRET: 'teste-' + Date.now(),
     PGHOST: pgCfg.host, PGPORT: String(pgCfg.port), PGUSER: pgCfg.user, PGPASSWORD: pgCfg.password, PGDATABASE: pgCfg.database,
     PORTAL_URL: 'http://127.0.0.1:' + PORTA, GRAVACOES_TESTE_DIR: pasta,
     ASAAS_API_KEY: 'chave-teste', ASAAS_URL: 'http://127.0.0.1:' + PORTA_MOCK, ASAAS_WEBHOOK_TOKEN: 'tokenwebhook123',
@@ -66,16 +67,16 @@ process.on('SIGINT', () => sair(130));
   await k.end();
   console.log('▶ servidor no ar (porta ' + PORTA + '), dados de teste criados\n');
   const resultado = [];
-  for (const t of TESTES) {
+  for (const t of TESTES.filter(t => !SO.length || SO.includes(t))) {
     console.log('━━ ' + t + ' ━━');
     const code = await new Promise(ok => { const p = spawn(process.execPath, [path.join(__dirname, t + '.test.js')], { stdio: 'inherit', env: Object.assign({}, env, { T_DB_URL: URL_TESTE, T_ADMIN: ADMIN, T_ADMIN_SENHA: ADMIN_SENHA }) }); p.on('exit', ok); });
     resultado.push([t, code]); console.log('');
   }
   const erros = (fs.readFileSync(path.join(pasta, 'servidor.log'), 'utf8').match(/ERRO não tratado[^\n]*/g) || []);
   console.log('══════════ RESULTADO ══════════');
-  resultado.forEach(([t, c]) => console.log((c === 0 ? '  ✅ ' : '  ❌ ') + t));
+  resultado.forEach(([t, c]) => console.log((c === 0 ? '  ✅ ' : c === 3 ? '  ⚠ ' : '  ❌ ') + t + (c === 3 ? ' (PULADO — veja o aviso acima)' : '')));
   if (erros.length) { console.log('  ❌ erros não tratados no servidor:'); erros.slice(0, 5).forEach(e => console.log('     ' + e)); }
-  const ok = resultado.every(r => r[1] === 0) && !erros.length;
-  console.log(ok ? '\nTUDO OK — pode subir.\n' : '\nFALHOU — não suba esta versão. Log do servidor: ' + path.join(pasta, 'servidor.log') + '\n');
+  const ok = resultado.every(r => r[1] === 0 || r[1] === 3) && !erros.length;
+  console.log(ok ? (resultado.some(r => r[1] === 3) ? '\nTUDO OK — pode subir (⚠ um grupo foi pulado; instale o que falta para testar tudo).\n' : '\nTUDO OK — pode subir.\n') : '\nFALHOU — não suba esta versão. Log do servidor: ' + path.join(pasta, 'servidor.log') + '\n');
   sair(ok ? 0 : 1);
 })().catch(e => { console.error('⛔ ' + e.message); sair(1); });

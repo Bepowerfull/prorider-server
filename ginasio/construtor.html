@@ -1,0 +1,891 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ProRider Construtor</title>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow+Condensed:wght@400;700;900&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════
+     HEADER — ProRider logo
+═══════════════════════════════════════════ -->
+<!-- ══════════════════════════════════════════
+     PRORIDER BOX — TELAS PRINCIPAIS
+═══════════════════════════════════════════ -->
+
+<!-- TELA: Seleção de arquivo (pendrive) -->
+<div id="boxUSB" style="display:none;position:fixed;inset:0;z-index:10000;background:#080610;flex-direction:column;">
+  <div style="display:flex;align-items:center;gap:14px;padding:16px 24px;background:#0c0a18;border-bottom:1px solid rgba(255,255,255,.07);flex-shrink:0;">
+    <div style="width:38px;height:38px;border-radius:8px;background:rgba(41,95,232,.15);border:1px solid rgba(41,95,232,.3);display:flex;align-items:center;justify-content:center;">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#295fe8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v14M8 12l4 4 4-4"/><path d="M8 18h8a2 2 0 0 1 0 4H8a2 2 0 0 1 0-4z"/><path d="M9 6h6v6H9z"/></svg>
+    </div>
+    <div>
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:2px;">PRORIDER DRIVE</div>
+      <div style="font-size:12px;color:rgba(255,255,255,.35);" id="usbSubtitle">Detectando arquivos...</div>
+    </div>
+    <div style="margin-left:auto;font-size:11px;color:rgba(255,255,255,.2);background:rgba(255,255,255,.05);padding:4px 12px;border-radius:20px;">↑↓ Navegar · START Abrir</div>
+  </div>
+  <div style="flex:1;overflow-y:auto;padding:14px 16px;" id="usbFileList"></div>
+  <div style="display:flex;align-items:center;justify-content:center;gap:20px;padding:10px 20px 14px;border-top:1px solid rgba(255,255,255,.05);background:rgba(255,255,255,.02);">
+    <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:rgba(255,255,255,.22);">
+      <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><rect x="6" y="1" width="6" height="5" rx="1.5" fill="rgba(255,255,255,.45)"/><rect x="6" y="12" width="6" height="5" rx="1.5" fill="rgba(255,255,255,.45)"/><rect x="1" y="6" width="5" height="6" rx="1.5" fill="rgba(255,255,255,.12)"/><rect x="12" y="6" width="5" height="6" rx="1.5" fill="rgba(255,255,255,.12)"/><rect x="6" y="6" width="6" height="6" rx="1" fill="rgba(255,255,255,.08)"/></svg>
+      Navegar
+    </div>
+    <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:rgba(255,255,255,.22);">
+      <span style="font-family:'Bebas Neue',sans-serif;font-size:12px;padding:2px 8px;border-radius:4px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);">START</span>
+      Abrir aula
+    </div>
+    <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:rgba(255,255,255,.22);">
+      <span style="font-family:'Bebas Neue',sans-serif;font-size:12px;padding:2px 8px;border-radius:4px;background:rgba(214,45,45,.12);border:1px solid rgba(214,45,45,.2);color:rgba(255,100,100,.6);">B</span>
+      Voltar
+    </div>
+  </div>
+</div>
+
+<!-- TELA: Builder Home — escolha inicial -->
+<div id="boxBuilderHome" style="display:none;position:fixed;inset:0;z-index:10000;background:#080610;flex-direction:column;align-items:center;justify-content:center;gap:0;">
+  <!-- Logo topo -->
+  <div style="position:absolute;top:0;left:0;right:0;display:flex;align-items:center;gap:10px;padding:16px 24px;border-bottom:1px solid rgba(255,255,255,.06);">
+    <svg width="20" height="25" viewBox="0 0 44 56" fill="none"><defs><linearGradient id="blhg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#ffe033"/><stop offset="100%" stop-color="#d62d2d"/></linearGradient></defs><path d="M30 4 L10 30 L20 30 L14 52 L34 26 L24 26Z" fill="url(#blhg)"/></svg>
+    <span style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:3px;color:#fff;">PRORIDER <span style="background:linear-gradient(90deg,#ffe033,#d62d2d);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">STUDIO</span></span>
+  </div>
+
+  <div style="display:flex;flex-direction:column;gap:14px;width:100%;max-width:560px;padding:0 24px;">
+    <div style="font-size:11px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:rgba(255,255,255,.22);margin-bottom:4px;">O que deseja fazer?</div>
+
+    <div id="builderHomeOpt0" class="nousb-opt nousb-sel" onclick="builderHomeIdx=0;builderHomeUpdateFocus()">
+      <div class="nousb-icon" style="background:rgba(41,95,232,.15);border-color:rgba(41,95,232,.3);">📂</div>
+      <div class="nousb-body">
+        <div class="nousb-title">CARREGAR AULA</div>
+        <div class="nousb-desc">Abre arquivo do pendrive e inicia a reprodução. Vídeo, música e dados configurados automaticamente.</div>
+      </div>
+      <div class="nousb-badge" style="background:rgba(41,95,232,.15);border-color:rgba(41,95,232,.3);color:#6b9eff;">START</div>
+    </div>
+
+    <div id="builderHomeOpt1" class="nousb-opt" onclick="builderHomeIdx=1;builderHomeUpdateFocus()">
+      <div class="nousb-icon" style="background:rgba(234,134,12,.12);border-color:rgba(234,134,12,.2);">🛠️</div>
+      <div class="nousb-body">
+        <div class="nousb-title">MONTAR AULA</div>
+        <div class="nousb-desc">Cria uma nova aula do zero — blocos, zonas, RPM, música e vídeo. Salva no pendrive ou testa direto.</div>
+      </div>
+      <div class="nousb-badge" style="background:rgba(234,134,12,.12);border-color:rgba(234,134,12,.25);color:#ea860c;">START</div>
+    </div>
+  </div>
+
+  <div style="position:absolute;bottom:20px;display:flex;gap:20px;font-size:11px;color:rgba(255,255,255,.2);">
+    <span><span style="font-family:'Bebas Neue',sans-serif;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.14);border-radius:4px;padding:1px 8px;font-size:12px;">↑↓</span> Navegar</span>
+    <span><span style="font-family:'Bebas Neue',sans-serif;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.14);border-radius:4px;padding:1px 8px;font-size:12px;">START</span> Confirmar</span>
+  </div>
+</div>
+
+<!-- TELA: Sem pendrive — escolha -->
+<div id="boxNoUSB" style="display:none;position:fixed;inset:0;z-index:10000;background:#080610;flex-direction:column;align-items:center;justify-content:center;gap:0;">
+  <!-- Logo pequeno topo -->
+  <div style="position:absolute;top:0;left:0;right:0;display:flex;align-items:center;gap:10px;padding:16px 24px;border-bottom:1px solid rgba(255,255,255,.06);">
+    <svg width="20" height="25" viewBox="0 0 44 56" fill="none"><defs><linearGradient id="nlg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#ffe033"/><stop offset="100%" stop-color="#d62d2d"/></linearGradient></defs><path d="M30 4 L10 30 L20 30 L14 52 L34 26 L24 26Z" fill="url(#nlg)"/></svg>
+    <span style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:3px;color:#fff;">PRORIDER <span style="background:linear-gradient(90deg,#ffe033,#d62d2d);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">GYM</span></span>
+    <span style="margin-left:auto;font-size:11px;color:rgba(255,255,255,.2);">Pendrive não detectado</span>
+  </div>
+
+  <!-- Opções centrais -->
+  <div style="display:flex;flex-direction:column;gap:14px;width:100%;max-width:560px;padding:0 24px;">
+
+    <div style="font-size:11px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:rgba(255,255,255,.22);margin-bottom:4px;">Como deseja iniciar a aula?</div>
+
+    <!-- Opção 1: Sistema -->
+    <div id="noUsbOpt0" class="nousb-opt nousb-sel" onclick="noUsbSelect(0)">
+      <div class="nousb-icon" style="background:rgba(41,95,232,.15);border-color:rgba(41,95,232,.3);">📋</div>
+      <div class="nousb-body">
+        <div class="nousb-title">Usar aula do sistema</div>
+        <div class="nousb-desc">Escolha entre as aulas pré-instaladas no ProRider Gym</div>
+      </div>
+      <div class="nousb-badge" style="background:rgba(41,95,232,.15);border-color:rgba(41,95,232,.3);color:#6b9eff;">START</div>
+    </div>
+
+    <!-- Opção 2: Livre -->
+    <div id="noUsbOpt1" class="nousb-opt" onclick="noUsbSelect(1)">
+      <div class="nousb-icon" style="background:rgba(93,177,61,.1);border-color:rgba(93,177,61,.2);">🚴</div>
+      <div class="nousb-body">
+        <div class="nousb-title">Aula livre</div>
+        <div class="nousb-desc">Alunos conectam via QR · Bike do professor vira referência · Sem blocos</div>
+      </div>
+      <div class="nousb-badge" style="background:rgba(93,177,61,.1);border-color:rgba(93,177,61,.25);color:#5db13d;">START</div>
+    </div>
+
+  </div>
+
+  <!-- Hint -->
+  <div style="position:absolute;bottom:20px;display:flex;gap:20px;font-size:11px;color:rgba(255,255,255,.2);">
+    <span><span style="font-family:'Bebas Neue',sans-serif;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.14);border-radius:4px;padding:1px 8px;font-size:12px;">↑↓</span> Navegar</span>
+    <span><span style="font-family:'Bebas Neue',sans-serif;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.14);border-radius:4px;padding:1px 8px;font-size:12px;">START</span> Confirmar</span>
+  </div>
+</div>
+
+<!-- TELA: Pré-aula (QR + alunos aguardando) -->
+<div id="boxPreAula" style="display:none;position:fixed;inset:0;z-index:10000;background:#080610;flex-direction:column;align-items:center;justify-content:center;gap:0;">
+  <!-- Barra de status topo -->
+  <div style="position:absolute;top:0;left:0;right:0;display:flex;align-items:center;gap:0;background:rgba(255,255,255,.03);border-bottom:1px solid rgba(255,255,255,.06);">
+    <div style="padding:10px 20px;border-right:1px solid rgba(255,255,255,.06);">
+      <div style="font-size:10px;color:rgba(255,255,255,.3);letter-spacing:1px;text-transform:uppercase;">Aula</div>
+      <div style="font-size:15px;font-weight:700;color:#fff;" id="preAulaNome">—</div>
+    </div>
+    <div style="padding:10px 20px;border-right:1px solid rgba(255,255,255,.06);">
+      <div style="font-size:10px;color:rgba(255,255,255,.3);letter-spacing:1px;text-transform:uppercase;">Duração</div>
+      <div style="font-size:15px;font-weight:700;color:#fff;" id="preAulaDur">—</div>
+    </div>
+    <div style="padding:10px 20px;border-right:1px solid rgba(255,255,255,.06);">
+      <div style="font-size:10px;color:rgba(255,255,255,.3);letter-spacing:1px;text-transform:uppercase;">Blocos</div>
+      <div style="font-size:15px;font-weight:700;color:#fff;" id="preAulaBlocos">—</div>
+    </div>
+    <div style="padding:10px 20px;margin-left:auto;">
+      <div style="font-size:10px;color:rgba(255,255,255,.3);letter-spacing:1px;text-transform:uppercase;">Conectados</div>
+      <div style="font-size:15px;font-weight:700;color:#5db13d;" id="preAulaConect">0 alunos</div>
+    </div>
+  </div>
+
+  <!-- Conteúdo central -->
+  <div style="display:flex;gap:60px;align-items:center;margin-top:60px;">
+    <!-- QR -->
+    <div style="display:flex;flex-direction:column;align-items:center;gap:16px;">
+      <div style="background:#fff;padding:16px;border-radius:20px;" id="preAulaQR"></div>
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:52px;letter-spacing:8px;color:#fff;" id="preAulaCodigo">—</div>
+      <div style="font-size:13px;color:rgba(255,255,255,.3);">Escaneie com o app ProRider</div>
+    </div>
+    <!-- Gráfico + alunos -->
+    <div style="display:flex;flex-direction:column;gap:16px;min-width:280px;">
+      <!-- Mini gráfico da aula -->
+      <div style="display:flex;align-items:flex-end;gap:3px;height:80px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:10px;" id="preAulaGrafico"></div>
+      <!-- Checklist mídia -->
+      <div id="preAulaCheck" style="display:none;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:10px 14px;"></div>
+      <!-- Lista de alunos -->
+      <div style="display:flex;flex-direction:column;gap:6px;max-height:200px;overflow-y:auto;" id="preAulaAlunos">
+        <div style="font-size:13px;color:rgba(255,255,255,.2);text-align:center;padding:12px;">Aguardando alunos...</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Hint inferior -->
+  <div style="position:absolute;bottom:20px;display:flex;gap:20px;font-size:12px;color:rgba(255,255,255,.2);">
+    <span><span style="font-family:'Bebas Neue',sans-serif;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.14);border-radius:4px;padding:1px 8px;font-size:13px;">START</span> Iniciar aula</span>
+    <span><span style="font-family:'Bebas Neue',sans-serif;background:rgba(214,45,45,.1);border:1px solid rgba(214,45,45,.2);border-radius:4px;padding:1px 8px;font-size:13px;color:rgba(255,100,100,.6);">B</span> Voltar à seleção</span>
+  </div>
+</div>
+
+<header id="boxHeader" style="display:none;">
+  <div class="header-logo">
+    <svg class="header-bolt" width="28" height="34" viewBox="0 0 44 56" fill="none">
+      <defs>
+        <filter id="hBoltGlow"><feGaussianBlur stdDeviation="2.5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+        <linearGradient id="hBoltG" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#ffe033"/>
+          <stop offset="50%" stop-color="#ea860c"/>
+          <stop offset="100%" stop-color="#d62d2d"/>
+        </linearGradient>
+      </defs>
+      <path d="M30 4 L10 30 L20 30 L14 52 L34 26 L24 26 Z" fill="url(#hBoltG)" filter="url(#hBoltGlow)"/>
+    </svg>
+    <div class="header-name-block">
+      <div class="header-name">
+        <span class="header-pro">PRO</span><span class="header-rider">RIDER</span>
+      </div>
+      <div class="header-bar"></div>
+      <div class="header-tagline">cycling performance platform</div>
+    </div>
+  </div>
+  <span id="classNameHeader"></span>
+</header>
+
+<main id="boxBuilder" style="display:none;">
+  <section class="builder">
+    <h2>Nova Aula</h2>
+    <input type="text" id="className" placeholder="Nome da aula">
+
+    <!-- SEGMENTO -->
+    <div class="segment-selector">
+      <div class="seg-label-row">
+        <span class="seg-label">Segmento do bloco</span>
+        <button id="addSegmentBtn" class="btn-add-seg">+ Novo segmento</button>
+      </div>
+      <div class="seg-tabs" id="segTabs"></div>
+      <div class="seg-edit-row">
+        <input type="text" id="editSegName" placeholder="Renomear segmento selecionado" class="seg-rename-input">
+        <button id="applySegName" class="btn-rename">✓</button>
+        <button id="deleteSegBtn" class="btn-delete-seg" title="Remover segmento">🗑</button>
+      </div>
+    </div>
+
+    <!-- MODO DE INTENSIDADE -->
+    <div class="intensity-mode-row">
+      <span class="seg-label">Modo de intensidade</span>
+      <div class="mode-tabs">
+        <button class="mode-tab active" data-mode="ftp">⚡ Potência (FTP)</button>
+        <button class="mode-tab" data-mode="hr">❤️ Freq. Cardíaca</button>
+        <button class="mode-tab" data-mode="pse">😊 Percepção (PSE)</button>
+      </div>
+    </div>
+
+    <!-- Stepper de duração -->
+    <div style="margin-bottom:10px;">
+      <div style="font-size:10px;font-weight:700;letter-spacing:2px;color:rgba(255,255,255,.3);text-transform:uppercase;margin-bottom:6px;">Duração</div>
+      <div style="display:flex;align-items:center;gap:5px;">
+        <button type="button" onclick="adjDur(-60)" style="flex:0 0 auto;height:34px;padding:0 8px;border-radius:8px;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.07);color:rgba(255,255,255,.6);font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;">-1min</button>
+        <button type="button" onclick="adjDur(-10)" style="flex:0 0 auto;height:34px;padding:0 8px;border-radius:8px;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.07);color:rgba(255,255,255,.6);font-size:11px;font-weight:700;cursor:pointer;">-10</button>
+        <button type="button" onclick="adjDur(-1)"  style="flex:0 0 auto;width:30px;height:34px;border-radius:8px;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.07);color:#fff;font-size:18px;font-weight:700;cursor:pointer;line-height:1;">−</button>
+        <!-- display mm:ss + input segundos -->
+        <div style="flex:1;display:flex;flex-direction:column;align-items:center;min-width:0;gap:2px;">
+          <div id="durDisplay" style="font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:3px;color:#fff;line-height:1;">0:05</div>
+          <input type="number" id="duration" value="5" min="1" step="1" oninput="atualizarDurDisplay()" style="width:54px;text-align:center;font-size:11px;color:rgba(255,255,255,.35);background:transparent;border:none;border-bottom:1px solid rgba(255,255,255,.12);outline:none;padding:0;">
+          <span style="font-size:9px;color:rgba(255,255,255,.2);letter-spacing:1px;">SEG</span>
+        </div>
+        <button type="button" onclick="adjDur(1)"   style="flex:0 0 auto;width:30px;height:34px;border-radius:8px;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.07);color:#fff;font-size:18px;font-weight:700;cursor:pointer;line-height:1;">+</button>
+        <button type="button" onclick="adjDur(10)"  style="flex:0 0 auto;height:34px;padding:0 8px;border-radius:8px;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.07);color:rgba(255,255,255,.6);font-size:11px;font-weight:700;cursor:pointer;">+10</button>
+        <button type="button" onclick="adjDur(60)"  style="flex:0 0 auto;height:34px;padding:0 8px;border-radius:8px;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.07);color:rgba(255,255,255,.6);font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;">+1min</button>
+      </div>
+    </div>
+    <!-- Steppers RPM -->
+    <div style="display:flex;gap:10px;margin-bottom:10px;">
+      <!-- RPM mín -->
+      <div style="flex:1;">
+        <div style="font-size:10px;font-weight:700;letter-spacing:2px;color:rgba(255,255,255,.3);text-transform:uppercase;margin-bottom:4px;">RPM mín</div>
+        <div style="display:flex;align-items:center;gap:4px;">
+          <button type="button" onclick="adjRpm('rpmMin',-5)" style="width:26px;height:30px;border-radius:6px;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.07);color:#fff;font-size:14px;font-weight:700;cursor:pointer;flex-shrink:0;">−</button>
+          <input type="number" id="rpmMin" placeholder="60" min="1" step="1" oninput="" style="flex:1;text-align:center;min-width:0;">
+          <button type="button" onclick="adjRpm('rpmMin',5)"  style="width:26px;height:30px;border-radius:6px;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.07);color:#fff;font-size:14px;font-weight:700;cursor:pointer;flex-shrink:0;">+</button>
+        </div>
+      </div>
+      <!-- RPM máx -->
+      <div style="flex:1;">
+        <div style="font-size:10px;font-weight:700;letter-spacing:2px;color:rgba(255,255,255,.3);text-transform:uppercase;margin-bottom:4px;">RPM máx</div>
+        <div style="display:flex;align-items:center;gap:4px;">
+          <button type="button" onclick="adjRpm('rpmMax',-5)" style="width:26px;height:30px;border-radius:6px;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.07);color:#fff;font-size:14px;font-weight:700;cursor:pointer;flex-shrink:0;">−</button>
+          <input type="number" id="rpmMax" placeholder="90" min="1" step="1" oninput="" style="flex:1;text-align:center;min-width:0;">
+          <button type="button" onclick="adjRpm('rpmMax',5)"  style="width:26px;height:30px;border-radius:6px;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.07);color:#fff;font-size:14px;font-weight:700;cursor:pointer;flex-shrink:0;">+</button>
+        </div>
+      </div>
+    </div>
+    <div class="form-grid" style="grid-template-columns:1fr 1fr;">
+      <select id="intensity">
+        <option value="zone1">Zone 1 – Recovery</option>
+        <option value="zone2">Zone 2 – Endurance</option>
+        <option value="zone3">Zone 3 – Tempo</option>
+        <option value="zone4">Zone 4 – Threshold</option>
+        <option value="zone5">Zone 5 – VO2 Max</option>
+        <option value="zone6">Zone 6 – Anaerobic 🔥</option>
+        <option value="zone7">Zone 7 – Neuromuscular ⚡</option>
+      </select>
+      <select id="position">
+        <option value="Sentado">Sentado</option>
+        <option value="Em Pé">Em Pé</option>
+      </select>
+    </div>
+
+    <!-- 26/09b: DESAFIO AUTOMATICO NO BLOCO (pedido do Mario). O desafio comeca
+         sozinho N segundos antes do fim do bloco e termina junto com ele. -->
+    <div id="blkDesBox" style="margin:4px 0 10px;padding:10px 12px;border-radius:10px;border:1px dashed rgba(234,134,12,.35);background:rgba(234,134,12,.05);">
+      <div style="font-size:10px;font-weight:700;letter-spacing:2px;color:rgba(234,134,12,.85);text-transform:uppercase;margin-bottom:6px;">🪢 Desafio automático neste bloco</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+        <select id="blkDesTipo" onchange="blkDesAtualizar()">
+          <option value="">Nenhum</option>
+          <option value="cabo">🪢 Cabo de guerra</option>
+          <option value="kcal">🔥 Gasto calórico</option>
+          <option value="potMedia">⚡ Potência média</option>
+          <option value="potMax">💥 Potência máxima</option>
+          <option value="dist">📏 Distância</option>
+        </select>
+        <select id="blkDesModo" onchange="blkDesAtualizar()">
+          <option value="equipes">Equipes (laranja × azul)</option>
+          <option value="mvsf">Homens × Mulheres</option>
+          <option value="geral">Todos × Todos</option>
+        </select>
+      </div>
+      <div id="blkDesTempo" style="display:none;align-items:center;gap:6px;margin-top:8px;">
+        <span style="font-size:11px;color:rgba(255,255,255,.5);">Duração</span>
+        <button type="button" onclick="blkDesAdj(-5)" style="width:30px;height:30px;border-radius:7px;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.07);color:#fff;">−</button>
+        <input type="number" id="blkDesSeg" min="5" step="5" oninput="blkDesAtualizar()" style="width:64px;text-align:center;">
+        <span style="font-size:10px;color:rgba(255,255,255,.3);">SEG</span>
+        <button type="button" onclick="blkDesAdj(5)" style="width:30px;height:30px;border-radius:7px;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.07);color:#fff;">+</button>
+        <button type="button" onclick="blkDesInteiro()" style="height:30px;padding:0 10px;border-radius:7px;border:1px solid rgba(234,134,12,.4);background:rgba(234,134,12,.12);color:#ea860c;font-size:11px;">Bloco inteiro</button>
+      </div>
+      <div id="blkDesDica" style="font-size:11px;color:rgba(255,255,255,.45);margin-top:6px;"></div>
+    </div>
+    <textarea id="notes" placeholder="Observações (opcional)"></textarea>
+    <button id="addBlock">+ Adicionar Bloco</button>
+
+    <!-- 🎬 VÍDEO DE FUNDO -->
+    <div class="video-builder-section">
+      <div class="vbs-header">
+        <span class="vbs-title">🎬 Vídeo de Fundo</span>
+        <span id="videoDurationLabel" class="vbs-dur"></span>
+      </div>
+      <div class="video-source-toggle">
+        <button class="vsrc-btn active" id="srcVideoBtn">📁 Arquivo de Vídeo</button>
+        <button class="vsrc-btn" id="srcCameraBtn">📷 Câmera Ao Vivo</button>
+      </div>
+      <div id="panelVideo">
+        <label for="videoInputBuilder" class="btn-video-load">Carregar Vídeo</label>
+        <input type="file" id="videoInputBuilder" accept="video/*" style="display:none">
+        <div id="videoPreviewBox" style="display:none">
+          <video id="videoPreview" muted playsinline></video>
+          <div class="sync-block">
+            <div class="sync-row">
+              <span class="sync-label">Chegada = fim do Bloco Principal</span>
+              <span id="endPointDisplay" class="sync-time">--:--:--</span>
+            </div>
+            <input type="range" id="endPointSlider" min="0" max="100" step="0.1" value="100" class="sync-slider">
+            <div class="sync-info" id="syncInfo" style="display:none">
+              <div class="sync-info-row"><span>▶ Vídeo começa em</span><strong id="startPointDisplay">--:--:--</strong></div>
+              <div class="sync-info-row"><span>⏹ Fim do Bloco Principal</span><strong id="endPointFinal">--:--:--</strong></div>
+              <div class="sync-info-row"><span>⏱ Duração da aula</span><strong id="workoutDurDisplay">--</strong></div>
+            </div>
+            <button id="previewSyncBtn" class="btn-preview-sync">👁 Ver ponto de início</button>
+            <button id="removeVideoBuilder" class="btn-remove-video">Remover vídeo</button>
+          </div>
+        </div>
+      </div>
+      <div id="panelCamera" style="display:none">
+        <div class="camera-info">
+          <p>A câmera será ativada ao iniciar a Live Class.</p>
+          <p>Prepare o cenário atrás de você — ele será o fundo da aula.</p>
+        </div>
+        <video id="cameraPreviewBuilder" autoplay muted playsinline style="display:none"></video>
+        <button id="testCameraBtn" class="btn-preview-sync">📷 Testar câmera</button>
+        <button id="stopCameraBtn" class="btn-remove-video" style="display:none">Parar preview</button>
+      </div>
+    </div>
+
+    <!-- 🎵 MÚSICA (MP3 — independente, toca junto com o vídeo) -->
+    <div class="video-builder-section">
+      <div class="vbs-header">
+        <span class="vbs-title">🎵 Música da Aula (MP3)</span>
+        <span id="mp3DurationLabel" class="vbs-dur"></span>
+      </div>
+      <label for="mp3InputBuilder" class="btn-video-load">🎵 Carregar MP3</label>
+      <input type="file" id="mp3InputBuilder" accept="audio/mp3,audio/mpeg,.mp3" style="display:none">
+      <div id="mp3PreviewBox" style="display:none">
+        <audio id="audioPreview" controls style="width:100%;margin-top:10px;border-radius:8px;"></audio>
+        <div class="sync-block">
+          <div class="sync-row">
+            <span class="sync-label">Chegada musical = fim do Bloco Principal</span>
+            <span id="mp3EndPointDisplay" class="sync-time">--:--</span>
+          </div>
+          <input type="range" id="mp3EndPointSlider" min="0" max="100" step="0.1" value="100" class="sync-slider">
+          <div class="sync-info" id="mp3SyncInfo" style="display:none">
+            <div class="sync-info-row"><span>▶ Música começa em</span><strong id="mp3StartDisplay">--:--</strong></div>
+            <div class="sync-info-row"><span>🎵 Fim do Bloco Principal</span><strong id="mp3EndDisplay">--:--</strong></div>
+            <div class="sync-info-row"><span>⏱ Duração da aula</span><strong id="mp3DurDisplay">--</strong></div>
+          </div>
+          <button id="mp3PreviewBtn" class="btn-preview-sync">▶ Ouvir ponto de início</button>
+          <button id="removeMp3Btn" class="btn-remove-video">Remover MP3</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 🎵 SPOTIFY (opcional — toca no dispositivo do professor) -->
+    <div class="video-builder-section" id="spotifySection">
+      <div class="vbs-header">
+        <div style="display:flex;align-items:center;gap:8px;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="#1DB954">
+            <circle cx="12" cy="12" r="12" fill="#1DB954"/>
+            <path d="M17.9 10.9C14.7 9 9.35 8.8 6.3 9.75c-.5.15-1-.15-1.15-.6-.15-.5.15-1 .6-1.15 3.55-1.05 9.4-.85 13.1 1.35.45.25.6.85.35 1.3-.25.35-.85.5-1.3.25zm-.1 2.8c-.25.35-.7.5-1.05.25-2.7-1.65-6.8-2.15-9.95-1.15-.4.1-.85-.1-.95-.5-.1-.4.1-.85.5-.95 3.65-1.1 8.15-.55 11.25 1.35.3.15.45.65.2 1zm-1.2 2.75c-.2.3-.55.4-.85.2-2.35-1.45-5.3-1.75-8.8-.95-.35.1-.65-.15-.75-.45-.1-.35.15-.65.45-.75 3.8-.85 7.1-.5 9.7 1.1.35.15.4.55.25.85z" fill="white"/>
+          </svg>
+          <span class="vbs-title">Spotify (opcional)</span>
+        </div>
+        <span id="spotifyStatus" class="vbs-dur"></span>
+      </div>
+      <div id="spotifyNotConnected">
+        <div class="camera-info">
+          <p>Conecte sua conta Spotify. A música toca no seu dispositivo — o ProRider só controla a sincronização.</p>
+          <p>O som sai pela caixa de som do seu notebook ou celular normalmente.</p>
+        </div>
+        <button id="spotifyLoginBtn" class="btn-preview-sync" style="background:rgba(29,185,84,0.2);border-color:rgba(29,185,84,0.4);color:#1DB954;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="#1DB954" style="display:inline;vertical-align:middle;margin-right:6px;"><circle cx="12" cy="12" r="12" fill="#1DB954"/><path d="M17.9 10.9C14.7 9 9.35 8.8 6.3 9.75c-.5.15-1-.15-1.15-.6-.15-.5.15-1 .6-1.15 3.55-1.05 9.4-.85 13.1 1.35.45.25.6.85.35 1.3-.25.35-.85.5-1.3.25zm-.1 2.8c-.25.35-.7.5-1.05.25-2.7-1.65-6.8-2.15-9.95-1.15-.4.1-.85-.1-.95-.5-.1-.4.1-.85.5-.95 3.65-1.1 8.15-.55 11.25 1.35.3.15.45.65.2 1zm-1.2 2.75c-.2.3-.55.4-.85.2-2.35-1.45-5.3-1.75-8.8-.95-.35.1-.65-.15-.75-.45-.1-.35.15-.65.45-.75 3.8-.85 7.1-.5 9.7 1.1.35.15.4.55.25.85z" fill="white"/></svg>
+          Conectar com Spotify
+        </button>
+      </div>
+      <div id="spotifyConnected" style="display:none;">
+        <div id="spotifyUserInfo" style="display:flex;align-items:center;gap:10px;padding:8px 12px;background:rgba(29,185,84,0.1);border:1px solid rgba(29,185,84,0.2);border-radius:8px;margin-bottom:10px;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="#1DB954"><circle cx="12" cy="12" r="12" fill="#1DB954"/><path d="M17.9 10.9C14.7 9 9.35 8.8 6.3 9.75c-.5.15-1-.15-1.15-.6-.15-.5.15-1 .6-1.15 3.55-1.05 9.4-.85 13.1 1.35.45.25.6.85.35 1.3-.25.35-.85.5-1.3.25zm-.1 2.8c-.25.35-.7.5-1.05.25-2.7-1.65-6.8-2.15-9.95-1.15-.4.1-.85-.1-.95-.5-.1-.4.1-.85.5-.95 3.65-1.1 8.15-.55 11.25 1.35.3.15.45.65.2 1zm-1.2 2.75c-.2.3-.55.4-.85.2-2.35-1.45-5.3-1.75-8.8-.95-.35.1-.65-.15-.75-.45-.1-.35.15-.65.45-.75 3.8-.85 7.1-.5 9.7 1.1.35.15.4.55.25.85z" fill="white"/></svg>
+          <span id="spotifyUserName" style="font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;color:#1DB954;"></span>
+          <button id="spotifyLogoutBtn" style="margin-left:auto;padding:4px 10px;font-size:10px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:6px;color:rgba(255,255,255,0.4);font-family:'Barlow Condensed',sans-serif;font-weight:700;letter-spacing:1px;cursor:pointer;">Sair</button>
+        </div>
+        <select id="spotifyPlaylistSelect" style="margin-bottom:8px;">
+          <option value="">Selecione uma playlist...</option>
+        </select>
+        <div id="spotifySelectedInfo" style="display:none;padding:8px 12px;background:rgba(29,185,84,0.08);border:1px solid rgba(29,185,84,0.15);border-radius:8px;font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;color:rgba(255,255,255,0.5);margin-bottom:8px;"></div>
+        <div class="camera-info" style="margin-bottom:0;">
+          <p>⚠️ A música toca no seu Spotify — no celular ou notebook onde você está logado. O ProRider sincroniza o tempo com a aula.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- SALVAR / CARREGAR -->
+    <div class="save-row">
+      <button id="saveWorkout"  class="btn-secondary">💾 Salvar</button>
+      <button id="loadWorkout"  class="btn-secondary">📂 Carregar</button>
+      <button id="exportPDF"    class="btn-secondary">📄 PDF</button>
+      <button id="clearWorkout" class="btn-danger">🗑 Limpar</button>
+    </div>
+    <input type="file" id="loadFileInput" accept=".json" style="display:none">
+
+    <div id="librarySection">
+      <div class="library-header">
+        <span class="library-title">📚 Minhas Aulas</span>
+        <button id="toggleLibrary" class="btn-lib-toggle">▾ ver</button>
+      </div>
+      <div id="libraryList" style="display:none"></div>
+    </div>
+
+    <div id="workoutSummary" class="workout-summary" style="display:none">
+      <span id="summaryTotal"></span>
+      <span id="summaryBlocks"></span>
+    </div>
+  </section>
+
+  <!-- TIMELINE -->
+  <section class="timeline-section">
+    <h2>Timeline da Aula</h2>
+    <div id="segmentTimelineContainer"></div>
+    <button id="startLive" class="btn-start">▶ Iniciar Live Class</button>
+  </section>
+</main>
+
+<!-- ══════════════════════════════════════════
+     LIVE CLASS
+═══════════════════════════════════════════ -->
+<div id="liveClass" tabindex="0">
+  <video id="backgroundVideo" autoplay muted loop playsinline></video>
+  <audio id="backgroundAudio" loop></audio>
+  <video id="cameraLive" autoplay muted playsinline></video>
+
+  <div id="liveBadge" style="display:none"><div class="live-dot"></div><span>AO VIVO</span></div>
+
+  <div id="totalProgressBar">
+    <div id="totalProgressFill"></div>
+    <span id="totalProgressText">0%</span>
+  </div>
+
+  <button id="closeLive">✕</button>
+  <div id="liveSegmentLabel"></div>
+
+  <!-- CARDS SUPERIORES: zona / tempo / posição / RPM / FTP -->
+  <div id="nextBlock">
+    <div class="next-info next-info-wide">
+      <span>PRÓXIMO BLOCO</span>
+      <h3 id="nextZone">–</h3>
+      <small id="nextFTPText">–</small>
+    </div>
+    <div class="next-info">
+      <span>TEMPO</span>
+      <h3 id="nextDuration">–</h3>
+    </div>
+    <div class="next-info">
+      <span>POSIÇÃO</span>
+      <h3 id="nextPosition">–</h3>
+    </div>
+    <div class="next-info">
+      <span>RPM</span>
+      <h3 id="nextRPM">–</h3>
+    </div>
+    <div class="next-info">
+      <span>FTP</span>
+      <h3 id="nextFTP">–</h3>
+    </div>
+  </div>
+
+  <!-- RELÓGIO DUPLO -->
+  <div id="dualClock">
+    <div class="clock-cell" id="clockElapsed">
+      <span class="clock-label">Segmento</span>
+      <span class="clock-value">00:00</span>
+    </div>
+    <div class="clock-cell" id="clockRemaining">
+      <span class="clock-label">Aula Total</span>
+      <span class="clock-value">00:00</span>
+    </div>
+  </div>
+
+  <!-- BANNER ZONA (5s) -->
+  <div id="currentZoneBanner">
+    <span id="currentZoneLabel">–</span>
+    <span id="currentZoneFTP">–</span>
+  </div>
+
+  <!-- COUNTDOWN 3-2-1 -->
+  <div id="countdownOverlay">
+    <div id="countdownNumber">3</div>
+    <div id="countdownZoneName"></div>
+  </div>
+
+  <!-- ÁREA DE BAIXO -->
+  <div id="liveBottomGradient">
+    <div id="liveMainArea">
+
+      <!-- CÍRCULO TIMER -->
+      <div class="circleBox">
+        <div id="timerCircle" class="progressCircle">
+          <div class="circleInner">
+            <span id="timerText">00:00</span>
+            <small class="circle-label-sm">TEMPO</small>
+            <span id="currentPositionText" class="circle-position-text"></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- GRÁFICO -->
+      <div id="graphArea">
+        <div id="liveTimeline"></div>
+        <div id="graphBaseLine"></div>
+        <div id="graphTimes"></div>
+      </div>
+
+      <!-- CÍRCULO RPM/FTP -->
+      <div class="circleBox">
+        <div id="rpmCircle" class="progressCircle">
+          <div class="circleInner">
+            <span id="rpmText">0–0</span>
+            <span id="ftpCircleText" class="circle-ftp-text">– FTP</span>
+            <small class="circle-label-sm">RPM / FTP</small>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- OVERLAY TRANSIÇÃO BLOCO -->
+  <div id="transitionOverlay">
+    <div id="transitionContent">
+      <div id="transitionZone"></div>
+      <div id="transitionSub"></div>
+    </div>
+  </div>
+
+  <!-- OVERLAY TRANSIÇÃO SEGMENTO -->
+  <div id="segmentTransitionOverlay">
+    <div id="segmentTransitionInner">
+      <div id="stLabel">A SEGUIR</div>
+      <div id="stSegmentName"></div>
+      <div id="stBlockTimer">00:20</div>
+      <div id="stBlockTimerLabel">tempo restante no bloco</div>
+      <div id="stGraphContainer">
+        <div id="stGraph"></div>
+        <div id="stGraphLine"></div>
+        <div id="stGraphTimes"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- BARRA RÁPIDA (Start) -->
+  <div id="quickBar" class="quick-bar-wrap" style="display:none;">
+    <div class="qb-inner">
+      <button class="qb-btn" id="qbPause" onclick="quickBarPause()">
+        <span class="qb-icon" id="qbPauseIcon">⏸</span>
+        <span class="qb-label" id="qbPauseLabel">Pause</span>
+      </button>
+      <button class="qb-btn" id="qbFF" onmousedown="quickBarFFStart(1)" onmouseup="quickBarFFStop()" ontouchstart="quickBarFFStart(1)" ontouchend="quickBarFFStop()">
+        <span class="qb-icon">⏩</span>
+        <span class="qb-label">Avançar</span>
+      </button>
+      <button class="qb-btn" id="qbRW" onmousedown="quickBarFFStart(-1)" onmouseup="quickBarFFStop()" ontouchstart="quickBarFFStart(-1)" ontouchend="quickBarFFStop()">
+        <span class="qb-icon">⏪</span>
+        <span class="qb-label">Voltar</span>
+      </button>
+      <div class="qb-sep"></div>
+      <button class="qb-btn" id="qbFTPBtn" onclick="quickBarFTP()">
+        <span class="qb-icon">🔬</span>
+        <span class="qb-label">Teste FTP</span>
+      </button>
+      <div class="qb-sep"></div>
+      <button class="qb-btn qb-close" onclick="quickBarClose()">
+        <span class="qb-icon">✕</span>
+        <span class="qb-label">Fechar</span>
+      </button>
+      <div class="qb-hint">
+        <span class="qb-kbd">↑↓←→</span> navegar &nbsp;·&nbsp;
+        <span class="qb-kbd">START</span> confirmar &nbsp;·&nbsp;
+        <span class="qb-kbd">B</span> fechar
+      </div>
+    </div>
+    <!-- Submenu FTP -->
+    <div id="qbFTPSub" class="qb-ftp-sub" style="display:none;">
+      <span class="qb-ftp-title">🔬 Protocolo:</span>
+      <button class="qb-ftp-opt" data-min="3" onclick="quickBarFTPSel(this)"><span class="qb-ftp-dur">3</span><span class="qb-ftp-lbl">min</span></button>
+      <button class="qb-ftp-opt" data-min="5" onclick="quickBarFTPSel(this)"><span class="qb-ftp-dur">5</span><span class="qb-ftp-lbl">min</span></button>
+      <button class="qb-ftp-opt sel" data-min="10" onclick="quickBarFTPSel(this)"><span class="qb-ftp-dur">10</span><span class="qb-ftp-lbl">min</span></button>
+      <button class="qb-ftp-opt" data-min="20" onclick="quickBarFTPSel(this)"><span class="qb-ftp-dur">20</span><span class="qb-ftp-lbl">min</span></button>
+      <button class="qb-ftp-confirm" onclick="quickBarFTPStart()">Iniciar <span class="qb-kbd">START</span></button>
+    </div>
+  </div>
+
+  <!-- TELA DE FIM DE AULA -->
+  <div id="endScreen">
+    <div id="endOverlay"></div>
+    <div id="endContent">
+      <div id="endTop">
+        <div id="endEmoji">
+          <svg width="90" height="110" viewBox="0 0 44 56" fill="none">
+            <defs>
+              <filter id="endGlow"><feGaussianBlur stdDeviation="4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+              <linearGradient id="endBolt" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="#ffe033"/>
+                <stop offset="50%" stop-color="#ea860c"/>
+                <stop offset="100%" stop-color="#d62d2d"/>
+              </linearGradient>
+            </defs>
+            <path d="M30 4 L10 30 L20 30 L14 52 L34 26 L24 26 Z" fill="url(#endBolt)" filter="url(#endGlow)"/>
+          </svg>
+        </div>
+        <div id="endTitle">Aula Concluída!</div>
+        <div id="endClassName"></div>
+      </div>
+      <div id="endStats"></div>
+      <div id="endGraphSection">
+        <div id="endGraphLabel">Jornada completa</div>
+        <div id="endFullGraph"></div>
+        <div id="endGraphLegend"></div>
+      </div>
+      <div id="endZoneDistribution"></div>
+      <div id="endSegStats"></div>
+      <div id="endActions" style="display:none">
+        <button id="endBtn_ranking" class="end-btn end-btn-ranking" style="display:none">🏆 RANQUEAMENTO</button>
+        <button id="endBtn_inicio"  class="end-btn end-btn-voltar">🏠 INÍCIO</button>
+        <button id="endBtn_repetir" class="end-btn end-btn-denovo">🔄 REPETIR AULA</button>
+      </div>
+      <div id="endHint">SELECT → ver opções</div>
+    </div>
+  </div>
+
+</div>
+
+
+<!-- ============================================
+     TELAS DO CONTROLE v2
+============================================ -->
+
+<!-- POTENCIA %FTP — botão X -->
+<div id="overlayFTP" class="ctrl-overlay">
+  <div class="ctrl-header">
+    <span class="ctrl-title">POTÊNCIA</span>
+    <span class="ctrl-subtitle">%FTP em tempo real</span>
+    <span class="ctrl-meta">X — pressione novamente para fechar</span>
+  </div>
+  <div class="ctrl-live-bar">
+    <div class="ctrl-lbi"><div class="ctrl-lbi-lbl"><span class="ctrl-live-dot"></span>Ao vivo</div><div class="ctrl-lbi-val" id="lbZonaFTP">—</div></div>
+    <div class="ctrl-lbi"><div class="ctrl-lbi-lbl">Tempo</div><div class="ctrl-lbi-val" id="lbTempoFTP">—</div></div>
+    <div class="ctrl-lbi"><div class="ctrl-lbi-lbl">Meta FTP</div><div class="ctrl-lbi-val green" id="lbMetaFTP">—</div></div>
+    <div class="ctrl-lbi"><div class="ctrl-lbi-lbl">Meta RPM</div><div class="ctrl-lbi-val green" id="lbMetaRPMFTP">—</div></div>
+    <div class="ctrl-lbi"><div class="ctrl-lbi-lbl">Conectados</div><div class="ctrl-lbi-val" id="lbConectFTP">0</div></div>
+  </div>
+  <div class="ctrl-grid" id="ftpGrid"></div>
+  <div class="ctrl-nav-hint">
+    <div class="ctrl-nav-item"><span class="ctrl-nav-badge">X</span> Fechar</div>
+    <div class="ctrl-nav-item"><span class="ctrl-nav-badge">A</span> Rotação</div>
+    <div class="ctrl-nav-item"><span class="ctrl-nav-badge">B</span> Ranking</div>
+    <div class="ctrl-nav-item"><span class="ctrl-nav-badge">Y</span> QR Code</div>
+  </div>
+</div>
+
+<!-- ROTACAO RPM — botão A -->
+<div id="overlayRPM" class="ctrl-overlay">
+  <div class="ctrl-header">
+    <span class="ctrl-title">ROTAÇÃO</span>
+    <span class="ctrl-subtitle">RPM em tempo real</span>
+    <span class="ctrl-meta">A — pressione novamente para fechar</span>
+  </div>
+  <div class="ctrl-live-bar">
+    <div class="ctrl-lbi"><div class="ctrl-lbi-lbl"><span class="ctrl-live-dot"></span>Ao vivo</div><div class="ctrl-lbi-val" id="lbZonaRPM">—</div></div>
+    <div class="ctrl-lbi"><div class="ctrl-lbi-lbl">Tempo</div><div class="ctrl-lbi-val" id="lbTempoRPM">—</div></div>
+    <div class="ctrl-lbi"><div class="ctrl-lbi-lbl">Meta FTP</div><div class="ctrl-lbi-val green" id="lbMetaFTPRPM">—</div></div>
+    <div class="ctrl-lbi"><div class="ctrl-lbi-lbl">Meta RPM</div><div class="ctrl-lbi-val green" id="lbMetaRPMRPM">—</div></div>
+    <div class="ctrl-lbi"><div class="ctrl-lbi-lbl">Conectados</div><div class="ctrl-lbi-val" id="lbConectRPM">0</div></div>
+  </div>
+  <div class="ctrl-grid" id="rpmGrid"></div>
+  <div class="ctrl-nav-hint">
+    <div class="ctrl-nav-item"><span class="ctrl-nav-badge">A</span> Fechar</div>
+    <div class="ctrl-nav-item"><span class="ctrl-nav-badge">X</span> Potência</div>
+    <div class="ctrl-nav-item"><span class="ctrl-nav-badge">B</span> Ranking</div>
+    <div class="ctrl-nav-item"><span class="ctrl-nav-badge">Y</span> QR Code</div>
+  </div>
+</div>
+
+<!-- QR CODE — botão Y -->
+<div id="overlayQR" class="ctrl-overlay">
+  <div class="ctrl-header">
+    <span class="ctrl-title">ENTRAR NA AULA</span>
+    <span class="ctrl-subtitle">Escaneie com o app ProRider</span>
+    <span class="ctrl-meta">Y — pressione novamente para fechar</span>
+  </div>
+  <div class="ctrl-live-bar">
+    <div class="ctrl-lbi"><div class="ctrl-lbi-lbl"><span class="ctrl-live-dot"></span>Ao vivo</div><div class="ctrl-lbi-val" id="lbZonaQR">—</div></div>
+    <div class="ctrl-lbi"><div class="ctrl-lbi-lbl">Tempo</div><div class="ctrl-lbi-val" id="lbTempoQR">—</div></div>
+    <div class="ctrl-lbi"><div class="ctrl-lbi-lbl">Meta FTP</div><div class="ctrl-lbi-val green" id="lbMetaFTPQR">—</div></div>
+    <div class="ctrl-lbi"><div class="ctrl-lbi-lbl">Meta RPM</div><div class="ctrl-lbi-val green" id="lbMetaRPMQR">—</div></div>
+    <div class="ctrl-lbi"><div class="ctrl-lbi-lbl">Conectados</div><div class="ctrl-lbi-val" id="lbConectQR">0</div></div>
+  </div>
+  <div class="ctrl-qr-body">
+    <div class="ctrl-qr-box"><div id="qrBigDiv"></div></div>
+    <div class="ctrl-qr-info">
+      <div class="ctrl-qr-code" id="qrBigCode">--</div>
+      <div class="ctrl-qr-connected">Conectados: <span id="qrBigCount">0</span> alunos</div>
+      <div class="ctrl-qr-list" id="qrBigList"></div>
+    </div>
+  </div>
+  <div class="ctrl-nav-hint">
+    <div class="ctrl-nav-item"><span class="ctrl-nav-badge">Y</span> Fechar</div>
+    <div class="ctrl-nav-item"><span class="ctrl-nav-badge">X</span> Potência</div>
+    <div class="ctrl-nav-item"><span class="ctrl-nav-badge">A</span> Rotação</div>
+    <div class="ctrl-nav-item"><span class="ctrl-nav-badge">B</span> Ranking</div>
+  </div>
+</div>
+
+<!-- RANKING WPP — botão B -->
+<div id="overlayRank" class="ctrl-overlay">
+  <div class="ctrl-header">
+    <span class="ctrl-title">RANKING</span>
+    <span class="ctrl-subtitle">Workout Performance Points</span>
+    <span class="ctrl-meta">B — pressione novamente para fechar</span>
+  </div>
+  <div class="ctrl-live-bar">
+    <div class="ctrl-lbi"><div class="ctrl-lbi-lbl"><span class="ctrl-live-dot"></span>Ao vivo</div><div class="ctrl-lbi-val" id="lbZonaRank">—</div></div>
+    <div class="ctrl-lbi"><div class="ctrl-lbi-lbl">Tempo</div><div class="ctrl-lbi-val" id="lbTempoRank">—</div></div>
+    <div class="ctrl-lbi"><div class="ctrl-lbi-lbl">Meta FTP</div><div class="ctrl-lbi-val green" id="lbMetaFTPRank">—</div></div>
+    <div class="ctrl-lbi"><div class="ctrl-lbi-lbl">Meta RPM</div><div class="ctrl-lbi-val green" id="lbMetaRPMRank">—</div></div>
+    <div class="ctrl-lbi"><div class="ctrl-lbi-lbl">Conectados</div><div class="ctrl-lbi-val" id="lbConectRank">0</div></div>
+  </div>
+  <div class="ctrl-rank-list" id="rankList"></div>
+  <div class="ctrl-nav-hint">
+    <div class="ctrl-nav-item"><span class="ctrl-nav-badge">B</span> Fechar</div>
+    <div class="ctrl-nav-item"><span class="ctrl-nav-badge">X</span> Potência</div>
+    <div class="ctrl-nav-item"><span class="ctrl-nav-badge">A</span> Rotação</div>
+    <div class="ctrl-nav-item"><span class="ctrl-nav-badge">Y</span> QR Code</div>
+  </div>
+</div>
+
+<!-- MODAL ENCERRAR — passo 1 -->
+<div id="modalEncerrar" class="ctrl-modal-wrap">
+  <div class="ctrl-modal danger">
+    <div class="ctrl-modal-emoji">⚡</div>
+    <div class="ctrl-modal-title">Encerrar a aula?</div>
+    <div class="ctrl-modal-sub">Os resultados serão salvos<br>para todos os alunos conectados.</div>
+    <div class="ctrl-modal-btns">
+      <button class="ctrl-modal-btn ctrl-modal-btn-cancel" onclick="ctrlConfirmNo()"><span class="ctrl-modal-kbd">←</span> Cancelar</button>
+      <button class="ctrl-modal-btn ctrl-modal-btn-confirm" onclick="ctrlConfirmYes()">Encerrar <span class="ctrl-modal-kbd">→</span></button>
+    </div>
+    <div class="ctrl-modal-hint">DIRECIONAL ← → navega · START confirma</div>
+  </div>
+</div>
+
+
+<!-- Canvas de fundo global -->
+<canvas id="universeBg" style="display:none;position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events:none;opacity:.85;"></canvas>
+
+<!-- TELA: PICKER DE CENÁRIO -->
+<div id="bgPickerScreen" style="display:none;position:fixed;inset:0;z-index:19000;flex-direction:column;justify-content:flex-end;">
+  <div style="background:linear-gradient(to top,rgba(4,6,14,.99) 0%,rgba(4,6,14,.92) 50%,transparent 100%);padding:22px 36px 28px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;">
+      <div>
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:4px;color:#fff;">CONFIGURAR AULA</div>
+        <div id="bgPreviewLabel" style="font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;letter-spacing:3px;color:#ea860c;margin-top:1px;min-height:16px;"></div>
+      </div>
+      <div style="display:flex;gap:10px;align-items:center;">
+        <button onclick="bgConfirmar()" style="padding:11px 26px;background:linear-gradient(135deg,#ea860c,#d7c414);border:none;border-radius:11px;color:#000;font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:2px;cursor:pointer;">A · CONFIRMAR</button>
+        <button onclick="bgPularPicker()" style="padding:11px 20px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.14);border-radius:11px;color:rgba(255,255,255,.45);font-family:'Bebas Neue',sans-serif;font-size:14px;letter-spacing:1px;cursor:pointer;">B · PULAR</button>
+      </div>
+    </div>
+    <div style="margin-bottom:14px;">
+      <div id="bgSecFundoLabel" style="font-size:10px;font-weight:700;letter-spacing:2px;margin-bottom:8px;transition:color .2s;">
+        <span style="opacity:.5;">↑↓ SECÇÃO</span>
+        <span style="margin-left:10px;">🎬 FUNDO / CENÁRIO / VÍDEO</span>
+        <span style="margin-left:10px;opacity:.5;">← → NAVEGAR</span>
+      </div>
+      <div id="bgCardGrid" style="display:flex;gap:10px;overflow:hidden;"></div>
+    </div>
+    <div>
+      <div id="bgSecMusicaLabel" style="font-size:10px;font-weight:700;letter-spacing:2px;margin-bottom:8px;transition:color .2s;">
+        <span style="opacity:.5;">↑↓ SECÇÃO</span>
+        <span style="margin-left:10px;">🎵 MÚSICA</span>
+        <span style="margin-left:10px;opacity:.5;">← → NAVEGAR</span>
+      </div>
+      <div id="bgMusicGrid" style="display:flex;gap:10px;overflow:hidden;"></div>
+    </div>
+    <div style="margin-top:12px;font-size:10px;color:rgba(255,255,255,.18);letter-spacing:1px;">
+      ↑↓ trocar secção  ·  ←→ navegar  ·  A confirmar  ·  B pular sem configurar
+    </div>
+  </div>
+</div>
+
+<!-- Input oculto para vídeo de sistema -->
+<input type="file" id="bgVideoInputSistema" accept="video/*" style="display:none">
+
+<!-- IDLE SCREEN -->
+<div id="idleScreen">
+  <div id="idleBolt">
+    <svg width="72" height="88" viewBox="0 0 44 56" fill="none">
+      <defs>
+        <filter id="idleGlow"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+        <linearGradient id="idleLG" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#ffe033"/>
+          <stop offset="50%" stop-color="#ea860c"/>
+          <stop offset="100%" stop-color="#d62d2d"/>
+        </linearGradient>
+      </defs>
+      <path d="M30 4 L10 30 L20 30 L14 52 L34 26 L24 26Z" fill="url(#idleLG)" filter="url(#idleGlow)"/>
+    </svg>
+  </div>
+  <div id="idleLogo">
+    <span class="idle-pro">PRO</span>
+    <span class="idle-rider">RIDER</span>
+    <div class="idle-line"></div>
+    <div class="idle-tag">cycling performance</div>
+  </div>
+  <div id="idleWake">Pressione <kbd>START</kbd> ou <kbd>A</kbd> para continuar</div>
+  <div id="idleZoneBar"></div>
+</div>
+
+<!-- Debug teclas -->
+<div id="ctrlDebug" style="display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(8,6,16,.95);border:2px solid #ea860c;color:#fff;text-align:center;padding:28px 48px;border-radius:20px;z-index:30000;pointer-events:none;"></div>
+
+<!-- HUD teclas -->
+<div id="ctrlHUD" style="display:none;position:fixed;bottom:14px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.7);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:7px 16px;z-index:500;">
+  <div style="display:flex;gap:14px;font-size:11px;color:rgba(255,255,255,.35);">
+    <span><b style="color:rgba(255,255,255,.6);">2</b> %FTP</span>
+    <span><b style="color:rgba(255,255,255,.6);">3</b> RPM</span>
+    <span><b style="color:rgba(255,255,255,.6);">4</b> QR</span>
+    <span><b style="color:rgba(255,255,255,.6);">5</b> Ranking</span>
+    <span><b style="color:#ea860c;">Esc</b> Encerrar</span>
+  </div>
+</div>
+
+<script src="script.js"></script>
+
+<!-- Botao QR na live -->
+<button id="btnQRProf" onclick="toggleQRProf()" style="display:none;position:fixed;top:14px;right:56px;background:rgba(41,95,232,.3);border:1px solid rgba(41,95,232,.6);border-radius:10px;padding:8px 14px;color:#fff;font-size:12px;font-weight:700;cursor:pointer;z-index:300;letter-spacing:1px;">
+  QR <span id="qrAlunosNum">0</span>
+</button>
+
+<!-- Painel QR -->
+<div id="qrProfPanel" style="display:none;position:fixed;bottom:0;left:0;right:0;background:#0d0d16;border-top:1px solid rgba(255,255,255,.1);padding:18px;z-index:400;max-height:60vh;overflow-y:auto;">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+    <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:2px;color:#fff;">Alunos Conectados</div>
+    <button onclick="toggleQRProf()" style="width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,.1);border:none;color:rgba(255,255,255,.5);font-size:18px;cursor:pointer;">&#215;</button>
+  </div>
+  <div style="display:flex;gap:16px;align-items:flex-start;">
+    <!-- QR Code -->
+    <div style="background:#fff;padding:8px;border-radius:12px;flex-shrink:0;" id="qrProfCode"></div>
+    <!-- Info -->
+    <div style="flex:1;">
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:24px;font-weight:900;color:#fff;letter-spacing:4px;" id="qrProfText">--</div>
+      <div style="font-size:11px;color:rgba(255,255,255,.35);margin-bottom:12px;">Alunos escaneiam este codigo</div>
+      <div id="qrAlunosList" style="display:flex;flex-direction:column;gap:6px;">
+        <div style="font-size:12px;color:rgba(255,255,255,.3);">Aguardando alunos...</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>
