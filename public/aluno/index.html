@@ -2573,7 +2573,7 @@ function connectQR(code){
         // resposta ao reenvio do FTP (23/09c): ja estamos na aula, nao navega
         window._ftpReenvio=0;
       } else if(data.tipo==='conectado'){
-        window._reconTries=0;
+        window._reconTries=0; window._salaSumiuDesde=0;
         if(window._bikeJoinTimer){ clearTimeout(window._bikeJoinTimer); window._bikeJoinTimer=null; }
         if(typeof _reconStop==='function') _reconStop();
         if(statusEl){statusEl.textContent='Conectado!';statusEl.style.color='#5db13d';}
@@ -2684,10 +2684,24 @@ function connectQR(code){
         // velho e precisa sair — senao a faixa fica apontando para uma sala
         // morta, e o aluno tenta voltar para ela indefinidamente.
         if(/n[aã]o encontrada|inexistente|encerrada/i.test(String(_msgErr))){
+          var _slE=document.getElementById('sLive');
+          // 03/10x: SERVIDOR REINICIOU NO MEIO DA AULA. O celular volta antes da TV
+          // recriar a sala e ouvia "Sala nao encontrada" — e era expulso da aula.
+          // Agora, em plena aula, espera a TV voltar por até 90 s (tentando de 4 em 4 s).
+          if(_slE && _slE.classList.contains('active') && _entrarCodigo && /n[aã]o encontrada/i.test(String(_msgErr))){
+            if(!window._salaSumiuDesde) window._salaSumiuDesde=Date.now();
+            if(Date.now()-window._salaSumiuDesde < 90000){
+              lastCode=_entrarCodigo;
+              try{ localStorage.setItem('pr_last_sala', JSON.stringify({code:_entrarCodigo, bike:_bikeSelNum||0, ts:Date.now()})); }catch(e){}
+              try{ if(wsConn){ wsConn.onclose=null; wsConn.close(); } }catch(e){} wsConn=null;
+              try{ _reconStartFlow(); var _rm=document.getElementById('reconMsg'); if(_rm) _rm.textContent='Esperando a TV da academia voltar…'; }catch(e){}
+              return;
+            }
+          }
+          window._salaSumiuDesde=0;
           _prEsquecerSala('sala nao existe mais');
           // 26/09d: em plena aula, sala que sumiu = aula acabou (Ginasio fechado
           // ou encerrado sem o aviso chegar). Fecha a aula e mostra o resultado.
-          var _slE=document.getElementById('sLive');
           if(_slE && _slE.classList.contains('active')){
             try{ if(typeof _reconStop==='function') _reconStop(); }catch(e){}
             if(typeof showToast==='function') showToast('A aula foi encerrada.');
@@ -8715,7 +8729,7 @@ updateProfileUI = function() {
          + ' fill="none" stroke="'+col(fm)+'" stroke-width="30" stroke-linecap="'+cap+'"/>';
     }
     g.innerHTML=out;
-    try{ console.log('%c[ProRider Aluno] BUILD 03/10h — erro mostra codigo (E-XXXX) e vai junto no Reportar + 03/10f: erros do app chegam sozinhos na Saude do sistema + 03/10e: esqueci a senha por e-mail, reportar problema, excluir conta + 03/10c: loja (comprar aulas, pacotes, assinatura), desafios reais (21 dias, Quebra FTP, ranking, grupos), pré-treino igual ao da TV, Bluetooth novo + 02/10f: aula recomeçada zera os números da largada + 02/10d: caixas da aula gravada mais justas e nas pontas da tela; aulas gravadas abertas a qualquer login na fase de teste + 02/10b: aula gravada na Loja (vídeo do professor + gráfico e números do próprio aluno, ranking com quem fez ao vivo) + lista de espera na reserva, assistir a aula ao vivo, arquivo .tcx para Strava/Garmin, desafio entre academias no início + 01/10b: reserva com escolha da bike (mapa das bikes, a reservada aparece como SUA na hora de entrar) + 01/10a: campeonato no app (posição, camisas, próxima etapa) + camisas conquistadas no perfil + logo original no início + 30/09e: Construtor do celular = o mesmo Construtor online do computador (mesmas funções, mesma conta) + Perto de mim na lupinha (GPS do celular, distância até a academia, aula ao vivo no topo) + faixa verde da aula ao vivo na academia + aulas de hoje na grade + brasões novos (subiu de nível) + Criar aula do Portal abre direto o Construtor (/aluno#construtor) + FC da cinta do celular vai para o Ginasio; Avg. HR = media da aula; aula termina quando a sala some + resultado do teste de FTP da aula no celular (1 min; automatico grava, senao pergunta) + home do professor: sai o Build Workout antigo (com senha), fica Agenda + Treino do Treinador + Construtor de Treino + voltar para a propria bike depois de reabrir o app + relogio do bloco anda sem bike transmitindo + vigia: reentra na sala se a aula parar de chegar + resultado do desafio no celular (10 s, toque fecha) + sexo enviado na entrada da sala (desafio Homens x Mulheres) + aluno sem nome nao entra mais como "-" na sala + leitor do app aceita o QR de Minhas Aulas do Ginasio + aula anterior nao fica mais grudada (fim da aula fecha o socket em qualquer tela; QR de outra sala troca de sala) + gauge com FTP e BLOCO simetricos + marcha e FC na aula da academia + %FTP com o FTP da gaveta na hora + FTP da gaveta vai para a sala na hora + FTP tambem na entrada pela reserva + Revisar o treino mostra a aula do Ginasio + caloria por watt (kJ/eficiencia) + basal Mifflin-St Jeor no cadastro + historico gravado no aparelho + FTP na gaveta + card 1080x1920 reposicionado + 6 protocolos de FTP + TSS + teste de 3 min + fator do teste de 5 min corrigido (era 1,05) + explicacao de FTP em cada teste + gaveta esconde pela propria altura + importacao de treino do TrainingPeaks (grade 2x2 na tela inicial + construtor) com tela de conferencia (botoes acima da navegacao) + corrigido: aula aberta por objeto agora e a que roda + botao Revisar o treino na gaveta + FTP e peso persistem no aparelho + gauge reequilibrado + textos do Brasil + codigo de sala normalizado (QR do navegador deixava a sala inexistente) + faixa de voltar corrigida + reconexao nao trava mais + sala encerrada limpa o codigo guardado + VISTA DA SALA + card comprido de Construtor para professor + fim da corrida no login','color:#ea860c;font-weight:700;'); }catch(e){}
+    try{ console.log('%c[ProRider Aluno] BUILD 03/10x — servidor reiniciou no meio da aula: o celular espera a TV voltar (ate 90 s) em vez de encerrar a aula + 03/10h: erro mostra codigo (E-XXXX) e vai junto no Reportar + 03/10f: erros do app chegam sozinhos na Saude do sistema + 03/10e: esqueci a senha por e-mail, reportar problema, excluir conta + 03/10c: loja (comprar aulas, pacotes, assinatura), desafios reais (21 dias, Quebra FTP, ranking, grupos), pré-treino igual ao da TV, Bluetooth novo + 02/10f: aula recomeçada zera os números da largada + 02/10d: caixas da aula gravada mais justas e nas pontas da tela; aulas gravadas abertas a qualquer login na fase de teste + 02/10b: aula gravada na Loja (vídeo do professor + gráfico e números do próprio aluno, ranking com quem fez ao vivo) + lista de espera na reserva, assistir a aula ao vivo, arquivo .tcx para Strava/Garmin, desafio entre academias no início + 01/10b: reserva com escolha da bike (mapa das bikes, a reservada aparece como SUA na hora de entrar) + 01/10a: campeonato no app (posição, camisas, próxima etapa) + camisas conquistadas no perfil + logo original no início + 30/09e: Construtor do celular = o mesmo Construtor online do computador (mesmas funções, mesma conta) + Perto de mim na lupinha (GPS do celular, distância até a academia, aula ao vivo no topo) + faixa verde da aula ao vivo na academia + aulas de hoje na grade + brasões novos (subiu de nível) + Criar aula do Portal abre direto o Construtor (/aluno#construtor) + FC da cinta do celular vai para o Ginasio; Avg. HR = media da aula; aula termina quando a sala some + resultado do teste de FTP da aula no celular (1 min; automatico grava, senao pergunta) + home do professor: sai o Build Workout antigo (com senha), fica Agenda + Treino do Treinador + Construtor de Treino + voltar para a propria bike depois de reabrir o app + relogio do bloco anda sem bike transmitindo + vigia: reentra na sala se a aula parar de chegar + resultado do desafio no celular (10 s, toque fecha) + sexo enviado na entrada da sala (desafio Homens x Mulheres) + aluno sem nome nao entra mais como "-" na sala + leitor do app aceita o QR de Minhas Aulas do Ginasio + aula anterior nao fica mais grudada (fim da aula fecha o socket em qualquer tela; QR de outra sala troca de sala) + gauge com FTP e BLOCO simetricos + marcha e FC na aula da academia + %FTP com o FTP da gaveta na hora + FTP da gaveta vai para a sala na hora + FTP tambem na entrada pela reserva + Revisar o treino mostra a aula do Ginasio + caloria por watt (kJ/eficiencia) + basal Mifflin-St Jeor no cadastro + historico gravado no aparelho + FTP na gaveta + card 1080x1920 reposicionado + 6 protocolos de FTP + TSS + teste de 3 min + fator do teste de 5 min corrigido (era 1,05) + explicacao de FTP em cada teste + gaveta esconde pela propria altura + importacao de treino do TrainingPeaks (grade 2x2 na tela inicial + construtor) com tela de conferencia (botoes acima da navegacao) + corrigido: aula aberta por objeto agora e a que roda + botao Revisar o treino na gaveta + FTP e peso persistem no aparelho + gauge reequilibrado + textos do Brasil + codigo de sala normalizado (QR do navegador deixava a sala inexistente) + faixa de voltar corrigida + reconexao nao trava mais + sala encerrada limpa o codigo guardado + VISTA DA SALA + card comprido de Construtor para professor + fim da corrida no login','color:#ea860c;font-weight:700;'); }catch(e){}
   }
   if(document.readyState!=='loading') buildGaugeArc();
   else document.addEventListener('DOMContentLoaded', buildGaugeArc);
@@ -9500,7 +9514,7 @@ go=function(id){
   if(id==='sDetail'||id==='sConnect'){ var n=document.getElementById('bNav'); if(n) n.style.display='none'; }
 };
 
-var APP_BUILD='03/10w';
+var APP_BUILD='03/10x';
 try{ if(typeof prErroConfig==='function') prErroConfig(SERVER_HTTP,'app',function(){ return (typeof prToken!=='undefined'&&prToken)||localStorage.getItem('pr_token')||''; },APP_BUILD); }catch(e){}   // 03/10f: erros do app chegam na Saúde
 // ── 03/10e: no Perfil — reportar um problema e excluir a conta (LGPD) ──
 (function(){

@@ -1,4 +1,8 @@
-ProRider — BUILD 03/10w (Ginasio)
+ProRider — BUILD 03/10x (Ginasio)
+
+03/10x: se o servidor reiniciar no meio da aula, a TV religa sozinha (de 5 em 5 s)
+e a aula continua; os celulares esperam a TV voltar. A TV manda a propria saude
+(memoria, quadros por segundo, tempo ligada) para Admin > Saude > TVs.
 
 03/10w: a TV agora e ativada pelo CODIGO DA TV (8 letras/numeros, secreto),
 que aparece no Admin > Licencas ao lado do codigo da academia. O codigo da

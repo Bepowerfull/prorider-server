@@ -867,6 +867,10 @@ async function runMigrations() {
         ADD COLUMN IF NOT EXISTS emails_cfg  JSONB
     `);
     await db.query(`ALTER TABLE licenca_computadores ADD COLUMN IF NOT EXISTS build TEXT`);
+    // 03/10x: saúde da TV (memória, tempo ligada, aula) — para acompanhar o teste do dia inteiro e achar vazamento
+    await db.query(`ALTER TABLE licenca_computadores ADD COLUMN IF NOT EXISTS saude JSONB, ADD COLUMN IF NOT EXISTS saude_em TIMESTAMPTZ`);
+    await db.query(`CREATE TABLE IF NOT EXISTS tv_saude (id BIGSERIAL PRIMARY KEY, license_codigo TEXT NOT NULL, device_id TEXT NOT NULL, em TIMESTAMPTZ NOT NULL DEFAULT NOW(), d JSONB NOT NULL)`);
+    await db.query(`CREATE INDEX IF NOT EXISTS tv_saude_dev ON tv_saude (license_codigo, device_id, em)`);
     await db.query(`
       ALTER TABLE users
         ADD COLUMN IF NOT EXISTS nascimento DATE,
@@ -2676,6 +2680,35 @@ async function displayAuth(req, res, next) {
 }
 
 // Grade do dia (leitura, para o mini PC)
+// 03/10x: a TV manda a própria saúde a cada minuto (memória do JavaScript, nós da tela, quadros por
+// segundo, tempo ligada, aula em andamento). Fica o último na lista de TVs e um histórico de 3 dias
+// (um ponto a cada 5 min) para ver se a memória cresce numa aula longa.
+const _tvSaudeUlt = new Map();
+app.post('/display/saude', displayAuth, async (req, res) => {
+  if (!db || req.user.role !== 'display' || !req.user.device_id) return res.json({ ok: false });
+  const b = req.body || {}, n = (v, max) => { v = Number(v); return Number.isFinite(v) && v >= 0 ? Math.min(Math.round(v * 10) / 10, max) : null; };
+  const d = { mem_mb: n(b.mem_mb, 1e5), mem_lim_mb: n(b.mem_lim_mb, 1e5), nos: n(b.nos, 1e7), fps: n(b.fps, 1000), ligada_min: n(b.ligada_min, 1e6),
+    aula_min: n(b.aula_min, 1e5), alunos: n(b.alunos, 1000), quedas_ws: n(b.quedas_ws, 1e6), erros: n(b.erros, 1e6), build: String(b.build || '').slice(0, 40) };
+  try {
+    await db.query('UPDATE licenca_computadores SET saude=$1, saude_em=NOW() WHERE license_codigo=$2 AND device_id=$3', [d, req.user.license_id, req.user.device_id]);
+    const k = req.user.license_id + '|' + req.user.device_id, ult = _tvSaudeUlt.get(k) || 0;
+    if (Date.now() - ult >= 290000) {
+      _tvSaudeUlt.set(k, Date.now());
+      await db.query('INSERT INTO tv_saude (license_codigo, device_id, d) VALUES ($1,$2,$3)', [req.user.license_id, req.user.device_id, d]);
+      if (Math.random() < 0.02) db.query("DELETE FROM tv_saude WHERE em < NOW() - INTERVAL '3 days'").catch(() => {});
+    }
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ ok: false }); }
+});
+// histórico de uma TV (super admin): ?lic=&dev=
+app.get('/admin/tv-saude', adminAuth, async (req, res) => {
+  if (!db) return res.status(503).json({ error: 'Banco indisponível' });
+  try {
+    const r = await db.query(`SELECT em, d FROM tv_saude WHERE license_codigo=$1 AND device_id=$2 AND em > NOW() - INTERVAL '3 days' ORDER BY em`, [String(req.query.lic || ''), String(req.query.dev || '')]);
+    res.json({ pontos: r.rows });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 app.get('/display/agenda', displayAuth, async (req, res) => {
   if (!db) return res.status(503).json({ error: 'Banco indisponível' });
   try {
@@ -6383,7 +6416,7 @@ app.post('/display/gravacao/:id/enviar', displayAuth, async (req, res) => {
 // 03/10e — SEGURANÇA E SAÚDE: esqueci a senha, reportar problema,
 // excluir minha conta (LGPD) e a página "Saúde do sistema" do admin
 // ══════════════════════════════════════════════════════════════
-const SERVIDOR_VERSAO = '03/10w';
+const SERVIDOR_VERSAO = '03/10x';
 // 03/10v: a TV certa tem o mesmo número do servidor (o pacote sobe os dois juntos)
 function tvVersaoOk(b) { return String(b || '').trim() === 'BUILD ' + SERVIDOR_VERSAO; }
 const _inicioServidor = Date.now();
@@ -6575,12 +6608,19 @@ app.get('/admin/saude', adminAuth, async (req, res) => {
     if (livre !== null && livre < 2) al('erro', 'Pouco espaço para gravações: ' + livre + ' GB livres.');
   } catch (e) {}
   try {
-    const tv = (await db.query(`SELECT lc.license_codigo, COALESCE(l.nome_fantasia, l.nome) AS academia, lc.nome_computador, lc.build, lc.visto_em
+    const tv = (await db.query(`SELECT lc.license_codigo, COALESCE(l.nome_fantasia, l.nome) AS academia, lc.nome_computador, lc.device_id, lc.build, lc.visto_em, lc.saude, lc.saude_em,
+        (SELECT h.d->>'mem_mb' FROM tv_saude h WHERE h.license_codigo=lc.license_codigo AND h.device_id=lc.device_id AND h.em < NOW() - INTERVAL '55 minutes' AND h.em > NOW() - INTERVAL '2 hours' ORDER BY h.em DESC LIMIT 1) AS mem_1h
       FROM licenca_computadores lc LEFT JOIN licencas l ON l.codigo=lc.license_codigo ORDER BY lc.visto_em DESC LIMIT 40`)).rows;
     out.tvs = { lista: tv, online: tv.filter(x => Date.now() - new Date(x.visto_em).getTime() < 5 * 60000).length, versao_atual: 'BUILD ' + SERVIDOR_VERSAO };
     // 03/10v: TV vista nos últimos 14 dias numa versão diferente da do servidor
     const velhas = tv.filter(x => x.build && Date.now() - new Date(x.visto_em).getTime() < 14 * 86400000 && !tvVersaoOk(x.build));
     if (velhas.length) al('aviso', velhas.length + ' TV(s) com versão do Ginásio diferente da atual (BUILD ' + SERVIDOR_VERSAO + '): ' + velhas.map(x => (x.academia || x.license_codigo) + ' — ' + x.build).join('; ') + '. Reinstale a versão do pacote mais novo.');
+    // 03/10x: memória da TV subindo (vazamento) ou perto do limite
+    tv.filter(x => x.saude && x.saude_em && Date.now() - new Date(x.saude_em).getTime() < 10 * 60000).forEach(x => {
+      const m = Number(x.saude.mem_mb) || 0, lim = Number(x.saude.mem_lim_mb) || 0, m1 = Number(x.mem_1h) || 0;
+      if (lim && m > lim * 0.8) al('erro', 'TV ' + (x.academia || x.license_codigo) + ' com a memória quase cheia (' + m + ' de ' + lim + ' MB). Feche e abra o Ginásio depois da aula.');
+      else if (m1 && m - m1 > 150) al('aviso', 'TV ' + (x.academia || x.license_codigo) + ': memória subiu ' + Math.round(m - m1) + ' MB na última hora (' + m + ' MB agora).');
+    });
   } catch (e) {}
   try {
     const ls = (await db.query('SELECT * FROM licencas')).rows, sit = {};

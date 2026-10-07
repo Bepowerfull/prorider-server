@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // ═══════════════════════════════════════════════════════════════════
-// ProRider — TESTE DE CARGA (03/10f)
+// ProRider — TESTE DE CARGA (03/10x)
 // Simula muitas academias com aula ao mesmo tempo: cada uma tem a TV (Ginásio)
 // mandando os dados das bikes 4x por segundo e N celulares na sala mandando os
 // números 1x por segundo, mais o app consultando o servidor. Mede o atraso que o
@@ -11,18 +11,23 @@
 //
 // NUNCA rodar contra o servidor de produção com academias de verdade (ele recusa).
 // Rode num servidor local ou na homologação do Railway.
+// 03/10x: desde a 03/10w só a TV ativada abre sala. O teste assina os tokens de TV
+// com o mesmo JWT_SECRET do servidor testado: CARGA_JWT_SECRET=<o do servidor local>.
 // Resultado: "APROVADO" (código 0) ou "REPROVADO" com o motivo (código 1).
 // ═══════════════════════════════════════════════════════════════════
 const path = require('path');
 const RAIZ = path.join(__dirname, '..');
 const WebSocket = require(require.resolve('ws', { paths: [RAIZ, path.join(RAIZ, '1_SERVIDOR'), __dirname] }));
 const BASE = (process.argv[2] || process.env.CARGA_URL || 'http://127.0.0.1:3999').replace(/\/$/, '');
-if (/prorider-server-production/i.test(BASE)) { console.error('⛔ Este é o servidor de PRODUÇÃO. O teste de carga roda só no local ou na homologação.'); process.exit(2); }
+if (/prorider-server-production|app\.prorider\.app\.br|prorider\.app\.br/i.test(BASE)) { console.error('⛔ Este é o servidor de PRODUÇÃO. O teste de carga roda só no local ou na homologação.'); process.exit(2); }
+const SEGREDO = process.env.CARGA_JWT_SECRET || process.env.JWT_SECRET;
+if (!SEGREDO) { console.error('⛔ Falta CARGA_JWT_SECRET (o mesmo JWT_SECRET do servidor que vai ser testado).'); process.exit(2); }
+const jwt = require(require.resolve('jsonwebtoken', { paths: [RAIZ, path.join(RAIZ, '1_SERVIDOR'), path.join(RAIZ, 'srv'), __dirname] }));
 const WSURL = BASE.replace(/^http/, 'ws');
 const ACAD = parseInt(process.env.ACADEMIAS || '30'), BIKES = parseInt(process.env.BIKES || '20'), SEG = parseInt(process.env.SEGUNDOS || '60');
 const LIMITE_P95_MS = parseInt(process.env.LIMITE_P95_MS || '500');   // atraso aceitável TV → celular
 const espera = ms => new Promise(r => setTimeout(r, ms));
-const lat = [], http = [], st = { wsAbertos: 0, wsFalhas: 0, wsCaidos: 0, recusas: 0, msgsTv: 0, msgsCel: 0, recebidas: 0, httpErros: 0 };
+const lat = [], http = [], st = { salasRecusadas: 0, wsAbertos: 0, wsFalhas: 0, wsCaidos: 0, recusas: 0, msgsTv: 0, msgsCel: 0, recebidas: 0, httpErros: 0 };
 const socks = [], timers = [];
 let fim = false;
 function abrir() {
@@ -38,7 +43,10 @@ const enviar = (ws, o) => { try { if (ws && ws.readyState === 1) ws.send(JSON.st
 async function academia(i) {
   const codigo = 'CARGA' + String(i).padStart(3, '0');
   const tv = await abrir(); if (!tv) return;
-  enviar(tv, { tipo: 'criar_sala', codigo }); await espera(300);
+  const display_token = jwt.sign({ role: 'display', license_id: codigo, nome_academia: 'Carga ' + i, device_id: 'carga-' + i }, SEGREDO, { expiresIn: '1h' });
+  let criada = false; tv.on('message', raw => { try { const d = JSON.parse(raw); if (d.tipo === 'sala_criada') criada = true; if (d.tipo === 'erro') st.recusas++; } catch (e) {} });
+  enviar(tv, { tipo: 'criar_sala', codigo, display_token }); await espera(300);
+  if (!criada) { await espera(700); if (!criada) { st.salasRecusadas++; return; } }
   enviar(tv, { tipo: 'sala_info', numBikes: BIKES, bikes: Array.from({ length: BIKES }, (_, k) => k + 1), ocupadas: [], ocupantes: {} });
   const cel = [];
   for (let b = 1; b <= BIKES; b++) {
@@ -55,7 +63,7 @@ async function academia(i) {
   enviar(tv, { tipo: 'iniciar_aula', grafico: Array.from({ length: 30 }, (_, k) => ({ z: 'z' + (1 + k % 6), d: 120 })), blocoIdx: 0, nomeAula: 'Carga ' + i });
   // TV: dados de todas as bikes 4x/s (o que o Ginásio faz de verdade)
   timers.push(setInterval(() => {
-    const bikes = {}; for (let b = 1; b <= BIKES; b++) bikes[b] = { w: 120 + (b * 7) % 150, rpm: 85, fc: 140, z: 3, kcal: 200, dist: 12.3 };
+    const bikes = []; for (let b = 1; b <= BIKES; b++) bikes.push({ b, w: 120 + (b * 7) % 150, r: 85, ftp: 200, z: 3, g: 10, hr: 140, s: 1 });
     enviar(tv, { tipo: 'bikes_live', t: Date.now(), bikes }); st.msgsTv++;
   }, 250));
   // celulares: números do aluno 1x/s
@@ -82,12 +90,13 @@ const pct = (a, p) => { if (!a.length) return 0; const s = a.slice().sort((x, y)
   await Promise.race([Promise.all(apps), espera(3000)]);
   const esperado = st.msgsTv * BIKES, entregue = esperado ? st.recebidas / esperado : 0;
   console.log('\n══════════ RESULTADO ══════════');
-  console.log(`  conexões abertas ........ ${st.wsAbertos} de ${ACAD * (BIKES + 1)} (falhas ${st.wsFalhas}, caídas no meio ${st.wsCaidos}, recusas ${st.recusas})`);
+  console.log(`  conexões abertas ........ ${st.wsAbertos} de ${ACAD * (BIKES + 1)} (salas recusadas ${st.salasRecusadas}, falhas ${st.wsFalhas}, caídas no meio ${st.wsCaidos}, recusas ${st.recusas})`);
   console.log(`  mensagens da TV ......... ${st.msgsTv} (${Math.round(st.msgsTv / SEG)}/s) → entregues aos celulares ${(entregue * 100).toFixed(1)}%`);
   console.log(`  mensagens dos celulares . ${st.msgsCel} (${Math.round(st.msgsCel / SEG)}/s)`);
   console.log(`  atraso TV → celular ..... p50 ${pct(lat, .5)} ms · p95 ${pct(lat, .95)} ms · p99 ${pct(lat, .99)} ms · máx ${pct(lat, 1)} ms`);
   console.log(`  app (HTTP) .............. ${http.length} pedidos · p95 ${pct(http, .95)} ms · erros ${st.httpErros}`);
   const prob = [];
+  if (st.salasRecusadas) prob.push(st.salasRecusadas + ' salas recusadas (confira o CARGA_JWT_SECRET)');
   if (st.wsFalhas || st.wsAbertos < ACAD * (BIKES + 1)) prob.push('nem todas as conexões abriram');
   if (st.wsCaidos) prob.push(st.wsCaidos + ' conexões caíram no meio da aula');
   if (entregue < 0.99) prob.push('menos de 99% das mensagens chegaram aos celulares');

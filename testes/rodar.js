@@ -30,7 +30,7 @@ const PORTA = parseInt(process.env.TEST_PORT || '3999'), PORTA_MOCK = 3014;
 const SERVIDOR = path.join(RAIZ, 'server.js');
 const pgCfg = { host: u.hostname, port: parseInt(u.port || '5432'), user: decodeURIComponent(u.username), password: decodeURIComponent(u.password), database: u.pathname.slice(1), ssl: false };
 const ADMIN = 'admin@teste.local', ADMIN_SENHA = 'teste123';
-const TESTES = ['pagamento', 'loja', 'desafios', 'seguranca', 'invasao', 'telas', 'versao', 'vigia', 'conferencia', 'termos', 'bluetooth', 'erg', 'blenativo', 'semdado', 'dominio', 'fuso', 'tv', 'portal', 'backup'];
+const TESTES = ['pagamento', 'loja', 'desafios', 'seguranca', 'invasao', 'telas', 'versao', 'vigia', 'conferencia', 'termos', 'bluetooth', 'erg', 'blenativo', 'semdado', 'dominio', 'fuso', 'tv', 'aula15', 'carga', 'queda', 'longo', 'portal', 'backup'];
 const SO = (process.env.SO || '').split(',').filter(Boolean);   // 03/10s: SO=tv roda só esse grupo
 const espera = ms => new Promise(r => setTimeout(r, ms));
 const filhos = [];
@@ -69,7 +69,7 @@ process.on('SIGINT', () => sair(130));
   const resultado = [];
   for (const t of TESTES.filter(t => !SO.length || SO.includes(t))) {
     console.log('━━ ' + t + ' ━━');
-    const code = await new Promise(ok => { const p = spawn(process.execPath, [path.join(__dirname, t + '.test.js')], { stdio: 'inherit', env: Object.assign({}, env, { T_DB_URL: URL_TESTE, T_ADMIN: ADMIN, T_ADMIN_SENHA: ADMIN_SENHA }) }); p.on('exit', ok); });
+    const code = await new Promise(ok => { const p = spawn(process.execPath, [path.join(__dirname, t + '.test.js')], { stdio: 'inherit', env: Object.assign({}, env, process.env.ENSAIO_SEG ? { ENSAIO_SEG: process.env.ENSAIO_SEG } : {}, process.env.QUEDA_SEG ? { QUEDA_SEG: process.env.QUEDA_SEG } : {}, process.env.LONGO_MIN ? { LONGO_MIN: process.env.LONGO_MIN } : {}, process.env.DBG ? { DBG: '1' } : {}, { T_DB_URL: URL_TESTE, T_ADMIN: ADMIN, T_ADMIN_SENHA: ADMIN_SENHA }) }); p.on('exit', ok); });
     resultado.push([t, code]); console.log('');
   }
   const erros = (fs.readFileSync(path.join(pasta, 'servidor.log'), 'utf8').match(/ERRO não tratado[^\n]*/g) || []);
