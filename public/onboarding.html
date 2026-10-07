@@ -139,7 +139,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:#fff;min-height:1
 </div>
 
 <script>
-const SERVER = 'https://prorider-server-production-5784.up.railway.app';
+const SERVER = (/^https?:/.test(location.protocol) ? location.origin : 'https://app.prorider.app.br');   // 03/10r
 var licData = null;
 var obToken = '';
 

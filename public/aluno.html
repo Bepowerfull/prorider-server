@@ -258,7 +258,7 @@ header{background:var(--panel);border-bottom:1px solid var(--border);padding:14p
 </div>
 
 <script>
-const SERVER = 'https://prorider-server-production-5784.up.railway.app';
+const SERVER = (/^https?:/.test(location.protocol) ? location.origin : 'https://app.prorider.app.br');   // 03/10r
 var token = localStorage.getItem('pr_aluno_token') || '';
 var user  = JSON.parse(localStorage.getItem('pr_aluno_user') || 'null');
 var histData = [];

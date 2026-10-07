@@ -2042,7 +2042,8 @@ input[type=file]{display:none}
 // ---- QR SCAN ----
 var wsConn=null;
 var wsAlunoPing=null;
-var SERVER_URL='wss://prorider-server-production-5784.up.railway.app';
+var PR_ORIGEM=/^https?:/.test(location.protocol)?location.origin:'https://app.prorider.app.br'; // 03/10r: mesmo endereço por onde o app abriu
+var SERVER_URL=PR_ORIGEM.replace(/^http/,'ws');
 // Gráfico da aula recebido do professor
 var aulaGrafico=[], aulaBlocoIdx=0, aulaGraficoNome='';
 var _graficoLocalAtivo=false; // true = gráfico desenhado localmente (aula do sistema, sem ginásio)
@@ -4056,7 +4057,7 @@ function go(id){
 // ═══════════════════════════════════════════════
 // AGENDA — buscar aula, reservar, minhas reservas
 // ═══════════════════════════════════════════════
-var SERVER_HTTP = typeof SERVER_HTTP !== 'undefined' ? SERVER_HTTP : 'https://prorider-server-production-5784.up.railway.app';
+var SERVER_HTTP = PR_ORIGEM;
 var _agTodasAcademias = [];
 var _agAcadSelecionada = null;
 var _rcPendente = null; // reserva pendente de confirmação
@@ -8055,7 +8056,7 @@ function _tentarConexaoWS(wsUrl, token, dadosSessao){
 
 
 // ── HTTP Keepalive — evita Railway dormir ──
-var SERVER_HTTP='https://prorider-server-production-5784.up.railway.app';
+var SERVER_HTTP=PR_ORIGEM;
 (function(){
   fetch(SERVER_HTTP+'/ping',{method:'GET',cache:'no-store'}).catch(function(){});
   setInterval(function(){fetch(SERVER_HTTP+'/ping',{method:'GET',cache:'no-store'}).catch(function(){});},30000);
@@ -9342,7 +9343,7 @@ go=function(id){
   if(id==='sDetail'||id==='sConnect'){ var n=document.getElementById('bNav'); if(n) n.style.display='none'; }
 };
 
-var APP_BUILD='03/10p';
+var APP_BUILD='03/10r';
 try{ if(typeof prErroConfig==='function') prErroConfig(SERVER_HTTP,'app',function(){ return (typeof prToken!=='undefined'&&prToken)||localStorage.getItem('pr_token')||''; },APP_BUILD); }catch(e){}   // 03/10f: erros do app chegam na Saúde
 // ── 03/10e: no Perfil — reportar um problema e excluir a conta (LGPD) ──
 (function(){

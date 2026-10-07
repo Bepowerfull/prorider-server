@@ -52,7 +52,7 @@ body{font-family:Barlow,sans-serif;background:var(--bg);color:#fff;min-height:10
 <body>
 <div class="wrap" id="app"><div class="erro">Carregando…</div></div>
 <script>
-const SERVER = 'https://prorider-server-production-5784.up.railway.app';
+const SERVER = (/^https?:/.test(location.protocol) ? location.origin : 'https://app.prorider.app.br');   // 03/10r
 const COD = new URLSearchParams(location.search).get('c') || '';
 const DIAS = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
 function esc(t){ return String(t==null?'':t).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }

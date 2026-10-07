@@ -72,7 +72,7 @@ input.in:focus{border-color:var(--ac)}
 </div>
 <div class="cont" id="cont"></div>
 <script>
-const SERVER = 'https://prorider-server-production-5784.up.railway.app';
+const SERVER = (/^https?:/.test(location.protocol) ? location.origin : 'https://app.prorider.app.br');   // 03/10r
 let TOKEN = (location.hash||'').replace('#','');
 try{ if(TOKEN) localStorage.setItem('pr_totem', TOKEN); else TOKEN = localStorage.getItem('pr_totem') || ''; }catch(e){}
 let INFO = null, S = {};   // S = estado do fluxo atual

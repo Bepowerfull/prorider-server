@@ -205,7 +205,7 @@ function shortId() {
 //   PORTAL_URL=https://...   (link dos botões; padrão: este servidor)
 // Sem nenhuma delas, nada é enviado e o Portal mostra "e-mail não configurado".
 const EMAILS_PADRAO = { boas_vindas: true, resumo_aula: true, sumido: true, novo_ftp: true, aniversario: false, relatorio_mensal: true, lembrete_aula: true, vaga_aberta: true };
-const PORTAL_URL = process.env.PORTAL_URL || 'https://prorider-server-production-5784.up.railway.app';
+const PORTAL_URL = process.env.PORTAL_URL || 'https://app.prorider.app.br';   // 03/10r: domínio próprio (o endereço antigo do Railway continua funcionando)
 let _smtp = null;
 function emailProvedor() {
   if (process.env.RESEND_API_KEY) return 'resend';
@@ -1224,7 +1224,7 @@ app.post('/aula/share', authMiddleware, async (req, res) => {
       'INSERT INTO shared_aulas (share_id, aula_json, created_by, expires_at) VALUES ($1,$2,$3,$4)',
       [share_id, JSON.stringify(aula_json), req.user.id, expires_at]
     );
-    res.json({ share_id, url: `https://prorider-server-production.up.railway.app/aula/load/${share_id}`, expires_at });
+    res.json({ share_id, url: `${PORTAL_URL}/aula/load/${share_id}`, expires_at });
   } catch(e) {
     log('aula/share error: ' + e.message);
     res.status(500).json({ error: 'Erro interno' });
@@ -6455,7 +6455,7 @@ app.post('/display/gravacao/:id/enviar', displayAuth, async (req, res) => {
 // 03/10e — SEGURANÇA E SAÚDE: esqueci a senha, reportar problema,
 // excluir minha conta (LGPD) e a página "Saúde do sistema" do admin
 // ══════════════════════════════════════════════════════════════
-const SERVIDOR_VERSAO = '03/10q';
+const SERVIDOR_VERSAO = '03/10r';
 const _inicioServidor = Date.now();
 let _ultWebhook = null;   // último aviso do Asaas recebido (hora e evento)
 async function segMigrar() {

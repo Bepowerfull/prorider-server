@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // ═══════════════════════════════════════════════════════════════════
-// ProRider — TESTES AUTOMÁTICOS (03/10p)
+// ProRider — TESTES AUTOMÁTICOS (03/10r)
 // Roda o servidor de verdade contra um BANCO DE TESTE vazio, com o Asaas e o
 // Resend simulados, e passa por pagamento, loja, desafios e segurança.
 //
@@ -30,7 +30,7 @@ const PORTA = parseInt(process.env.TEST_PORT || '3999'), PORTA_MOCK = 3014;
 const SERVIDOR = path.join(RAIZ, 'server.js');
 const pgCfg = { host: u.hostname, port: parseInt(u.port || '5432'), user: decodeURIComponent(u.username), password: decodeURIComponent(u.password), database: u.pathname.slice(1), ssl: false };
 const ADMIN = 'admin@teste.local', ADMIN_SENHA = 'teste123';
-const TESTES = ['pagamento', 'loja', 'desafios', 'seguranca', 'telas', 'vigia', 'conferencia', 'termos', 'bluetooth', 'backup'];
+const TESTES = ['pagamento', 'loja', 'desafios', 'seguranca', 'telas', 'vigia', 'conferencia', 'termos', 'bluetooth', 'dominio', 'backup'];
 const espera = ms => new Promise(r => setTimeout(r, ms));
 const filhos = [];
 function sair(c) { filhos.forEach(p => { try { p.kill(); } catch (e) {} }); process.exit(c); }

@@ -327,7 +327,7 @@ td .zb{display:inline-block;width:10px;height:10px;border-radius:3px;margin-righ
 // ══════════════════════════════════════════════════════════════
 // BASE
 // ══════════════════════════════════════════════════════════════
-var SERVER = /^https?:/.test(location.protocol) ? location.origin : 'https://prorider-server-production-5784.up.railway.app';
+var SERVER = /^https?:/.test(location.protocol) ? location.origin : 'https://app.prorider.app.br';
 function ls(k,v){ try{ if(v===undefined) return localStorage.getItem(k); if(v===null) localStorage.removeItem(k); else localStorage.setItem(k,v); }catch(e){ return null; } }
 function $(id){ return document.getElementById(id); }
 function esc(t){ return String(t==null?'':t).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];}); }

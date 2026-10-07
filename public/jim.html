@@ -445,7 +445,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);color:#fff
 </div>
 
 <script>
-const SERVER = 'https://prorider-server-production-5784.up.railway.app';
+const SERVER = (/^https?:/.test(location.protocol) ? location.origin : 'https://app.prorider.app.br');   // 03/10r
 
 // ── MOCK DATA (usado no modo demo / quando API não responde) ──
 const MOCK_GRADE = [
