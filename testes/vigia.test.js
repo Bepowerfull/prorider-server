@@ -2,7 +2,7 @@
 const B='http://127.0.0.1:3999', M='http://127.0.0.1:3014';
 const path=require('path'); const WebSocket=require(require.resolve('ws',{paths:[path.join(__dirname,'..')]}));
 async function j(m,p,body,tok,h){const r=await fetch((p.startsWith('http')?'':B)+p,{method:m,headers:{'Content-Type':'application/json',...(tok?{Authorization:'Bearer '+tok}:{}),...(h||{})},body:body?JSON.stringify(body):undefined});let d;try{d=await r.json()}catch(e){d=null}return {s:r.status,d};}
-const { sql, pool, ADMIN, ADMIN_SENHA } = require('./comum');
+const { sql, pool, ADMIN, ADMIN_SENHA , codigoTv } = require('./comum');
 let f=0; const ok=(c,t,x)=>{ console.log((c?'  OK ':'FALHA ')+t+(x!==undefined?'  → '+JSON.stringify(x):'')); if(!c) f++; };
 const espera=ms=>new Promise(r=>setTimeout(r,ms));
 const IP=n=>({'X-Forwarded-For':'10.8.0.'+n});
@@ -11,7 +11,7 @@ const emails=async re=>(await j('GET',M+'/_emails')).d.filter(e=>re.test(e.subje
 (async()=>{
   const SA=(await j('POST','/user/login',{email:ADMIN,password:ADMIN_SENHA},null,IP(1))).d.token;
   await sql(`DELETE FROM sistema_alertas`); await j('POST',M+'/_reset');
-  const TV=(await j('POST','/display/ativar',{codigo:'D5448D47',device_id:'dev-vigia',nome_computador:'PC Vigia'},null,IP(2))).d.token;
+  const TV=(await j('POST','/display/ativar',{codigo:await codigoTv('D5448D47'),device_id:'dev-vigia',nome_computador:'PC Vigia'},null,IP(2))).d.token;
   console.log('1) TV desligada perto da aula da grade');
   await sql(`UPDATE licenca_computadores SET visto_em=NOW()-INTERVAL '20 minutes' WHERE license_codigo='D5448D47'`);
   await sql(`DELETE FROM aulas_agenda WHERE license_id='D5448D47' AND nome='Aula Vigia'`);

@@ -1,7 +1,7 @@
 // 03/10e — segurança e saúde (rodar com o servidor ligado ao Resend simulado: EXTRA="RESEND_API_KEY=re_teste RESEND_API_URL=http://127.0.0.1:3014/emails EMAIL_FROM=..." )
 const B='http://127.0.0.1:3999', M='http://127.0.0.1:3014';
 async function j(m,p,body,tok,h){const r=await fetch((p.startsWith('http')?'':B)+p,{method:m,headers:{'Content-Type':'application/json',...(tok?{Authorization:'Bearer '+tok}:{}),...(h||{})},body:body?JSON.stringify(body):undefined});let d;try{d=await r.json()}catch(e){d=null}return {s:r.status,d};}
-const { sql, pool, ADMIN, ADMIN_SENHA } = require('./comum');
+const { sql, pool, ADMIN, ADMIN_SENHA , codigoTv } = require('./comum');
 let f=0; const ok=(c,t,x)=>{ console.log((c?'  OK ':'FALHA ')+t+(x!==undefined?'  → '+JSON.stringify(x):'')); if(!c) f++; };
 (async()=>{
   await sql("delete from users where email like 'seg%@x.com'");
@@ -26,7 +26,7 @@ let f=0; const ok=(c,t,x)=>{ console.log((c?'  OK ':'FALHA ')+t+(x!==undefined?'
   ok((await j('POST','/user/esqueci-senha',{email:'seg1@x.com'},null,IP(8))).s===429,'4º pedido na mesma hora bloqueado');
   console.log('3) TV: código errado');
   for(let i=0;i<20;i++) await j('POST','/display/ativar',{codigo:'XXXX'+i,device_id:'d'},null,IP(9));
-  ok((await j('POST','/display/ativar',{codigo:'D5448D47',device_id:'d'},null,IP(9))).s===429,'21º chute do mesmo IP bloqueado');
+  ok((await j('POST','/display/ativar',{codigo:await codigoTv('D5448D47'),device_id:'d'},null,IP(9))).s===429,'21º chute do mesmo IP bloqueado');
   console.log('4) Reportar problema');
   r=await j('POST','/suporte/relato',{texto:'A bike 3 não aparece',origem:'app',tela:'sConnect',versao:'03/10e'},T,IP(10)); ok(r.d.ok,'relato gravado');
   ok((await j('POST','/suporte/relato',{texto:'oi'},null,IP(10))).s===400,'relato vazio recusado');
@@ -59,7 +59,7 @@ let f=0; const ok=(c,t,x)=>{ console.log((c?'  OK ':'FALHA ')+t+(x!==undefined?'
   const tk2=((await j('GET',M+'/_emails')).d.filter(e=>/senha nova/i.test(e.subject)).pop().html.match(/t=([a-f0-9]{64})/)||[])[1];
   await j('POST','/user/redefinir-senha',{token:tk2,senha:'porlink88'});
   ok((await j('GET','/user/me',null,celC)).s===401,'"esqueci a senha" também derruba as sessões abertas');
-  const D=(await j('POST','/display/ativar',{codigo:'D5448D47',device_id:'dseg'},null,IP(26))).d.token;
+  const D=(await j('POST','/display/ativar',{codigo:await codigoTv('D5448D47'),device_id:'dseg'},null,IP(26))).d.token;
   ok((await j('GET','/display/licenca',null,D)).s===200,'TV não é afetada');
   console.log('7) Excluir minha conta');
   ok((await j('DELETE','/user/conta',{senha:'errada'},T)).s===401,'pede a senha');

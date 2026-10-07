@@ -189,6 +189,14 @@ function calcPoints(aulaData) {
 // 'prorider-setup-2026'): quem lesse o código podia criar um admin, virar
 // super_admin ou trocar a senha de qualquer e-mail. Agora, sem a variável
 // SETUP_KEY no Railway, estas rotas respondem 404; com ela, exigem o valor.
+// 03/10w: código secreto para ativar a TV (8 letras/números, sem os que confundem: 0/O, 1/I)
+async function garantirCodigoTv() {
+  if (!db) return;
+  const sem = (await db.query('SELECT id FROM licencas WHERE codigo_tv IS NULL')).rows;
+  const AB = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  for (const l of sem) { let c = ''; const b = crypto.randomBytes(8); for (let i = 0; i < 8; i++) c += AB[b[i] % AB.length];
+    await db.query('UPDATE licencas SET codigo_tv=$1 WHERE id=$2 AND codigo_tv IS NULL', [c, l.id]); }
+}
 function setupKeyOk(valor) {
   const k = process.env.SETUP_KEY;
   if (!k || k.length < 12) return false;
@@ -555,12 +563,15 @@ async function runMigrations() {
         ADD COLUMN IF NOT EXISTS license_id TEXT,
         ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'ativo'
     `);
-    // Criar conta gestor padrão para ProRider 001
-    await db.query(`
-      INSERT INTO users (email, name, password_hash, role, license_id)
-      VALUES ('gestor001@prorider.com', 'Gestor ProRider 001', $1, 'gestor', '7DB49082')
-      ON CONFLICT (email) DO NOTHING
-    `, [await bcrypt.hash('prorider001', 10)]);
+    // 03/10w: não cria mais a conta "gestor001@prorider.com" com senha fixa (o código é público).
+    // Se ela existir com a senha antiga, a senha vira aleatória (a conta não é apagada).
+    try {
+      const g1 = await db.query("SELECT id, password_hash FROM users WHERE email='gestor001@prorider.com'");
+      if (g1.rows.length && await bcrypt.compare('prorider001', g1.rows[0].password_hash || '')) {
+        await db.query('UPDATE users SET password_hash=$1, senha_provisoria=TRUE, updated_at=NOW() WHERE id=$2', [await bcrypt.hash(crypto.randomBytes(24).toString('hex'), 10), g1.rows[0].id]);
+        log('[Segurança] senha padrão da conta gestor001@prorider.com desativada');
+      }
+    } catch (e) {}
     log('Migração licencas OK');
 
     // ── Grade de aulas ────────────────────────────────────────────
@@ -925,6 +936,9 @@ async function runMigrations() {
     await db.query(`UPDATE licencas SET venc_migrado=TRUE WHERE venc_migrado IS NOT TRUE`).catch(() => {});
     await db.query(`UPDATE licencas SET status='ativa' WHERE status='bloqueada'`).then(r => { if (r.rowCount) log('03/10a: ' + r.rowCount + ' licença(s) "bloqueada" (efeito colateral antigo) → ativa'); }).catch(() => {});
     setTimeout(() => geoPreencherFaltando().catch(e => log('geo backfill: ' + e.message)), 15000);
+    // 03/10w: código da TV separado do código da licença (que é público: aparece na página da academia)
+    await db.query(`ALTER TABLE licencas ADD COLUMN IF NOT EXISTS codigo_tv TEXT`);
+    await garantirCodigoTv();
 
   } catch(e) {
     log('Migração ERRO: ' + e.message);
@@ -1130,90 +1144,6 @@ app.get('/user/me', authMiddleware, async (req, res) => {
 // ── Licenças ───────────────────────────────────────────────────
 
 // Validar chave de licença (Studio/Gym ao iniciar)
-app.post('/license/validate', async (req, res) => {
-  if (!db) return res.status(503).json({ error: 'Banco não disponível' });
-  const { key, device_fingerprint } = req.body;
-  if (!key) return res.status(400).json({ error: 'key obrigatória' });
-  try {
-    const r = await db.query('SELECT * FROM licenses WHERE key=$1', [key]);
-    if (!r.rows.length) return res.status(404).json({ error: 'Licença não encontrada' });
-    const lic = r.rows[0];
-    if (lic.status !== 'active') return res.status(403).json({ error: 'Licença inativa ou revogada' });
-    if (lic.expires_at && new Date(lic.expires_at) < new Date())
-      return res.status(403).json({ error: 'Licença expirada' });
-
-    // Vincular ao dispositivo na primeira ativação
-    if (!lic.device_fingerprint && device_fingerprint) {
-      await db.query('UPDATE licenses SET device_fingerprint=$1 WHERE id=$2', [device_fingerprint, lic.id]);
-    } else if (lic.device_fingerprint && lic.device_fingerprint !== device_fingerprint) {
-      return res.status(403).json({ error: 'Licença vinculada a outro dispositivo' });
-    }
-
-    const token = jwt.sign(
-      { license_id: lic.id, type: lic.type, name: lic.name },
-      JWT_SECRET,
-      { expiresIn: '7d' }
-    );
-    res.json({ valid: true, license: { id: lic.id, name: lic.name, type: lic.type }, token });
-  } catch(e) {
-    log('license/validate error: ' + e.message);
-    res.status(500).json({ error: 'Erro interno' });
-  }
-});
-
-// Gerar token QR para ativar professor no celular (Studio gera este token)
-app.post('/license/generate-mobile-token', async (req, res) => {
-  if (!db) return res.status(503).json({ error: 'Banco não disponível' });
-  const { license_token } = req.body;
-  if (!license_token) return res.status(400).json({ error: 'license_token obrigatório' });
-  try {
-    const payload = jwt.verify(license_token, JWT_SECRET);
-    // Token QR válido por 5 minutos
-    const qrToken = jwt.sign(
-      { type: 'professor_activation', license_id: payload.license_id, license_name: payload.name },
-      JWT_SECRET,
-      { expiresIn: '5m' }
-    );
-    res.json({ qr_token: qrToken, expires_in: 300 });
-  } catch(e) {
-    res.status(401).json({ error: 'license_token inválido' });
-  }
-});
-
-// Ativar modo professor no celular (app Aluno chama após escanear QR)
-app.post('/license/activate-mobile', authMiddleware, async (req, res) => {
-  if (!db) return res.status(503).json({ error: 'Banco não disponível' });
-  const { qr_token, device_id } = req.body;
-  if (!qr_token || !device_id) return res.status(400).json({ error: 'qr_token e device_id obrigatórios' });
-  try {
-    const payload = jwt.verify(qr_token, JWT_SECRET);
-    if (payload.type !== 'professor_activation') return res.status(400).json({ error: 'Token inválido' });
-
-    // Salvar ativação
-    await db.query(
-      'INSERT INTO mobile_activations (license_id, user_id, device_id, token_hash) VALUES ($1,$2,$3,$4) ON CONFLICT DO NOTHING',
-      [payload.license_id, req.user.id, device_id, crypto.createHash('sha256').update(qr_token).digest('hex')]
-    );
-
-    // Promover usuário a professor
-    await db.query(
-      'UPDATE users SET role=$1, license_id=$2, updated_at=NOW() WHERE id=$3',
-      ['professor', payload.license_id, req.user.id]
-    );
-
-    // Novo token com role atualizado
-    const newToken = jwt.sign(
-      { id: req.user.id, email: req.user.email, role: 'professor' },
-      JWT_SECRET,
-      { expiresIn: '30d' }
-    );
-    res.json({ success: true, role: 'professor', token: newToken, license_name: payload.license_name });
-  } catch(e) {
-    if (e.name === 'TokenExpiredError') return res.status(401).json({ error: 'QR expirado. Gere um novo no Studio.' });
-    log('activate-mobile error: ' + e.message);
-    res.status(500).json({ error: 'Erro interno' });
-  }
-});
 
 // ── Aulas ──────────────────────────────────────────────────────
 
@@ -1541,63 +1471,10 @@ app.post('/admin/license/:id/gerar-onboarding', authMiddleware, requireRole('sup
 });
 
 // Consultar license pelo token (público)
-app.get('/onboarding/lic/:token', async (req, res) => {
-  if (!db) return res.status(503).json({ error: 'Banco indisponível' });
-  try {
-    const r = await db.query(
-      'SELECT id,name,nome_fantasia,cidade,type,max_bikes,admin_email FROM licenses WHERE onboarding_token=$1',
-      [req.params.token]
-    );
-    if (!r.rows.length) return res.status(404).json({ error: 'Link inválido ou expirado' });
-    res.json(r.rows[0]);
-  } catch(e) { res.status(500).json({ error: e.message }); }
-});
-
-// Submeter onboarding (público)
-app.post('/onboarding/lic/:token', async (req, res) => {
-  if (!db) return res.status(503).json({ error: 'Banco indisponível' });
-  const { gestor_nome, gestor_email, gestor_senha, fin_nome, fin_email, fin_senha, nome_fantasia, cidade } = req.body;
-  if (!gestor_email || !gestor_senha) return res.status(400).json({ error: 'E-mail e senha do gestor são obrigatórios' });
-  try {
-    const lic = await db.query('SELECT * FROM licenses WHERE onboarding_token=$1', [req.params.token]);
-    if (!lic.rows.length) return res.status(404).json({ error: 'Link inválido' });
-    const l = lic.rows[0];
-    if (nome_fantasia || cidade) {
-      await db.query('UPDATE licenses SET nome_fantasia=COALESCE($1,nome_fantasia), cidade=COALESCE($2,cidade) WHERE id=$3',
-        [nome_fantasia||null, cidade||null, l.id]);
-    }
-    const hashGestor = await bcrypt.hash(gestor_senha, 10);
-    await db.query(`
-      INSERT INTO users (email, name, password_hash, role, license_id)
-      VALUES ($1,$2,$3,'gestor',$4)
-      ON CONFLICT (email) DO UPDATE SET role='gestor', license_id=$4, password_hash=$3
-    `, [gestor_email.toLowerCase(), gestor_nome||gestor_email, hashGestor, l.id.toString()]);
-    if (fin_email && fin_senha) {
-      const hashFin = await bcrypt.hash(fin_senha, 10);
-      await db.query(`
-        INSERT INTO users (email, name, password_hash, role, license_id)
-        VALUES ($1,$2,$3,'financeiro',$4)
-        ON CONFLICT (email) DO UPDATE SET role='financeiro', license_id=$4, password_hash=$3
-      `, [fin_email.toLowerCase(), fin_nome||fin_email, hashFin, l.id.toString()]);
-    }
-    await db.query(`
-      UPDATE licenses SET
-        onboarding_token = NULL,
-        status = 'active',
-        gestor_email = $1,
-        gestor_nome = $2,
-        fin_email = $3,
-        fin_nome = $4
-      WHERE id = $5
-    `, [gestor_email, gestor_nome||gestor_email, fin_email||null, fin_nome||null, l.id]);
-    res.json({ ok: true, message: 'Cadastro concluído! Faça login com suas credenciais.' });
-  } catch(e) {
-    if (e.code === '23505') return res.status(409).json({ error: 'Este e-mail já está cadastrado.' });
-    res.status(500).json({ error: e.message });
-  }
-});
 
 // Promover usuário a professor
+// 03/10w: removidas as rotas antigas /license/* e /onboarding/lic/* (tabela 'licenses' não existe mais;
+// uma delas deixava um aluno virar professor sozinho).
 app.post('/admin/user/promote', authMiddleware, requireRole('super_admin', 'admin_licenca'), async (req, res) => {
   if (!db) return res.status(503).json({ error: 'Banco não disponível' });
   const { user_id, role } = req.body;
@@ -1680,6 +1557,7 @@ function broadcast(salaCode, msg, excludeWs = null) {
 // HTTP server unificado (Express + WebSocket no mesmo porto)
 const server = http.createServer(app);
 const wss    = new WebSocket.Server({ server });
+const WS_SO_TV = new Set(['sala_info', 'bikes_live', 'iniciar_aula', 'dados_aula', 'update_aula', 'iniciar_ftp', 'fim_ftp', 'fim_aula', 'iniciar_desafio', 'desafio_update', 'fim_desafio']);
 
 wss.on('connection', (ws) => {
   ws._salaCode = null; ws._tipo = null; ws._nome = null;
@@ -1690,12 +1568,26 @@ wss.on('connection', (ws) => {
   ws.on('message', async (raw) => {
     let msg;
     try { msg = JSON.parse(raw); } catch (e) { return; }
+    // 03/10w: mensagens que só a TV (professor da sala) pode mandar. Antes, qualquer um que
+    // entrasse na sala podia encerrar a aula de todos ou mandar um gráfico falso.
+    if (WS_SO_TV.has(msg.tipo) && ws._tipo !== 'professor') return;
 
     switch (msg.tipo) {
 
       case 'criar_sala': {
         const codigo = msg.codigo;
         if (!codigo) return;
+        // 03/10w: só a TV, com o token dela, abre (ou retoma) uma sala — e só da própria academia.
+        let _tvTok = null;
+        try { _tvTok = jwt.verify(String(msg.display_token || ''), JWT_SECRET, { ignoreExpiration: true }); } catch (e) {}
+        if (!_tvTok || _tvTok.role !== 'display' || !_tvTok.license_id || (_tvTok.exp && Date.now() / 1000 - _tvTok.exp > 30 * 86400)) {
+          try { ws.send(JSON.stringify({ tipo: 'erro', msg: 'TV sem ativação válida. Ative a TV de novo com o código da TV.' })); } catch (e) {}
+          return;
+        }
+        if (salas[codigo] && salas[codigo].licenca && salas[codigo].licenca !== _tvTok.license_id) {
+          try { ws.send(JSON.stringify({ tipo: 'erro', msg: 'Código de sala em uso por outra academia.' })); } catch (e) {}
+          return;
+        }
         // 26/09b — RECONEXAO DO GINASIO NAO APAGA A SALA.
         // Antes, todo 'criar_sala' trocava a sala por uma nova e vazia. Quando a
         // conexao do Ginasio caia e voltava (poucos segundos), os alunos ficavam
@@ -1717,9 +1609,7 @@ wss.on('connection', (ws) => {
         ws._salaCode = codigo; ws._tipo = 'professor';
         // 26/09e: o Ginasio manda o token do display; a sala fica sabendo de
         // que licenca e. Serve para ligar o aluno a academia (ver entrar_sala).
-        if (msg.display_token) {
-          try { const _dp = jwt.verify(msg.display_token, JWT_SECRET); if (_dp && _dp.license_id) salas[codigo].licenca = _dp.license_id; } catch (e) {}
-        }
+        salas[codigo].licenca = _tvTok.license_id;   // 03/10w: o token já foi conferido acima
         const _lista = [...salas[codigo].alunos.entries()].map(([n, aws]) => ({ nome: n, bike: aws._bikeNum || null }))
           .concat([...(salas[codigo].totem || new Map()).entries()].map(([n, t]) => ({ nome: n, bike: t.bike, totem: true })));
         ws.send(JSON.stringify({ tipo: 'sala_criada', codigo, retomada: !!existente, alunos: _lista }));
@@ -1727,8 +1617,11 @@ wss.on('connection', (ws) => {
       }
 
       case 'entrar_sala': {
-        const { codigo, nome, bike, user_id } = msg;
+        const { codigo, nome, bike } = msg;
         if (!codigo || !nome) return;
+        // 03/10w: a conta do aluno vem do token dele (antes o app mandava o user_id e o servidor acreditava)
+        let user_id = null;
+        if (msg.token) { try { const _tp = jwt.verify(String(msg.token), JWT_SECRET); if (_tp && _tp.id && _tp.role !== 'display') user_id = _tp.id; } catch (e) {} }
         const sala = salas[codigo];
         if (!sala) { ws.send(JSON.stringify({ tipo: 'erro', msg: 'Sala nao encontrada' })); return; }
 
@@ -1785,6 +1678,11 @@ wss.on('connection', (ws) => {
         // substitui a conexao antiga em vez de ficar com duas. A antiga e
         // fechada; o 'close' dela nao tira o aluno da sala (ver ws.on('close')).
         const _antigo = sala.alunos.get(nome);
+        // 03/10w: ninguém tira da sala um aluno logado usando o mesmo nome
+        if (_antigo && _antigo !== ws && _antigo.readyState === WebSocket.OPEN && _antigo._userId && _antigo._userId !== (user_id ? parseInt(user_id, 10) : null)) {
+          ws.send(JSON.stringify({ tipo: 'erro', msg: 'Já tem alguém com o nome "' + nome + '" nesta aula. Entre com a sua conta.' }));
+          return;
+        }
         if (_antigo && _antigo !== ws) { try { _antigo._substituido = true; _antigo.close(4000, 'substituido'); } catch (e) {} }
         sala.alunos.set(nome, ws);
         // 26/09e: aluno sem academia passa a ser da academia desta sala.
@@ -2176,6 +2074,7 @@ app.get('/admin/dashboard', adminAuth, async (req, res) => {
 app.get('/admin/licencas', adminAuth, async (req, res) => {
   if (!db) return res.status(503).json({ error: 'Banco indisponível' });
   try {
+    await garantirCodigoTv();   // 03/10w: licença nova já sai com o código da TV
     const r = await db.query(`
       SELECT l.*,
         (SELECT COUNT(*) FROM users u WHERE u.license_id=l.codigo AND u.role='aluno') AS total_alunos,
@@ -2617,13 +2516,13 @@ app.post('/display/ativar', async (req, res) => {
   if (!db) return res.status(503).json({ error: 'Banco indisponível' });
   const { codigo, device_id, nome_computador } = req.body;
   const _build = String(req.body.build || req.headers['x-pr-build'] || '').slice(0, 40) || null;  // 26/09e
-  if (!codigo) return res.status(400).json({ error: 'Código da licença obrigatório' });
+  if (!codigo) return res.status(400).json({ error: 'Código da TV obrigatório (Admin → Licenças)' });
   const kTv = 'tv:ip:' + ipDe(req), esperaTv = limBloqueado(kTv, 20);   // 03/10e: ninguém fica chutando códigos de licença
   if (esperaTv) return res.status(429).json({ error: `Muitos códigos errados. Tente de novo em ${esperaTv} min.` });
   try {
     const r = await db.query(
-      "SELECT * FROM licencas WHERE UPPER(codigo)=UPPER($1) AND status='ativa'",
-      [codigo.trim()]
+      "SELECT * FROM licencas WHERE UPPER(codigo_tv)=UPPER($1) AND status='ativa'",   // 03/10w: código da TV (secreto), não o da licença
+      [String(codigo).trim().replace(/[\s-]/g, '')]
     );
     if (!r.rows.length) { limConta(kTv, 15); return res.status(404).json({ error: 'Licença não encontrada ou inativa' }); }
     const lic = r.rows[0];
@@ -2938,13 +2837,24 @@ async function temAcessoLicenca(user, licenseId) {
     const u = await db.query('SELECT role, license_id FROM users WHERE id=$1', [user.id]);
     const x = u.rows[0];
     if (x && x.license_id && x.license_id === licenseId && ['professor','coordenador','gestor'].includes(x.role)) return true;
-    if (x && x.role === 'gestor' && !x.license_id) return true;
   } catch (_e) {}
   const r = await db.query(
     'SELECT 1 FROM professor_licencas WHERE user_id=$1 AND license_id=$2',
     [user.id, licenseId]
   );
   return r.rows.length > 0;
+}
+
+// 03/10w — SEGURANÇA ENTRE ACADEMIAS. Quem não é admin só mexe em gente da própria academia,
+// nunca em admin/super_admin, e só o gestor mexe na equipe (professor, coordenador, financeiro).
+function _ehAdmin(u) { return !!u && ['admin', 'super_admin'].includes(u.role); }
+function _podeMexer(req, alvo) {
+  if (!alvo) return false;
+  if (_ehAdmin(req.user)) return true;
+  if (_ehAdmin(alvo)) return false;
+  if (!req.user.license_id || alvo.license_id !== req.user.license_id) return false;
+  if (alvo.role === 'aluno') return true;
+  return req.user.role === 'gestor' && ['professor', 'coordenador', 'financeiro'].includes(alvo.role);
 }
 
 // Alunos da licença do gestor
@@ -2972,7 +2882,7 @@ app.get('/gestor/alunos/:id', gestorAuth, async (req, res) => {
       db.query('SELECT id,name,email,role,license_id,status,points,level,peso,ftp,created_at FROM users WHERE id=$1', [req.params.id]),
       db.query('SELECT * FROM aula_historico WHERE user_id=$1 ORDER BY data_aula DESC LIMIT 100', [req.params.id]),
     ]);
-    if (!user.rows.length) return res.status(404).json({ error: 'Não encontrado' });
+    if (!user.rows.length || !_podeMexer(req, user.rows[0])) return res.status(404).json({ error: 'Não encontrado' });   // 03/10w
     res.json({ ...user.rows[0], historico: hist.rows });
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
@@ -2985,7 +2895,7 @@ app.put('/gestor/alunos/:id', gestorAuth, async (req, res) => {
     // Gestor só pode editar alunos da sua licença (admin pode qualquer)
     const aluno = await db.query('SELECT * FROM users WHERE id=$1', [req.params.id]);
     if (!aluno.rows.length) return res.status(404).json({ error: 'Aluno não encontrado' });
-    if (req.user.role === 'gestor' && aluno.rows[0].license_id !== req.user.license_id)
+    if (!_podeMexer(req, aluno.rows[0]))   // 03/10w: antes só checava o gestor (o coordenador passava)
       return res.status(403).json({ error: 'Aluno não pertence à sua academia' });
     const fields = [], vals = []; let idx = 1;
     if (name)   { fields.push(`name=$${idx++}`);  vals.push(name.trim()); }
@@ -3016,7 +2926,7 @@ app.post('/gestor/alunos/:id/reset-senha', gestorAuth, async (req, res) => {
   try {
     const aluno = await db.query('SELECT * FROM users WHERE id=$1', [req.params.id]);
     if (!aluno.rows.length) return res.status(404).json({ error: 'Aluno não encontrado' });
-    if (req.user.role === 'gestor' && aluno.rows[0].license_id !== req.user.license_id)
+    if (!_podeMexer(req, aluno.rows[0]))   // 03/10w: antes só checava o gestor (o coordenador passava)
       return res.status(403).json({ error: 'Aluno não pertence à sua academia' });
     const hash = await bcrypt.hash(password, 10);
     await db.query('UPDATE users SET password_hash=$1, updated_at=NOW() WHERE id=$2', [hash, req.params.id]);
@@ -3161,7 +3071,7 @@ app.post('/gestor/equipe', gestorAuth, async (req, res) => {
     if (ex.rows.length) {
       const u = ex.rows[0];
       if (['gestor', 'admin', 'super_admin'].includes(u.role)) return res.status(409).json({ error: 'Esta conta já é gestor/admin.' });
-      if (u.license_id && u.license_id !== req.user.license_id && u.role !== 'aluno') return res.status(409).json({ error: 'Esta conta já é da equipe de outra academia.' });
+      if (u.license_id && u.license_id !== req.user.license_id) return res.status(409).json({ error: 'Esta conta é de outra academia.' });   // 03/10w: aluno de outra academia também não
       await db.query('UPDATE users SET role=$1, license_id=$2, updated_at=NOW() WHERE id=$3', [papel, req.user.license_id, u.id]);
       uid = u.id;
     } else {
@@ -3189,7 +3099,7 @@ app.put('/gestor/equipe/:id/papel', gestorAuth, async (req, res) => {
 });
 // Manda um e-mail de teste para quem está logado (confere a configuração)
 app.post('/gestor/emails/teste', gestorAuth, async (req, res) => {
-  const para = (req.body && req.body.email) || req.user.email;
+  const para = (_ehAdmin(req.user) && req.body && req.body.email) || req.user.email;   // 03/10w: não vira disparador de e-mail para qualquer endereço
   let msg = { subject: 'Teste de e-mail — ProRider', html: emailLayout('Tudo certo!', '<p>Se você está lendo isto, os e-mails automáticos do ProRider estão funcionando.</p>') };
   if (req.body && EMAIL_TEXTO_PADRAO[req.body.tipo]) {   // 30/09e: manda o modelo escolhido, com dados de exemplo
     const cfg = await emailsCfgDe(req.user.license_id);
@@ -3273,12 +3183,14 @@ app.post('/onboarding/:token', async (req, res) => {
       await db.query('UPDATE licencas SET nome_fantasia=COALESCE($1,nome_fantasia), cidade=COALESCE($2,cidade) WHERE id=$3',
         [academia_nome_fantasia||null, cidade||null, l.id]);
     }
+    // 03/10w: o link de cadastro não pode trocar a senha nem o papel de uma conta que já existe
+    const jaTem = await db.query('SELECT email FROM users WHERE email = ANY($1::text[])', [[gestor_email, fin_email].filter(Boolean).map(e => String(e).toLowerCase())]);
+    if (jaTem.rows.length) return res.status(409).json({ error: 'O e-mail ' + jaTem.rows[0].email + ' já tem conta no ProRider. Use outro e-mail ou fale com a ProRider para ligar essa conta à academia.' });
     // Criar conta gestor
     const hashGestor = await bcrypt.hash(gestor_senha, 10);
     await db.query(`
       INSERT INTO users (email, name, password_hash, role, license_id)
       VALUES ($1,$2,$3,'gestor',$4)
-      ON CONFLICT (email) DO UPDATE SET role='gestor', license_id=$4, password_hash=$3
     `, [gestor_email.toLowerCase(), gestor_nome||gestor_email, hashGestor, l.codigo]);
     // Criar conta financeiro (se fornecida)
     if (fin_email && fin_senha) {
@@ -3286,7 +3198,6 @@ app.post('/onboarding/:token', async (req, res) => {
       await db.query(`
         INSERT INTO users (email, name, password_hash, role, license_id)
         VALUES ($1,$2,$3,'financeiro',$4)
-        ON CONFLICT (email) DO UPDATE SET role='financeiro', license_id=$4, password_hash=$3
       `, [fin_email.toLowerCase(), fin_nome||fin_email, hashFin, l.codigo]);
       await db.query('UPDATE licencas SET financeiro_email=$1, financeiro_nome=$2 WHERE id=$3',
         [fin_email, fin_nome||fin_email, l.id]);
@@ -3651,7 +3562,7 @@ app.get('/gestor/config', gestorAuth, async (req, res) => {
 
     // Tenta tabela licencas (sistema legado — license_id = codigo texto)
     const rLeg = await db.query(
-      'SELECT max_bikes, bikes_disponiveis, max_alunos, plano, nome_fantasia, nome, cidade FROM licencas WHERE codigo=$1',
+      'SELECT max_bikes, bikes_disponiveis, max_alunos, plano, nome_fantasia, nome, cidade, codigo_tv FROM licencas WHERE codigo=$1',
       [lid]
     );
     if (rLeg.rows.length) { row = rLeg.rows[0]; }
@@ -3833,8 +3744,10 @@ app.put('/gestor/reservas/:id/status', professorAuth, async (req, res) => {
 app.post('/gestor/agenda/:id/walkin', gestorAuth, async (req, res) => {
   if (!db) return res.status(503).json({ error: 'Banco indisponível' });
   const { user_id, data } = req.body;
-  const dataAula = data || new Date().toISOString().split('T')[0];
+  const dataAula = data || _hojeBR().iso;
   try {
+    const ag = await db.query('SELECT license_id FROM aulas_agenda WHERE id=$1', [req.params.id]);   // 03/10w: só aula da própria academia
+    if (!ag.rows.length || !(_ehAdmin(req.user) || ag.rows[0].license_id === req.user.license_id)) return res.status(404).json({ error: 'Aula não encontrada' });
     const r = await db.query(`
       INSERT INTO aulas_reservas (agenda_id, user_id, data_aula, status)
       VALUES ($1,$2,$3,'presente')
@@ -3872,7 +3785,7 @@ app.post('/gestor/professores', gestorAuth, async (req, res) => {
   if (!db) return res.status(503).json({ error: 'Banco indisponível' });
   const { email, license_id: licBody } = req.body;
   if (!email) return res.status(400).json({ error: 'email obrigatório' });
-  const licenseId = licBody || req.user.license_id;
+  const licenseId = (_ehAdmin(req.user) && licBody) || req.user.license_id;   // 03/10w: o gestor não escolhe outra academia
   if (!licenseId) return res.status(400).json({ error: 'license_id obrigatório' });
   try {
     const u = await db.query(
@@ -4132,8 +4045,10 @@ app.post('/totem/:t/identificar', async (req, res) => {
     const L = await totemLic(req.params.t); if (!L) return res.status(404).json({ error: 'Totem desativado.' });
     const email = String((req.body || {}).email || '').trim().toLowerCase();
     if (!/@/.test(email)) return res.status(400).json({ error: 'E-mail inválido' });
+    if (limConta('totem:ip:' + ipDe(req), 15) > 60) return res.status(429).json({ error: 'Muitas tentativas. Tente de novo mais tarde.' });   // 03/10w
     const r = await db.query('SELECT id, name, ftp, foto_url, license_id, role, sexo, points FROM users WHERE email=$1', [email]);
-    if (!r.rows.length) return res.status(404).json({ error: 'Não achamos este e-mail. Faça o cadastro rápido.' });
+    // 03/10w: só aluno desta academia (ou ainda sem academia). Antes devolvia dados de qualquer conta da plataforma.
+    if (!r.rows.length || !(r.rows[0].license_id === L.codigo || (!r.rows[0].license_id && r.rows[0].role === 'aluno'))) return res.status(404).json({ error: 'Não achamos este e-mail. Faça o cadastro rápido.' });
     const u = r.rows[0];
     if (!u.license_id && u.role === 'aluno') await db.query('UPDATE users SET license_id=$1 WHERE id=$2', [L.codigo, u.id]);
     res.json({ id: u.id, nome: u.name, primeiro: String(u.name || '').split(' ')[0], ftp: u.ftp || 130, tem_foto: !!u.foto_url, genero: u.sexo || null, nivel: calcLevel(u.points) });
@@ -4206,6 +4121,8 @@ app.post('/totem/:t/reservar', async (req, res) => {
     const { user_id, agenda_id, data_aula } = req.body || {};
     const ok = await db.query('SELECT 1 FROM aulas_agenda WHERE id=$1 AND license_id=$2', [parseInt(agenda_id), L.codigo]);
     if (!ok.rows.length) return res.status(404).json({ error: 'Aula não encontrada' });
+    const du = await db.query('SELECT 1 FROM users WHERE id=$1 AND license_id=$2', [parseInt(user_id) || 0, L.codigo]);   // 03/10w: só aluno desta academia
+    if (!du.rows.length) return res.status(404).json({ error: 'Aluno não encontrado nesta academia' });
     const [st, body] = await reservarAula(parseInt(user_id), parseInt(agenda_id), data_aula);
     res.status(st).json(body);
   } catch (e) { res.status(500).json({ error: e.message }); }
@@ -4225,7 +4142,8 @@ app.post('/totem/:t/entrar', async (req, res) => {
     if (sala.trancadas && sala.trancadas.has(bike)) return res.status(409).json({ error: 'Esta bike está em manutenção.' });
     let nome = String(b.nome || '').trim().slice(0, 40), ftp = parseInt(b.ftp) || 130, foto = b.foto || null, genero = b.genero || null, nivel = null;
     if (b.user_id) {
-      const u = await db.query('SELECT name, ftp, foto_url, sexo, points FROM users WHERE id=$1', [parseInt(b.user_id)]);
+      const u = await db.query('SELECT name, ftp, foto_url, sexo, points FROM users WHERE id=$1 AND license_id=$2', [parseInt(b.user_id), L.codigo]);   // 03/10w: só desta academia
+      if (!u.rows.length) return res.status(404).json({ error: 'Aluno não encontrado nesta academia' });
       if (u.rows.length) { nome = u.rows[0].name; ftp = u.rows[0].ftp || ftp; foto = u.rows[0].foto_url || foto; genero = u.rows[0].sexo || genero; nivel = calcLevel(u.rows[0].points); }
     }
     if (!nome) return res.status(400).json({ error: 'Falta o nome' });
@@ -4692,6 +4610,8 @@ app.post('/gestor/sessao/:id/reset-conexoes', gestorAuth, async (req, res) => {
   const { confirmado } = req.body;
   if (!confirmado) return res.status(400).json({ error: 'Confirmação obrigatória. Envie { confirmado: true }.' });
   try {
+    const sv = await db.query('SELECT license_id FROM sessoes_ao_vivo WHERE id=$1', [req.params.id]);   // 03/10w: só sessão da própria academia
+    if (!sv.rows.length || !(_ehAdmin(req.user) || sv.rows[0].license_id === req.user.license_id)) return res.status(404).json({ error: 'Sessão não encontrada' });
     const count = await db.query(
       "SELECT COUNT(*) FROM sessao_conexoes WHERE sessao_id=$1 AND status='conectado'",
       [req.params.id]
@@ -5336,13 +5256,16 @@ function gerarCodigoGrupo() {
 }
 
 // 03/10c: rankings reais — 'mensal' (pontos do mês), '21dias' (dias com pedal em 30 dias), 'ftp' (% de ganho no mês)
+// 03/10w: rankings abertos (sem login) mostram só o primeiro nome + inicial do sobrenome
+function _nomeCurto(n) { const p = String(n || '').trim().split(/\s+/).filter(Boolean); return p.length > 1 ? p[0] + ' ' + p[p.length - 1][0].toUpperCase() + '.' : (p[0] || ''); }
+function _rkPublico(rk) { return (rk || []).map(x => Object.assign({}, x, { nome: _nomeCurto(x.nome), email: undefined })); }
 app.get('/desafios/ranking/mensal', async (req, res) => {
   if (!db) return res.json({ ranking: [] });
-  try { res.json({ ranking: await desafioRanking('mensal') }); } catch (e) { log('ranking mensal: ' + e.message); res.json({ ranking: [] }); }
+  try { res.json({ ranking: _rkPublico(await desafioRanking('mensal')) }); } catch (e) { log('ranking mensal: ' + e.message); res.json({ ranking: [] }); }
 });
 app.get('/desafios/ranking/:desafio_id', async (req, res) => {
   if (!db) return res.json({ ranking: [] });
-  try { res.json({ desafio_id: req.params.desafio_id, ranking: await desafioRanking(req.params.desafio_id) }); } catch (e) { log('ranking desafio: ' + e.message); res.json({ ranking: [] }); }
+  try { res.json({ desafio_id: req.params.desafio_id, ranking: _rkPublico(await desafioRanking(req.params.desafio_id)) }); } catch (e) { log('ranking desafio: ' + e.message); res.json({ ranking: [] }); }
 });
 
 // POST /desafios/grupos — criar grupo
@@ -5404,7 +5327,7 @@ app.get('/desafios/grupos/:codigo/ranking', async (req, res) => {
     const membros = (await db.query('SELECT u.id AS user_id, u.name AS nome FROM desafio_grupo_membros m JOIN users u ON u.id=m.user_id WHERE m.grupo_id=$1', [g.id])).rows;
     membros.forEach(m => { if (!rk.find(x => x.user_id === m.user_id)) rk.push({ user_id: m.user_id, nome: m.nome, valor: 0, aulas: 0, pontos: 0 }); });
     rk.forEach((x, i) => { x.pos = i + 1; });
-    res.json({ grupo: { codigo: g.codigo, nome: g.nome, desafio_id: tipo, membros: membros.length }, ranking: rk });
+    res.json({ grupo: { codigo: g.codigo, nome: g.nome, desafio_id: tipo, membros: membros.length }, ranking: _rkPublico(rk) });
   } catch (e) { log('ranking grupo: ' + e.message); res.status(500).json({ error: 'Erro interno' }); }
 });
 // 03/10c: sair do grupo
@@ -5929,7 +5852,7 @@ app.post('/display/campeonato/resultado', displayAuth, async (req, res) => {
 app.get('/campeonato/:id/classificacao', async (req, res) => {
   if (!db) return res.status(503).json({ error: 'Banco indisponível' });
   try { const cl = await campClassificacao(parseInt(req.params.id, 10) || 0); if (!cl) return res.status(404).json({ error: 'Campeonato não encontrado' });
-    cl.classificacao.forEach(a => { delete a.user_id; }); Object.values(cl.camisas).forEach(h => { delete h.user_id; }); res.json(cl); }
+    cl.classificacao.forEach(a => { delete a.user_id; if (a.nome) a.nome = _nomeCurto(a.nome); }); Object.values(cl.camisas).forEach(h => { delete h.user_id; if (h.nome) h.nome = _nomeCurto(h.nome); }); res.json(cl); }   // 03/10w: nome curto na página aberta
   catch (e) { log('campeonato público: ' + e.message); res.status(500).json({ error: 'Erro interno' }); }
 });
 // ── App: meus campeonatos e minhas camisas ─────────────────────────
@@ -6235,7 +6158,7 @@ app.get('/display/rede/agora', displayAuth, async (req, res) => {
 // devolve a todas as TVs do duelo a lista das academias (chamado pelo WS)
 async function daDueloEntrar(ws, msg) {
   let p; try { p = jwt.verify(String(msg.display_token || ''), JWT_SECRET); } catch (e) { return; }
-  if (!p || !p.license_id || !db) return;
+  if (!p || p.role !== 'display' || !p.license_id || !db) return;   // 03/10w: só a TV (antes servia token de aluno)
   const id = parseInt(msg.desafio_id, 10) || 0;
   if (!(await daParticipa(id, p.license_id))) return;
   const lic = await db.query('SELECT COALESCE(nome_fantasia, nome) AS nome FROM licencas WHERE codigo=$1', [p.license_id]);
@@ -6460,7 +6383,7 @@ app.post('/display/gravacao/:id/enviar', displayAuth, async (req, res) => {
 // 03/10e — SEGURANÇA E SAÚDE: esqueci a senha, reportar problema,
 // excluir minha conta (LGPD) e a página "Saúde do sistema" do admin
 // ══════════════════════════════════════════════════════════════
-const SERVIDOR_VERSAO = '03/10v';
+const SERVIDOR_VERSAO = '03/10w';
 // 03/10v: a TV certa tem o mesmo número do servidor (o pacote sobe os dois juntos)
 function tvVersaoOk(b) { return String(b || '').trim() === 'BUILD ' + SERVIDOR_VERSAO; }
 const _inicioServidor = Date.now();

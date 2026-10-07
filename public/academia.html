@@ -1612,7 +1612,7 @@ async function loadPerfil(){
   document.getElementById('pfAltura').value = u.altura || '';
   document.getElementById('pfFtp').value = u.ftp || '';
   document.getElementById('pfIdade').value = u.idade || '';
-  document.getElementById('pfLic').innerHTML = `${prEsc(document.getElementById('meLic').textContent)}<br>Código da licença: <b style="color:#fff;font-family:monospace">${prEsc(user.license_id||'—')}</b>`;
+  document.getElementById('pfLic').innerHTML = `${prEsc(document.getElementById('meLic').textContent)}<br>Código da licença: <b style="color:#fff;font-family:monospace">${prEsc(user.license_id||'—')}</b>${(window.licConfig&&licConfig.codigo_tv)?`<br>Código da TV (ativar o Ginásio): <b style="color:#ffb45a;font-family:monospace;user-select:all">${prEsc(licConfig.codigo_tv)}</b> <small style="opacity:.6">— não divulgue</small>`:''}`;
 }
 async function pfSalvar(){
   const v = id => document.getElementById(id).value;

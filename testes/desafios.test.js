@@ -23,13 +23,13 @@ let f=0; const ok=(c,t,x)=>{ console.log((c?'  OK ':'FALHA ')+t+(x!==undefined?'
   await sql(`update ftp_historico set created_at=date_trunc('month',now())-interval '3 days' where user_id in (${ida},${idb})`);
   await sql(`update users set ftp=212 where id=${ida}`); await sql(`update users set ftp=204 where id=${idb}`);
   m=(await j('GET','/desafios/meus',null,A)).d; ok(m.ftp.base===200&&m.ftp.atual===212&&m.ftp.ganho_pct===6&&m.ftp.conquistado_agora,'200 → 212 = +6% (meta 5%) → conquistou',m.ftp);
-  let rk=(await j('GET','/desafios/ranking/ftp')).d.ranking; ok(rk[0].nome==='Dani Um'&&rk[0].valor===6&&rk.find(x=>x.nome==='Duda Dois').valor===2,'ranking FTP',rk.slice(0,2));
+  let rk=(await j('GET','/desafios/ranking/ftp')).d.ranking; ok(rk[0].nome==='Dani U.'&&rk[0].valor===6&&rk.find(x=>x.nome==='Duda D.').valor===2,'ranking FTP',rk.slice(0,2));
   console.log('3) Ranking mensal e grupos');
-  rk=(await j('GET','/desafios/ranking/mensal')).d.ranking; ok(rk.find(x=>x.nome==='Dani Um'),'mensal tem a Dani');
-  rk=(await j('GET','/desafios/ranking/21dias')).d.ranking; ok(rk[0].nome==='Dani Um'&&rk[0].valor===21,'ranking 21 dias');
+  rk=(await j('GET','/desafios/ranking/mensal')).d.ranking; ok(rk.find(x=>x.nome==='Dani U.'),'mensal tem a Dani');
+  rk=(await j('GET','/desafios/ranking/21dias')).d.ranking; ok(rk[0].nome==='Dani U.'&&rk[0].valor===21,'ranking 21 dias');
   let g=(await j('POST','/desafios/grupos',{nome:'Turma Terça',desafio_id:'21dias'},A)).d; ok(/^GRP-/.test(g.codigo),'grupo criado',g.codigo);
   ok((await j('POST','/desafios/grupos/'+g.codigo+'/entrar',null,Bt)).d.ok,'Duda entra');
-  let gr=(await j('GET','/desafios/grupos/'+g.codigo+'/ranking')).d; ok(gr.ranking.length===2&&gr.ranking[0].nome==='Dani Um'&&gr.ranking[1].valor===0,'ranking do grupo (21 dias, Duda com 0)',gr.ranking.map(x=>x.nome+':'+x.valor));
+  let gr=(await j('GET','/desafios/grupos/'+g.codigo+'/ranking')).d; ok(gr.ranking.length===2&&gr.ranking[0].nome==='Dani U.'&&gr.ranking[1].valor===0,'ranking do grupo (21 dias, Duda com 0)',gr.ranking.map(x=>x.nome+':'+x.valor));
   ok((await j('GET','/desafios/meus',null,Bt)).d.grupos.length===1,'grupo aparece em "meus" (qualquer aparelho)');
   ok((await j('POST','/desafios/grupos/'+g.codigo+'/sair',null,Bt)).d.ok && (await j('GET','/desafios/meus',null,Bt)).d.grupos.length===0,'sair do grupo');
   console.log(f?f+' FALHA(S)':'TUDO OK'); await pool.end(); process.exit(f?1:0);

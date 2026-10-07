@@ -1,13 +1,13 @@
 // 03/10f — erros das telas chegam na Saúde + envios do fim da aula aceitam repetição (TV sem internet)
 const B='http://127.0.0.1:3999';
 async function j(m,p,body,tok,h){const r=await fetch(B+p,{method:m,headers:{'Content-Type':'application/json',...(tok?{Authorization:'Bearer '+tok}:{}),...(h||{})},body:body?JSON.stringify(body):undefined});let d;try{d=await r.json()}catch(e){d=null}return {s:r.status,d};}
-const { sql, pool, ADMIN, ADMIN_SENHA } = require('./comum');
+const { sql, pool, ADMIN, ADMIN_SENHA , codigoTv } = require('./comum');
 let f=0; const ok=(c,t,x)=>{ console.log((c?'  OK ':'FALHA ')+t+(x!==undefined?'  → '+JSON.stringify(x):'')); if(!c) f++; };
 const IP=n=>({'X-Forwarded-For':'10.9.0.'+n});
 (async()=>{
   const SA=(await j('POST','/user/login',{email:ADMIN,password:ADMIN_SENHA},null,IP(1))).d.token;
   await j('POST','/admin/saude/eventos/limpar',{tipo:'telas'},SA);
-  const at=await j('POST','/display/ativar',{codigo:'D5448D47',device_id:'dev-telas',nome_computador:'PC Teste'},null,IP(2));
+  const at=await j('POST','/display/ativar',{codigo:await codigoTv('D5448D47'),device_id:'dev-telas',nome_computador:'PC Teste'},null,IP(2));
   ok(at.s===200&&at.d.token,'TV ativada para o teste',at.s); const TV=at.d.token;
 
   console.log('1) Erros das telas');

@@ -1261,7 +1261,7 @@ input[type=file]{display:none}
           <text x="180" y="96" text-anchor="middle" font-family="Barlow Condensed" font-size="15" font-weight="700" letter-spacing="2" fill="rgba(255,255,255,.55)" id="gZoneName">ACTIVE RECOVERY</text>
 
           <!-- POSICAO — logo abaixo do nome -->
-          <text x="180" y="113" text-anchor="middle" font-family="Barlow Condensed" font-size="13" font-weight="700" letter-spacing="3" fill="rgba(255,255,255,.38)" id="gPosition">SEATED</text>
+          <text x="180" y="113" text-anchor="middle" font-family="Barlow Condensed" font-size="13" font-weight="700" letter-spacing="3" fill="rgba(255,255,255,.38)" id="gPosition">SENTADO</text>
 
           <!-- ── DOIS NUMEROS, DUAS COLUNAS, MESMO TAMANHO ──────────────
                Antes: o numero ficava centrado em x=132 com corpo 64 e o "%"
@@ -2430,7 +2430,7 @@ function selectBike(num){
   // Já estava observando (socket aberto) → vira participante de verdade na bike escolhida
   if(wsConn && wsConn.readyState===1){
     _entrarNome=nomeVal; _entrarCodigo=lastCode;
-    wsConn.send(JSON.stringify({tipo:'entrar_sala',user_id:_prUid(),codigo:lastCode,nome:nomeVal,genero:_prSexoAluno(),nivel:_prNivelAluno(),bike:num,
+    wsConn.send(JSON.stringify({tipo:'entrar_sala',user_id:_prUid(),token:(localStorage.getItem('pr_token')||undefined),codigo:lastCode,nome:nomeVal,genero:_prSexoAluno(),nivel:_prNivelAluno(),bike:num,
       foto:(localStorage.getItem('pr_foto')||null),
       ftpBase:(function(){ try{ var f=parseInt(_ftpDoAluno(),10)||0; return f>0?f:null; }catch(e){ return null; } })()}));
   } else {
@@ -2511,7 +2511,7 @@ function connectQR(code){
         var _meuFtp = 0;
         try{ _meuFtp = parseInt(_ftpDoAluno(),10) || 0; }catch(e){}
         _entrarNome=nomeVal; _entrarCodigo=code;
-        wsConn.send(JSON.stringify({tipo:'entrar_sala',user_id:_prUid(),codigo:code,nome:nomeVal,genero:_prSexoAluno(),nivel:_prNivelAluno(),bike:_bikeSelNum,
+        wsConn.send(JSON.stringify({tipo:'entrar_sala',user_id:_prUid(),token:(localStorage.getItem('pr_token')||undefined),codigo:code,nome:nomeVal,genero:_prSexoAluno(),nivel:_prNivelAluno(),bike:_bikeSelNum,
           foto:(localStorage.getItem('pr_foto')||null),
           ftpBase:(_meuFtp>0?_meuFtp:null)}));
       } else {
@@ -3044,7 +3044,6 @@ function prPesoKg(){
 // Watt medio real da aula em curso (acumulador ao vivo).
 function prWattsMed(){
   try{ if(typeof _lsAcc!=='undefined' && _lsAcc.wCnt>0) return Math.round(_lsAcc.wSum/_lsAcc.wCnt); }catch(e){}
-  try{ if(cntFtp>0) return Math.round((sumFtp/cntFtp)*1.3); }catch(e){}
   return 0;
 }
 // Metabolismo basal — Mifflin-St Jeor (1990). Continua sendo a equacao de
@@ -4594,8 +4593,8 @@ var bldFtpLabel={z1:'0\u201355%',z2:'56\u201375%',z3:'76\u201390%',z4:'91\u20131
 var bldRpmDef={z1:{lo:70,hi:80},z2:{lo:80,hi:90},z3:{lo:85,hi:92},z4:{lo:85,hi:90},z5:{lo:90,hi:95},z6:{lo:85,hi:95},z7:{lo:100,hi:120}};
 
 // ── Verificação de acesso professor ──
-var _profUnlocked = false;
-var _profCode = '1234'; // código demo — substituir por validação real
+var _profUnlocked = true;   // 03/10w: o Construtor é aberto a todos (pedido do Mario); a senha fixa "1234" saiu
+var _profCode = '1234'; // (sem uso: o Construtor é aberto a todos — 03/10w)
 
 function openConstructor(){
   if(_profUnlocked){
@@ -5399,16 +5398,13 @@ function tick(){
   segS++; totS++;
   var b=cAula&&cAula.blocos?cAula.blocos[cBloco]:null;
   if(!b){ clearInterval(lInt); return; }
-  dRpm=Math.max(70,Math.min(140,dRpm+(Math.random()-.46)*3));
-  var rpm=Math.round(dRpm);
-  // FTP% simulado pelo centro real de cada zona (Coggan & Allen)
-  // z1:<55 z2:56-75 z3:76-90 z4:91-105 z5:106-120 z6:121-150 z7:MAX
-  var zFtpSim={z1:27,z2:66,z3:83,z4:98,z5:113,z6:130,z7:148};
-  var ftpPct=zFtpSim[b.z]||Math.round(20+(cBloco/cAula.blocos.length)*80);
-  var watts=Math.round(ftpPct*1.3);
-  // ── FONTE DE DADOS: relay do ginásio > BLE do celular > simulação ──
+  // 03/10v: SEM NÚMERO INVENTADO. Antes, sem bike conectada, o app simulava
+  // rpm, watts e %FTP (o "83 RPM") e isso podia ir para o resultado. Agora, sem
+  // aparelho e sem a TV mandando, mostra "—" e não conta nada.
+  var rpm=0, watts=0, ftpPct=0, temDado=false; dRpm=0;
+  // ── FONTE DE DADOS: relay do ginásio > BLE do celular ──
   if(liveRelay && (Date.now()-liveRelay.ts)<3000){
-    dRpm=liveRelay.r; rpm=Math.round(liveRelay.r);
+    temDado=true; dRpm=liveRelay.r; rpm=Math.round(liveRelay.r);
     watts=Math.round(liveRelay.w);
     // O ginasio calcula o % com a FTP que ELE tem do aluno e, quando nao acha o
     // aluno na bike, cai num padrao de 150W — dai o numero sair errado.
@@ -5423,21 +5419,18 @@ function tick(){
       _appHr(liveRelay.hr);
     }
   } else if(connected.bike && _bleTs && (Date.now()-_bleTs)<3000){
-    dRpm=_bleRpm; rpm=Math.round(_bleRpm);
+    temDado=true; dRpm=_bleRpm; rpm=Math.round(_bleRpm);
     watts=Math.round(_bleWatts);
     var _mf=_ftpDoAluno(); ftpPct=Math.round(_bleWatts/(_mf>0?_mf:150)*100);
   }
-  var wkg=(watts/90).toFixed(1);
-  sumRpm+=rpm; cntRpm++;
-  if(rpm>maxRpm) maxRpm=rpm;
+  var _sem='\u2014';
+  var _kg=prPesoKg(), wkg=(watts/(_kg>0?_kg:70)).toFixed(1);
 
   var _segDur=(b.dur||0)*60;
   var _totDur=cAula.blocos.reduce(function(a,x){return a+(x.dur||0)*60;},0);
   document.getElementById('ltSeg').textContent=fmMS(Math.max(0,_segDur-segS));
   document.getElementById('ltTot').textContent=fmMS(Math.max(0,_totDur-totS));
-  if(zoneTime[b.z]!==undefined) zoneTime[b.z]++;
-  var curRpm=dRpm||0;
-  if(curRpm>0){sumRpm+=curRpm;cntRpm++;if(curRpm>maxRpm)maxRpm=Math.round(curRpm);}
+  var curRpm=temDado?(dRpm||0):0;
   if(isFtpTest&&b.teste){
     // Watt medido manda. rpm x 1,8 era a unica fonte e e chute: so entra quando
     // nao ha bike conectada nem retransmissao do ginasio.
@@ -5446,7 +5439,6 @@ function tick(){
     try{ if(!_wReal && liveRelay && liveRelay.w>0) _wReal=liveRelay.w; }catch(e){}
     ftpTestWatts.push(_wReal>0?Math.round(_wReal):(curRpm>0?Math.round(curRpm*1.8):0));
   }
-  sumFtp+=Math.round(20+(cBloco/cAula.blocos.length)*80); cntFtp++;
   rpmAlertCool=rpmAlertCool>0?rpmAlertCool-1:0;
   if(rpmAlertCool===0&&curRpm>0&&b.rpm){
     var wattsNow=Math.round(curRpm*1.8);
@@ -5470,8 +5462,8 @@ function tick(){
     zPbar.style.boxShadow='0 0 8px '+( zC[b.z]||'#888' );
   }
   document.getElementById('botT').textContent=fmHMS(totS);
-  document.getElementById('bigRpm').textContent=rpm;
-  document.getElementById('bigWatts').textContent=watts;
+  document.getElementById('bigRpm').textContent=temDado?rpm:_sem;
+  document.getElementById('bigWatts').textContent=temDado?watts:_sem;
   var gearEl=document.getElementById('bigGear'); if(gearEl&&typeof dGear!=='undefined'&&dGear>0) gearEl.textContent=dGear;
 
   // gauge mode
@@ -5480,18 +5472,18 @@ function tick(){
   // Nome da zona sempre na cor da zona \u2014 independente do modo
   var zNMap={z1:'ACTIVE RECOVERY',z2:'ENDURANCE',z3:'TEMPO',z4:'THRESHOLD',z5:'VO2 MAX',z6:'ANAEROBIC',z7:'NEUROMUSCULAR'};
   var znEl=document.getElementById('gZoneName');
-  var _zAtual=(typeof _lsZonaFromFtp==='function')?_lsZonaFromFtp(ftpPct):b.z;
+  var _zAtual=(temDado&&typeof _lsZonaFromFtp==='function')?_lsZonaFromFtp(ftpPct):b.z;   // sem dado: a zona do bloco (o alvo)
   if(znEl){znEl.textContent=zNMap[_zAtual]||'';znEl.setAttribute('fill',zC[_zAtual]||'rgba(255,255,255,.55)');}
   var gpEl=document.getElementById('gPosition');
-  if(gpEl) gpEl.textContent=b.pos==='Standing'?'STANDING':'SEATED';
+  if(gpEl) gpEl.textContent=(/stand|p[ée]/i.test(b.pos||'')?'EM PÉ':'SENTADO');
   var posEl=document.getElementById('gPosText');
-  if(posEl) posEl.textContent=b.pos==='Standing'?'STANDING':'SEATED';
+  if(posEl) posEl.textContent=(/stand|p[ée]/i.test(b.pos||'')?'EM PÉ':'SENTADO');
   if(gaugeMode===0){
     // FTP% — ponteiro por zona+fração (alinhado às faixas de cor)
-    var fFtp=_ftpArcFrac(ftpPct);
+    var fFtp=temDado?_ftpArcFrac(ftpPct):0;
     var ang=-90+fFtp*180;
     if(ptr) ptr.style.transform='rotate('+ang+'deg)';
-    if(gVal) gVal.textContent=ftpPct;
+    if(gVal) gVal.textContent=temDado?ftpPct:_sem;
     try{
       var _bt=document.getElementById('gBlocoTempo');
       if(_bt){
@@ -5511,7 +5503,7 @@ function tick(){
     var rpmPx=(rpm/140)*534;
     var ang2=-90+(rpm/140)*180;
     if(ptr) ptr.style.transform='rotate('+ang2+'deg)';
-    if(gVal) gVal.textContent=rpm;
+    if(gVal) gVal.textContent=temDado?rpm:_sem;
     _fillBarPx(rpmPx);
   } else {
     // W/kg \u2014 barra por wkg/6
@@ -5519,22 +5511,25 @@ function tick(){
     var wkgPx=Math.min(wkgNum/6,1)*534;
     var ang3=-90+(wkgPx/534)*180;
     if(ptr) ptr.style.transform='rotate('+ang3+'deg)';
-    if(gVal) gVal.textContent=wkg;
+    if(gVal) gVal.textContent=temDado?wkg:_sem;
     _fillBarPx(wkgPx);
   }
 
   // p2
-  document.getElementById('p2Ftp').textContent=ftpPct;
-  document.getElementById('p2Hr').textContent=Math.round(ftpPct*.85);
-  document.getElementById('p2Rpm').textContent=rpm;
-  document.getElementById('p2Spd').textContent=(rpm*.35).toFixed(1);
-  document.getElementById('p2AR').textContent=Math.round(sumRpm/cntRpm);
-  document.getElementById('p2MR').textContent=Math.round(maxRpm);
-  document.getElementById('p2Dist').textContent=(totS*.003).toFixed(1);
+  // 03/10v: só números medidos (sem FC inventada pelo %FTP, sem velocidade e distância de mentira)
+  var _hrV=0; try{ if(window._meuHr&&Date.now()-window._meuHr.ts<5000) _hrV=window._meuHr.v; }catch(e){}
+  var _A=(typeof _lsAcc!=='undefined')?_lsAcc:{rpmCnt:0,rpmSum:0,rpmMax:0};
+  document.getElementById('p2Ftp').textContent=temDado?ftpPct:_sem;
+  document.getElementById('p2Hr').textContent=_hrV>0?_hrV:_sem;
+  document.getElementById('p2Rpm').textContent=temDado?rpm:_sem;
+  document.getElementById('p2Spd').textContent=_sem;
+  document.getElementById('p2AR').textContent=_A.rpmCnt>0?Math.round(_A.rpmSum/_A.rpmCnt):_sem;
+  document.getElementById('p2MR').textContent=_A.rpmMax>0?Math.round(_A.rpmMax):_sem;
+  document.getElementById('p2Dist').textContent=_sem;
   document.getElementById('p2Kc').textContent=prKcal(prWattsMed(),totS,prPesoKg());
   var _p2t=document.getElementById('p2Tss'); if(_p2t) _p2t.textContent=(cAula&&cAula.blocos)?prTSS(cAula.blocos).tss:0;
-  document.getElementById('p2KH').textContent=Math.round(.06*3600);
-  document.getElementById('p2AS').textContent=(rpm*.35).toFixed(1);
+  document.getElementById('p2KH').textContent=totS>0?Math.round(prKcal(prWattsMed(),totS,prPesoKg())/totS*3600):_sem;
+  document.getElementById('p2AS').textContent=_sem;
   document.getElementById('p2Dur').textContent=fmMS(totS);
 
   if(segS>=b.dur*60){
@@ -5680,7 +5675,7 @@ function updUpNext(){
     document.getElementById('unT').textContent=fmDurBlock(n.dur);
     document.getElementById('unF').textContent=Array.isArray(n.ftp)?n.ftp[0]+'-'+n.ftp[1]+'%':n.ftp;
     document.getElementById('unR').textContent=Array.isArray(n.rpm)?n.rpm[0]+'-'+n.rpm[1]:n.rpm;
-    document.getElementById('unP').textContent=n.pos.toUpperCase().substring(0,5);
+    document.getElementById('unP').textContent=/stand|p[ée]/i.test(n.pos||'')?'EM PÉ':'SENTADO';   // 03/10w: era 'SEATE' (cortado)
     document.getElementById('unDot').style.background=zC[n.z];
     document.getElementById('dNextZone').textContent=zNames[n.z];
     document.getElementById('dNextZone').style.color=zC[n.z];
@@ -5689,7 +5684,7 @@ function updUpNext(){
     document.getElementById('unT').textContent='\u221E';
     document.getElementById('unF').textContent='0-150%';
     document.getElementById('unR').textContent='Livre';
-    document.getElementById('unP').textContent='SIT';
+    document.getElementById('unP').textContent='SENTADO';
     document.getElementById('unDot').style.background='#888888';
     document.getElementById('dNextZone').textContent='FREE RIDE';
     document.getElementById('dNextZone').style.color='#888888';
@@ -5851,8 +5846,10 @@ function showResultsReal(){
   if(audio){audio.pause();}
   // Se o tick não acumulou (totS=0) mas o acumulador ao vivo tem dado real, usa-o.
   // Assim a tela de resultado (duração, médias, zonas e payload do servidor) sai correta.
-  if(typeof _lsAcc!=='undefined' && _lsAcc.dur>0 && (!totS || totS===0)){
-    totS=_lsAcc.dur;
+  // 03/10v: médias, máximo e zonas vêm SÓ do que foi medido (_lsAcc: TV ou Bluetooth).
+  // A duração é a da aula; sem aparelho, a caloria é a estimativa pelo tempo (MET).
+  if(typeof _lsAcc!=='undefined'){
+    if(!totS && _lsAcc.dur>0) totS=_lsAcc.dur;
     sumRpm=_lsAcc.rpmSum; cntRpm=_lsAcc.rpmCnt; maxRpm=_lsAcc.rpmMax;
     sumFtp=_lsAcc.ftpSum; cntFtp=_lsAcc.ftpCnt;
     zoneTime={z1:_lsAcc.zt.z1,z2:_lsAcc.zt.z2,z3:_lsAcc.zt.z3,z4:_lsAcc.zt.z4,z5:_lsAcc.zt.z5,z6:_lsAcc.zt.z6,z7:_lsAcc.zt.z7};
@@ -5862,11 +5859,11 @@ function showResultsReal(){
   var totEl=document.getElementById('resTot'); if(totEl) totEl.textContent=fmHMS(totS);
   var kcalEl=document.getElementById('resKcal'); if(kcalEl) kcalEl.textContent=prKcal(prWattsMed(),totS,prPesoKg());
   var tssEl=document.getElementById('resTSS'); if(tssEl) tssEl.textContent=(cAula&&cAula.blocos)?prTSS(cAula.blocos).tss:0;
-  var distEl=document.getElementById('resDist'); if(distEl) distEl.textContent=(totS*.003).toFixed(1);
-  var avgFEl=document.getElementById('resAvgFtp'); if(avgFEl) avgFEl.textContent=cntFtp>0?Math.round(sumFtp/cntFtp):0;
-  var avgREl=document.getElementById('resAvgRpm'); if(avgREl) avgREl.textContent=cntRpm>0?Math.round(sumRpm/cntRpm):0;
-  var maxREl=document.getElementById('resMaxRpm'); if(maxREl) maxREl.textContent=Math.round(maxRpm);
-  var wEl=document.getElementById('resWatts'); if(wEl){ var _rw=(typeof _lsAcc!=='undefined'&&_lsAcc.wCnt>0)?Math.round(_lsAcc.wSum/_lsAcc.wCnt):(cntFtp>0?Math.round((sumFtp/cntFtp)*1.3):0); wEl.textContent=_rw; }
+  var distEl=document.getElementById('resDist'); if(distEl) distEl.textContent='\u2014';   // 03/10v: sem distância inventada
+  var avgFEl=document.getElementById('resAvgFtp'); if(avgFEl) avgFEl.textContent=cntFtp>0?Math.round(sumFtp/cntFtp):'\u2014';
+  var avgREl=document.getElementById('resAvgRpm'); if(avgREl) avgREl.textContent=cntRpm>0?Math.round(sumRpm/cntRpm):'\u2014';
+  var maxREl=document.getElementById('resMaxRpm'); if(maxREl) maxREl.textContent=maxRpm>0?Math.round(maxRpm):'\u2014';
+  var wEl=document.getElementById('resWatts'); if(wEl){ wEl.textContent=prWattsMed()||'\u2014'; }
   buildResChart();
 
   // Se logado: salva no servidor e abre tela de pontos
@@ -6060,7 +6057,7 @@ function _ftpAvisarSala(){
       var nomeVal=_entrarNome; if(!nomeVal) return;
       var _cod=_entrarCodigo||lastCode; if(!_cod) return;
       window._ftpReenvio=Date.now();
-      wsConn.send(JSON.stringify({tipo:'entrar_sala',user_id:_prUid(),codigo:_cod,nome:nomeVal,genero:_prSexoAluno(),nivel:_prNivelAluno(),bike:_bikeSelNum,
+      wsConn.send(JSON.stringify({tipo:'entrar_sala',user_id:_prUid(),token:(localStorage.getItem('pr_token')||undefined),codigo:_cod,nome:nomeVal,genero:_prSexoAluno(),nivel:_prNivelAluno(),bike:_bikeSelNum,
         foto:(localStorage.getItem('pr_foto')||null), ftpBase:f}));
       console.log('[ProRider] FTP '+f+'W enviado a sala (bike '+_bikeSelNum+').');
     }catch(e){ console.warn('[ProRider] nao consegui enviar o FTP a sala:', e&&e.message); }
@@ -6530,7 +6527,7 @@ function _ergUI(){
       +'<span style="flex-shrink:0;padding:6px 12px;border-radius:20px;font-weight:800;font-size:12px;'+(_erg.liga?'background:#5db13d;color:#08130a':'background:rgba(255,255,255,.1);color:rgba(255,255,255,.7)')+'">'+(_erg.liga?'LIGADA':'DESLIGADA')+'</span>'; }
   var p=document.getElementById('ergPill'), ver=!!(_erg.cp&&_erg.liga&&_erg.alvo>0);
   if(!p&&ver){ p=document.createElement('div'); p.id='ergPill'; p.onclick=prErgAlternar;
-    p.style.cssText='position:fixed;left:12px;bottom:84px;z-index:9999;padding:7px 12px;border-radius:18px;background:rgba(20,20,26,.88);border:1px solid #5db13d;color:#fff;font:700 13px Barlow,Arial,sans-serif;';
+    p.style.cssText='position:fixed;left:12px;bottom:138px;z-index:9999;padding:7px 12px;border-radius:18px;background:rgba(20,20,26,.88);border:1px solid #5db13d;color:#fff;font:700 13px Barlow,Arial,sans-serif;';
     document.body.appendChild(p); }
   if(p){ p.style.display=ver?'block':'none'; if(ver) p.innerHTML='⚙️ ERG <b style="color:#8fe06a">'+_erg.alvo+' W</b> <small style="opacity:.6">· tocar para soltar</small>'; }
 }
@@ -8145,7 +8142,7 @@ function _tentarConexaoWS(wsUrl, token, dadosSessao){
       // 23/09c: este era o TERCEIRO ponto que manda entrar_sala (entrada pela
       // reserva/sessao) e tambem ia sem o FTP — o Ginasio ficava com 150.
       var _ftpS=0; try{ _ftpS=parseInt(_ftpDoAluno(),10)||0; }catch(e){}
-      ws.send(JSON.stringify({tipo:'entrar_sala',user_id:_prUid(), codigo:token, nome:nomeVal, genero:_prSexoAluno(),nivel:_prNivelAluno(), bike:dadosSessao.bike_num||null,
+      ws.send(JSON.stringify({tipo:'entrar_sala',user_id:_prUid(),token:(localStorage.getItem('pr_token')||undefined), codigo:token, nome:nomeVal, genero:_prSexoAluno(),nivel:_prNivelAluno(), bike:dadosSessao.bike_num||null,
         foto:(localStorage.getItem('pr_foto')||null), ftpBase:(_ftpS>0?_ftpS:null)}));
       _entrarNome=nomeVal; _entrarCodigo=token;
       if(dadosSessao.bike_num) _bikeSelNum=parseInt(dadosSessao.bike_num); // casa o relay com a bike da sessão
@@ -8306,7 +8303,7 @@ setInterval(function(){
     if(!cod || !nm) return;
     window._vigiaTs=Date.now();
     var f=0; try{ f=parseInt(_ftpDoAluno(),10)||0; }catch(e){}
-    wsConn.send(JSON.stringify({tipo:'entrar_sala',user_id:_prUid(),codigo:cod,nome:nm,genero:_prSexoAluno(),nivel:_prNivelAluno(),bike:(_bikeSelNum||null),
+    wsConn.send(JSON.stringify({tipo:'entrar_sala',user_id:_prUid(),token:(localStorage.getItem('pr_token')||undefined),codigo:cod,nome:nm,genero:_prSexoAluno(),nivel:_prNivelAluno(),bike:(_bikeSelNum||null),
       foto:(localStorage.getItem('pr_foto')||null),ftpBase:(f>0?f:null)}));
     window._ftpReenvio=Date.now(); // a resposta nao deve navegar de tela
     console.log('[ProRider] sem noticias da aula ha '+Math.round((Date.now()-window._ultUpdateAula)/1000)+' s — entrando de novo na sala.');
@@ -8347,7 +8344,8 @@ function _lsTick(){
     if(typeof liveRelay!=='undefined' && liveRelay && (Date.now()-liveRelay.ts)<3000){
       src={ r:liveRelay.r||0, w:liveRelay.w||0, ftp:liveRelay.ftp||0, z:liveRelay.z||null };
     } else if(_bleTs && (Date.now()-_bleTs)<3000){
-      src={ r:_bleRpm||0, w:_bleWatts||0, ftp:Math.round((_bleWatts||0)/150*100), z:null };
+      var _f=0; try{ _f=parseInt(_ftpDoAluno(),10)||0; }catch(e){}
+      src={ r:_bleRpm||0, w:_bleWatts||0, ftp:Math.round((_bleWatts||0)/(_f>0?_f:150)*100), z:null };   // 03/10v: FTP do aluno
     }
     if(!src) return; // sem dado fresco → não conta
     _lsAcc.dur++;
@@ -9502,7 +9500,7 @@ go=function(id){
   if(id==='sDetail'||id==='sConnect'){ var n=document.getElementById('bNav'); if(n) n.style.display='none'; }
 };
 
-var APP_BUILD='03/10v';
+var APP_BUILD='03/10w';
 try{ if(typeof prErroConfig==='function') prErroConfig(SERVER_HTTP,'app',function(){ return (typeof prToken!=='undefined'&&prToken)||localStorage.getItem('pr_token')||''; },APP_BUILD); }catch(e){}   // 03/10f: erros do app chegam na Saúde
 // ── 03/10e: no Perfil — reportar um problema e excluir a conta (LGPD) ──
 (function(){

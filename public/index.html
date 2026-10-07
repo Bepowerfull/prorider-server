@@ -969,7 +969,7 @@ function lpLogoToque(){}
 setTimeout(lpStats, 300); setInterval(lpStats, 30000);
 
 var adminToken = localStorage.getItem('pr_admin_token') || '';
-try { if (typeof prErroConfig === 'function') prErroConfig(SERVER, 'admin', function () { return adminToken; }, 'Admin 03/10v'); } catch (e) {}   // 03/10f
+try { if (typeof prErroConfig === 'function') prErroConfig(SERVER, 'admin', function () { return adminToken; }, 'Admin 03/10w'); } catch (e) {}   // 03/10f
 var adminUser  = JSON.parse(localStorage.getItem('pr_admin_user') || 'null');
 var allLicencas = [];
 var allAlunos   = [];
@@ -1161,7 +1161,7 @@ function renderLicencas(list) {
     return `
     <tr>
       <td>${pgtoDot(l.situacao||'pendente')}<div class="lic-sub" title="Próximo vencimento">vence ${fmtDate(l.proximo_vencimento)}</div></td>
-      <td><strong>${nm}</strong><div class="lic-sub">${[l.cidade_lic||l.cidade, l.estado].filter(Boolean).join(' · ') || '—'} · <span style="font-family:monospace">${l.codigo}</span>${l.status!=='ativa'?` · <span class="badge badge-${l.status}">${l.status}</span>`:''}</div></td>
+      <td><strong>${nm}</strong><div class="lic-sub">${[l.cidade_lic||l.cidade, l.estado].filter(Boolean).join(' · ') || '—'} · <span style="font-family:monospace">${l.codigo}</span>${l.codigo_tv?` · <span title="Código para ativar a TV (Ginásio). Não divulgue." style="color:#ffb45a">TV: <span style="font-family:monospace;user-select:all">${l.codigo_tv}</span></span>`:''}${l.status!=='ativa'?` · <span class="badge badge-${l.status}">${l.status}</span>`:''}</div></td>
       <td>${l.gestor_nome||l.contato_nome||'<span style="color:var(--muted)">—</span>'}</td>
       <td>${l.max_bikes||'—'}</td>
       <td>${l.total_alunos||0}</td>

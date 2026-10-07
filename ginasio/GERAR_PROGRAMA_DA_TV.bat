@@ -2,11 +2,11 @@
 setlocal
 title ProRider - gerar o programa da TV
 rem ============================================================
-rem  ProRider - GERAR O PROGRAMA DA TV (03/10v)
+rem  ProRider - GERAR O PROGRAMA DA TV (03/10w)
 rem  Confere se os arquivos certos estao no lugar certo e so
 rem  entao roda o "npm run dist". Evita instalar versao velha.
 rem ============================================================
-set VERSAO=03/10v
+set VERSAO=03/10w
 set APP=%~dp0
 for %%I in ("%APP%.") do set PASTA=%%~nxI
 
@@ -61,7 +61,7 @@ goto FIM
 :ERRO_VER
 echo  [ERRO] O script.js de app\ NAO e da versao %VERSAO%.
 for /f "tokens=*" %%L in ('findstr /C:"var PR_BUILD=" "%APP%script.js"') do echo         Encontrado: %%L
-echo         Extraia o zip ProRider_1_GINASIO_03-10v.zip DIRETO em app\
+echo         Extraia o zip ProRider_1_GINASIO_03-10w.zip DIRETO em app\
 echo         (substituindo os arquivos) e rode de novo.
 goto FIM
 :ERRO_FALTA

@@ -13,7 +13,7 @@ if (!chromium) { console.log('  ⚠ Playwright não instalado: teste da TV PULAD
 const GIN = process.env.GINASIO_DIR || path.join(RAIZ, 'ginasio');
 if (!fs.existsSync(path.join(GIN, 'ginasio.html'))) { console.log('FALHA pasta do Ginásio não encontrada: ' + GIN + ' (copie os arquivos do zip 3_GINASIO para ginasio/ na raiz do repositório)'); process.exit(1); }
 const WS = require(require.resolve('ws', { paths: [RAIZ] }));
-const { sql, ADMIN, ADMIN_SENHA } = require('./comum');
+const { sql, ADMIN, ADMIN_SENHA , codigoTv } = require('./comum');
 async function j(m, p, body, tok) { const r = await fetch(B + p, { method: m, headers: { 'Content-Type': 'application/json', ...(tok ? { Authorization: 'Bearer ' + tok } : {}) }, body: body ? JSON.stringify(body) : undefined }); let d; try { d = await r.json(); } catch (e) {} return { s: r.status, d }; }
 let f = 0; const ok = (c, t, x) => { console.log((c ? '  OK ' : 'FALHA ') + t + (x !== undefined ? '  → ' + JSON.stringify(x) : '')); if (!c) f++; };
 const espera = ms => new Promise(r => setTimeout(r, ms));
@@ -23,7 +23,7 @@ const FOTOS = fs.mkdtempSync(path.join(os.tmpdir(), 'prorider-telas-tv-'));
 
 (async () => {
   const inicio = new Date().toISOString();
-  const at = await j('POST', '/display/ativar', { codigo: 'D5448D47', device_id: 'tv-teste-telas', nome_computador: 'TV do teste' });
+  const at = await j('POST', '/display/ativar', { codigo: await codigoTv('D5448D47'), device_id: 'tv-teste-telas', nome_computador: 'TV do teste' });
   ok(at.s === 200 && at.d.token, 'TV ativada no servidor de teste', at.s); const TK = at.d.token;
   const agora = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
   await sql(`DELETE FROM aulas_agenda WHERE nome='Spin Teste TV'`);

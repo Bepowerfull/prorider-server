@@ -1,10 +1,14 @@
-ProRider — BUILD 03/10v (Ginasio)
+ProRider — BUILD 03/10w (Ginasio)
+
+03/10w: a TV agora e ativada pelo CODIGO DA TV (8 letras/numeros, secreto),
+que aparece no Admin > Licencas ao lado do codigo da academia. O codigo da
+licenca nao ativa mais a TV (ele e publico). TV ja ativada continua ativada.
 
 03/10v: INSTALE ESTA VERSAO NAS 3 TVs (elas ficaram na 03/10n por copia errada).
 Para gerar o programa use o GERAR_PROGRAMA_DA_TV.bat (dentro de app\): ele
 confere se o zip foi extraido DIRETO em app\ (sem subpasta) e se os arquivos
-sao da 03/10v, e so entao roda o "npm run dist". Os .exe antigos vao para
-dist\antigos. Na tela de codigo da TV, nada mudou desde a 03/10s.
+sao da versao do pacote, e so entao roda o "npm run dist". Os .exe antigos vao para
+dist\antigos.
 
 03/10s: o fim da aula nao conta mais como "servidor caiu" (antes cada aula
 mandava o aviso falso "A TV perdeu a conexao" para a Saude); o resumo da aula

@@ -1,6 +1,6 @@
 const B='http://127.0.0.1:3999', M='http://127.0.0.1:3014';
 async function j(m,p,body,tok,h){const r=await fetch((p.startsWith('http')?'':B)+p,{method:m,headers:{'Content-Type':'application/json',...(tok?{Authorization:'Bearer '+tok}:{}),...(h||{})},body:body?JSON.stringify(body):undefined});let d;try{d=await r.json()}catch(e){d=null}return {s:r.status,d};}
-const { sql, pool, ADMIN, ADMIN_SENHA } = require('./comum');
+const { sql, pool, ADMIN, ADMIN_SENHA , codigoTv } = require('./comum');
 const hoje=new Date(Date.now()-3*3600000).toISOString().slice(0,10);
 const mais=(iso,d)=>new Date(Date.parse(iso)+d*86400000).toISOString().slice(0,10);
 const mm=(iso,n=1)=>{const [y,m,d]=iso.split('-').map(Number);const t=new Date(Date.UTC(y,m-1+n,1));const u=new Date(Date.UTC(t.getUTCFullYear(),t.getUTCMonth()+1,0)).getUTCDate();t.setUTCDate(Math.min(d,u));return t.toISOString().slice(0,10);};
@@ -70,10 +70,10 @@ const hook=(event,payment)=>j('POST','/webhook/asaas',{event,payment},null,WH);
   ok(/recusado/.test((await j('GET','/academia/financeiro',null,F.token)).d.aviso||''),'aviso na página do financeiro');
   console.log('10) TV: suspensa quando pago e +5 dias vencido');
   await sql(`update licencas set pagamento_ok_ate='${mais(hoje,-10)}', vencimento='${mais(hoje,-10)}' where codigo='${L.codigo}'`);
-  r=await j('POST','/display/ativar',{codigo:L.codigo,device_id:'devpg'}); ok(r.s===403,'ativar recusado',r.d);
+  r=await j('POST','/display/ativar',{codigo:await codigoTv(L.codigo),device_id:'devpg'}); ok(r.s===403,'ativar recusado',r.d);
   ok((await j('GET','/admin/licencas',null,SA)).d.find(x=>x.id===L.id).situacao==='suspenso','admin vê suspenso');
   await sql(`update licencas set pagamento_ok_ate='${mais(hoje,-3)}', vencimento='${mais(hoje,-3)}' where codigo='${L.codigo}'`);
-  r=await j('POST','/display/ativar',{codigo:L.codigo,device_id:'devpg'}); ok(r.s===200,'3 dias vencido: TV ainda funciona'); 
+  r=await j('POST','/display/ativar',{codigo:await codigoTv(L.codigo),device_id:'devpg'}); ok(r.s===200,'3 dias vencido: TV ainda funciona'); 
   ok((await j('GET','/admin/financeiro/dashboard',null,SA)).d.licencas.find(x=>x.id===L.id).situacao==='vencido','dashboard: vencido');
   console.log('11) Modal financeiro: data de vencimento');
   r=await j('PATCH','/admin/licencas/'+L.id+'/financeiro',{financeiro_email:'f2@x.com',financeiro_nome:'Fê Fin',vencimento:mais(hoje,10),valor_mensal:249},SA);

@@ -10,7 +10,7 @@ let chromium; try { ({ chromium } = require(require.resolve('playwright', { path
   try { const g = require('child_process').execSync('npm root -g', { encoding: 'utf8' }).trim(); ({ chromium } = require(path.join(g, 'playwright'))); } catch (e2) {} }
 if (!chromium) { console.log('  ⚠ Playwright não instalado: teste do Portal e do app PULADO.\n    Instale uma vez: npm i -D playwright && npx playwright install chromium'); process.exit(3); }
 const WS = require(require.resolve('ws', { paths: [RAIZ] }));
-const { sql, ADMIN, ADMIN_SENHA } = require('./comum');
+const { sql, ADMIN, ADMIN_SENHA , codigoTv } = require('./comum');
 async function j(m, p, body, tok, h) { const r = await fetch((p.startsWith('http') ? '' : B) + p, { method: m, headers: { 'Content-Type': 'application/json', ...(tok ? { Authorization: 'Bearer ' + tok } : {}), ...(h || {}) }, body: body ? JSON.stringify(body) : undefined }); let d; try { d = await r.json(); } catch (e) {} return { s: r.status, d }; }
 let f = 0; const ok = (c, t, x) => { console.log((c ? '  OK ' : 'FALHA ') + t + (x !== undefined ? '  → ' + JSON.stringify(x) : '')); if (!c) f++; };
 const espera = ms => new Promise(r => setTimeout(r, ms));
@@ -42,7 +42,7 @@ const hoje = new Date(Date.now() - 3 * 3600000).toISOString().slice(0, 10);
   ok(await aceitarTermos(G), 'gestor novo vê os termos e aceita');
   ok(await sql(`SELECT count(*) FROM termos_aceites t JOIN users u ON u.id=t.user_id WHERE u.email='gestor.ui@x.com'`) === '1', 'aceite do gestor registrado');
   await G.evaluate(() => showTab('grade')); await espera(1200);
-  const agora = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' })), mais = new Date(agora.getTime() + 40 * 60000);
+  const agora = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' })), mais = new Date(Math.min(agora.getTime() + 40 * 60000, new Date(agora.getFullYear(), agora.getMonth(), agora.getDate(), 23, 59).getTime()));   // perto da meia-noite: 23:59 de hoje
   const HORA = String(mais.getHours()).padStart(2, '0') + ':' + String(mais.getMinutes()).padStart(2, '0');
   await G.evaluate(([dia, hora]) => { openNovaAula(); fNome.value = 'Spin Portal UI'; fProf.value = 'Prof UI'; fDia.value = dia; fHora.value = hora; fDur.value = '45'; fVagas.value = '12'; }, [String(agora.getDay()), HORA]);
   await G.foto('1_nova_aula');
@@ -104,7 +104,7 @@ const hoje = new Date(Date.now() - 3 * 3600000).toISOString().slice(0, 10);
   await P.foto('8_app_reservado');
 
   console.log('6) App: entrar na aula pelo código da sala');
-  const D = (await j('POST', '/display/ativar', { codigo: LIC, device_id: 'tv-portal-ui', nome_computador: 'TV UI' })).d.token;
+  const D = (await j('POST', '/display/ativar', { codigo: await codigoTv(LIC), device_id: 'tv-portal-ui', nome_computador: 'TV UI' })).d.token;
   const tv = new WS(B.replace('http', 'ws')); await new Promise(o => tv.on('open', o));
   const SALA = 'PR-UI12-' + Math.random().toString(36).slice(2, 6).toUpperCase().padEnd(4, 'X');
   tv.send(JSON.stringify({ tipo: 'criar_sala', codigo: SALA, display_token: D })); await espera(500);

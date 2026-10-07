@@ -3,7 +3,7 @@
 // (contagem e início automático na TV) saía errada em horas. Este teste roda a qualquer hora.
 const B = 'http://127.0.0.1:3999';
 async function j(m, p, body, tok) { const r = await fetch(B + p, { method: m, headers: { 'Content-Type': 'application/json', ...(tok ? { Authorization: 'Bearer ' + tok } : {}) }, body: body ? JSON.stringify(body) : undefined }); let d; try { d = await r.json(); } catch (e) {} return { s: r.status, d }; }
-const { sql } = require('./comum');
+const { sql , codigoTv } = require('./comum');
 let f = 0; const ok = (c, t, x) => { console.log((c ? '  OK ' : 'FALHA ') + t + (x !== undefined ? '  → ' + JSON.stringify(x) : '')); if (!c) f++; };
 (async () => {
   const br = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
@@ -13,7 +13,7 @@ let f = 0; const ok = (c, t, x) => { console.log((c ? '  OK ' : 'FALHA ') + t + 
   console.log('  (agora em Brasília: ' + hoje + ' ' + String(br.getHours()).padStart(2, '0') + ':' + String(br.getMinutes()).padStart(2, '0') + ', aula às ' + hora + ')');
   await sql(`DELETE FROM aulas_agenda WHERE nome='Aula Fuso'`); await sql(`DELETE FROM users WHERE email='fuso@x.com'`);
   const AG = await sql(`INSERT INTO aulas_agenda (license_id,nome,professor_nome,dia_semana,hora,duracao_min,vagas_max,ativa) VALUES ('D5448D47','Aula Fuso','Prof',${br.getDay()},'${hora}',45,12,true) RETURNING id`);
-  const D = (await j('POST', '/display/ativar', { codigo: 'D5448D47', device_id: 'tv-fuso', nome_computador: 'TV fuso' })).d.token;
+  const D = (await j('POST', '/display/ativar', { codigo: await codigoTv('D5448D47'), device_id: 'tv-fuso', nome_computador: 'TV fuso' })).d.token;
 
   console.log('1) Próxima aula na TV');
   const r = await j('GET', '/display/proxima-aula', null, D), pa = r.d && r.d.proxima_aula;
