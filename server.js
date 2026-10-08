@@ -217,7 +217,7 @@ function shortId() {
 //   EMAIL_FROM="ProRider <nao-responda@seudominio.com>"   (remetente)
 //   PORTAL_URL=https://...   (link dos botões; padrão: este servidor)
 // Sem nenhuma delas, nada é enviado e o Portal mostra "e-mail não configurado".
-const EMAILS_PADRAO = { boas_vindas: true, resumo_aula: true, sumido: true, novo_ftp: true, aniversario: false, relatorio_mensal: true, lembrete_aula: true, vaga_aberta: true };
+const EMAILS_PADRAO = { boas_vindas: true, resumo_aula: true, sumido: true, novo_ftp: true, aniversario: false, relatorio_mensal: true, lembrete_aula: true, vaga_aberta: true, conquista_camisa: true, desafio_concluido: true };
 const PORTAL_URL = process.env.PORTAL_URL || 'https://app.prorider.app.br';   // 03/10r: domínio próprio (o endereço antigo do Railway continua funcionando)
 let _smtp = null;
 function emailProvedor() {
@@ -312,18 +312,123 @@ function emailLayout(titulo, corpo, botaoTxt, botaoUrl, academia) {
     <div style="padding:14px 26px;border-top:1px solid #26262d;color:#77777f;font-size:11px">Você recebe este e-mail porque tem conta no ProRider. A academia pode desligar estes avisos no Portal.</div>
   </div></div>`;
 }
+// ── 07/10c: E-MAIL DO ALUNO, MODELO NOVO (estilo da arte do Mario) ──
+// Só tabelas + estilos inline (Gmail, Outlook, Apple Mail, celular). Sem foto, continua legível.
+const EZCOR = { z1: '#a1a1a1', z2: '#295fe8', z3: '#5db13d', z4: '#d7c414', z5: '#ea860c', z6: '#d62d2d', z7: '#9b30ff' };
+const EZLIM = [55, 75, 90, 105, 120, 150];            // % do FTP onde cada zona termina
+const emailZonaDe = pct => 'z' + (EZLIM.findIndex(l => pct < l) + 1 || 7);
+const EF = 'font-family:Arial,Helvetica,sans-serif;';
+
+// 6 (ou 3, 4…) cartões de número. c = [{ic, v, un, l, cor}]
+function emailCartoes(c, porLinha) {
+  porLinha = porLinha || 3; const w = Math.floor(100 / porLinha), linhas = [];
+  for (let i = 0; i < c.length; i += porLinha) linhas.push(c.slice(i, i + porLinha));
+  return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:separate;border-spacing:6px;width:calc(100% + 12px);margin:2px -6px">${linhas.map(l => `<tr>${l.map(x => `
+    <td width="${w}%" valign="top" style="background:#17171c;border:1px solid #2a2a31;border-bottom:3px solid ${x.cor};border-radius:12px;padding:14px 8px 12px;text-align:center;${EF}">
+      <div style="font-size:22px;line-height:24px">${x.ic}</div>
+      <div style="margin-top:6px;white-space:nowrap"><span style="font-size:26px;line-height:30px;font-weight:800;color:${x.corV || '#fff'}">${_esc(x.v)}</span>${x.un ? `<span style="font-size:13px;font-weight:700;color:#b9b9c0"> ${_esc(x.un)}</span>` : ''}</div>
+      <div style="margin-top:4px;font-size:9px;line-height:12px;letter-spacing:1px;color:#8d8d96;text-transform:uppercase">${_esc(x.l)}</div>
+    </td>`).join('')}</tr>`).join('')}</table>`;
+}
+
+// Gráfico minuto a minuto (barras na cor da zona) — serie = watts médios de cada minuto
+function emailGrafico(serie, ftp, durMin) {
+  const n = serie.length, H = 120; if (n < 3 || !(ftp > 0)) return ''; durMin = durMin || n;
+  const top = 135, px = p => Math.max(3, Math.round(Math.min(p, top) / top * H));
+  const barras = serie.map(w => { const p = w * 100 / ftp, z = emailZonaDe(p);
+    return `<td valign="bottom" style="padding:0 1px;height:${H}px"><div style="height:${px(p)}px;background:${EZCOR[z]};border-radius:2px 2px 0 0;font-size:0;line-height:0">&nbsp;</div></td>`; }).join('');
+  // régua das zonas, na mesma escala das barras (Z1 embaixo)
+  const faixas = EZLIM.map((l, i) => ({ z: 'z' + (i + 1), h: px(l) - (i ? px(EZLIM[i - 1]) : 0) })).reverse();
+  const regua = faixas.map(f => `<div style="height:${f.h}px;line-height:${f.h}px;font-size:9px;font-weight:700;color:${EZCOR[f.z]};text-align:right;overflow:hidden">${f.h >= 10 ? f.z.toUpperCase() : ''}</div>`).join('');
+  const ticks = []; for (let m = 0; m < n; m += 10) ticks.push(`<td colspan="${Math.min(10, n - m)}" style="font-size:10px;color:#6f6f78;padding-top:6px;${EF}">${Math.round(m * durMin / n)}'</td>`);
+  return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#17171c;border:1px solid #2a2a31;border-radius:12px;margin:8px 0">
+    <tr><td style="padding:12px 14px 4px;${EF}font-size:10px;letter-spacing:1.5px;color:#8d8d96">POTÊNCIA MINUTO A MINUTO · ${durMin} MIN</td></tr>
+    <tr><td style="padding:6px 10px 12px 14px"><table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>
+      <td><table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="table-layout:fixed;border-bottom:1px solid #3a3a42"><tr>${barras}</tr></table>
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="table-layout:fixed"><tr>${ticks.join('')}</tr></table></td>
+      <td width="26" valign="top" style="padding-left:4px">${regua}</td>
+    </tr></table></td></tr></table>`;
+}
+// Sem a série (app antigo): barra única com o tempo em cada zona
+function emailZonas(pct) {
+  const z = Object.keys(EZCOR).filter(k => (pct[k] || 0) > 0); if (!z.length) return '';
+  return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#17171c;border:1px solid #2a2a31;border-radius:12px;margin:8px 0"><tr><td style="padding:12px 14px;${EF}">
+    <div style="font-size:10px;letter-spacing:1.5px;color:#8d8d96;margin-bottom:8px">TEMPO EM CADA ZONA</div>
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-radius:6px;overflow:hidden"><tr>${z.map(k => `<td width="${pct[k]}%" style="background:${EZCOR[k]};height:14px;font-size:0">&nbsp;</td>`).join('')}</tr></table>
+    <div style="margin-top:8px;font-size:11px;color:#b9b9c0">${z.map(k => `<span style="color:${EZCOR[k]};font-weight:700">${k.toUpperCase()}</span> ${pct[k]}%`).join(' &nbsp; ')}</div>
+  </td></tr></table>`;
+}
+// Selo grande (camisa, desafio…)
+function emailSelo(o) {
+  return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#17171c;border:1px solid #2a2a31;border-radius:14px;margin:8px 0"><tr>
+    <td width="112" style="padding:18px 0 18px 18px"><div style="width:92px;height:92px;border-radius:46px;background:${o.cor};text-align:center;${EF}">
+      <div style="padding-top:${o.sub2 ? 18 : 26}px;font-size:${o.pequeno ? 22 : o.grande ? 36 : 30}px;line-height:38px;font-weight:900;color:${o.corTxt || '#111'}">${_esc(o.marca)}</div>
+      ${o.sub2 ? `<div style="font-size:10px;font-weight:800;letter-spacing:1.5px;color:${o.corTxt || '#111'}">${_esc(o.sub2)}</div>` : ''}</div></td>
+    <td style="padding:18px 18px 18px 14px;${EF}">
+      <div style="font-size:10px;letter-spacing:2px;color:${o.cor};font-weight:700">${_esc(o.rotulo)}</div>
+      <div style="font-size:20px;line-height:25px;font-weight:800;color:#fff;margin-top:4px">${_esc(o.titulo)}</div>
+      <div style="font-size:13px;line-height:19px;color:#b9b9c0;margin-top:4px">${_esc(o.texto)}</div>
+    </td></tr></table>`;
+}
+function emailProgresso(atual, meta, cor, txt) {
+  const p = Math.max(0, Math.min(100, Math.round(atual * 100 / meta)));
+  return `<div style="margin:10px 0 4px;${EF}"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#26262d;border-radius:5px"><tr>
+    <td width="${p}%" style="background:${cor};height:10px;border-radius:5px;font-size:0">&nbsp;</td>${p < 100 ? `<td style="font-size:0">&nbsp;</td>` : ''}</tr></table>
+    <div style="font-size:11px;color:#8d8d96;margin-top:6px">${_esc(txt)}</div></div>`;
+}
+// Caixa "Excelente trabalho!"
+function emailRecado(ic, titulo, texto) {
+  return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#17171c;border:1px solid #2a2a31;border-radius:12px;margin:8px 0"><tr>
+    <td width="64" valign="middle" style="padding:16px 0 16px 16px"><div style="width:52px;height:52px;border-radius:26px;border:2px solid #ea860c;text-align:center;font-size:24px;line-height:52px">${ic}</div></td>
+    <td style="padding:16px 18px 16px 14px;${EF}"><div style="font-size:16px;font-weight:800;color:#fff">${_esc(titulo)}</div>
+      <div style="font-size:13px;line-height:19px;color:#b9b9c0;margin-top:3px">${_esc(texto)}</div></td></tr></table>`;
+}
+
+// Moldura. img = endereço base das imagens (PORTAL_URL + '/img')
+function emailLayout2(o) {
+  const img = o.img || (PORTAL_URL + '/img');
+  return `<div style="background:#0b0b0e;padding:24px 10px;${EF}"><table role="presentation" align="center" width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;margin:0 auto;background:#111115;border:1px solid #26262d;border-radius:16px;overflow:hidden">
+  <tr><td style="background:#0b0b0e"><table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>
+    <td width="45%" valign="middle" style="padding:22px 0 18px 24px;${EF}">
+      <img src="${img}/email-logo.png" alt="PRO RIDER" width="170" style="display:block;width:170px;max-width:100%;height:auto;border:0;color:#ea860c;font-size:22px;font-weight:900">
+      <div style="margin-top:14px;font-size:9px;line-height:16px;letter-spacing:3px;color:#9a9aa2">PERFORMANCE<br>SAÚDE<br>ENERGIA<br>COMUNIDADE</div>
+      <div style="margin-top:10px;width:46px;height:3px;background:#ea860c;font-size:0;line-height:0">&nbsp;</div>
+      ${o.academia ? `<div style="margin-top:10px;font-size:10px;letter-spacing:1.5px;line-height:14px;color:#ea860c;text-transform:uppercase;font-weight:700">${_esc(o.academia)}</div>` : ''}
+    </td>
+    <td width="55%" valign="bottom" style="font-size:0;line-height:0"><img src="${img}/${o.foto || 'email-hero.jpg'}" alt="" width="330" style="display:block;width:100%;max-width:330px;height:auto;border:0"></td>
+  </tr></table></td></tr>
+  <tr><td style="padding:22px 22px 6px;${EF}">
+    <div style="width:40px;height:3px;background:#ea860c;font-size:0;line-height:0;margin-bottom:14px">&nbsp;</div>
+    <div style="font-size:26px;line-height:31px;font-weight:800;color:#fff">${_esc(o.titulo)}</div>
+    ${o.destaque ? `<div style="font-size:32px;line-height:38px;font-weight:900;color:#ea860c">${_esc(o.destaque)}</div>` : ''}
+    ${o.sub ? `<div style="font-size:15px;line-height:22px;color:#d5d5da;margin-top:10px">${o.sub}</div>` : ''}
+  </td></tr>
+  <tr><td style="padding:8px 16px 4px;${EF};color:#d5d5da;font-size:14px;line-height:21px">${o.corpo}
+    ${o.botaoTxt ? `<div style="text-align:center;margin:16px 0 8px"><a href="${o.botaoUrl}" style="display:inline-block;background:#ea860c;color:#111;text-decoration:none;font-weight:800;font-size:15px;padding:13px 28px;border-radius:10px">${_esc(o.botaoTxt)}</a></div>` : ''}
+  </td></tr>
+  <tr><td style="padding:14px 22px 0"><div style="height:2px;background:#ea860c;background-image:linear-gradient(90deg,#ffb020,#ea860c,#d62d2d);font-size:0;line-height:0">&nbsp;</div></td></tr>
+  <tr><td style="padding:16px 22px 4px;${EF}">
+    <div style="font-size:18px;font-weight:900;font-style:italic;color:#fff">RIDE WITH <span style="color:#ea860c">PURPOSE</span></div>
+    <div style="margin-top:6px;font-size:10px;letter-spacing:2.5px;color:#9a9aa2">MAIS QUE UM TREINO, <span style="color:#ea860c;font-weight:700">UMA EXPERIÊNCIA.</span></div>
+  </td></tr>
+  <tr><td style="padding:6px 22px 18px;${EF};font-size:11px;line-height:16px;color:#6f6f78">Você recebe este e-mail porque tem conta no ProRider. A academia pode desligar estes avisos no Portal.</td></tr>
+</table></div>`;
+}
 // ── TEXTOS DOS E-MAILS (30/09e) ─────────────────────────────────────
 // A academia pode escrever os próprios textos no Portal (emails_cfg.textos).
 // Campo vazio = texto padrão abaixo. {palavras} viram os dados do aluno.
 const EMAIL_TEXTO_PADRAO = {
-  boas_vindas:      { assunto: 'Bem-vindo(a) ao ProRider — {academia}', titulo: 'Bem-vindo(a), {nome}!', abertura: 'Que bom ter você com a gente na {academia}.', fechamento: 'Na aula, escaneie o QR da bike com o app e acompanhe potência, zonas e calorias em tempo real. Depois de cada aula você recebe o seu resumo.', botao: '' },
-  resumo_aula:      { assunto: '⚡ {nome}, seu resumo da aula', titulo: 'Parabéns pela aula, {nome}! 🔥', abertura: 'Olha só o que você fez na aula {aula}:', fechamento: '', botao: '' },
-  sumido:           { assunto: 'Sentimos sua falta, {nome} 🚴', titulo: 'Sentimos sua falta!', abertura: 'Faz {dias} dias desde a sua última aula na {academia}.', fechamento: 'Que tal voltar esta semana? Seu FTP e seu histórico continuam guardados.', botao: '' },
-  novo_ftp:         { assunto: '📈 Novo FTP: {ftp_novo} W', titulo: 'Boa, {nome}! Seu FTP subiu.', abertura: '', fechamento: 'As zonas das próximas aulas já usam o FTP novo.', botao: '' },
-  aniversario:      { assunto: '🎉 Feliz aniversário, {nome}!', titulo: 'Feliz aniversário! 🎂', abertura: 'A equipe da {academia} deseja um ótimo dia.', fechamento: 'Venha comemorar pedalando!', botao: '' },
+  boas_vindas:      { assunto: 'Bem-vindo(a) ao ProRider — {academia}', titulo: 'Bem-vindo(a), {nome}!', abertura: 'Que bom ter você com a gente na {academia}.', fechamento: 'Na aula, escaneie o QR da bike com o app e acompanhe potência, zonas e calorias em tempo real. Depois de cada aula você recebe o seu resumo.', botao: 'Abrir o app' },
+  resumo_aula:      { assunto: '⚡ {nome}, seu resumo da aula', titulo: 'Parabéns pela aula, {nome}! 🔥', abertura: 'Olha só o que você fez na aula {aula}:', fechamento: '', botao: 'Abrir o app' },
+  sumido:           { assunto: 'Sentimos sua falta, {nome} 🚴', titulo: 'Sentimos sua falta, {nome}!', abertura: 'Faz {dias} dias desde a sua última aula na {academia}.', fechamento: 'Que tal voltar esta semana? A próxima aula pode ser o recomeço.', botao: 'Abrir o app' },
+  novo_ftp:         { assunto: '📈 Novo FTP: {ftp_novo} W', titulo: 'Seu FTP subiu, {nome}! 📈', abertura: 'O teste mostrou: você está mais forte.', fechamento: 'As zonas das próximas aulas já usam o FTP novo.', botao: 'Abrir o app' },
+  aniversario:      { assunto: '🎉 Feliz aniversário, {nome}!', titulo: 'Feliz aniversário, {nome}! 🎂', abertura: 'A equipe da {academia} deseja um ótimo dia.', fechamento: 'Uma aula no dia do seu aniversário tem outro sabor. Te esperamos!', botao: 'Abrir o app' },
   relatorio_mensal: { assunto: 'Relatório de {mes} — {academia}', titulo: 'Relatório de {mes}', abertura: '', fechamento: 'O relatório completo, com as zonas e os melhores alunos, está no Portal.', botao: 'Abrir relatórios' },
-  lembrete_aula:    { assunto: '⏰ {nome}, sua aula é às {hora}', titulo: 'Sua aula é daqui a pouco!', abertura: '{aula} hoje às {hora} na {academia} — bike {bike}.', fechamento: 'Não vai conseguir ir? Cancele no app e libere a vaga para quem está na lista de espera.', botao: 'Abrir o app' },
-  vaga_aberta:      { assunto: '🚲 Abriu uma vaga: {aula} às {hora}', titulo: 'Abriu uma vaga para você!', abertura: 'Você estava na lista de espera da aula {aula}, {data} às {hora}. A bike {bike} agora é sua.', fechamento: 'Se não puder ir, cancele no app para a vaga ir para o próximo da fila.', botao: 'Abrir o app' },
+  lembrete_aula:    { assunto: '⏰ {nome}, sua aula é às {hora}', titulo: 'Sua aula é daqui a pouco, {nome}!', abertura: '{aula} hoje às {hora} na {academia} — bike {bike}.', fechamento: 'Não vai conseguir ir? Cancele no app e libere a vaga para quem está na lista de espera.', botao: 'Abrir o app' },
+  vaga_aberta:      { assunto: '🚲 Abriu uma vaga: {aula} às {hora}', titulo: 'Abriu uma vaga para você, {nome}!', abertura: 'Você estava na lista de espera da aula {aula}, {data} às {hora}. A bike {bike} agora é sua.', fechamento: 'Se não puder ir, cancele no app para a vaga ir para o próximo da fila.', botao: 'Abrir o app' },
+  // 07/10c
+  conquista_camisa: { assunto: '🏆 {nome}, você conquistou a {camisa}!', titulo: 'Nova conquista, {nome}! 🏆', abertura: 'O campeonato {campeonato} terminou e você levou a {camisa} para casa.', fechamento: 'Ela aparece no seu perfil e na tela da TV nas próximas aulas. Defenda a sua camisa no próximo campeonato!', botao: 'Abrir o app' },
+  desafio_concluido:{ assunto: '💪 Desafio {desafio} concluído: +{pontos} pontos', titulo: 'Desafio concluído, {nome}! 💪', abertura: 'Você completou o desafio {desafio} e ganhou {pontos} pontos.', fechamento: '', botao: 'Abrir o app' },
 };
 const EMAIL_CAMPOS = ['assunto', 'titulo', 'abertura', 'fechamento', 'botao'];
 function emailTexto(cfg, tipo) {
@@ -337,8 +442,85 @@ function emailVars(t, v) { return String(t || '').replace(/\{(\w+)\}/g, (m, k) =
 function emailMontar(tipo, cfg, v, numerosHtml, extraHtml, botaoUrl, academia) {
   const t = emailTexto(cfg, tipo);
   const p = x => x ? `<p>${_esc(emailVars(x, v)).replace(/\n/g, '<br>')}</p>` : '';
-  const corpo = p(t.abertura) + ((t.numeros && numerosHtml) ? numerosHtml : '') + (extraHtml || '') + p(t.fechamento);
-  return { subject: emailVars(t.assunto, v), html: emailLayout(_esc(emailVars(t.titulo, v)), corpo, t.botao ? _esc(emailVars(t.botao, v)) : null, botaoUrl || (PORTAL_URL + '/aluno'), academia) };
+  // 07/10c: modelo novo. O nome do aluno no título sai em destaque (laranja, linha de baixo)
+  const tit = emailVars(t.titulo, v), nm = v && v.nome ? String(v.nome) : '', i = nm ? tit.indexOf(nm) : -1;
+  const fech = emailVars(t.fechamento, v);
+  const rc = EMAIL_RECADO[tipo], fx = fech || (tipo === 'resumo_aula' ? 'Cada aula conta. Até a próxima!' : '');
+  const corpo = emailTopoTipo(tipo, v) + ((t.numeros && numerosHtml) ? numerosHtml : '') + (extraHtml || '') +
+    (fx ? (rc ? emailRecado(rc[0], emailVars(rc[1], v), fx) : `<p style="color:#d5d5da">${_esc(fx).replace(/\n/g, '<br>')}</p>`) : '');
+  return { subject: emailVars(t.assunto, v), html: emailLayout2({ titulo: i > 0 ? tit.slice(0, i).trim() : tit, destaque: i > 0 ? tit.slice(i) : '',
+    sub: t.abertura ? _esc(emailVars(t.abertura, v)).replace(/\n/g, '<br>') : '', corpo, botaoTxt: t.botao ? emailVars(t.botao, v) : '', botaoUrl: botaoUrl || (PORTAL_URL + '/aluno'), academia }) };
+}
+// 07/10c: cada tipo com a mesma cara — selo/cartões no topo e o recado (texto de fechamento) numa caixa
+const EMAIL_RECADO = { boas_vindas: ['🚴', 'Dica'], resumo_aula: ['📈', 'Excelente trabalho!'], sumido: ['💪', 'Bora voltar?'], novo_ftp: ['⚡', 'Zonas atualizadas'],
+  aniversario: ['🎉', 'Comemore com a gente'], relatorio_mensal: ['📊', 'Relatório completo'], lembrete_aula: ['📲', 'Imprevisto?'], vaga_aberta: ['📲', 'Imprevisto?'],
+  conquista_camisa: ['👕', 'Defenda a sua camisa'], desafio_concluido: ['⚡', 'Continue assim'] };
+function emailTopoTipo(tipo, v) {
+  v = v || {};
+  if (tipo === 'boas_vindas') return emailCartoes([{ ic: '📱', v: '1', l: 'Baixe o app ProRider', cor: '#ea860c' }, { ic: '📷', v: '2', l: 'Escaneie o QR da bike', cor: '#295fe8' }, { ic: '📊', v: '3', l: 'Receba o resumo', cor: '#5db13d' }]);
+  if (tipo === 'sumido') return emailSelo({ cor: '#295fe8', corTxt: '#fff', marca: v.dias || '—', sub2: 'DIAS', rotulo: 'SENTIMOS SUA FALTA', titulo: 'Sua bike está te esperando', texto: 'Seu FTP e o seu histórico continuam guardados.' });
+  if (tipo === 'aniversario') return emailSelo({ cor: '#d62d2d', corTxt: '#fff', marca: '🎂', sub2: 'PARABÉNS', rotulo: 'FELIZ ANIVERSÁRIO', titulo: 'Hoje o dia é seu!', texto: 'Um abraço de toda a equipe' + (v.academia ? ' da ' + v.academia : '') + '.' });
+  if (tipo === 'lembrete_aula') return emailSelo({ cor: '#ea860c', corTxt: '#111', marca: v.hora || '—', sub2: 'HOJE', pequeno: true, rotulo: 'SUA AULA', titulo: v.aula || 'Aula', texto: 'Bike ' + (v.bike || '—') + (v.academia ? ' · ' + v.academia : '') });
+  if (tipo === 'vaga_aberta') return emailSelo({ cor: '#5db13d', corTxt: '#111', marca: v.bike || '—', sub2: 'BIKE', rotulo: 'VAGA GARANTIDA', titulo: v.aula || 'Aula', texto: (v.data || '') + (v.hora ? ' às ' + v.hora : '') });
+  return '';
+}
+// 07/10c: números dos e-mails no modelo novo
+const _nBR = n => Number(n || 0).toLocaleString('pt-BR');
+function emailNumsResumo(x, serie, ftp, zonas) {
+  const z = String(x.zona || '—').toUpperCase(), zc = EZCOR[z.toLowerCase()] || '#9b30ff';
+  serie = Array.isArray(serie) ? serie : [];
+  let g = emailGrafico(serie, ftp, x.min);
+  if (!g && zonas && typeof zonas === 'object') { const zp = {}; Object.keys(EZCOR).forEach(k => { const n = parseInt(zonas[k]) || 0; if (n > 0) zp[k] = Math.min(100, n); }); g = emailZonas(zp); }
+  return emailCartoes([
+    { ic: '⏱️', v: x.min, un: 'min', l: 'Duração', cor: '#ffb020' },
+    { ic: '🔥', v: _nBR(x.kcal), un: 'kcal', l: 'Calorias', cor: '#ea860c', corV: '#ff6a3d' },
+    { ic: '⚡', v: x.w, un: 'W', l: 'Potência média', cor: '#295fe8' },
+    { ic: '🎯', v: x.rpm, un: 'rpm', l: 'RPM médio', cor: '#5db13d' },
+    { ic: '📊', v: z, un: '', l: 'Zona predominante', cor: zc },
+    { ic: '🏆', v: '+' + _nBR(x.pontos), un: '', l: 'Pontos', cor: '#d7c414', corV: '#ffd23f' }]) + g;
+}
+function emailNumsFtp(antes, depois) {
+  return emailCartoes([{ ic: '📉', v: antes, un: 'W', l: 'Antes', cor: '#a1a1a1' }, { ic: '📈', v: depois, un: 'W', l: 'Agora', cor: '#5db13d', corV: '#7fd65d' },
+    { ic: '🚀', v: '+' + (depois - antes), un: 'W', l: 'Evolução', cor: '#d7c414', corV: '#ffd23f' }]);
+}
+function emailNumsMes(aulas, alunos, kcal) {
+  return emailCartoes([{ ic: '🚴', v: _nBR(aulas), un: '', l: 'Aulas concluídas', cor: '#295fe8' }, { ic: '👥', v: _nBR(alunos), un: '', l: 'Alunos ativos', cor: '#5db13d' },
+    { ic: '🔥', v: _nBR(kcal), un: '', l: 'kcal', cor: '#ea860c', corV: '#ff6a3d' }]);
+}
+// camisa conquistada num campeonato (h = camisa: k, cat, cor, rotulo, pontos)
+const CAMISA_SELO = { lider: ['1º', 'GERAL', 'Líder da classificação geral'], pontos: ['SPR', 'PONTOS', 'Melhor nos sprints'], montanha: ['KOM', 'MONTANHA', 'Rei da montanha'], jovem: ['NOVO', 'ESTREANTE', 'Melhor estreante'] };
+function emailCamisaMontar(cfg, v, h, academia) {
+  const cor = /^#[0-9a-f]{6}$/i.test(h.cor || '') ? h.cor : (/azul/.test(h.cor || '') ? '#2f8cff' : /vermelh/.test(h.cor || '') ? '#d62d2d' : '#ea860c');
+  const claro = (parseInt(cor.slice(1, 3), 16) * 299 + parseInt(cor.slice(3, 5), 16) * 587 + parseInt(cor.slice(5, 7), 16) * 114) / 1000 > 150;
+  const sl = CAMISA_SELO[h.cat] || ['★', '', h.rotulo || 'Camisa'];
+  const extra = emailSelo({ cor, corTxt: claro ? '#111' : '#fff', marca: sl[0], sub2: sl[1], rotulo: String(h.rotulo || 'Camisa').toUpperCase(), titulo: sl[2], texto: v.campeonato ? 'Campeonato ' + v.campeonato : '' }) +
+    (h.pontos ? emailCartoes([{ ic: '🏆', v: _nBR(h.pontos), un: 'pts', l: 'Pontos na classificação', cor }], 1) : '');
+  return emailMontar('conquista_camisa', cfg, v, null, extra, PORTAL_URL + '/aluno', academia);
+}
+const DESAFIO_INFO = { '21dias': { nome: '21 dias', marca: '21', sub2: 'DIAS', prox: ['Quebra FTP', 'Suba o seu FTP 5% este mês e ganhe mais pontos.'] },
+  ftp: { nome: 'Quebra FTP', marca: 'FTP', sub2: '+5%', prox: ['21 dias', 'Pedale em 21 dias diferentes em 30 dias e ganhe mais pontos.'] } };
+function emailDesafioMontar(cfg, v, desafio, pts, info, academia) {
+  const d = DESAFIO_INFO[desafio] || { nome: desafio, marca: '★', sub2: '', prox: null }; info = info || {};
+  const det = desafio === '21dias' ? (info.dias || 21) + ' dias diferentes pedalando nos últimos 30 dias.' : desafio === 'ftp' ? 'Seu FTP foi de ' + (info.base || '—') + ' W para ' + (info.atual || '—') + ' W (+' + (info.ganho_pct || 0) + '%).' : '';
+  const extra = emailSelo({ cor: '#ea860c', corTxt: '#111', marca: d.marca, sub2: d.sub2, grande: true, rotulo: 'DESAFIO ' + d.nome.toUpperCase(), titulo: '+' + _nBR(pts) + ' pontos na sua conta', texto: det }) +
+    (d.prox ? emailRecado('⚡', 'Próximo desafio: ' + d.prox[0], d.prox[1]) : '');
+  return emailMontar('desafio_concluido', cfg, Object.assign({}, v, { desafio: d.nome, pontos: _nBR(pts) }), null, extra, PORTAL_URL + '/aluno', academia);
+}
+async function emailCamisa(h, camp) {
+  if (!db || !emailProvedor() || !h || !h.user_id) return;
+  const u = await _userLic(h.user_id); if (!u || !u.email) return;
+  const c = await emailsCfgDe(u.license_id); if (!c.conquista_camisa) return;
+  const v = { nome: String(u.name || '').split(' ')[0], nome_completo: u.name || '', academia: u.academia || 'ProRider', camisa: h.rotulo || 'camisa', campeonato: camp.nome || '' };
+  const m = emailCamisaMontar(c, v, h, u.academia);
+  await emailUmaVez('conquista_camisa', 'u' + h.user_id + ':' + camp.id + ':' + h.k, h.user_id, u.email, m.subject, m.html);
+}
+async function emailDesafio(uid, desafio, pts, info) {
+  if (!db || !emailProvedor()) return;
+  const u = await _userLic(uid); if (!u || !u.email) return;
+  const c = await emailsCfgDe(u.license_id); if (!c.desafio_concluido) return;
+  const v = { nome: String(u.name || '').split(' ')[0], nome_completo: u.name || '', academia: u.academia || 'ProRider' };
+  const m = emailDesafioMontar(c, v, desafio, pts, info, u.academia);
+  await emailUmaVez('desafio_concluido', 'u' + uid + ':' + desafio + ':' + new Date().toISOString().slice(0, 10), uid, u.email, m.subject, m.html);
 }
 function _numBox(v, l, cor) {
   return `<td style="text-align:center;padding:10px"><div style="font-size:28px;font-weight:900;color:${cor || '#fff'}">${v}</div><div style="font-size:10px;color:#8a8a92;letter-spacing:1px">${l}</div></td>`;
@@ -359,7 +541,7 @@ async function emailBoasVindas({ userId, email, nome, academia, licId, senhaTemp
     : null;
   if (!gestor) {
     const cfgA = licId ? await emailsCfgDe(licId) : {};
-    const acesso = senhaTemp ? `<p style="background:#0b0b0e;border-radius:8px;padding:12px 14px">Seu acesso ao app: <b>${_esc(email)}</b><br>Senha provisória: <b>${_esc(senhaTemp)}</b></p>` : '';
+    const acesso = senhaTemp ? `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#17171c;border:1px solid #2a2a31;border-left:3px solid #ea860c;border-radius:12px;margin:8px 0"><tr><td style="padding:14px 16px;font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:22px;color:#d5d5da"><div style="font-size:10px;letter-spacing:2px;color:#ea860c;font-weight:700">SEU ACESSO AO APP</div>E-mail: <b style="color:#fff">${_esc(email)}</b><br>Senha provisória: <b style="color:#fff">${_esc(senhaTemp)}</b></td></tr></table>` : '';
     const m = emailMontar('boas_vindas', cfgA, { nome: String(nome || '').split(' ')[0], nome_completo: nome || '', academia: academia || 'ProRider' }, null, acesso, PORTAL_URL + '/aluno', academia);
     return emailUmaVez('boas_vindas', 'u' + (userId || email), userId, email, m.subject, m.html);
   }
@@ -376,11 +558,8 @@ async function emailResumoAula(uid, a) {
   const v = { nome: String(u.name || '').split(' ')[0], nome_completo: u.name || '', academia: u.academia || 'ProRider', aula: a.aula_nome || 'Aula',
     duracao: min + ' min', kcal: parseInt(a.kcal) || 0, potencia: (parseInt(a.watts_med) || 0) + ' W', rpm: parseInt(a.rpm_med) || 0,
     zona: String(a.zona_predominante || '—').toUpperCase(), pontos: parseInt(a.pontos) || 0 };
-  const nums = `<table style="width:100%;background:#0b0b0e;border-radius:10px;margin:10px 0"><tr>
-      ${_numBox(v.duracao, 'DURAÇÃO')}${_numBox(v.kcal, 'KCAL', '#ea860c')}${_numBox(v.potencia, 'POTÊNCIA MÉDIA', '#5b8cff')}
-    </tr><tr>
-      ${_numBox(v.rpm, 'RPM MÉDIO')}${_numBox(v.zona, 'ZONA PREDOMINANTE')}${_numBox('+' + v.pontos, 'PONTOS', '#ffe033')}
-    </tr></table>`;
+  const nums = emailNumsResumo({ min, kcal: v.kcal, w: parseInt(a.watts_med) || 0, rpm: v.rpm, zona: v.zona, pontos: v.pontos },
+    a.serie_min, parseInt(u.ftp) || 0, a.zonas);
   const m = emailMontar('resumo_aula', c, v, nums, '', PORTAL_URL + '/aluno', u.academia);
   await emailUmaVez('resumo_aula', 'u' + uid + ':' + Date.now(), uid, u.email, m.subject, m.html);
 }
@@ -389,9 +568,7 @@ async function emailNovoFtp(uid, antes, depois) {
   const u = await _userLic(uid); if (!u || !u.email) return;
   const c = await emailsCfgDe(u.license_id); if (!c.novo_ftp) return;
   const v = { nome: String(u.name || '').split(' ')[0], nome_completo: u.name || '', academia: u.academia || 'ProRider', ftp_antes: antes, ftp_novo: depois, evolucao: depois - antes };
-  const nums = `<table style="width:100%;background:#0b0b0e;border-radius:10px;margin:10px 0"><tr>
-      ${_numBox(antes + ' W', 'ANTES')}${_numBox(depois + ' W', 'AGORA', '#5db13d')}${_numBox('+' + (depois - antes) + ' W', 'EVOLUÇÃO', '#ffe033')}
-    </tr></table>`;
+  const nums = emailNumsFtp(antes, depois);
   const m = emailMontar('novo_ftp', c, v, nums, '', PORTAL_URL + '/aluno', u.academia);
   await emailUmaVez('novo_ftp', 'u' + uid + ':' + depois, uid, u.email, m.subject, m.html);
 }
@@ -433,8 +610,7 @@ async function rotinaEmailsDiaria() {
           WHERE u.license_id=$1 AND ah.data_aula >= $2::date AND ah.data_aula < ($2::date + INTERVAL '1 month')`, [l.codigo, ref + '-01']);
         const d = r.rows[0] || {};
         const nomeMes = mes.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
-        const numsR = `<table style="width:100%;background:#0b0b0e;border-radius:10px;margin:10px 0"><tr>
-            ${_numBox(d.aulas || 0, 'AULAS CONCLUÍDAS')}${_numBox(d.alunos || 0, 'ALUNOS ATIVOS', '#5db13d')}${_numBox(d.kcal || 0, 'KCAL', '#ea860c')}</tr></table>`;
+        const numsR = emailNumsMes(d.aulas || 0, d.alunos || 0, d.kcal || 0);
         const mR = emailMontar('relatorio_mensal', c, { academia: l.nome, mes: nomeMes, aulas: d.aulas || 0, alunos: d.alunos || 0, kcal: d.kcal || 0 }, numsR, '', PORTAL_URL + '/academia.html', l.nome);
         await emailUmaVez('relatorio_mensal', l.codigo + ':' + ref, null, para, mR.subject, mR.html);
       }
@@ -1237,7 +1413,8 @@ app.post('/aula/complete', authMiddleware, async (req, res) => {
     await db.query('UPDATE users SET level=$1 WHERE id=$2', [newLevel, req.user.id]);
     res.json({ pontos_ganhos: pontos, total_pontos: newPoints, nivel: newLevel });
     // 26/09e: e-mail de resumo da aula (se a academia deixou ligado)
-    emailResumoAula(req.user.id, { aula_nome, duracao_sec, kcal, watts_med, rpm_med, zona_predominante, pontos }).catch(() => {});
+    const serie_min = Array.isArray(req.body.serie_min) ? req.body.serie_min.slice(0, 240).map(x => Math.max(0, Math.min(3000, parseInt(x) || 0))) : [];   // 07/10c
+    emailResumoAula(req.user.id, { aula_nome, duracao_sec, kcal, watts_med, rpm_med, zona_predominante, pontos, serie_min, zonas }).catch(() => {});
   } catch(e) {
     log('aula/complete error: ' + e.message);
     res.status(500).json({ error: 'Erro interno' });
@@ -2746,7 +2923,8 @@ app.post('/display/saude', displayAuth, async (req, res) => {
   if (!db || req.user.role !== 'display' || !req.user.device_id) return res.json({ ok: false });
   const b = req.body || {}, n = (v, max) => { v = Number(v); return Number.isFinite(v) && v >= 0 ? Math.min(Math.round(v * 10) / 10, max) : null; };
   const d = { mem_mb: n(b.mem_mb, 1e5), mem_lim_mb: n(b.mem_lim_mb, 1e5), nos: n(b.nos, 1e7), fps: n(b.fps, 1000), ligada_min: n(b.ligada_min, 1e6),
-    aula_min: n(b.aula_min, 1e5), alunos: n(b.alunos, 1000), quedas_ws: n(b.quedas_ws, 1e6), erros: n(b.erros, 1e6), build: String(b.build || '').slice(0, 40) };
+    aula_min: n(b.aula_min, 1e5), alunos: n(b.alunos, 1000), quedas_ws: n(b.quedas_ws, 1e6), erros: n(b.erros, 1e6), build: String(b.build || '').slice(0, 40),
+    atualizador: typeof b.atualizador === 'boolean' ? b.atualizador : null };   // 07/10c: o programa da TV tem o atualizador?
   try {
     await db.query('UPDATE licenca_computadores SET saude=$1, saude_em=NOW() WHERE license_codigo=$2 AND device_id=$3', [d, req.user.license_id, req.user.device_id]);
     const k = req.user.license_id + '|' + req.user.device_id, ult = _tvSaudeUlt.get(k) || 0;
@@ -3102,13 +3280,17 @@ app.get('/gestor/emails', gestorAuth, async (req, res) => {
 });
 // Prévia com um aluno de exemplo (o Portal mostra exatamente o que sai)
 const EMAIL_EXEMPLO = { nome: 'Ana', nome_completo: 'Ana Paula', aula: 'Endurance de quinta', duracao: '55 min', kcal: 512, potencia: '168 W', rpm: 88, zona: 'Z3', pontos: 152,
-  dias: 16, ftp_antes: 180, ftp_novo: 192, evolucao: 12, mes: 'setembro de 2026', aulas: 214, alunos: 63, hora: '18:30', bike: 7, data: 'quinta, 03/10' };
+  dias: 16, ftp_antes: 180, ftp_novo: 192, evolucao: 12, mes: 'setembro de 2026', aulas: 214, alunos: 63, hora: '18:30', bike: 7, data: 'quinta, 03/10',
+  camisa: 'Camisa amarela', campeonato: 'Copa Primavera', desafio: '21 dias' };
+const EMAIL_SERIE_EXEMPLO = [80, 85, 90, 95, 100, 110, 120, 130, 135, 140, 145, 150, 155, 160, 165, 170, 175, 180, 185, 190, 195, 200, 170, 165, 160, 160, 165, 170, 215, 220, 225, 220, 215, 225, 230, 160, 150, 140, 130, 150, 160, 170, 180, 150, 130, 120, 110, 100, 90, 85, 80, 80, 78, 75, 70];
 function emailPrevia(tipo, cfg, academia) {
   const v = Object.assign({}, EMAIL_EXEMPLO, { academia });
   let nums = null;
-  if (tipo === 'resumo_aula') nums = `<table style="width:100%;background:#0b0b0e;border-radius:10px;margin:10px 0"><tr>${_numBox('55 min', 'DURAÇÃO')}${_numBox(512, 'KCAL', '#ea860c')}${_numBox('168 W', 'POTÊNCIA MÉDIA', '#5b8cff')}</tr><tr>${_numBox(88, 'RPM MÉDIO')}${_numBox('Z3', 'ZONA PREDOMINANTE')}${_numBox('+152', 'PONTOS', '#ffe033')}</tr></table>`;
-  if (tipo === 'novo_ftp') nums = `<table style="width:100%;background:#0b0b0e;border-radius:10px;margin:10px 0"><tr>${_numBox('180 W', 'ANTES')}${_numBox('192 W', 'AGORA', '#5db13d')}${_numBox('+12 W', 'EVOLUÇÃO', '#ffe033')}</tr></table>`;
-  if (tipo === 'relatorio_mensal') nums = `<table style="width:100%;background:#0b0b0e;border-radius:10px;margin:10px 0"><tr>${_numBox(214, 'AULAS CONCLUÍDAS')}${_numBox(63, 'ALUNOS ATIVOS', '#5db13d')}${_numBox('96.400', 'KCAL', '#ea860c')}</tr></table>`;
+  if (tipo === 'resumo_aula') nums = emailNumsResumo({ min: 55, kcal: 512, w: 168, rpm: 88, zona: 'Z3', pontos: 152 }, EMAIL_SERIE_EXEMPLO, 180, null);
+  if (tipo === 'novo_ftp') nums = emailNumsFtp(180, 192);
+  if (tipo === 'relatorio_mensal') nums = emailNumsMes(214, 63, 96400);
+  if (tipo === 'conquista_camisa') return emailCamisaMontar(cfg, v, { k: 'amarela', cat: 'lider', cor: '#ffd400', rotulo: 'Camisa amarela', pontos: 1840 }, academia);
+  if (tipo === 'desafio_concluido') return emailDesafioMontar(cfg, v, '21dias', 500, { dias: 21 }, academia);
   return emailMontar(tipo, cfg, v, nums, '', PORTAL_URL + '/aluno', academia);
 }
 app.post('/gestor/emails/previa', gestorAuth, async (req, res) => {
@@ -4500,7 +4682,7 @@ app.post('/aluno/reservar', authMiddleware, async (req, res) => {
     const _licR = await db.query('SELECT a.license_id FROM aulas_agenda a WHERE a.id=$1', [agenda_id]);
     const _teto = await tetoLicenca(_licR.rows[0] && _licR.rows[0].license_id);
     if (parseInt(confirmados.rows[0].count) >= _capVagas(aula.rows[0].vagas_max, _teto))
-      return res.status(409).json({ error: 'Aula lotada' });
+      return res.status(409).json({ error: 'Aula lotada', lotada: true });   // 07/10c: o app põe na fila de espera
     // 01/10b: bike escolhida
     let bike = null;
     if (req.body.bike != null && req.body.bike !== '') {
@@ -5759,6 +5941,7 @@ async function campEncerrar(campId) {
       [h.user_id || null, h.nome, h.k, h.cor, h.rotulo, cl.campeonato.id, cl.campeonato.nome, cl.campeonato.tipo, cl.campeonato.license_id, acad]);
   }
   log(`Campeonato ${campId} encerrado — camisas gravadas: ${Object.keys(cl.camisas).join(', ') || 'nenhuma'}`);
+  for (const cat of Object.keys(cl.camisas)) emailCamisa(Object.assign({ cat }, cl.camisas[cat]), cl.campeonato).catch(() => {});   // 07/10c
   return cl;
 }
 
@@ -6013,6 +6196,7 @@ async function daMigrar() {
       n_alunos INTEGER DEFAULT 0, wpp_soma NUMERIC DEFAULT 0, kcal_total INTEGER DEFAULT 0, km_total NUMERIC DEFAULT 0,
       watts_med INTEGER DEFAULT 0, detalhe JSONB, created_at TIMESTAMPTZ DEFAULT NOW(), UNIQUE(license_id, uid));
     CREATE INDEX IF NOT EXISTS aulas_tv_lic_inicio ON aulas_tv (license_id, inicio);
+    ALTER TABLE aulas_tv ADD COLUMN IF NOT EXISTS relatorio JSONB;   -- 07/10c: relatório técnico da aula
     CREATE TABLE IF NOT EXISTS desafios_academias (
       id SERIAL PRIMARY KEY, codigo TEXT UNIQUE NOT NULL, nome TEXT NOT NULL, criador_license TEXT NOT NULL,
       tipo TEXT NOT NULL DEFAULT 'periodo', metrica TEXT NOT NULL DEFAULT 'wpp',
@@ -6185,6 +6369,15 @@ app.post('/display/aula/resumo', displayAuth, async (req, res) => {
     const ini = b.inicio && !isNaN(new Date(b.inicio)) ? new Date(b.inicio) : new Date(Date.now() - (parseInt(b.dur_seg, 10) || 0) * 1000);
     const n = alunos.length, soma = k => alunos.reduce((s, a) => s + a[k], 0);
     const comW = alunos.filter(a => a.w > 0);
+    // 07/10c: relatório técnico da aula (sinal de cada bike, quedas dos celulares, TV) — só números, tamanho limitado
+    let rel = null;
+    try { if (b.relatorio && typeof b.relatorio === 'object') { const num = v => (typeof v === 'number' && isFinite(v)) ? Math.round(v * 10) / 10 : null;
+      const bikes = {}, al = {};
+      for (const [k, v] of Object.entries(b.relatorio.bikes || {}).slice(0, 100)) if (v && typeof v === 'object') bikes[String(k).slice(0, 6)] = { tipo: String(v.tipo || '').slice(0, 6), pacotes: num(v.pacotes), falhas: num(v.falhas), maior_s: num(v.maior_s), total_s: num(v.total_s), rssi: num(v.rssi), sumiu_no_fim_s: num(v.sumiu_no_fim_s) };
+      for (const [k, v] of Object.entries(b.relatorio.alunos || {}).slice(0, 100)) if (v && typeof v === 'object') al[String(k).slice(0, 60)] = { quedas: num(v.quedas), fora_s: num(v.fora_s), voltou: !!v.voltou };
+      const tv = b.relatorio.tv || {};
+      rel = { dur_s: num(b.relatorio.dur_s), bikes, alunos: al, tv: { quedas_servidor: num(tv.quedas_servidor), fps_min: num(tv.fps_min), mem_max_mb: num(tv.mem_max_mb), build: String(tv.build || '').slice(0, 30) } };
+    } } catch (e) { rel = null; }
     await db.query(`INSERT INTO aulas_tv (license_id, uid, sala, nome_aula, inicio, dur_seg, n_alunos, wpp_soma, kcal_total, km_total, watts_med, detalhe)
       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
       ON CONFLICT (license_id, uid) DO UPDATE SET n_alunos=EXCLUDED.n_alunos, wpp_soma=EXCLUDED.wpp_soma, kcal_total=EXCLUDED.kcal_total,
@@ -6192,6 +6385,7 @@ app.post('/display/aula/resumo', displayAuth, async (req, res) => {
       [req.user.license_id, uid, String(b.sala || '').slice(0, 30), String(b.nome_aula || 'Aula').slice(0, 80), ini, parseInt(b.dur_seg, 10) || 0,
        n, Math.round(soma('wpp') * 100) / 100, soma('kcal'), Math.round(soma('km') * 100) / 100,
        comW.length ? Math.round(comW.reduce((s, a) => s + a.w, 0) / comW.length) : 0, JSON.stringify(alunos)]);
+    if (rel) await db.query(`UPDATE aulas_tv SET relatorio=$3 WHERE license_id=$1 AND uid=$2`, [req.user.license_id, uid, rel]).catch(() => {});
     // desafios ao vivo desta academia que batem com esta aula
     const ao = await db.query(`SELECT d.id FROM desafios_academias d JOIN desafios_academias_part p ON p.desafio_id=d.id
       WHERE p.license_id=$1 AND d.tipo='ao_vivo' AND d.data_hora BETWEEN $2::timestamptz - INTERVAL '30 minutes' AND $2::timestamptz + INTERVAL '30 minutes'`, [req.user.license_id, ini]);
@@ -6491,10 +6685,10 @@ app.post('/display/gravacao/:id/enviar', displayAuth, async (req, res) => {
 // 03/10e — SEGURANÇA E SAÚDE: esqueci a senha, reportar problema,
 // excluir minha conta (LGPD) e a página "Saúde do sistema" do admin
 // ══════════════════════════════════════════════════════════════
-const SERVIDOR_VERSAO = '07/10b';
+const SERVIDOR_VERSAO = '07/10c';
 // 03/10y: versão do Ginásio que vai junto com este servidor. Pacote só de servidor/site não muda isto,
 // e as TVs não precisam ser reinstaladas. Mude junto com o PR_BUILD do Ginásio.
-const GINASIO_VERSAO = '07/10b';
+const GINASIO_VERSAO = '07/10c';
 // 03/10v: a TV certa tem o mesmo número do servidor (o pacote sobe os dois juntos)
 function tvVersaoOk(b) { return String(b || '').trim() === 'BUILD ' + GINASIO_VERSAO; }
 const _inicioServidor = Date.now();
@@ -6909,6 +7103,8 @@ async function bkFazer(motivo) {
   const { d } = _hojeBR(), p2 = n => String(n).padStart(2, '0');
   const nome = `prorider_${d.getFullYear()}-${p2(d.getMonth() + 1)}-${p2(d.getDate())}_${p2(d.getHours())}${p2(d.getMinutes())}.json.gz`, tmp = path.join(BK_DIR, nome + '.parcial');
   const cli = await db.connect();
+  // 08/10: mede se o backup trava o servidor (as TVs caíram juntas às 02:00, hora do backup)
+  let _lagMax = 0, _lagT = Date.now(); const _lagI = setInterval(() => { const n = Date.now(); _lagMax = Math.max(_lagMax, n - _lagT - 200); _lagT = n; }, 200);
   try {
     const gz = zlib.createGzip({ level: 6 }), out = fs.createWriteStream(tmp); gz.pipe(out);
     const escreve = l => new Promise(ok => { if (gz.write(l + '\n')) ok(); else gz.once('drain', ok); });
@@ -6919,7 +7115,8 @@ async function bkFazer(motivo) {
     for (const t of tabs) {
       cont[t] = 0; const q = '"' + t.replace(/"/g, '""') + '"';
       await cli.query(`DECLARE bk CURSOR FOR SELECT row_to_json(x) AS j FROM ${q} x`);
-      for (;;) { const r = await cli.query('FETCH 1000 FROM bk'); if (!r.rows.length) break; cont[t] += r.rows.length; await escreve(JSON.stringify({ t, rows: r.rows.map(x => x.j) })); }
+      // 08/10: lotes menores e uma pausa entre eles — o servidor continua atendendo TVs e celulares no meio do backup
+      for (;;) { const r = await cli.query('FETCH 200 FROM bk'); if (!r.rows.length) break; cont[t] += r.rows.length; await escreve(JSON.stringify({ t, rows: r.rows.map(x => x.j) })); await new Promise(ok => setTimeout(ok, 15)); }
       await cli.query('CLOSE bk');
     }
     await cli.query('COMMIT');
@@ -6928,7 +7125,7 @@ async function bkFazer(motivo) {
     fs.renameSync(tmp, path.join(BK_DIR, nome));
     bkLista().slice(BK_GUARDAR).forEach(b => { try { fs.unlinkSync(path.join(BK_DIR, b.arquivo)); } catch (e) {} });
     const tam = fs.statSync(path.join(BK_DIR, nome)).size;
-    log(`[Backup] ${nome} pronto: ${tabs.length} tabelas, ${Object.values(cont).reduce((a, b) => a + b, 0)} linhas, ${Math.round(tam / 1048576 * 10) / 10} MB em ${Math.round((Date.now() - t0) / 1000)} s (${motivo})`);
+    log(`[Backup] ${nome} pronto: ${tabs.length} tabelas, ${Object.values(cont).reduce((a, b) => a + b, 0)} linhas, ${Math.round(tam / 1048576 * 10) / 10} MB em ${Math.round((Date.now() - t0) / 1000)} s, maior travada do servidor ${Math.max(0, _lagMax)} ms (${motivo})`);
     await cfgGravar('backup_ultimo', { arquivo: nome, em: new Date().toISOString(), bytes: tam, ok: true }).catch(() => {});
     await vigiaFechar('backup', null, 'Backup do banco em dia').catch(() => {});
     return { ok: true, arquivo: nome, bytes: tam, contagem: cont };
@@ -6938,13 +7135,15 @@ async function bkFazer(motivo) {
     log('[Backup] ERRO: ' + e.message);
     await cfgGravar('backup_ultimo', { em: new Date().toISOString(), ok: false, erro: e.message }).catch(() => {});
     return { ok: false, erro: e.message };
-  } finally { cli.release(); _bkRodando = false; }
+  } finally { clearInterval(_lagI); cli.release(); _bkRodando = false; }
 }
 // de 10 em 10 min: faz o backup da madrugada; se o servidor ficou desligado, faz assim que der
 setInterval(() => {
   if (!db || !_evPronto || process.env.BACKUP_DESLIGADO === '1') return;
   const ult = bkLista()[0], idade = ult ? Date.now() - new Date(ult.em).getTime() : Infinity, h = _hojeBR().d.getHours();
-  if ((idade > 20 * 3600000 && h >= 2 && h < 6) || idade > 30 * 3600000) bkFazer('automático').catch(() => {});
+  // 08/10: com aula ao vivo, espera (a não ser que o último backup já tenha mais de 30 h)
+  const aoVivo = (() => { try { return _aulasAoVivo().length > 0; } catch (e) { return false; } })();
+  if ((idade > 20 * 3600000 && h >= 2 && h < 6 && !aoVivo) || idade > 30 * 3600000) bkFazer('automático').catch(() => {});
 }, 10 * 60000);
 app.get('/admin/backup', adminAuth, async (req, res) => {
   const fs = require('fs'), os = require('os'); let livre = null; try { const sf = fs.statfsSync(BK_DIR); livre = Math.round(sf.bavail * sf.bsize / 1073741824 * 10) / 10; } catch (e) {}
@@ -7019,6 +7218,20 @@ async function semaforoLicencas(soCodigo) {
 app.get('/admin/saude/licencas', adminAuth, async (req, res) => {
   try { res.json({ lista: await semaforoLicencas() }); } catch (e) { res.status(500).json({ error: e.message }); }
 });
+// 07/10c: relatório técnico da aula em texto (Saúde → academia → Aulas)
+function relatorioAula(r) {
+  if (!r || typeof r !== 'object') return null;
+  const bikes = Object.entries(r.bikes || {}).sort((a, b) => parseInt(a[0]) - parseInt(b[0])), al = Object.entries(r.alunos || {}), tv = r.tv || {};
+  const ruins = bikes.filter(([, b]) => (b.falhas || 0) >= 3 || (b.maior_s || 0) >= 3), caidos = al.filter(([, a]) => (a.quedas || 0) > 0);
+  const linhas = ['SINAL DAS BIKES (falha = mais de 2 s sem dado; pode ser só o aluno parado)', 'bike  tipo  pacotes  falhas  maior  total  sinal'];
+  bikes.forEach(([n, b]) => linhas.push(String(n).padStart(4) + '  ' + String(b.tipo || '').padEnd(4) + '  ' + String(b.pacotes || 0).padStart(7) + '  ' + String(b.falhas || 0).padStart(6) + '  ' + String((b.maior_s || 0) + 's').padStart(5) + '  ' + String((b.total_s || 0) + 's').padStart(5) + '  ' + (b.rssi != null ? b.rssi + ' dBm' : '—') + ((b.sumiu_no_fim_s || 0) ? '  (sumiu ' + b.sumiu_no_fim_s + ' s antes do fim)' : '') + (ruins.some(x => x[0] === n) ? '  ⚠' : '')));
+  linhas.push('', 'CELULARES DOS ALUNOS');
+  if (!al.length) linhas.push('nenhum caiu'); else al.forEach(([n, a]) => linhas.push(n + ': caiu ' + (a.quedas || 0) + 'x, ' + (a.fora_s || 0) + ' s fora' + (a.voltou ? '' : ' (não voltou)')));
+  linhas.push('', 'TV: ' + (tv.quedas_servidor || 0) + ' queda(s) do servidor · menor fluidez ' + (tv.fps_min != null ? tv.fps_min + ' fps' : '—') + ' · memória máx. ' + (tv.mem_max_mb != null ? tv.mem_max_mb + ' MB' : '—') + ' · ' + (tv.build || ''));
+  const prob = ruins.length + caidos.length + (tv.quedas_servidor || 0) + ((tv.fps_min != null && tv.fps_min < 25) ? 1 : 0);
+  const resumo = bikes.length + ' bike(s)' + (ruins.length ? ', ⚠ ' + ruins.length + ' com falha de sinal' : ', sinal ok') + (caidos.length ? ' · ' + caidos.length + ' celular(es) caíram' : '') + ((tv.quedas_servidor || 0) ? ' · TV perdeu o servidor ' + tv.quedas_servidor + 'x' : '');
+  return { problemas: prob > 0, resumo, texto: linhas.join('\n') };
+}
 app.get('/admin/saude/licenca/:codigo', adminAuth, async (req, res) => {
   try {
     const c = String(req.params.codigo).toUpperCase(), lic = (await semaforoLicencas(c))[0];
@@ -7029,7 +7242,7 @@ app.get('/admin/saude/licenca/:codigo', adminAuth, async (req, res) => {
       q(`SELECT id, nivel, msg, origem, vezes, detalhe, created_at FROM sistema_eventos WHERE licenca=$1 AND created_at > NOW() - INTERVAL '30 days' ORDER BY created_at DESC LIMIT 150`, [c]),
       q(`SELECT id, nome, email, origem, tela, versao, texto, status, created_at FROM suporte_relatos WHERE license_id=$1 ORDER BY id DESC LIMIT 50`, [c]),
       q(`SELECT nome_computador, build, visto_em FROM licenca_computadores WHERE license_codigo=$1 ORDER BY visto_em DESC NULLS LAST`, [c]),
-      q(`SELECT nome_aula, inicio, dur_seg, n_alunos FROM aulas_tv WHERE license_id=$1 ORDER BY inicio DESC NULLS LAST LIMIT 15`, [c]),
+      q(`SELECT nome_aula, inicio, dur_seg, n_alunos, relatorio FROM aulas_tv WHERE license_id=$1 ORDER BY inicio DESC NULLS LAST LIMIT 15`, [c]),
       q(`SELECT k.codigo, k.evento_id FROM erro_codigos k JOIN sistema_eventos e ON e.id=k.evento_id WHERE e.licenca=$1`, [c])]);
     const cm = {}; codigos.forEach(k => (cm[k.evento_id] = cm[k.evento_id] || []).push(k.codigo));
     telas.forEach(t => { t.codigos = cm[t.id] || []; t.ref = 'S-' + t.id.toString(36).toUpperCase(); });
@@ -7040,7 +7253,7 @@ app.get('/admin/saude/licenca/:codigo', adminAuth, async (req, res) => {
       alertas.filter(a => a.resolvido_em).map(a => ({ t: a.resolvido_em, tipo: 'resolvido', cor: 'verde', txt: a.resolvido_txt || 'Resolvido', ref: a.ref })),
       telas.map(t => ({ t: t.created_at, tipo: t.origem, cor: t.nivel === 'erro' ? 'amarelo' : 'cinza', txt: t.msg, sub: (t.vezes > 1 ? t.vezes + ' vezes · ' : '') + (t.codigos.length ? t.codigos.slice(-3).join(' ') : ''), ref: t.ref, detalhe: t.detalhe })),
       relatos.map(r => ({ t: r.created_at, tipo: 'relato', cor: r.status === 'aberto' ? 'amarelo' : 'cinza', txt: '🛟 ' + r.texto, sub: (r.nome || r.email || '') + ' · ' + (r.origem || '') + ' ' + (r.tela || ''), ref: 'R-' + r.id })),
-      aulas.map(a => ({ t: a.inicio, tipo: 'aula', cor: 'verde', txt: '🚴 Aula "' + (a.nome_aula || 'Aula') + '"', sub: (a.n_alunos || 0) + ' aluno(s) · ' + Math.round((a.dur_seg || 0) / 60) + ' min' }))
+      aulas.map(a => { const r = relatorioAula(a.relatorio); return { t: a.inicio, tipo: 'aula', cor: r && r.problemas ? 'amarelo' : 'verde', txt: '🚴 Aula "' + (a.nome_aula || 'Aula') + '"', sub: (a.n_alunos || 0) + ' aluno(s) · ' + Math.round((a.dur_seg || 0) / 60) + ' min' + (r ? ' · ' + r.resumo : ''), detalhe: r ? r.texto : undefined }; })
     ).filter(x => x.t).sort((a, b) => new Date(b.t) - new Date(a.t)).slice(0, 200);
     res.json({ licenca: lic, tvs, linha, relatos_abertos: relatos.filter(r => r.status === 'aberto') });
   } catch (e) { res.status(500).json({ error: e.message }); }
@@ -7505,6 +7718,7 @@ async function desafioConquistar(uid, desafio, pts, info, janelaDias) {
   await db.query('INSERT INTO desafio_conquistas (user_id, desafio, pontos, info) VALUES ($1,$2,$3,$4)', [uid, desafio, pts, JSON.stringify(info || {})]);
   await db.query('UPDATE users SET points=COALESCE(points,0)+$1 WHERE id=$2', [pts, uid]);
   log(`[Desafio] ${desafio} conquistado por user ${uid} (+${pts} pts)`);
+  emailDesafio(uid, desafio, pts, info).catch(() => {});   // 07/10c
   return true;
 }
 app.get('/desafios/meus', authMiddleware, async (req, res) => {

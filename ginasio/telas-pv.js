@@ -1254,7 +1254,8 @@ async function _daEnviarResumo(){
     return {nome:a.nome,wpp:Math.round((a.wpp||0)*100)/100,kcal:Math.round(a.kcal||0),km:Math.round((Number(m.dist)||0)*100)/100,w:a.w||0}; });
   // 03/10f: sem internet, o resumo fica guardado na TV e vai sozinho depois (mesmo uid = o servidor não duplica)
   var nomeA=d.cn||((document.getElementById('className')||{}).value)||'Aula';
-  var r=await _prFilaPost('/display/aula/resumo',{uid:_da.uid||('a'+Date.now().toString(36)),sala:_da.sala||salaCode,nome_aula:nomeA,inicio:_da.ini,dur_seg:tot,alunos:alunos},'resumo da aula "'+nomeA+'"');
+  var _rel=null; try{ _rel=(typeof _prRelFechar==='function')?_prRelFechar():null; }catch(e){}   // 07/10c: relatório da aula
+  var r=await _prFilaPost('/display/aula/resumo',{uid:_da.uid||('a'+Date.now().toString(36)),sala:_da.sala||salaCode,nome_aula:nomeA,inicio:_da.ini,dur_seg:tot,alunos:alunos,relatorio:_rel},'resumo da aula "'+nomeA+'"');
   if(!r.ok){ if(!r.guardado) _da.enviado=false; return null; }
   var res=r.d||{}; console.log('[ProRider] resumo da aula gravado ('+res.n_alunos+' pedalaram) — vale para os desafios entre academias.');
   if(res.desafios&&res.desafios.length) _daMostrarFim(res.desafios[0]);

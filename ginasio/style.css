@@ -1727,6 +1727,7 @@ button:active{ transform:scale(0.97); }
 .dsx-anel-in{ position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; }
 .dsx-anel-in span{ font-size:36.72px; line-height:1; }
 .dsx-anel-in b{ font-size:96px; font-weight:900; line-height:1; letter-spacing:2.16px; }
+.dsx-anel-in b.dsx-longo{ font-size:58px; }   /* 08/10: aula de 1 h ou mais (1:05:00, 10:00:00) cabe dentro do anel */
 .dsx-anel-in i{ font-style:normal; font-size:16.2px; letter-spacing:2.7px; color:rgba(255,255,255,.7); margin-top:6.48px; }
 .dsx-stats{ margin-top:auto; width:100%; display:grid; grid-template-columns:repeat(2,1fr); border-radius:15.12px; overflow:hidden;
   background:rgba(8,10,20,.88); border:1px solid rgba(255,255,255,.12); }
@@ -1826,7 +1827,9 @@ button:active{ transform:scale(0.97); }
 /* 26/09d — botoes do fim de aula (tela nova) */
 .fim-acoes{ display:flex; gap:12px; margin-top:12px; width:100%; }
 .fim-btn{ flex:1; padding:12px 6px; border-radius:12px; border:1px solid rgba(255,255,255,.15); background:rgba(255,255,255,.05); color:rgba(255,255,255,.75);
-  font-family:'Bebas Neue',sans-serif; font-size:22px; letter-spacing:2px; cursor:pointer; transition:all .15s; white-space:nowrap; }
+  font-family:'Bebas Neue',sans-serif; font-size:22px; letter-spacing:2px; cursor:pointer; transition:all .15s; white-space:nowrap; min-width:0; overflow:hidden; text-overflow:ellipsis; }
+/* 08/10: na TV 2560×1440 o "REPETIR AULA" passava por cima do pódio: os botões dividem a largura e a letra se ajusta */
+.fim-acoes .fim-btn{ flex:1 1 0; font-size:19px; letter-spacing:1px; white-space:normal; line-height:1.15; text-overflow:clip; }
 .fim-btn.fim-foco{ background:linear-gradient(135deg,#ea860c,#d62d2d); color:#fff; border-color:transparent; box-shadow:0 0 18px rgba(234,134,12,.5); transform:scale(1.04); }
 
 /* ══════════════════════════════════════════════════════════════════

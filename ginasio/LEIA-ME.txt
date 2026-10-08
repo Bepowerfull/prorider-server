@@ -1,4 +1,11 @@
-ProRider — BUILD 07/10b (Ginasio)
+ProRider — BUILD 07/10c (Ginasio)
+
+07/10c: RELATORIO DA AULA. No fim de cada aula a TV manda para a Saude um relatorio:
+por bike (pacotes, falhas acima de 2 s, maior falha, sinal), por aluno (quedas,
+tempo fora) e da TV (quedas do servidor, quadros por segundo, memoria). A aula
+fica amarela na linha do tempo da Saude quando houve problema. A Saude tambem
+mostra se a TV tem o atualizador automatico instalado.
+
 
 07/10b: PENDRIVE ANT+ (arquivo novo antplus.js). Na tela de pareamento, escolha ANT+
 e gire o pedal de cada bike: a TV le todas as bikes ANT+ ao mesmo tempo (Schwinn

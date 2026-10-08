@@ -78,8 +78,9 @@ const zona = p => p <= 55 ? 'z1' : p <= 75 ? 'z2' : p <= 90 ? 'z3' : p <= 105 ? 
   ok(mbh < 40, 'memória da TV estável (tendência abaixo de 40 MB/h)', r.tendencia_mb_por_hora + ' MB/h');
   ok(r.nos_fim <= r.nos_inicio * 1.2 + 50, 'a tela não acumula elementos', [r.nos_inicio, r.nos_fim]);
   ok(cels.every(w => w.ult && Date.now() - (w.hist.length ? w.hist[w.hist.length - 1][0] : 0) < 3000), 'os 15 celulares continuam recebendo no fim');
-  const sd = await sql(`SELECT saude->>'mem_mb' AS a, saude->>'fps' AS b, saude->>'aula_min' AS c, saude->>'alunos' AS d FROM licenca_computadores WHERE license_codigo='D5448D47' AND device_id='tv-longo'`);
-  const [smem, sfps, saula, salunos] = sd.split('|');
+  const sd = await sql(`SELECT saude->>'mem_mb' AS a, saude->>'fps' AS b, saude->>'aula_min' AS c, saude->>'alunos' AS d, saude->>'atualizador' AS e FROM licenca_computadores WHERE license_codigo='D5448D47' AND device_id='tv-longo'`);
+  const [smem, sfps, saula, salunos, satu] = sd.split('|');
+  ok(satu === 'false', 'saúde da TV diz se o programa tem o atualizador (aqui: não tem)', satu);
   ok(parseFloat(smem) > 0 && parseFloat(saula) > 0 && salunos === '15', 'saúde da TV chegando ao servidor (memória, fps, aula, alunos)', { mem_mb: smem, fps: sfps, aula_min: saula, alunos: salunos });
   ok(erros.length === 0, 'nenhum erro de JavaScript na TV', erros.slice(0, 3));
   await p.evaluate(() => ctrlConfirmYes()); await espera(2000);

@@ -74,8 +74,13 @@
           b.innerHTML='<b>'+String(a.nome||'Aparelho').replace(/[<>&]/g,'')+'</b><small style="float:right;color:rgba(255,255,255,.45)">'+(a.rssi>-70?'perto':a.rssi>-85?'médio':'longe')+'</small>';
           b.onclick=function(){ acabar(new Dev(id,a.nome)); }; lista.appendChild(b); }); }
         var t=setTimeout(function(){ var st=cx.querySelector('#prBleSt'); if(st&&!Object.keys(achados).length) st.textContent='Nada encontrado ainda. Confira se o Bluetooth está ligado e se a bike está acordada.'; },15000);
-        q(function(){ return P.addListener('onScanResult',function(r){ if(fim||!r||!r.device||!combina(o,r)) return; var id=r.device.deviceId;
-          var nm=r.device.name||r.localName||''; try{ var _mk=r.manufacturerData&&(r.manufacturerData['258']!=null?r.manufacturerData['258']:r.manufacturerData[258]); var _k=_mk!=null&&kParse(_mk); if(_k&&_k.id>0) nm='Keiser M3 nº '+_k.id; }catch(e){}   // 07/10a: 20 Keiser iguais → mostra o nº de cada uma
+        // 07/10c: no Android a Keiser chega SEM NOME (teste real na academia). Ela é reconhecida pelo sinal
+        // dela (código 0x0102), não pelo nome — quando a lista é de bike (filtro com "M3"/"Keiser").
+        var querKeiser=(o.filters||[]).some(function(f){ return f.namePrefix && /^(M3|Keiser|KEISER)/.test(f.namePrefix); });
+        q(function(){ return P.addListener('onScanResult',function(r){ if(fim||!r||!r.device) return;
+          var _k=null; try{ var _mk=r.manufacturerData&&(r.manufacturerData['258']!=null?r.manufacturerData['258']:r.manufacturerData[258]); _k=_mk!=null?kParse(_mk):null; }catch(e){}
+          if(!combina(o,r) && !(_k && querKeiser)) return; var id=r.device.deviceId;
+          var nm=r.device.name||r.localName||''; if(_k) nm='Keiser M3'+(_k.id>0?' nº '+_k.id:'');   // 07/10a: 20 Keiser iguais → mostra o nº de cada uma
           var novo=!achados[id]||achados[id].nome!==nm; achados[id]={nome:nm,rssi:r.rssi||-99}; if(novo) desenhar(); }); })
           .then(function(h){ sh=h; return q(function(){ return P.requestLEScan({allowDuplicates:false}); }); })
           .catch(function(e){ if(!fim){ fim=true; try{ cx.remove(); }catch(x){} rej(erro(/permiss|denied|unauthor/i.test(e&&e.message)?'NotAllowedError':/disabled|off|desligad/i.test(e&&e.message)?'InvalidStateError':'NotFoundError',(e&&e.message)||'Bluetooth indisponível')); } });
@@ -4571,6 +4576,8 @@ async function confirmarReserva() {
       if (_agAcadSelecionada) abrirGradeAcademia(_agAcadSelecionada);
       return;
     }
+    // 07/10c: lotou enquanto escolhia a bike → entra direto na lista de espera (se abrir vaga, recebe o e-mail "Abriu uma vaga")
+    if (r.status === 409 && d.lotada && _rcPendente) { const ag = _rcPendente.agenda_id, dt = _rcPendente.data_aula; closeReservaModal(); await entrarNaFila(ag, dt); return; }
     showToast(d.error || 'Erro ao reservar.', '#d62d2d');
     if (r.status === 409 && _rcPendente) { _rcPendente.bike = null; rcCarregarBikes(); return; }  // outra pessoa pegou: atualiza o mapa
     if (r.status !== 409) closeReservaModal();
@@ -5936,6 +5943,15 @@ function showResults(){
   if(isFtpTest&&ftpTestWatts.length>0){ showFtpResult(); return; }
   showResultsReal();
 }
+// 07/10c: potência média de cada minuto (para o gráfico do e-mail do fim da aula). Até 240 barras.
+function prSerieMin(am){
+  if(!am||!am.length) return [];
+  var t0=am[0][0], b=[], s=[], i;
+  am.forEach(function(x){ var k=Math.floor((x[0]-t0)/60000); if(!b[k]) b[k]=[0,0]; b[k][0]+=x[1]||0; b[k][1]++; });
+  for(i=0;i<b.length;i++) s.push(b[i]?Math.round(b[i][0]/b[i][1]):0);
+  if(s.length>240){ var q=Math.ceil(s.length/240), r=[]; for(i=0;i<s.length;i+=q){ var p=s.slice(i,i+q); r.push(Math.round(p.reduce(function(a,c){return a+c;},0)/p.length)); } s=r; }
+  return s;
+}
 function showResultsReal(){
   closeDrawer();
   if(audio){audio.pause();}
@@ -5991,7 +6007,8 @@ function showResultsReal(){
         // caloria tinha de ser chutada pelo tempo. Agora vai o que foi medido.
         watts_med:prWattsMed(),
         rpm_med:(cntRpm>0?Math.round(sumRpm/cntRpm):0),
-        kcal:prKcal(prWattsMed(),totS,prPesoKg())
+        kcal:prKcal(prWattsMed(),totS,prPesoKg()),
+        serie_min:prSerieMin(typeof _lsAcc!=='undefined'?_lsAcc.am:null)   // 07/10c: gráfico do e-mail
       })
     }).then(function(r){ return r.json(); })
       .then(function(d){
@@ -8817,7 +8834,7 @@ updateProfileUI = function() {
          + ' fill="none" stroke="'+col(fm)+'" stroke-width="30" stroke-linecap="'+cap+'"/>';
     }
     g.innerHTML=out;
-    try{ console.log('%c[ProRider Aluno] BUILD 07/10a — app das lojas le a Keiser direto (anuncio), lista com o numero de cada Keiser + 03/10z: aviso "TV da academia sem internet" e internet lenta sem conexao dupla + 03/10x: servidor reiniciou no meio da aula: o celular espera a TV voltar (ate 90 s) em vez de encerrar a aula + 03/10h: erro mostra codigo (E-XXXX) e vai junto no Reportar + 03/10f: erros do app chegam sozinhos na Saude do sistema + 03/10e: esqueci a senha por e-mail, reportar problema, excluir conta + 03/10c: loja (comprar aulas, pacotes, assinatura), desafios reais (21 dias, Quebra FTP, ranking, grupos), pré-treino igual ao da TV, Bluetooth novo + 02/10f: aula recomeçada zera os números da largada + 02/10d: caixas da aula gravada mais justas e nas pontas da tela; aulas gravadas abertas a qualquer login na fase de teste + 02/10b: aula gravada na Loja (vídeo do professor + gráfico e números do próprio aluno, ranking com quem fez ao vivo) + lista de espera na reserva, assistir a aula ao vivo, arquivo .tcx para Strava/Garmin, desafio entre academias no início + 01/10b: reserva com escolha da bike (mapa das bikes, a reservada aparece como SUA na hora de entrar) + 01/10a: campeonato no app (posição, camisas, próxima etapa) + camisas conquistadas no perfil + logo original no início + 30/09e: Construtor do celular = o mesmo Construtor online do computador (mesmas funções, mesma conta) + Perto de mim na lupinha (GPS do celular, distância até a academia, aula ao vivo no topo) + faixa verde da aula ao vivo na academia + aulas de hoje na grade + brasões novos (subiu de nível) + Criar aula do Portal abre direto o Construtor (/aluno#construtor) + FC da cinta do celular vai para o Ginasio; Avg. HR = media da aula; aula termina quando a sala some + resultado do teste de FTP da aula no celular (1 min; automatico grava, senao pergunta) + home do professor: sai o Build Workout antigo (com senha), fica Agenda + Treino do Treinador + Construtor de Treino + voltar para a propria bike depois de reabrir o app + relogio do bloco anda sem bike transmitindo + vigia: reentra na sala se a aula parar de chegar + resultado do desafio no celular (10 s, toque fecha) + sexo enviado na entrada da sala (desafio Homens x Mulheres) + aluno sem nome nao entra mais como "-" na sala + leitor do app aceita o QR de Minhas Aulas do Ginasio + aula anterior nao fica mais grudada (fim da aula fecha o socket em qualquer tela; QR de outra sala troca de sala) + gauge com FTP e BLOCO simetricos + marcha e FC na aula da academia + %FTP com o FTP da gaveta na hora + FTP da gaveta vai para a sala na hora + FTP tambem na entrada pela reserva + Revisar o treino mostra a aula do Ginasio + caloria por watt (kJ/eficiencia) + basal Mifflin-St Jeor no cadastro + historico gravado no aparelho + FTP na gaveta + card 1080x1920 reposicionado + 6 protocolos de FTP + TSS + teste de 3 min + fator do teste de 5 min corrigido (era 1,05) + explicacao de FTP em cada teste + gaveta esconde pela propria altura + importacao de treino do TrainingPeaks (grade 2x2 na tela inicial + construtor) com tela de conferencia (botoes acima da navegacao) + corrigido: aula aberta por objeto agora e a que roda + botao Revisar o treino na gaveta + FTP e peso persistem no aparelho + gauge reequilibrado + textos do Brasil + codigo de sala normalizado (QR do navegador deixava a sala inexistente) + faixa de voltar corrigida + reconexao nao trava mais + sala encerrada limpa o codigo guardado + VISTA DA SALA + card comprido de Construtor para professor + fim da corrida no login','color:#ea860c;font-weight:700;'); }catch(e){}
+    try{ console.log('%c[ProRider Aluno] BUILD 07/10c — Keiser sem nome aparece como Keiser M3 nº X; manda a potencia minuto a minuto (grafico do e-mail) + 07/10a: app das lojas le a Keiser direto (anuncio), lista com o numero de cada Keiser + 03/10z: aviso "TV da academia sem internet" e internet lenta sem conexao dupla + 03/10x: servidor reiniciou no meio da aula: o celular espera a TV voltar (ate 90 s) em vez de encerrar a aula + 03/10h: erro mostra codigo (E-XXXX) e vai junto no Reportar + 03/10f: erros do app chegam sozinhos na Saude do sistema + 03/10e: esqueci a senha por e-mail, reportar problema, excluir conta + 03/10c: loja (comprar aulas, pacotes, assinatura), desafios reais (21 dias, Quebra FTP, ranking, grupos), pré-treino igual ao da TV, Bluetooth novo + 02/10f: aula recomeçada zera os números da largada + 02/10d: caixas da aula gravada mais justas e nas pontas da tela; aulas gravadas abertas a qualquer login na fase de teste + 02/10b: aula gravada na Loja (vídeo do professor + gráfico e números do próprio aluno, ranking com quem fez ao vivo) + lista de espera na reserva, assistir a aula ao vivo, arquivo .tcx para Strava/Garmin, desafio entre academias no início + 01/10b: reserva com escolha da bike (mapa das bikes, a reservada aparece como SUA na hora de entrar) + 01/10a: campeonato no app (posição, camisas, próxima etapa) + camisas conquistadas no perfil + logo original no início + 30/09e: Construtor do celular = o mesmo Construtor online do computador (mesmas funções, mesma conta) + Perto de mim na lupinha (GPS do celular, distância até a academia, aula ao vivo no topo) + faixa verde da aula ao vivo na academia + aulas de hoje na grade + brasões novos (subiu de nível) + Criar aula do Portal abre direto o Construtor (/aluno#construtor) + FC da cinta do celular vai para o Ginasio; Avg. HR = media da aula; aula termina quando a sala some + resultado do teste de FTP da aula no celular (1 min; automatico grava, senao pergunta) + home do professor: sai o Build Workout antigo (com senha), fica Agenda + Treino do Treinador + Construtor de Treino + voltar para a propria bike depois de reabrir o app + relogio do bloco anda sem bike transmitindo + vigia: reentra na sala se a aula parar de chegar + resultado do desafio no celular (10 s, toque fecha) + sexo enviado na entrada da sala (desafio Homens x Mulheres) + aluno sem nome nao entra mais como "-" na sala + leitor do app aceita o QR de Minhas Aulas do Ginasio + aula anterior nao fica mais grudada (fim da aula fecha o socket em qualquer tela; QR de outra sala troca de sala) + gauge com FTP e BLOCO simetricos + marcha e FC na aula da academia + %FTP com o FTP da gaveta na hora + FTP da gaveta vai para a sala na hora + FTP tambem na entrada pela reserva + Revisar o treino mostra a aula do Ginasio + caloria por watt (kJ/eficiencia) + basal Mifflin-St Jeor no cadastro + historico gravado no aparelho + FTP na gaveta + card 1080x1920 reposicionado + 6 protocolos de FTP + TSS + teste de 3 min + fator do teste de 5 min corrigido (era 1,05) + explicacao de FTP em cada teste + gaveta esconde pela propria altura + importacao de treino do TrainingPeaks (grade 2x2 na tela inicial + construtor) com tela de conferencia (botoes acima da navegacao) + corrigido: aula aberta por objeto agora e a que roda + botao Revisar o treino na gaveta + FTP e peso persistem no aparelho + gauge reequilibrado + textos do Brasil + codigo de sala normalizado (QR do navegador deixava a sala inexistente) + faixa de voltar corrigida + reconexao nao trava mais + sala encerrada limpa o codigo guardado + VISTA DA SALA + card comprido de Construtor para professor + fim da corrida no login','color:#ea860c;font-weight:700;'); }catch(e){}
   }
   if(document.readyState!=='loading') buildGaugeArc();
   else document.addEventListener('DOMContentLoaded', buildGaugeArc);
@@ -9061,7 +9078,7 @@ async function grvTerminar(){
   try{ var r=await fetch(SERVER_HTTP+'/user/gravadas/'+_grv.id+'/resultado',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+tok},body:JSON.stringify({wpp:Math.round(ac.wpp*100)/100,kcal:kcal,watts:wMed})}); var d=await r.json(); rk=d.ranking||[]; }catch(e){}
   if(ac.tot>=120){ try{ var zp={}, zt=0; Object.keys(ac.zt).forEach(function(z){ zt+=ac.zt[z]; }); ['z1','z2','z3','z4','z5','z6','z7'].forEach(function(z){ zp[z]=zt?Math.round((ac.zt[z]||0)/zt*100):0; });
     var zPred=Object.keys(ac.zt).sort(function(a,b){ return ac.zt[b]-ac.zt[a]; })[0]||'z2';
-    fetch(SERVER_HTTP+'/aula/complete',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+tok},body:JSON.stringify({aula_nome:(_grv.d.nome_aula||'Aula')+' (gravada)',duracao_sec:ac.tot,zona_predominante:zPred,badge:'',sem_pausas:true,zonas:zp,watts_med:wMed,rpm_med:rpmMed,kcal:kcal})}).catch(function(){}); }catch(e){} }
+    fetch(SERVER_HTTP+'/aula/complete',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+tok},body:JSON.stringify({aula_nome:(_grv.d.nome_aula||'Aula')+' (gravada)',duracao_sec:ac.tot,zona_predominante:zPred,badge:'',sem_pausas:true,zonas:zp,watts_med:wMed,rpm_med:rpmMed,kcal:kcal,serie_min:prSerieMin(ac.am)})}).catch(function(){}); }catch(e){} }
   var eu=_prNomeAluno();
   var f=document.getElementById('grvFim'); f.style.display='block';
   f.innerHTML='<div style="display:flex;gap:16px;flex-wrap:wrap;max-width:900px;margin:0 auto;">'
@@ -9605,7 +9622,7 @@ go=function(id){
   if(id==='sDetail'||id==='sConnect'){ var n=document.getElementById('bNav'); if(n) n.style.display='none'; }
 };
 
-var APP_BUILD='07/10a';
+var APP_BUILD='07/10c';
 try{ if(typeof prErroConfig==='function') prErroConfig(SERVER_HTTP,'app',function(){ return (typeof prToken!=='undefined'&&prToken)||localStorage.getItem('pr_token')||''; },APP_BUILD); }catch(e){}   // 03/10f: erros do app chegam na Saúde
 // ── 03/10e: no Perfil — reportar um problema e excluir a conta (LGPD) ──
 (function(){

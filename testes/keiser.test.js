@@ -33,7 +33,7 @@ const ate = async (pg, fn, arg, ms = 8000) => { const t = Date.now(); while (Dat
       initialize: () => Promise.resolve(),
       addListener: (k, fn) => { (L[k] = L[k] || []).push(fn); return Promise.resolve({ remove() { L[k] = (L[k] || []).filter(x => x !== fn); } }); },
       requestLEScan: o => { log.cmd.push('scan' + (o && o.allowDuplicates ? '+dup' : '')); log.scans++; clearInterval(scan);
-        const tic = () => { if (!window.__kOn) return; for (const [id, b] of Object.entries(window.__bikes)) emit('onScanResult', { device: { deviceId: id, name: 'M3' }, uuids: [], rssi: -60, manufacturerData: { '258': window.__keiser(b.id, b.w, b.rpm, b.tipo, b.g) } }); };
+        const tic = () => { if (!window.__kOn) return; for (const [id, b] of Object.entries(window.__bikes)) emit('onScanResult', { device: { deviceId: id, name: id === 'KA:08' ? null : 'M3' }, uuids: [], rssi: -60, manufacturerData: { '258': window.__keiser(b.id, b.w, b.rpm, b.tipo, b.g) } }); };
         setTimeout(tic, 50); scan = setInterval(tic, 300); return Promise.resolve(); },
       stopLEScan: () => { log.cmd.push('stop'); clearInterval(scan); scan = null; return Promise.resolve(); },
       connect: o => { log.conectou.push(o.deviceId); return Promise.reject(new Error('não aceita conexão')); },
@@ -51,7 +51,7 @@ const ate = async (pg, fn, arg, ms = 8000) => { const t = Date.now(); while (Dat
   console.log('1) Em casa: escolher a Keiser na lista');
   await p.evaluate(() => { go('sConnect'); scanDev('bike'); }); await espera(800);
   const lista = await p.evaluate(() => [...document.querySelectorAll('#prBleLista button')].map(b => b.innerText.split('\n')[0]));
-  ok(lista.some(x => /Keiser M3 nº 7/.test(x)) && lista.some(x => /Keiser M3 nº 8/.test(x)), 'lista mostra cada Keiser pelo número dela', lista);
+  ok(lista.some(x => /Keiser M3 nº 7/.test(x)) && lista.some(x => /Keiser M3 nº 8/.test(x)), 'lista mostra cada Keiser pelo número dela (a nº 8 chega SEM NOME, como no Android de verdade)', lista);
   await p.evaluate(() => [...document.querySelectorAll('#prBleLista button')].find(b => /nº 7/.test(b.innerText)).click()); await espera(1200);
   let s = await p.evaluate(() => ({ con: connected.bike, w: _bleWatts, r: _bleRpm, tipo: window._prBikeTipo, conectou: __ble.conectou, cmd: __ble.cmd.slice(-3) }));
   ok(s.con && s.w === 180 && s.r === 85 && s.tipo === 'keiser', 'lê só a nº 7 (180 W, 85 rpm), não a 8', s);

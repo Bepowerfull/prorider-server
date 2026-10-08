@@ -914,7 +914,7 @@ button{font-family:inherit}
       </div>
       <div class="pr-card"><h3>Como o aluno recebe <a style="cursor:default;color:var(--muted)">exemplo</a></h3>
         <div class="pr-note" style="margin-bottom:8px">Assunto: <b style="color:#fff" id="emPrevAss">—</b></div>
-        <iframe id="emPrev" style="width:100%;height:640px;border:0;border-radius:12px;background:#0b0b0e"></iframe></div>
+        <iframe id="emPrev" onload="try{this.style.height=(this.contentDocument.body.scrollHeight+10)+'px'}catch(e){}" style="width:100%;height:640px;border:0;border-radius:12px;background:#0b0b0e"></iframe></div>
     </div>
   </div>
 
@@ -1642,9 +1642,11 @@ const EM_INFO = [
   ['relatorio_mensal','Relatório do mês','dia 1º, para o gestor'],
   ['lembrete_aula','Lembrete da aula','1 hora antes, para quem reservou'],
   ['vaga_aberta','Abriu uma vaga','para o 1º da lista de espera'],
+  ['conquista_camisa','Camisa conquistada','quando um campeonato termina'],
+  ['desafio_concluido','Desafio concluído','21 dias ou Quebra FTP'],
 ];
 let emCfg = {};
-const EM_ICO = {boas_vindas:'👋',resumo_aula:'📊',sumido:'🚴',novo_ftp:'📈',aniversario:'🎂',relatorio_mensal:'📅',lembrete_aula:'⏰',vaga_aberta:'🚲'};
+const EM_ICO = {boas_vindas:'👋',resumo_aula:'📊',sumido:'🚴',novo_ftp:'📈',aniversario:'🎂',relatorio_mensal:'📅',lembrete_aula:'⏰',vaga_aberta:'🚲',conquista_camisa:'🏆',desafio_concluido:'💪'};
 const EM_VARS = {
   boas_vindas:['nome','nome_completo','academia'],
   resumo_aula:['nome','academia','aula','duracao','kcal','potencia','rpm','zona','pontos'],
@@ -1653,7 +1655,9 @@ const EM_VARS = {
   aniversario:['nome','academia'],
   relatorio_mensal:['academia','mes','aulas','alunos','kcal'],
   lembrete_aula:['nome','academia','aula','hora','bike'],
-  vaga_aberta:['nome','academia','aula','data','hora','bike']
+  vaga_aberta:['nome','academia','aula','data','hora','bike'],
+  conquista_camisa:['nome','academia','camisa','campeonato'],
+  desafio_concluido:['nome','academia','desafio','pontos']
 };
 const EM_NUM = {resumo_aula:'duração, kcal, potência, RPM, zona e pontos', novo_ftp:'FTP antes, agora e a evolução', relatorio_mensal:'aulas, alunos ativos e kcal do mês'};
 let emSel = 'resumo_aula', emPadraoTxt = {}, emEdit = {}, _emFoco = null;

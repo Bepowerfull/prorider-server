@@ -37,7 +37,7 @@ const zona = p => p <= 55 ? 'z1' : p <= 75 ? 'z2' : p <= 90 ? 'z3' : p <= 105 ? 
   await p.goto('file://' + path.join(GIN, 'ginasio.html')); await espera(3000);
   // dongle de mentira: a mesma entrada que o BLED112 de verdade usa
   await p.evaluate(() => { BLED112.connected = true; BLED112.startScan = cb => { window.__dongle = cb; }; BLED112.stopScan = () => {}; try { _parCarregarSalvo(); } catch (e) {} _parIniciarLiveBLED112(); });
-  let fase = 0; const bomba = setInterval(() => { p.evaluate(([n, fase]) => { if (!window.__dongle) return; for (let i = 1; i <= n; i++) window.__dongle({ mac: 'AA:BB:CC:00:00:' + String(i).padStart(2, '0'), watts: 120 + i * 8 + (fase ? 40 : 0), cadence: 88 + (i % 5), gear: 12, heartRate: 135 + i }); }, [N, fase]).catch(() => {}); }, 320);
+  let fase = 0, pula = 0; const bomba = setInterval(() => { p.evaluate(([n, fase, pula]) => { if (!window.__dongle) return; for (let i = 1; i <= n; i++) if (i !== pula) window.__dongle({ mac: 'AA:BB:CC:00:00:' + String(i).padStart(2, '0'), watts: 120 + i * 8 + (fase ? 40 : 0), cadence: 88 + (i % 5), gear: 12, heartRate: 135 + i }); }, [N, fase, pula]).catch(() => {}); }, 320);
 
   console.log('1) Preparar a aula e os 15 celulares entrarem');
   await p.evaluate(() => { try { sairIdle(); } catch (e) {}
@@ -89,11 +89,25 @@ const zona = p => p <= 55 ? 'z1' : p <= 75 ? 'z2' : p <= 90 ? 'z3' : p <= 105 ? 
   // 07/10a: a Keiser mostrando o RESUMO (aluno parou) não pode virar número ao vivo na TV
   await p.evaluate(() => { for (let k = 0; k < 3; k++) window.__dongle({ mac: 'AA:BB:CC:00:00:01', watts: 999, cadence: 0, gear: 12, heartRate: 0, review: true }); });
   ok(await p.evaluate(() => Object.values(alunosMap).every(a => a.watts !== 999)), 'pacote de resumo da Keiser (review) não aparece como watts ao vivo');
+  // 07/10c: relatório da aula — a bike 3 fica 4 s sem sinal e o celular da bike 5 cai e volta
+  pula = 3; await espera(4000); pula = 0;
+  const c5 = cels.find(w => w.a.b === 5); c5.close(); await espera(2500);
+  const w5 = new WS(B.replace('http', 'ws')); await new Promise(o => w5.on('open', o)); w5.on('message', m => { try { const d = JSON.parse(m); if (d.tipo === 'fim_aula') w5.fim = true; } catch (e) {} });
+  w5.send(JSON.stringify({ tipo: 'entrar_sala', codigo: SALA, nome: c5.a.nome, bike: 5, ftpBase: FTP(5), token: c5.a.tok })); cels[cels.indexOf(c5)] = w5; w5.a = c5.a; await espera(1500);
   console.log('3) Fim da aula');
   await p.evaluate(() => ctrlConfirmYes()); await espera(5000);
   ok(cels.every(w => w.fim), 'os 15 celulares receberam o fim da aula', cels.filter(w => w.fim).length);
   let res = ''; for (let i = 0; i < 20 && !/^15$/.test(res); i++) { res = await sql(`SELECT n_alunos FROM aulas_tv WHERE license_id='D5448D47' AND sala='${SALA}'`); if (!/^15$/.test(res)) await espera(400); }
   ok(res === '15', 'resumo da aula com os 15 alunos no servidor', res);
+  let rel = null; for (let i = 0; i < 20 && !rel; i++) { const t = await sql(`SELECT relatorio::text FROM aulas_tv WHERE license_id='D5448D47' AND sala='${SALA}'`); if (t && t !== 'null' && t !== '') rel = JSON.parse(t); else await espera(300); }
+  const b3 = rel && rel.bikes && rel.bikes['3'], b1 = rel && rel.bikes && rel.bikes['1'], a5 = rel && rel.alunos && rel.alunos[NOMES[4]];
+  ok(rel && Object.keys(rel.bikes).length === 15 && b1.pacotes > 20 && b1.falhas === 0, 'relatório: as 15 bikes com o sinal contado (bike 1 sem falha)', b1);
+  ok(b3 && b3.falhas >= 1 && b3.maior_s >= 3, 'relatório: bike 3 com a falha de sinal de ~4 s', b3);
+  ok(a5 && a5.quedas === 1 && a5.voltou && a5.fora_s >= 1, 'relatório: o celular da bike 5 caiu 1 vez e voltou', a5);
+  ok(rel && rel.tv && rel.tv.build && rel.tv.quedas_servidor === 0, 'relatório: dados da TV (versão, sem queda do servidor)', rel && rel.tv);
+  const SA = (await j('POST', '/user/login', { email: require('./comum').ADMIN, password: require('./comum').ADMIN_SENHA }, null, { 'X-Forwarded-For': '10.17.9.9' })).d.token;
+  const lin = ((await j('GET', '/admin/saude/licenca/D5448D47', null, SA)).d.linha || []).find(x => x.tipo === 'aula' && /ENSAIO 17\/10/.test(x.txt));
+  ok(lin && lin.cor === 'amarelo' && /com falha de sinal/.test(lin.sub) && /celular\(es\) caíram/.test(lin.sub) && /SINAL DAS BIKES/.test(lin.detalhe || ''), 'Admin → Saúde da academia mostra a aula com o resumo do relatório', lin && { sub: lin.sub, cor: lin.cor });
   ok(erros.length === 0, 'nenhum erro de JavaScript na TV', erros.slice(0, 3));
   clearInterval(bomba); cels.forEach(w => { try { w.close(); } catch (e) {} }); await nav.close();
   console.log('  fotos: ' + fotos);

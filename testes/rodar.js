@@ -30,7 +30,7 @@ const PORTA = parseInt(process.env.TEST_PORT || '3999'), PORTA_MOCK = 3014;
 const SERVIDOR = path.join(RAIZ, 'server.js');
 const pgCfg = { host: u.hostname, port: parseInt(u.port || '5432'), user: decodeURIComponent(u.username), password: decodeURIComponent(u.password), database: u.pathname.slice(1), ssl: false };
 const ADMIN = 'admin@teste.local', ADMIN_SENHA = 'teste123';
-const TESTES = ['pagamento', 'loja', 'desafios', 'seguranca', 'invasao', 'telas', 'versao', 'vigia', 'conferencia', 'termos', 'bluetooth', 'erg', 'blenativo', 'semdado', 'dominio', 'fuso', 'tv', 'aula15', 'carga', 'queda', 'longo', 'aovivo', 'redecel', 'redetv', 'keiser', 'autoatualiza', 'antplus', 'portal', 'backup'];
+const TESTES = ['pagamento', 'loja', 'desafios', 'emails', 'seguranca', 'invasao', 'telas', 'versao', 'vigia', 'conferencia', 'termos', 'bluetooth', 'erg', 'blenativo', 'semdado', 'dominio', 'fuso', 'tv', 'aula15', 'carga', 'queda', 'longo', 'aovivo', 'redecel', 'redetv', 'keiser', 'autoatualiza', 'antplus', 'portal', 'backup'];
 const SO = (process.env.SO || '').split(',').filter(Boolean);   // 03/10s: SO=tv roda só esse grupo
 const espera = ms => new Promise(r => setTimeout(r, ms));
 const filhos = [];
@@ -69,7 +69,12 @@ process.on('SIGINT', () => sair(130));
   const resultado = [];
   for (const t of TESTES.filter(t => !SO.length || SO.includes(t))) {
     console.log('━━ ' + t + ' ━━');
-    const code = await new Promise(ok => { const p = spawn(process.execPath, [path.join(__dirname, t + '.test.js')], { stdio: 'inherit', env: Object.assign({}, env, process.env.ENSAIO_SEG ? { ENSAIO_SEG: process.env.ENSAIO_SEG } : {}, process.env.QUEDA_SEG ? { QUEDA_SEG: process.env.QUEDA_SEG } : {}, process.env.LONGO_MIN ? { LONGO_MIN: process.env.LONGO_MIN } : {}, process.env.DBG ? { DBG: '1' } : {}, { T_DB_URL: URL_TESTE, T_ADMIN: ADMIN, T_ADMIN_SENHA: ADMIN_SENHA }) }); p.on('exit', ok); });
+    const sa = path.join(pasta, 'saida-' + t); try { fs.unlinkSync(sa); } catch (e) {}
+    let code = await new Promise(ok => {
+    const p = spawn(process.execPath, ['-r', path.join(__dirname, 'saida.js'), path.join(__dirname, t + '.test.js')], { stdio: 'inherit', env: Object.assign({ T_SAIDA: sa }, env, process.env.ENSAIO_SEG ? { ENSAIO_SEG: process.env.ENSAIO_SEG } : {}, process.env.QUEDA_SEG ? { QUEDA_SEG: process.env.QUEDA_SEG } : {}, process.env.LONGO_MIN ? { LONGO_MIN: process.env.LONGO_MIN } : {}, process.env.DBG ? { DBG: '1' } : {}, { T_DB_URL: URL_TESTE, T_ADMIN: ADMIN, T_ADMIN_SENHA: ADMIN_SENHA }) }); p.on('exit', ok); });
+    // 07/10c: o teste disse "passei" (process.exit(0)) e o Node do Windows quebrou só ao fechar → conta como passou
+    let pedido = null; try { pedido = fs.readFileSync(sa, 'utf8').trim(); } catch (e) {}
+    if (code !== 0 && pedido === '0') { console.log('  (o teste passou; o Node quebrou só ao fechar — erro conhecido do Node no Windows, ignorado)'); code = 0; }
     resultado.push([t, code]); console.log('');
   }
   const erros = (fs.readFileSync(path.join(pasta, 'servidor.log'), 'utf8').match(/ERRO não tratado[^\n]*/g) || []);
