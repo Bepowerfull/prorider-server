@@ -1,4 +1,10 @@
-ProRider — BUILD 07/10c (Ginasio)
+ProRider — BUILD 07/10d (Ginasio)
+
+07/10d: DIAGNOSTICO DA SALA (secreto, para manutencao). Na tela do QR, segure LB + RB
+por 2 segundos: abre o painel com o sinal do receptor de cada bike (verde, amarelo,
+vermelho "sem sinal ha X"), o atraso de cada celular ate o servidor e a internet da TV.
+B fecha. No teclado: Ctrl+Shift+D. ALUNOS DEMO: ligado uma vez, fica ligado (mesmo
+depois de voltar ao inicio ou reabrir o programa) ate desligar no menu.
 
 07/10c: RELATORIO DA AULA. No fim de cada aula a TV manda para a Saude um relatorio:
 por bike (pacotes, falhas acima de 2 s, maior falha, sinal), por aluno (quedas,

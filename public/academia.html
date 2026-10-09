@@ -794,6 +794,8 @@ button{font-family:inherit}
       <div class="pr-card" style="min-width:0"><h3 style="margin-bottom:6px">Alunos sumidos <small style="color:var(--muted);font-weight:500;text-transform:none;font-family:Barlow,sans-serif">2+ aulas e nenhuma nos últimos 14 dias</small></h3>
         <div id="ocSum"></div></div>
     </div>
+    <div class="pr-card" style="min-width:0;margin-top:14px"><h3 style="margin-bottom:6px">Nota das aulas <small style="color:var(--muted);font-weight:500;text-transform:none;font-family:Barlow,sans-serif">estrelas que os alunos dão no app no fim da aula · anônimo</small></h3>
+      <div id="ocNotas"></div></div>
   </div>
 
   <!-- GRAVAR E TRANSMITIR (02/10b) -->
@@ -1644,9 +1646,10 @@ const EM_INFO = [
   ['vaga_aberta','Abriu uma vaga','para o 1º da lista de espera'],
   ['conquista_camisa','Camisa conquistada','quando um campeonato termina'],
   ['desafio_concluido','Desafio concluído','21 dias ou Quebra FTP'],
+  ['seu_mes','O seu mês (aluno)','dia 1º, para cada aluno que pedalou no mês'],
 ];
 let emCfg = {};
-const EM_ICO = {boas_vindas:'👋',resumo_aula:'📊',sumido:'🚴',novo_ftp:'📈',aniversario:'🎂',relatorio_mensal:'📅',lembrete_aula:'⏰',vaga_aberta:'🚲',conquista_camisa:'🏆',desafio_concluido:'💪'};
+const EM_ICO = {boas_vindas:'👋',resumo_aula:'📊',sumido:'🚴',novo_ftp:'📈',aniversario:'🎂',relatorio_mensal:'📅',lembrete_aula:'⏰',vaga_aberta:'🚲',conquista_camisa:'🏆',desafio_concluido:'💪',seu_mes:'🗓️'};
 const EM_VARS = {
   boas_vindas:['nome','nome_completo','academia'],
   resumo_aula:['nome','academia','aula','duracao','kcal','potencia','rpm','zona','pontos'],
@@ -1657,9 +1660,10 @@ const EM_VARS = {
   lembrete_aula:['nome','academia','aula','hora','bike'],
   vaga_aberta:['nome','academia','aula','data','hora','bike'],
   conquista_camisa:['nome','academia','camisa','campeonato'],
-  desafio_concluido:['nome','academia','desafio','pontos']
+  desafio_concluido:['nome','academia','desafio','pontos'],
+  seu_mes:['nome','nome_completo','academia','mes']
 };
-const EM_NUM = {resumo_aula:'duração, kcal, potência, RPM, zona e pontos', novo_ftp:'FTP antes, agora e a evolução', relatorio_mensal:'aulas, alunos ativos e kcal do mês'};
+const EM_NUM = {resumo_aula:'duração, kcal, potência, RPM, zona e pontos', novo_ftp:'FTP antes, agora e a evolução', relatorio_mensal:'aulas, alunos ativos e kcal do mês', seu_mes:'aulas, horas, kcal, potência, dias pedalados e comparação com o mês anterior'};
 let emSel = 'resumo_aula', emPadraoTxt = {}, emEdit = {}, _emFoco = null;
 async function loadEmails(){
   const box = document.getElementById('emCfg'); if (!box) return;
@@ -1850,6 +1854,7 @@ async function loadOcupacao(){
         const p=Math.min(100,c.pct), cor=p>=80?'234,134,12':p>=50?'215,196,20':'41,95,232';
         return '<td title="'+c.aulas+' aulas · média '+c.media+' · máx '+c.max+'" style="width:64px;height:40px;border-radius:8px;text-align:center;font-weight:800;background:rgba('+cor+','+(0.15+p/130)+')">'+p+'%</td>'; }).join('')+'</tr>'; });
       document.getElementById('ocMapa').innerHTML=h+'</table><div style="color:var(--muted);font-size:12px;margin-top:8px">Laranja: enche (80%+) · amarelo: metade · azul: vazio. Passe o mouse para ver quantas aulas.</div>'; }
+    ocNotas();
     const s2=await api('/gestor/sumidos');
     const L=s2.sumidos||[];
     document.getElementById('ocSum').innerHTML=L.length?L.map(u=>'<div style="display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 10px;align-items:center;padding:10px 12px;border-radius:10px;background:var(--card2);margin-bottom:6px">'
@@ -1858,6 +1863,23 @@ async function loadOcupacao(){
       +'<div style="color:var(--muted);font-size:12.5px">'+u.dias+' dias sem vir · '+u.aulas+' aulas no total'+(u.avisado_em?' · avisado em '+new Date(u.avisado_em).toLocaleDateString('pt-BR'):'')+'</div></div>').join('')
       :'<div class="pr-empty">Ninguém sumido. 🎉</div>';
   }catch(e){ toast('Não consegui carregar: '+e.message); }
+}
+// 07/10d: nota das aulas (média por professor e por horário)
+async function ocNotas(){
+  const el=document.getElementById('ocNotas'); if(!el) return;
+  try{
+    const d=await api('/gestor/notas?dias='+ocDias); if(d.error) throw new Error(d.error);
+    if(!d.total||!d.total.n){ el.innerHTML='<div class="pr-empty">Ainda sem notas neste período. No fim de cada aula o app pergunta "Como foi a aula?".</div>'; return; }
+    const est=m=>'<span style="color:#ffb020;letter-spacing:1px">'+'★'.repeat(Math.round(m))+'</span><span style="color:rgba(255,255,255,.18);letter-spacing:1px">'+'★'.repeat(5-Math.round(m))+'</span>';
+    const fmt=m=>Number(m).toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1});
+    const lin=(nome,x)=>'<div style="display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:10px;align-items:center;padding:8px 12px;border-radius:10px;background:var(--card2);margin-bottom:6px"><div style="font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+nome+'</div><div>'+est(x.media)+'</div><div style="font-variant-numeric:tabular-nums;min-width:96px;text-align:right"><b>'+fmt(x.media)+'</b> <span style="color:var(--muted);font-size:12.5px">('+x.n+(x.n===1?' nota':' notas')+')</span></div></div>';
+    const DS=['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'], mx=Math.max(1,...d.dist);
+    el.innerHTML='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px">'
+      +'<div><div style="font-family:\'Barlow Condensed\',sans-serif;font-weight:900;font-size:40px;line-height:1">'+fmt(d.total.media)+' <span style="font-size:22px">'+est(d.total.media)+'</span></div><div style="color:var(--muted);font-size:12.5px;margin-bottom:10px">média de '+d.total.n+' notas</div>'
+      +[5,4,3,2,1].map(i=>'<div style="display:grid;grid-template-columns:24px 1fr 34px;gap:8px;align-items:center;font-size:12.5px;margin-bottom:4px"><span>'+i+'★</span><span style="height:8px;border-radius:4px;background:rgba(255,255,255,.06)"><span style="display:block;height:8px;border-radius:4px;background:#ffb020;width:'+Math.round(d.dist[i-1]/mx*100)+'%"></span></span><span style="text-align:right;color:var(--muted)">'+d.dist[i-1]+'</span></div>').join('')+'</div>'
+      +'<div style="min-width:0"><div style="color:var(--muted);font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:6px">Por professor</div>'+d.professores.map(x=>lin(cpEsc(x.k),x)).join('')+'</div>'
+      +'<div style="min-width:0"><div style="color:var(--muted);font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:6px">Por horário</div>'+d.horarios.map(x=>lin(DS[x.dow]+' '+String(x.hora).padStart(2,'0')+'h',x)).join('')+'</div></div>';
+  }catch(e){ el.innerHTML='<div class="pr-empty">Não consegui carregar as notas.</div>'; }
 }
 async function ocAvisar(id,btn){ try{ btn.disabled=true; const r=await apiSend('POST','/gestor/sumidos/'+id+'/avisar'); toast(r.msg||'Enviado'); btn.textContent='✓ Avisado'; }catch(e){ btn.disabled=false; toast(e.message); } }
 // ══ 02/10b — GRAVAR E TRANSMITIR ═══════════════════════════════════

@@ -53,6 +53,11 @@ function limpar() { try { fs.rmSync(DEST, { recursive: true, force: true }); } c
     ok((await j('GET', '/display/atualizacao')).s === 401, 'sem token de TV: recusado');
     await j('POST', '/admin/licencas/D5448D47/tv-atualizacao', { agora: true }, ADM);
     ok((await j('GET', '/display/atualizacao', null, TK, VELHA)).d.agora === true, '"atualizar agora" do admin chega à TV');
+    // 08/10: "atualizar agora" com o automático DESLIGADO também instala (o Mario testou assim e a TV respondia "desligada")
+    await j('POST', '/admin/licencas/D5448D47/tv-atualizacao', { ligado: false }, ADM);
+    r = await j('GET', '/display/atualizacao', null, TK, VELHA);
+    ok(r.d.versao === VER && r.d.agora === true, '"atualizar agora" funciona mesmo com o automático desligado', r.d);
+    await j('POST', '/admin/licencas/D5448D47/tv-atualizacao', { ligado: true }, ADM);
 
     console.log('3) O módulo do programa (o mesmo do Electron)');
     const dados = path.join(tmp, 'dados');

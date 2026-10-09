@@ -217,7 +217,7 @@ function shortId() {
 //   EMAIL_FROM="ProRider <nao-responda@seudominio.com>"   (remetente)
 //   PORTAL_URL=https://...   (link dos botões; padrão: este servidor)
 // Sem nenhuma delas, nada é enviado e o Portal mostra "e-mail não configurado".
-const EMAILS_PADRAO = { boas_vindas: true, resumo_aula: true, sumido: true, novo_ftp: true, aniversario: false, relatorio_mensal: true, lembrete_aula: true, vaga_aberta: true, conquista_camisa: true, desafio_concluido: true };
+const EMAILS_PADRAO = { boas_vindas: true, resumo_aula: true, sumido: true, novo_ftp: true, aniversario: false, relatorio_mensal: true, lembrete_aula: true, vaga_aberta: true, conquista_camisa: true, desafio_concluido: true, seu_mes: true };
 const PORTAL_URL = process.env.PORTAL_URL || 'https://app.prorider.app.br';   // 03/10r: domínio próprio (o endereço antigo do Railway continua funcionando)
 let _smtp = null;
 function emailProvedor() {
@@ -428,6 +428,8 @@ const EMAIL_TEXTO_PADRAO = {
   vaga_aberta:      { assunto: '🚲 Abriu uma vaga: {aula} às {hora}', titulo: 'Abriu uma vaga para você, {nome}!', abertura: 'Você estava na lista de espera da aula {aula}, {data} às {hora}. A bike {bike} agora é sua.', fechamento: 'Se não puder ir, cancele no app para a vaga ir para o próximo da fila.', botao: 'Abrir o app' },
   // 07/10c
   conquista_camisa: { assunto: '🏆 {nome}, você conquistou a {camisa}!', titulo: 'Nova conquista, {nome}! 🏆', abertura: 'O campeonato {campeonato} terminou e você levou a {camisa} para casa.', fechamento: 'Ela aparece no seu perfil e na tela da TV nas próximas aulas. Defenda a sua camisa no próximo campeonato!', botao: 'Abrir o app' },
+  // 07/10d
+  seu_mes:          { assunto: '📅 {nome}, o seu {mes} na bike', titulo: 'O seu mês na bike, {nome}!', abertura: 'Veja como foi {mes} na {academia}.', fechamento: 'Um mês novo começou. Bora fazer ainda melhor?', botao: 'Abrir o app' },
   desafio_concluido:{ assunto: '💪 Desafio {desafio} concluído: +{pontos} pontos', titulo: 'Desafio concluído, {nome}! 💪', abertura: 'Você completou o desafio {desafio} e ganhou {pontos} pontos.', fechamento: '', botao: 'Abrir o app' },
 };
 const EMAIL_CAMPOS = ['assunto', 'titulo', 'abertura', 'fechamento', 'botao'];
@@ -454,7 +456,7 @@ function emailMontar(tipo, cfg, v, numerosHtml, extraHtml, botaoUrl, academia) {
 // 07/10c: cada tipo com a mesma cara — selo/cartões no topo e o recado (texto de fechamento) numa caixa
 const EMAIL_RECADO = { boas_vindas: ['🚴', 'Dica'], resumo_aula: ['📈', 'Excelente trabalho!'], sumido: ['💪', 'Bora voltar?'], novo_ftp: ['⚡', 'Zonas atualizadas'],
   aniversario: ['🎉', 'Comemore com a gente'], relatorio_mensal: ['📊', 'Relatório completo'], lembrete_aula: ['📲', 'Imprevisto?'], vaga_aberta: ['📲', 'Imprevisto?'],
-  conquista_camisa: ['👕', 'Defenda a sua camisa'], desafio_concluido: ['⚡', 'Continue assim'] };
+  conquista_camisa: ['👕', 'Defenda a sua camisa'], desafio_concluido: ['⚡', 'Continue assim'], seu_mes: ['🚀', 'Mês novo'] };
 function emailTopoTipo(tipo, v) {
   v = v || {};
   if (tipo === 'boas_vindas') return emailCartoes([{ ic: '📱', v: '1', l: 'Baixe o app ProRider', cor: '#ea860c' }, { ic: '📷', v: '2', l: 'Escaneie o QR da bike', cor: '#295fe8' }, { ic: '📊', v: '3', l: 'Receba o resumo', cor: '#5db13d' }]);
@@ -505,6 +507,23 @@ function emailDesafioMontar(cfg, v, desafio, pts, info, academia) {
   const extra = emailSelo({ cor: '#ea860c', corTxt: '#111', marca: d.marca, sub2: d.sub2, grande: true, rotulo: 'DESAFIO ' + d.nome.toUpperCase(), titulo: '+' + _nBR(pts) + ' pontos na sua conta', texto: det }) +
     (d.prox ? emailRecado('⚡', 'Próximo desafio: ' + d.prox[0], d.prox[1]) : '');
   return emailMontar('desafio_concluido', cfg, Object.assign({}, v, { desafio: d.nome, pontos: _nBR(pts) }), null, extra, PORTAL_URL + '/aluno', academia);
+}
+// 07/10d: "seu mês" do aluno — cartões + os dias do mês em que pedalou
+function emailSeuMesMontar(cfg, v, x, academia) {
+  const dlt = x.aulas_ant != null ? x.aulas - x.aulas_ant : null;
+  const cart = emailCartoes([
+    { ic: '🚴', v: _nBR(x.aulas), un: '', l: 'Aulas', cor: '#295fe8' },
+    { ic: '⏱️', v: x.horas, un: 'h', l: 'Pedalando', cor: '#ffb020' },
+    { ic: '🔥', v: _nBR(x.kcal), un: 'kcal', l: 'Calorias', cor: '#ea860c', corV: '#ff6a3d' },
+    { ic: '⚡', v: x.watts || '—', un: x.watts ? 'W' : '', l: 'Potência média', cor: '#5db13d' },
+    { ic: '📆', v: x.dias.length, un: '', l: 'Dias pedalados', cor: '#9b30ff' },
+    { ic: dlt == null || dlt >= 0 ? '📈' : '📉', v: dlt == null ? '—' : (dlt > 0 ? '+' : '') + dlt, un: '', l: 'Aulas vs. mês anterior', cor: '#d7c414', corV: '#ffd23f' }]);
+  const n = x.ndias || 30, set = new Set(x.dias);
+  let cel = ''; for (let d = 1; d <= n; d++) cel += `<td style="height:22px;border-radius:4px;background:${set.has(d) ? '#ea860c' : '#26262d'};font-size:9px;line-height:22px;color:${set.has(d) ? '#111' : '#6d6d76'};text-align:center;font-weight:700">${d}</td>`;
+  const cal = `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#17171c;border:1px solid #2a2a31;border-radius:12px;margin:8px 0"><tr><td style="padding:12px 12px 10px;${EF}">
+    <div style="font-size:10px;letter-spacing:1.5px;color:#8d8d96;margin-bottom:8px">OS DIAS EM QUE VOCÊ PEDALOU</div>
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="2" style="border-collapse:separate;table-layout:fixed"><tr>${cel}</tr></table></td></tr></table>`;
+  return emailMontar('seu_mes', cfg, v, cart, cal, PORTAL_URL + '/aluno', academia);
 }
 async function emailCamisa(h, camp) {
   if (!db || !emailProvedor() || !h || !h.user_id) return;
@@ -573,9 +592,9 @@ async function emailNovoFtp(uid, antes, depois) {
   await emailUmaVez('novo_ftp', 'u' + uid + ':' + depois, uid, u.email, m.subject, m.html);
 }
 // Rotina diária (10h de Brasília): sumidos, aniversários e relatório mensal.
-async function rotinaEmailsDiaria() {
+async function rotinaEmailsDiaria(dataTeste) {
   if (!db || !emailProvedor()) return;
-  const agora = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
+  const agora = dataTeste ? new Date(dataTeste + 'T10:00:00') : new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
   const hoje = agora.toISOString().slice(0, 10);
   try {
     const lics = await db.query("SELECT codigo, nome, emails_cfg, contato_email, email_gestor FROM licencas WHERE status='ativa'");
@@ -601,6 +620,23 @@ async function rotinaEmailsDiaria() {
           await emailUmaVez('aniversario', 'u' + u.id + ':' + agora.getFullYear(), u.id, u.email, mA.subject, mA.html);
         }
       }
+      if (c.seu_mes && agora.getDate() === 1) {   // 07/10d: "seu mês" para cada aluno que pedalou no mês que passou
+        const mes = new Date(agora.getFullYear(), agora.getMonth() - 1, 1), ref = mes.getFullYear() + '-' + String(mes.getMonth() + 1).padStart(2, '0');
+        const nomeMes = mes.toLocaleDateString('pt-BR', { month: 'long' }), ndias = new Date(mes.getFullYear(), mes.getMonth() + 1, 0).getDate();
+        const r = await db.query(`SELECT u.id, u.name, u.email, COUNT(ah.id)::int AS aulas, COALESCE(SUM(ah.dur_seg),0)::int AS seg, COALESCE(SUM(ah.kcal),0)::int AS kcal,
+            COALESCE(ROUND(AVG(NULLIF(ah.avg_watts,0))),0)::int AS watts,
+            ARRAY_AGG(DISTINCT EXTRACT(DAY FROM (ah.data_aula AT TIME ZONE 'America/Sao_Paulo'))::int) AS dias,
+            (SELECT COUNT(*)::int FROM aula_historico a2 WHERE a2.user_id=u.id AND a2.data_aula >= ($2::date - INTERVAL '1 month') AND a2.data_aula < $2::date) AS aulas_ant
+          FROM users u JOIN aula_historico ah ON ah.user_id=u.id
+          WHERE u.license_id=$1 AND u.role='aluno' AND COALESCE(u.status,'ativo')='ativo' AND u.email IS NOT NULL
+            AND ah.data_aula >= $2::date AND ah.data_aula < ($2::date + INTERVAL '1 month')
+          GROUP BY u.id`, [l.codigo, ref + '-01']);
+        for (const u of r.rows) {
+          const v = { nome: String(u.name || '').split(' ')[0], nome_completo: u.name || '', academia: l.nome, mes: nomeMes };
+          const m = emailSeuMesMontar(c, v, { aulas: u.aulas, horas: (Math.round(u.seg / 360) / 10).toLocaleString('pt-BR'), kcal: u.kcal, watts: u.watts, dias: u.dias || [], ndias, aulas_ant: u.aulas_ant }, l.nome);
+          await emailUmaVez('seu_mes', 'u' + u.id + ':' + ref, u.id, u.email, m.subject, m.html);
+        }
+      }
       if (c.relatorio_mensal && agora.getDate() === 1) {
         const para = l.email_gestor || l.contato_email; if (!para) continue;
         const mes = new Date(agora.getFullYear(), agora.getMonth() - 1, 1);
@@ -616,7 +652,7 @@ async function rotinaEmailsDiaria() {
       }
     }
   } catch (e) { log('rotinaEmailsDiaria erro: ' + e.message); }
-  _ultimaRotinaEmail = hoje;
+  if (!dataTeste) _ultimaRotinaEmail = hoje;
 }
 let _ultimaRotinaEmail = '';
 setInterval(() => {
@@ -1747,7 +1783,7 @@ wss.on('connection', (ws) => {
   ws._salaCode = null; ws._tipo = null; ws._nome = null;
   // batimento: marcado vivo ao conectar e a cada resposta de ping
   ws.isAlive = true;
-  ws.on('pong', () => { ws.isAlive = true; });
+  ws.on('pong', () => { ws.isAlive = true; if (ws._diagT0) { ws._diagRtt = Date.now() - ws._diagT0; ws._diagT0 = 0; } });   // 09/10: atraso de cada celular (diagnóstico da sala)
 
   ws.on('message', async (raw) => {
     let msg;
@@ -2081,6 +2117,7 @@ wss.on('connection', (ws) => {
         if (!salaCode || !salas[salaCode]) return;
         const sala = salas[salaCode];
         sala.estado.iniciada = true; sala.estado.encerrada = false;
+        if (sala.licenca) _notaSalas.set(salaCode, { lic: sala.licenca, inicio: Date.now() });   // 07/10d: quem pode dar nota e de que aula
         sala.estado.grafico  = msg.grafico || [];
         sala.estado.blocoIdx = msg.blocoIdx || 0;
         sala.estado.nomeAula = msg.nomeAula || '';
@@ -2177,6 +2214,25 @@ wss.on('connection', (ws) => {
 
       case 'ping': {
         ws.send(JSON.stringify({ tipo: 'pong' }));
+        break;
+      }
+
+      // 09/10: DIAGNÓSTICO DA SALA (painel escondido da TV): mede o atraso de cada celular até o servidor
+      case 'diag_pedir': {
+        const sd = salas[ws._salaCode];
+        if (!sd || sd.professor !== ws) return;
+        const lista = [...sd.alunos.entries()];
+        lista.forEach(([, aws]) => { try { aws._diagRtt = null; aws._diagT0 = Date.now(); aws.ping(); } catch (e) {} });
+        setTimeout(() => {
+          try {
+            if (ws.readyState !== WebSocket.OPEN) return;
+            const agora = Date.now();
+            ws.send(JSON.stringify({ tipo: 'diag', alunos: lista.map(([n, aws]) => ({ nome: n, bike: aws._bikeNum || null,
+              ms: (typeof aws._diagRtt === 'number') ? aws._diagRtt : null, aberto: aws.readyState === WebSocket.OPEN,
+              ult_s: aws._ultMsg ? Math.round((agora - aws._ultMsg) / 1000) : null })) }));
+            lista.forEach(([, aws]) => { aws._diagT0 = 0; });
+          } catch (e) {}
+        }, 1500);
         break;
       }
     }
@@ -2883,10 +2939,12 @@ app.get('/display/atualizacao', displayAuth, async (req, res) => {
     const m = manifestoTv(); if (!m) return res.json({ nada: true, motivo: 'sem_pacote' });
     if (String(req.headers['x-pr-build'] || '').trim() === 'BUILD ' + m.versao) return res.json({ nada: true, motivo: 'em_dia' });
     const l = (await db.query('SELECT tv_auto_atualizar, tv_atualizar_agora FROM licencas WHERE codigo=$1', [req.user.license_id])).rows[0];
-    if (!l || !l.tv_auto_atualizar) return res.json({ nada: true, motivo: 'desligada', disponivel: m.versao });
+    // 08/10: "atualizar agora" vale mesmo com o automático desligado (antes a TV respondia "desligada" e não instalava)
+    const agora = !!(l && l.tv_atualizar_agora && Date.now() - new Date(l.tv_atualizar_agora).getTime() < 6 * 3600000);
+    if (!l || (!l.tv_auto_atualizar && !agora)) return res.json({ nada: true, motivo: 'desligada', disponivel: m.versao });
     const base = (process.env.TV_ATUALIZACAO_BASE || 'https://app.prorider.app.br').replace(/\/$/, '');
     res.json({ versao: m.versao, url: base + '/ginasio/atualizacao/' + m.arquivo, sha256: m.sha256, assinatura: m.assinatura, tamanho: m.tamanho,
-      janela: process.env.TV_JANELA || '02:00-05:00', agora: !!(l.tv_atualizar_agora && Date.now() - new Date(l.tv_atualizar_agora).getTime() < 6 * 3600000) });
+      janela: process.env.TV_JANELA || '02:00-05:00', agora });
   } catch (e) { res.status(500).json({ nada: true }); }
 });
 app.post('/display/atualizacao/status', displayAuth, async (req, res) => {
@@ -3291,6 +3349,7 @@ function emailPrevia(tipo, cfg, academia) {
   if (tipo === 'relatorio_mensal') nums = emailNumsMes(214, 63, 96400);
   if (tipo === 'conquista_camisa') return emailCamisaMontar(cfg, v, { k: 'amarela', cat: 'lider', cor: '#ffd400', rotulo: 'Camisa amarela', pontos: 1840 }, academia);
   if (tipo === 'desafio_concluido') return emailDesafioMontar(cfg, v, '21dias', 500, { dias: 21 }, academia);
+  if (tipo === 'seu_mes') return emailSeuMesMontar(cfg, Object.assign(v, { mes: 'setembro' }), { aulas: 14, horas: '12,5', kcal: 7840, watts: 171, dias: [1, 2, 4, 6, 8, 9, 11, 13, 15, 16, 20, 22, 25, 29], ndias: 30, aulas_ant: 11 }, academia);
   return emailMontar(tipo, cfg, v, nums, '', PORTAL_URL + '/aluno', academia);
 }
 app.post('/gestor/emails/previa', gestorAuth, async (req, res) => {
@@ -6197,6 +6256,10 @@ async function daMigrar() {
       watts_med INTEGER DEFAULT 0, detalhe JSONB, created_at TIMESTAMPTZ DEFAULT NOW(), UNIQUE(license_id, uid));
     CREATE INDEX IF NOT EXISTS aulas_tv_lic_inicio ON aulas_tv (license_id, inicio);
     ALTER TABLE aulas_tv ADD COLUMN IF NOT EXISTS relatorio JSONB;   -- 07/10c: relatório técnico da aula
+    CREATE TABLE IF NOT EXISTS aulas_notas (   -- 07/10d: nota da aula (1 a 5), uma por aluno por sala
+      id SERIAL PRIMARY KEY, user_id INTEGER REFERENCES users(id) ON DELETE CASCADE, license_id TEXT NOT NULL, sala TEXT NOT NULL,
+      aula_nome TEXT, nota SMALLINT NOT NULL CHECK (nota BETWEEN 1 AND 5), inicio TIMESTAMPTZ, created_at TIMESTAMPTZ DEFAULT NOW(), UNIQUE(user_id, sala));
+    CREATE INDEX IF NOT EXISTS aulas_notas_lic ON aulas_notas (license_id, created_at);
     CREATE TABLE IF NOT EXISTS desafios_academias (
       id SERIAL PRIMARY KEY, codigo TEXT UNIQUE NOT NULL, nome TEXT NOT NULL, criador_license TEXT NOT NULL,
       tipo TEXT NOT NULL DEFAULT 'periodo', metrica TEXT NOT NULL DEFAULT 'wpp',
@@ -6685,10 +6748,10 @@ app.post('/display/gravacao/:id/enviar', displayAuth, async (req, res) => {
 // 03/10e — SEGURANÇA E SAÚDE: esqueci a senha, reportar problema,
 // excluir minha conta (LGPD) e a página "Saúde do sistema" do admin
 // ══════════════════════════════════════════════════════════════
-const SERVIDOR_VERSAO = '07/10c';
+const SERVIDOR_VERSAO = '07/10d';
 // 03/10y: versão do Ginásio que vai junto com este servidor. Pacote só de servidor/site não muda isto,
 // e as TVs não precisam ser reinstaladas. Mude junto com o PR_BUILD do Ginásio.
-const GINASIO_VERSAO = '07/10c';
+const GINASIO_VERSAO = '07/10d';
 // 03/10v: a TV certa tem o mesmo número do servidor (o pacote sobe os dois juntos)
 function tvVersaoOk(b) { return String(b || '').trim() === 'BUILD ' + GINASIO_VERSAO; }
 const _inicioServidor = Date.now();
@@ -7884,6 +7947,53 @@ setInterval(esRotina, 60000);
 // cada dia da semana e horário, sobre as bikes da licença. Sumidos: alunos
 // com 2+ aulas cuja última foi há mais de 14 dias, com o botão de mandar o
 // e-mail "Sentimos sua falta" na hora.
+// ══ 07/10d — NOTA DA AULA ═════════════════════════════════════
+// O app pergunta "Como foi a aula?" quando o professor encerra. A sala diz a academia e o início;
+// o professor e o horário saem da grade (aula da academia no mesmo dia, até 30 min de diferença).
+const _notaSalas = new Map();   // sala → { lic, inicio } (12 h)
+setInterval(() => { const lim = Date.now() - 12 * 3600000; for (const [k, v] of _notaSalas) if (v.inicio < lim) _notaSalas.delete(k); }, 3600000).unref();
+// só no servidor de teste (a variável não existe no Railway): roda a rotina dos e-mails como se fosse o dia pedido
+if (process.env.EMAIL_ROTINA_TESTE === '1') app.post('/_teste/rotina-emails', adminAuth, async (req, res) => {
+  const d = String((req.body && req.body.data) || ''); if (!/^\d{4}-\d{2}-\d{2}$/.test(d)) return res.status(400).json({ error: 'data' });
+  await rotinaEmailsDiaria(d); res.json({ ok: true });
+});
+app.post('/aluno/nota', authMiddleware, async (req, res) => {
+  if (!db) return res.status(503).json({ error: 'Banco indisponível' });
+  const nota = parseInt(req.body && req.body.nota, 10), sala = String((req.body && req.body.sala) || '').trim().toUpperCase().slice(0, 30);
+  if (!(nota >= 1 && nota <= 5)) return res.status(400).json({ error: 'Nota de 1 a 5' });
+  const info = _notaSalas.get(sala);
+  if (!info) return res.status(404).json({ error: 'Aula não encontrada' });
+  try {
+    await db.query(`INSERT INTO aulas_notas (user_id, license_id, sala, aula_nome, nota, inicio) VALUES ($1,$2,$3,$4,$5,$6)
+      ON CONFLICT (user_id, sala) DO UPDATE SET nota=EXCLUDED.nota, created_at=NOW()`,
+      [req.user.id, info.lic, sala, String((req.body && req.body.aula_nome) || '').slice(0, 80) || null, nota, new Date(info.inicio)]);
+    res.json({ ok: true });
+  } catch (e) { log('nota: ' + e.message); res.status(500).json({ error: 'Erro interno' }); }
+});
+app.get('/gestor/notas', gestorAuth, async (req, res) => {
+  if (!db) return res.status(503).json({ error: 'Banco indisponível' });
+  try {
+    const dias = Math.max(7, Math.min(180, parseInt(req.query.dias, 10) || 60));
+    const r = await db.query(`
+      WITH n AS (
+        SELECT n.nota, (COALESCE(n.inicio, n.created_at) AT TIME ZONE 'America/Sao_Paulo') AS ini FROM aulas_notas n
+        WHERE n.license_id=$1 AND n.created_at > NOW() - make_interval(days => $2)),
+      m AS (
+        SELECT n.nota, EXTRACT(DOW FROM n.ini)::int AS dow, EXTRACT(HOUR FROM n.ini)::int AS hora,
+          (SELECT COALESCE(p.name, a.professor_nome) FROM aulas_agenda a LEFT JOIN users p ON p.id=a.professor_id
+            WHERE a.license_id=$1 AND a.dia_semana=EXTRACT(DOW FROM n.ini)::int
+              AND ABS(EXTRACT(EPOCH FROM (a.hora - n.ini::time))) <= 1800
+            ORDER BY ABS(EXTRACT(EPOCH FROM (a.hora - n.ini::time))) LIMIT 1) AS professor
+        FROM n)
+      SELECT * FROM m`, [req.user.license_id, dias]);
+    const grupo = chave => { const g = {}; r.rows.forEach(x => { const k = chave(x); if (k == null) return; (g[k] = g[k] || { soma: 0, n: 0 }); g[k].soma += x.nota; g[k].n++; });
+      return Object.entries(g).map(([k, v]) => ({ k, media: Math.round(v.soma / v.n * 10) / 10, n: v.n })); };
+    const dist = [1, 2, 3, 4, 5].map(i => r.rows.filter(x => x.nota === i).length);
+    res.json({ dias, total: { n: r.rows.length, media: r.rows.length ? Math.round(r.rows.reduce((s, x) => s + x.nota, 0) / r.rows.length * 10) / 10 : null }, dist,
+      professores: grupo(x => x.professor || 'Sem professor na grade').sort((a, b) => b.n - a.n),
+      horarios: grupo(x => x.dow + '_' + x.hora).map(x => { const [dow, hora] = x.k.split('_').map(Number); return { dow, hora, media: x.media, n: x.n }; }).sort((a, b) => ((a.dow + 6) % 7) - ((b.dow + 6) % 7) || a.hora - b.hora) });
+  } catch (e) { log('notas: ' + e.message); res.status(500).json({ error: 'Erro interno' }); }
+});
 app.get('/gestor/ocupacao', gestorAuth, async (req, res) => {
   if (!db) return res.status(503).json({ error: 'Banco indisponível' });
   try {

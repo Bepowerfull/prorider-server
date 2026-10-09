@@ -1,5 +1,5 @@
 // 07/10c — E-MAILS DO ALUNO NO MODELO NOVO. Usa o Resend simulado (asaas-simulado.js guarda o que "saiu").
-//  1) prévia do Portal: os 10 tipos montam sem {palavra} sobrando, sem "undefined"/"NaN", com a moldura nova
+//  1) prévia do Portal: os 11 tipos montam sem {palavra} sobrando, sem "undefined"/"NaN", com a moldura nova
 //  2) fim de aula: o app manda a potência minuto a minuto → o e-mail tem os 6 cartões e o gráfico na escala certa;
 //     app antigo (sem a série) → barra com o tempo em cada zona
 //  3) desafio 21 dias concluído → e-mail "Desafio concluído" (uma vez só)
@@ -27,7 +27,7 @@ const limpo = h => !/\{[a-z_]+\}|undefined|NaN|\[object/.test(h);
   console.log('1) Prévia do Portal: todos os tipos no modelo novo');
   const g = (await j('GET', '/gestor/emails', null, G)).d;
   const tipos = Object.keys(g.padrao || {});
-  ok(tipos.includes('conquista_camisa') && tipos.includes('desafio_concluido') && tipos.length === 10, 'Portal lista os 10 tipos (2 novos)', tipos);
+  ok(tipos.includes('conquista_camisa') && tipos.includes('desafio_concluido') && tipos.includes('seu_mes') && tipos.length === 11, 'Portal lista os 11 tipos', tipos);
   ok(g.cfg.conquista_camisa === true && g.cfg.desafio_concluido === true, 'os 2 novos já vêm ligados', g.cfg);
   for (const t of tipos) {
     const p = (await j('POST', '/gestor/emails/previa', { tipo: t }, G)).d || {};

@@ -708,6 +708,7 @@ async function bgConfirmar(){
 // ═══ 6. QR CODE / ENTRAR NA AULA ═══════════════════════════════════
 function mostrarPreAula(d,vc,mc){
   d=d||{}; boxMode='preAula';
+  setTimeout(function(){ try{ _demoReligar(); }catch(e){} },1800);   // 07/10d: demo ligado volta sozinho na tela do QR
   _fecharTodasTelas('boxPreAula');
   var el=document.getElementById('boxPreAula'); if(el) el.style.display='flex';
   window._preAulaD=d; window._preAulaVC=vc; window._preAulaMC=mc;

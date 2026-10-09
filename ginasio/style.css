@@ -2067,3 +2067,29 @@ button:active{ transform:scale(0.97); }
 #rdCam{position:fixed;left:30px;top:30px;width:17vw;max-width:340px;aspect-ratio:16/9;z-index:10004;border-radius:14px;overflow:hidden;background:#000;border:2px solid rgba(255,138,92,.7);box-shadow:0 10px 30px rgba(0,0,0,.55)}
 #rdCam video{width:100%;height:100%;object-fit:cover;display:block}
 #rdCam span{position:absolute;left:8px;top:6px;font:800 13px 'Barlow',sans-serif;letter-spacing:1px;color:#fff;background:rgba(214,45,45,.85);border-radius:6px;padding:2px 8px}
+/* 07/10d: DIAGNÓSTICO DA SALA (LB+RB 2 s na tela do QR) */
+#diagSala{position:fixed;inset:0;z-index:100000;display:none;align-items:center;justify-content:center;background:rgba(6,5,12,.7);font-family:'Barlow Condensed','Arial Narrow',Arial,sans-serif;color:#F3F1EE}
+#diagSala .dg-p{position:absolute;left:7vw;top:6.5vh;right:7vw;bottom:6.5vh;background:rgba(12,12,18,.97);border:2px solid #2A2A31;border-radius:28px;box-shadow:0 0 80px rgba(234,134,12,.18);padding:40px 48px;display:flex;flex-direction:column;gap:24px;overflow:hidden}
+#diagSala .dg-top{display:flex;justify-content:space-between;align-items:flex-end;gap:24px}
+#diagSala .dg-tit{font-size:52px;font-weight:800;letter-spacing:3px}#diagSala .dg-tit b{color:#EA860C}
+#diagSala .dg-sub{font-size:22px;letter-spacing:3px;color:#9a9aa2;margin-top:6px}
+#diagSala .dg-res{display:flex;gap:16px}
+#diagSala .dg-chip{background:#17171C;border:1px solid #2A2A31;border-radius:14px;padding:10px 20px;text-align:center;min-width:140px}
+#diagSala .dg-n{font-size:40px;font-weight:800;line-height:1}#diagSala .dg-l{font-size:17px;letter-spacing:2px;color:#9a9aa2}
+#diagSala .dg-cols{display:grid;grid-template-columns:1.55fr 1fr;gap:32px;flex:1;min-height:0}
+#diagSala .dg-h{font-size:24px;letter-spacing:4px;color:#EA860C;font-weight:700;margin-bottom:12px}
+#diagSala .dg-bikes{display:grid;grid-template-columns:repeat(5,1fr);gap:10px}
+#diagSala .dg-b{background:#17171C;border:1px solid #2A2A31;border-left:6px solid #5DB13D;border-radius:12px;padding:8px 12px}
+#diagSala .dg-b.f{border-left-color:#FFB020}#diagSala .dg-b.x{border-left-color:#D62D2D;opacity:.85}
+#diagSala .dg-num{font-size:32px;font-weight:800;line-height:1}
+#diagSala .dg-sig{display:flex;gap:3px;align-items:flex-end;height:22px;margin:5px 0 3px}
+#diagSala .dg-sig i{display:block;width:8px;background:#3a3a42;border-radius:2px}
+#diagSala .dg-sig i.on{background:#5DB13D}#diagSala .dg-b.f .dg-sig i.on{background:#FFB020}
+#diagSala .dg-t{font-size:17px;color:#b9b9c0;letter-spacing:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#diagSala .dg-cel{display:flex;flex-direction:column;gap:8px}
+#diagSala .dg-c{display:grid;grid-template-columns:1fr 80px 140px;align-items:center;background:#17171C;border:1px solid #2A2A31;border-radius:10px;padding:7px 16px;font-size:23px}
+#diagSala .dg-c span:first-child{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#diagSala .dg-bk{color:#9a9aa2;font-size:19px}#diagSala .dg-ms{text-align:right;font-weight:700}
+#diagSala .dg-vazio{font-size:24px;color:#9a9aa2;padding:10px 0}
+#diagSala .ok{color:#5DB13D}#diagSala .wa{color:#FFB020}#diagSala .er{color:#ff5d58}
+#diagSala .dg-rod{display:flex;justify-content:space-between;font-size:21px;color:#9a9aa2;letter-spacing:2px;margin-top:auto}#diagSala .dg-rod b{color:#F3F1EE}

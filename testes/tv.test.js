@@ -86,6 +86,30 @@ const FOTOS = fs.mkdtempSync(path.join(os.tmpdir(), 'prorider-telas-tv-'));
   ok(s.no && /Aluna Teste/.test(s.lista), 'aluno aparece na tela do QR');
   await foto('2_qr_com_aluno');
 
+  console.log('3b) Diagnóstico da sala (07/10d): LB+RB 2 s na tela do QR, B fecha');
+  await p.evaluate(() => { window._gpFake = { index: 0, id: 'teste', axes: [0, 0], buttons: Array.from({ length: 17 }, () => ({ pressed: false, value: 0 })) };
+    navigator.getGamepads = () => [window._gpFake]; startGamepad();
+    parBikeMap[13] = { tipo: 'keiser', mac: 'AA:BB:CC:00:00:13', bled112: true, rssi: -62, _lastSeen: Date.now() };
+    parBikeMap[7] = { tipo: 'keiser', mac: 'AA:BB:CC:00:00:07', bled112: true, rssi: -70, _lastSeen: Date.now() - 95000 }; });
+  const aperta = (bs, v) => p.evaluate(([bs, v]) => bs.forEach(b => { window._gpFake.buttons[b] = { pressed: v, value: v ? 1 : 0 }; }), [bs, v]);
+  await aperta([4, 5], true); await espera(900);
+  ok(await p.evaluate(() => !_diag.on && boxMode === 'preAula'), 'segurar LB+RB menos de 2 s não abre nada');
+  for (let i = 0; i < 6; i++) { await p.evaluate(() => _prProcessDevice({ mac: 'AA:BB:CC:00:00:13', rssi: -62, watts: 0, cadence: 0 })); await espera(250); }
+  const dg = await ate(p, () => { const e = document.getElementById('diagSala'); return _diag.on && e && /Aluna Teste/.test(e.innerText) && /ms/.test(e.innerText) ? e.innerText : null; }, 7000);
+  ok(!!dg && /DIAGNÓSTICO/.test(dg) && /1\/2/.test(dg) && /-62 dBm/.test(dg) && /7\s*sem sinal há (9\d s|1 min)/.test(dg), 'painel abre: bikes 1/2 ok, sinal -62 dBm, bike 7 "sem sinal há X min"', (dg || '').replace(/\s+/g, ' ').slice(0, 220));
+  ok(!!dg && /Aluna Teste[\s\S]*bike 3[\s\S]*\d+ ms/.test(dg) && /INTERNET\s*/.test(dg) && /OK/.test(dg), 'celular da aluna com bike e atraso em ms; internet OK');
+  await aperta([4, 5], false); await espera(200);
+  await foto('2b_diagnostico');
+  await aperta([9], true); await espera(300); await aperta([9], false); await espera(300);
+  ok(await p.evaluate(() => boxMode === 'preAula' && _diag.on), 'com o painel aberto, START não começa a aula');
+  await aperta([1], true); await espera(300); await aperta([1], false); await espera(300);
+  ok(await p.evaluate(() => boxMode === 'preAula' && !_diag.on && getComputedStyle(document.getElementById('diagSala')).display === 'none'), 'B fecha o painel e continua na tela do QR');
+  await p.evaluate(() => { delete parBikeMap[13]; delete parBikeMap[7]; navigator.getGamepads = () => []; });
+  // o professor pede; um aluno pedindo não recebe nada
+  const rec2 = []; al.on('message', m => { try { const x = JSON.parse(m); if (x.tipo === 'diag') rec2.push(x); } catch (e) {} });
+  al.send(JSON.stringify({ tipo: 'diag_pedir' })); await espera(2000);
+  ok(rec2.length === 0, 'aluno não consegue pedir o diagnóstico');
+
   console.log('4) START');
   await p.keyboard.press('Enter'); await espera(5000);
   s = await p.evaluate(() => ({ modo: boxMode, tocando: typeof isPlaying !== 'undefined' && isPlaying, idle: _podeIdle() }));
@@ -159,6 +183,18 @@ const FOTOS = fs.mkdtempSync(path.join(os.tmpdir(), 'prorider-telas-tv-'));
   await espera(1500);
   const ev = await sql(`SELECT nivel || ': ' || msg FROM sistema_eventos WHERE origem='tv' AND created_at>='${inicio}'`);
   ok(ev === '', 'nenhum erro nem aviso falso da TV chegou na Saúde', ev);
+  console.log('9) Alunos demo ficam ligados (07/10d)');
+  await p.evaluate(() => { try { sairIdle(); } catch (e) {} if (settingsDemo) settingsToggleDemo(); settingsNumDemo_val = 8; settingsToggleDemo(); });
+  ok(await p.evaluate(() => { const d = JSON.parse(localStorage.getItem('pr_demo') || 'null'); return d && d.on === true && d.n === 8; }), 'ligar o demo fica salvo na TV');
+  // (o Chromium do teste nem sempre guarda o localStorage de file:// ao recarregar; a TV de verdade guarda — o token da TV fica no mesmo lugar)
+  await p.addInitScript(() => { try { if (!localStorage.getItem('pr_demo')) localStorage.setItem('pr_demo', JSON.stringify({ on: true, n: 8 })); } catch (e) {} });
+  await p.reload(); await espera(4000);
+  ok(await p.evaluate(() => settingsDemo === true && demoWanted === true && settingsNumDemo_val === 8), 'depois de reabrir o programa, o demo continua ligado (8 alunos)');
+  await p.evaluate(() => { try { sairIdle(); } catch (e) {} videoSource = 'none'; mostrarPreAula({ nome: 'AULA DEMO' }, { ok: false, msg: '--' }, { ok: false, msg: '--' }); });
+  ok(!!(await ate(p, () => demoOn && DNOMES.some(n => alunosMap[n]), 6000)), 'na tela do QR os alunos demo voltam sozinhos', await p.evaluate(() => ({ modo: boxMode, w: demoWanted, on: demoOn })));
+  await p.evaluate(() => { fecharPreAula(); settingsToggleDemo(); }); await espera(500);
+  ok(await p.evaluate(() => { const d = JSON.parse(localStorage.getItem('pr_demo') || 'null'); return d && d.on === false && !demoOn; }), 'desligar também fica salvo');
+  ok(erros.length === 0, 'sem erro de JavaScript no demo', erros.slice(0, 3));
   al.close(); await nav.close();
   await sql(`DELETE FROM aulas_agenda WHERE nome='Spin Teste TV'`);
   console.log('  fotos das telas: ' + FOTOS);
