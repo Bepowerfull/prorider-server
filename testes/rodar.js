@@ -30,7 +30,7 @@ const PORTA = parseInt(process.env.TEST_PORT || '3999'), PORTA_MOCK = 3014;
 const SERVIDOR = path.join(RAIZ, 'server.js');
 const pgCfg = { host: u.hostname, port: parseInt(u.port || '5432'), user: decodeURIComponent(u.username), password: decodeURIComponent(u.password), database: u.pathname.slice(1), ssl: false };
 const ADMIN = 'admin@teste.local', ADMIN_SENHA = 'teste123';
-const TESTES = ['pagamento', 'loja', 'desafios', 'emails', 'notas', 'seguranca', 'invasao', 'telas', 'versao', 'vigia', 'conferencia', 'termos', 'bluetooth', 'erg', 'blenativo', 'semdado', 'dominio', 'fuso', 'tv', 'aula15', 'carga', 'queda', 'longo', 'aovivo', 'redecel', 'redetv', 'keiser', 'autoatualiza', 'antplus', 'portal', 'backup'];
+const TESTES = ['pagamento', 'loja', 'desafios', 'emails', 'notas', 'fimaula', 'seguranca', 'invasao', 'telas', 'versao', 'vigia', 'conferencia', 'termos', 'bluetooth', 'erg', 'blenativo', 'semdado', 'dominio', 'fuso', 'tv', 'aula15', 'carga', 'queda', 'longo', 'aovivo', 'redecel', 'redetv', 'keiser', 'autoatualiza', 'antplus', 'portal', 'backup'];
 const SO = (process.env.SO || '').split(',').filter(Boolean);   // 03/10s: SO=tv roda só esse grupo
 const espera = ms => new Promise(r => setTimeout(r, ms));
 const filhos = [];

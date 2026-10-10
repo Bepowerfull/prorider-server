@@ -32,6 +32,173 @@ Lista do que foi combinado com o Mario e ainda não foi feito. Quem fizer um ite
 - [x] **Arquivo .tcx** da aula para Strava/Garmin.
 - [x] **Painel do gestor:** ocupação por dia e horário e alunos sumidos (com e-mail na hora).
 
+## Feito na 07/10c
+- [x] E-mails do aluno no modelo novo (arte do Mario) + gráfico minuto a minuto no fim de aula.
+- [x] E-mails novos: camisa conquistada e desafio concluído.
+- [x] Relatório da aula na Saúde; indicador do atualizador da TV; Keiser sem nome no Android.
+- [ ] Mario: print do APK de diagnóstico da Keiser; depois reinstalar o APK do aluno 07-10b.
+- [ ] Mario: aprovar o e-mail real (fazer uma aula com o e-mail ligado e conferir no celular).
+
+## Feito na 07/10b
+- [x] **Pendrive ANT+ na TV**, para as bikes que só falam ANT+. **Falta:** teste com o pendrive ANT+ do Mario e uma bike ANT+ de verdade. Antes, conferir no Gerenciador de Dispositivos do Windows como o pendrive aparece (porta COM ou "ANT USB Stick").
+
+## SEGURANÇA — lista de conferência (o Mario marca; checar juntos depois)
+**GitHub**
+- [ ] Settings → Code security: ligar **Secret scanning** e **Dependabot alerts** *antes* de fechar. Ver se aparece algum alerta e mandar print.
+- [ ] Settings → General → Danger Zone → **Make private**.
+- [ ] Ver se há **forks** (cópias públicas) do repositório.
+- [ ] Fazer um deploy de teste no Railway depois de fechar.
+- [ ] Trocar qualquer chave que o Secret scanning tenha achado.
+- [ ] Proteger o ramo principal: ninguém sobe direto sem os testes passarem.
+
+**Verificação em 2 etapas (2FA), com app autenticador e não SMS, e senha única em cada um:**
+- [ ] GitHub
+- [ ] Railway
+- [ ] Asaas
+- [ ] Resend
+- [ ] Dropbox
+- [ ] Google (Gmail e Play Console)
+- [ ] Apple ID
+- [ ] Registro.br (o domínio)
+- [ ] UptimeRobot
+- [ ] E-mail principal do Mario: é a chave de recuperação de todos os outros
+
+**Senhas e chaves**
+- [ ] Gerenciador de senhas (Bitwarden, 1Password ou outro) e o documento de senhas preenchido pelo próprio Mario.
+- [ ] Chave privada da atualização das TVs guardada em 2 lugares: pendrive + gerenciador de senhas.
+- [ ] Chaves do Asaas e do Resend só nas variáveis do Railway. Ninguém manda chave por WhatsApp, e-mail ou chat.
+- [ ] Revisar quem tem acesso a cada conta (Railway, GitHub, Asaas). Tirar quem não precisa.
+
+**Sistema**
+- [ ] Senha do super admin forte e única. Cada pessoa com o próprio login (nada de login compartilhado).
+- [ ] Backup semanal no HD externo e um teste de restaurar por mês (`restaurar-teste.sh`).
+- [ ] TVs: Windows atualizado, sem TeamViewer gratuito; usar licença comercial ou RustDesk.
+- [ ] Antes do lançamento: rodar de novo a revisão de segurança (`testes/invasao.test.js` + revisão manual).
+
+## Feito na 07/10f
+- [x] Toda forma de terminar grava a aula e manda o resumo: professor encerra na TV, aluno sai pelo "Encerrar Aula", teste de FTP do app, aula gravada.
+- [x] Totem (sem celular, identificado pelo e-mail): aula gravada (histórico e pontos) e resumo por e-mail com os números da TV.
+- [x] Sem login: o fim da aula convida a criar a conta; ao criar ou entrar (até 24 h), a aula vai para a conta e o resumo chega.
+- [x] App: botão CONTROLES laranja, de um toque (no iPhone com o app na tela de início, arrastar de baixo fechava o app).
+- [x] Tela de fim da aula nova e compartilhar com 2 modelos (foto do aluno de fundo).
+- [x] Saúde: "última consulta" de cada TV (por que não atualizou).
+- [ ] Totem sem e-mail (só o nome) e "entrar sem login" sem criar conta: não há para quem mandar — fica só na TV.
+
+## Feito na 07/10e
+- [x] **Corrigido:** na aula da TV (entrando pelo QR) o app não gravava a aula no servidor — sem histórico, sem pontos, sem e-mail do resumo, para qualquer conta. Teste novo `fimaula` (app de verdade, aluno e super admin).
+
+## Feito na 07/10d
+- [x] Diagnóstico da sala: LB+RB 2 s na tela do QR (B fecha; teclado Ctrl+Shift+D). Sinal de cada bike, atraso de cada celular, internet.
+- [x] Alunos demo ficam ligados (voltar ao início ou reabrir o programa não desliga).
+- [x] Nota da aula (1 a 5 estrelas no app) e "Nota das aulas" no Portal (Ocupação), por professor e por horário.
+- [x] E-mail "O seu mês" para o aluno no dia 1º (o gestor desliga no Portal).
+- [x] "Atualizar agora" com o automático desligado + textos claros em Licenças.
+- [ ] **Etapa 2 (aprovada, depois):** aulas automáticas (grade do gestor, aviso 10 min antes com cronômetro na tela de espera, começa sozinha); painel do professor (o gestor liga por professor); convide um amigo (o gestor liga por academia).
+
+## Feito na 07/10a
+- [x] Atualização automática das TVs pelo servidor (assinada, de madrugada, volta sozinha). **Falta:**
+  - **Mario + desenvolvedor:** criar as chaves;
+  - **desenvolvedor:** pôr o módulo no `main.js` e instalar uma última vez pelo `.bat`;
+  - ligar a atualização na academia de teste e depois nas outras.
+- [x] Keiser lida direto no celular (app das lojas) e o resumo da Keiser ignorado na TV. **Falta:** o teste com Keiser de verdade no app instalado.
+- [x] Documentação das marcas (`MARCAS_BLUETOOTH.md`). **Falta:** passar o nRF Connect nas marcas marcadas com 🔎 quando houver acesso.
+- [ ] **Pareamento das bikes pelo Admin, de longe** — **num lugar escondido** (ex.: dentro do "detalhes" de cada TV na Saúde), para não poluir o Admin (ver e numerar as bikes que o dongle está ouvindo, sem TeamViewer): ideia para depois.
+
+## Feito na 03/10z
+- [x] Testes de internet ruim no celular e de internet da academia caindo. 6 falhas encontradas e corrigidas.
+- [ ] **Modo local** (o celular fala direto com o mini PC pela rede da academia): avaliar depois dos apps nas lojas.
+
+## Feito na 03/10y
+- [x] "Aulas ao vivo agora" na Saúde e em `/status/ao-vivo`. Pacote só de servidor não exige reinstalar as TVs.
+- [ ] Relatório da aula do 17/10 (sinal do dongle por bike, atraso por celular): combinado para depois.
+- [ ] Roteiro do dia 17/10: combinado para depois.
+
+## Feito na 03/10x
+- [x] Ensaio do 17/10 (15 bikes no dongle + 15 celulares): %FTP e zona certos para todos, atraso ~0,3 s.
+- [x] Teste de carga com TV ativada: 30 academias × 20 bikes sem perda.
+- [x] Servidor caindo no meio da aula: o aluno não é mais expulso (falha corrigida).
+- [x] Saúde da TV (memória, fps, tempo ligada) e teste de aula longa. **Falta:** Mario rodar a `TESTE_10_HORAS.json` em casa (8–10 h) e eu ler o histórico.
+- [x] Auditoria de dependências.
+- [ ] **17/10:** aula real com 15 bikes Keiser no dongle e 15 celulares.
+- [ ] Tradução (inglês/espanhol): adiada pelo Mario.
+
+## Feito na 03/10w
+- [x] Revisão de segurança antes do lançamento (13 falhas corrigidas, com teste de invasão).
+- [x] App sem números simulados; imagens das lojas prontas.
+
+## Feito na 03/10v
+- [x] Verificação da versão antes de gerar o programa da TV (`GERAR_PROGRAMA_DA_TV.bat`) e aviso na Saúde para TV em versão diferente do servidor. **Falta:** reinstalar as 3 TVs (estão na 03/10n) com a 03/10v.
+
+## Feito na 03/10u
+- [x] Projeto dos apps das lojas (Android e iPhone) com Bluetooth nativo. **Falta:**
+  - **Mario:** criar as contas (Google US$ 25 uma vez; Apple US$ 99/ano) e decidir sobre as compras dentro do app;
+  - **desenvolvedor:** gerar e testar no celular de verdade;
+  - **teste fechado do Google:** 12 testadores por 14 dias;
+  - trocar os links do QR da TV para os das lojas.
+
+## Feito na 03/10t
+- [x] Horário de Brasília no banco (reserva da noite sumia depois das 21h; minutos até a próxima aula errados em horas).
+- [x] Teste automático das telas do Portal (gestor, financeiro, admin) e do app (conta, reserva, entrar na aula).
+
+## Feito na 03/10s
+- [x] Teste automático das telas da TV (aula inteira, num navegador de verdade) + correções que ele achou (aviso falso de queda depois de toda aula, resumo sem sala, cartões cortados).
+- [x] Carga automática (ERG) para rolos e bikes inteligentes. **Falta:** testar com um rolo real (Wahoo, Tacx, Elite…).
+
+## Feito na 03/10r
+- [x] Domínio próprio **app.prorider.app.br** (antigo continua valendo). **Falta (Mario, depois do deploy):** Redirect URI no Dropbox, URL do webhook no Asaas e URL do monitor no UptimeRobot; conferir `PORTAL_URL` no Railway (desenvolvedor).
+
+## Feito na 03/10q
+- [x] Dropbox conectado no Construtor (pasta Aplicativos/ProRider Cycling, escolher músicas e vídeo, link criado sozinho); link colado à mão mais confiável. **Falta:** teste real com a conta do Mario e de um professor.
+
+## Infraestrutura (fora do código)
+- [x] **UptimeRobot** (06/10): monitor "ProRider servidor" em `https://prorider-server-production-5784.up.railway.app/ping`, a cada 5 min, com aviso por e-mail para marioelite@hotmail.com se cair. Conta grátis do Mario.
+- [x] Webhook do Asaas conferido em 06/10 (pagamento da Demo 01 chegou na hora; eventos de estorno e de cartão recusado marcados).
+- [x] Backup semanal: o Mario baixa da Saúde do sistema e guarda no HD externo (1º em 06/10).
+- [x] App do Dropbox "ProRider Cycling" criado (06/10), com até 500 contas liberadas.
+- [x] **Domínio** `app.prorider.app.br` (06/10): CNAME `app` → `416c6tdi.up.railway.app` + TXT `_railway-verify.app` no Registro.br; validado no Railway (porta 8080). Registros do Resend mantidos.
+- [ ] Railway Pro (prioridade, ao concluir o projeto).
+
+## Feito na 03/10p
+- [x] Bikes, rolos e sensores de outras marcas por Bluetooth padrão (FTMS, potência, cadência) no app; na academia, os números do celular aparecem na TV. **Falta:** testar com cada aparelho real conforme aparecer (ver `MARCAS_BLUETOOTH.md`).
+
+## Feito na 03/10o
+- [x] Termos de uso e Política de privacidade (páginas), aceite obrigatório no cadastro e no próximo acesso de quem já tem conta, registro do aceite (LGPD). **Falta: revisão do texto pelo advogado.**
+
+## Feito na 03/10n
+- [x] TV parada volta sozinha para a tela de espera em 10 min, mesmo com o controle ligado (nunca durante a aula nem na tela do QR).
+- [x] "✓ Resolvido" confere se o problema acabou antes de fechar o aviso (senão mostra o que falta; dá para fechar mesmo assim, registrado).
+
+## Feito na 03/10m
+- [x] Pausar avisos por academia até uma data, botão "✓ Resolvido" nos avisos, recusa de data do Asaas (cartão) como aviso, contador de e-mails da Saúde certo.
+
+## Feito na 03/10l
+- [x] Desligamento limpo no deploy (SIGTERM → saída 0) + start command `node server.js`: acabam os falsos "Deployment crashed".
+
+## Feito na 03/10k
+- [x] Conferência diária dos pagamentos com o Asaas (registra o que o webhook não trouxe, desfaz estornos, loja) + botão "Conferir agora" na Saúde.
+
+## Feito na 03/10j
+- [x] Backup do banco feito pelo próprio servidor toda madrugada, botão Baixar na Saúde e ferramenta de restauração testada.
+
+## Feito na 03/10i
+- [x] Queda e volta normal da TV não aparece mais como erro na Saúde.
+- [x] E-mail ligado em produção (prorider.app.br verificado no Resend, 05/10).
+
+## Feito na 03/10h
+- [x] Semáforo das academias, painel por academia com linha do tempo, lupinha e código do erro na tela (E-XXXX); e-mail só dos vermelhos.
+
+## Feito na 03/10g
+- [x] Vigia: avisos automáticos por e-mail (TV desligada perto da aula, TV caiu na aula, picos de erro, Asaas recusado, disco, memória, banco).
+
+## Feito na 03/10f
+- [x] Erros e avisos da TV, do app, do Portal, do financeiro e do admin chegam sozinhos na Saúde do sistema.
+- [x] TV sem internet guarda o resumo da aula, o campeonato e a ficha da gravação e envia sozinha depois.
+- [x] Teste de carga (`ferramentas/teste-carga.js`): 100 academias × 20 bikes aprovado no servidor local.
+- [x] Trocou a senha (perfil, esqueci a senha, "Nova senha" do admin) → as outras sessões caem.
+
+## Feito na 03/10e
+- [x] Limite de tentativas, esqueci a senha, reportar problema, excluir conta, Saúde do sistema, testes automáticos, scripts de backup.
+
 ## Feito na 03/10c
 - [x] Loja: venda de aulas (avulsa, pacotes, assinatura) com Asaas; admin abastece; repasse por professor.
 - [x] Desafios reais: 21 dias, Quebra FTP, ranking do mês, grupos no servidor.
@@ -44,10 +211,15 @@ Lista do que foi combinado com o Mario e ainda não foi feito. Quem fizer um ite
 - [x] Revisão do pagamento: vencimento certo no Asaas, situação única, livro-caixa, desfazer, e-mail com motivo e senha nova.
 
 ## Pendências abertas
+- [ ] **⚠️ PRIORIDADE: contratar o Railway Pro** (cerca de US$ 20/mês) ao concluir o projeto / antes das primeiras academias pagantes — liga os backups automáticos do Railway (diário, semanal, mensal) e a restauração até o minuto. Até lá: backup do próprio servidor (03/10j) + cópia semanal baixada pelo Mario.
+- [ ] **Revisão diária pelo Claude** (tarefa agendada que lê a Saúde do sistema no navegador do Mario e manda um resumo) — criar depois que o 03/10g estiver no ar.
+- [ ] **Aviso por WhatsApp** além do e-mail (precisa de um serviço pago de WhatsApp).
+- [ ] **Teste de carga na homologação do Railway** (o local passou; falta medir com a internet e a máquina do Railway).
+- [ ] **Testes das telas dentro do `testes/rodar.js`** (TV, app e Portal num navegador de teste; hoje rodam à parte).
+- [ ] **Termos de uso e privacidade:** páginas e aceite prontos na 03/10o — falta o advogado revisar o texto (trocar só o texto das páginas).
 - [ ] **Volume no Railway para as gravações** (`GRAVACOES_TESTE_DIR` num Volume): sem isso, cada deploy apaga os vídeos enviados pela TV. Alternativa: link do Dropbox/Drive na aula da loja.
 - [ ] **Keiser M3i no celular:** a M3i só transmite por anúncio Bluetooth; testar na bike se o app conecta (a TV continua lendo pelo dongle).
 - [ ] **Percentual de repasse** de cada professor (hoje o relatório mostra o valor bruto por professor).
-- [ ] **Resend com domínio verificado** (prorider.com.br) e `EMAIL_FROM` no Railway — sem isso o e-mail com a senha só chega no dono da conta Resend.
 - [ ] **Trocar o cartão da cobrança automática** pela página do financeiro (hoje: falar com a ProRider).
 - [ ] **Pagamento da licença: testar no sandbox do Asaas** antes da 1ª cobrança real (feito na 02/10h com Asaas simulado). Conferir se a assinatura guarda o cartão pago pela página do Asaas para os meses seguintes, e como trocar o cartão.
 - [ ] **Desafio ao vivo: "convite" com a aula já no Portal** (hoje a aula vai às outras academias quando a TV da mãe abre a tela do QR).

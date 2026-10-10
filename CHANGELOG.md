@@ -33,6 +33,829 @@ Componentes: `servidor` · `app` · `ginasio` · `portal` · `banco`.
 
 ---
 
+## 2026-10-09 · servidor + app (site) · 07/10f — resumo em todas as formas de terminar; botão CONTROLES
+
+**O que mudou**
+- **Aluno sai no meio** ("Encerrar Aula"): a aula vai com o que ele fez até ali (já valia com a correção da 07/10e; agora tem teste).
+- **Teste de FTP do app:** também grava a aula e manda o resumo.
+- **Totem (sem celular):** no `POST /display/aula/resumo`, quem entrou pelo totem com e-mail tem a aula gravada (`aulas_completadas`, `aula_historico`, pontos) e recebe o resumo. Tabela nova `totem_aulas` evita duplicar quando a TV reenvia o resumo.
+- **Sem login:** a aula fica guardada no aparelho (24 h) e o resultado mostra "Receba este resumo por e-mail"; ao criar a conta ou entrar, a aula vai para o servidor.
+- **App:** a faixa "CONTROLES" virou um botão laranja grande, de um toque (antes só arrastando, o que no iPhone com o app na tela de início fecha o app).
+- E-mail do resumo mostra "—" no RPM quando não foi medido.
+- **Tela de fim da aula nova** (no padrão do app e dos e-mails): pontos e nível, 6 cartões (duração, calorias, potência, RPM, zona, FC média), linha com %FTP, RPM máx, TSS e distância, gráfico da potência minuto a minuto colorido pela zona e tempo em cada zona. Substitui as duas telas antigas (resultado e pontos).
+- **Compartilhar:** 2 modelos (1080×1920) lado a lado, arrasta para o lado (dica animada); o fundo é a foto que o aluno escolhe. Modelo 1: números em coluna; modelo 2: números em linha, gráfico da aula e rodapé.
+- **Saúde → TVs:** linha "última consulta" com o que o servidor respondeu à TV (sem pacote assinado, desligada, em dia, instala na tela de espera). Coluna nova `licenca_computadores.atu_consulta`.
+
+**Por quê**
+- Pedido do Mario: todo mundo que faz a aula recebe o resumo, termine como terminar; botão difícil no iPhone.
+
+**Como confirmar**
+- Grupo `fimaula`: aluno, super admin, aluno saindo no meio, sem login → criar conta, totem (e reenvio sem duplicar), botão de um toque. **32 grupos**.
+
+**Cuidados**
+- Só servidor e `public/`. O Ginásio continua 07/10d.
+
+## 2026-10-09 · app (site) · 07/10e — aula da TV volta a ser gravada pelo app
+
+**O que mudou**
+- No fim da aula da TV (aluno entrou pelo QR), o app agora chama `POST /aula/complete`. Antes o treino da aula estava só na TV, o app ficava sem "aula atual" e pulava a gravação: a aula não ia para o histórico, não somava pontos e o e-mail do resumo não saía — para qualquer conta.
+
+**Por quê**
+- O Mario fez aulas no Clube e não recebeu o e-mail; a Saúde mostrava o e-mail funcionando.
+
+**Como confirmar**
+- Grupo novo `fimaula`: app de verdade num navegador entra pelo QR, a TV começa e encerra a aula; confere a aula no banco, o e-mail "seu resumo da aula" e a nota, com conta de aluno e de super admin. **32 grupos**.
+
+**Cuidados**
+- Só servidor e `public/` (app web). O Ginásio continua 07/10d: as TVs não precisam de nada.
+
+## 2026-10-09 · servidor + app + ginasio + portal · 07/10d — diagnóstico da sala, nota da aula, "o seu mês", demo fixo
+
+**O que mudou**
+- **TV — diagnóstico da sala (secreto):** na tela do QR, LB+RB por 2 s abre o painel (B fecha; teclado Ctrl+Shift+D). Mostra cada bike pareada (sinal em dBm, pacotes/s, "sem sinal há X"), cada celular com o atraso até o servidor e a internet da TV. Com o painel aberto, o START não começa a aula. Não conflita com L1+R1 (menu inicial) nem com LB+RB 5 s (modo espaço, na aula).
+- **Servidor:** mensagem WebSocket `diag_pedir` (só a TV dona da sala): o servidor mede o ping de cada celular e responde `diag` com nome, bike e ms.
+- **TV — alunos demo:** ligar/desligar fica salvo (`localStorage pr_demo`); a TV reabre com o demo como estava e os alunos demo voltam sozinhos na tela do QR.
+- **Nota da aula:** quando o professor encerra, o app pergunta "Como foi a aula?" (1 a 5 estrelas, anônimo para o professor). `POST /aluno/nota`, tabela nova `aulas_notas` (uma nota por aluno por aula). Portal → Ocupação → "Nota das aulas": média, distribuição, por professor (o da grade naquele horário) e por horário. `GET /gestor/notas`.
+- **E-mail "O seu mês":** dia 1º, para cada aluno que pedalou no mês: aulas, horas, kcal, potência média, dias pedalados (calendário) e comparação com o mês anterior. Ligado por padrão; o gestor desliga/edita no Portal → E-mails.
+- **Admin → Licenças:** "atualizar agora" funciona mesmo com a atualização automática desligada; textos mais claros ("atualização automática (2h–5h)").
+
+**Por quê**
+- Pedidos do Mario de 09/10: ver o sinal de bikes e celulares sem TeamViewer, demo que não some, opinião dos alunos por professor/horário e um e-mail mensal que traz o aluno de volta.
+
+**Como confirmar**
+- Grupo novo `notas` (notas, Portal, app, e-mail do mês, desligar) e `tv` (diagnóstico com controle simulado, demo salvo) — **31 grupos**.
+
+**Cuidados**
+- Migração automática (`aulas_notas`). O servidor de teste expõe `/_teste/rotina-emails` só com `EMAIL_ROTINA_TESTE=1` (não existe no Railway).
+
+## 2026-10-07 · servidor + app + ginasio + portal · 07/10c — e-mails novos, relatório da aula, Keiser sem nome
+
+**O que mudou**
+- **E-mails do aluno no modelo novo** (estilo da arte do Mario):
+  - foto no topo, nome do aluno em destaque, cartões de números e rodapé "Ride with purpose";
+  - feito só com tabelas e estilos inline (Gmail, Outlook, Apple Mail, celular); sem as fotos continua legível;
+  - imagens novas: `img/email-hero.jpg` e `img/email-logo.png` (servidas pelo `PORTAL_URL`);
+  - vale para todos os e-mails que usam `emailMontar` (boas-vindas do aluno, resumo, sumido, novo FTP, aniversário, relatório do mês, lembrete, vaga). Os e-mails de sistema (senha, Saúde, teste) seguem no modelo antigo.
+  - **os 10 com a mesma cara:** título com o nome do aluno em destaque, um selo ou cartões próprios de cada tipo (passos no boas-vindas, dias sumido, bolo no aniversário, horário no lembrete, nº da bike na vaga, FTP antes/agora) e o texto de fechamento numa caixa de recado (`EMAIL_RECADO`), com botão "Abrir o app".
+  - textos padrão revistos (nome no título de todos). Academias que escreveram textos próprios continuam com os delas.
+- **Resumo da aula:**
+  - 6 cartões (duração, kcal, potência, rpm, zona, pontos);
+  - gráfico da potência minuto a minuto, com as barras na cor da zona (FTP do aluno) e a régua Z1–Z6.
+  - O app manda `serie_min` em `POST /aula/complete` (até 240 valores, limpos no servidor).
+  - Sem a série (app antigo) ou sem FTP: barra com o tempo em cada zona.
+- **E-mails novos:**
+  - `conquista_camisa`: quando um campeonato é encerrado, para quem levou cada camisa;
+  - `desafio_concluido`: 21 dias ou Quebra FTP, com o próximo desafio sugerido.
+  - Os dois vêm ligados, com textos editáveis no Portal da academia (E-mails automáticos). A prévia do Portal se ajusta à altura do e-mail.
+- **Relatório da aula** (TV → Saúde):
+  - por bike: pacotes, falhas acima de 2 s, maior falha, sinal, sumiu no fim;
+  - por aluno: quedas, tempo fora;
+  - da TV: quedas do servidor, quadros por segundo mínimos, memória máxima.
+  - Fica gravado em `aulas_tv.relatorio` (JSONB); a aula fica amarela na linha do tempo da Saúde quando houve problema.
+- **Lista de espera:** aula lotou enquanto o aluno escolhia a bike → `409 { lotada: true }` e o app põe o aluno na fila (antes ficava parado em "Aula lotada").
+- **Saúde:** mostra se a TV tem o atualizador automático ("⟳ atualizador pronto / sem atualizador").
+- **Backup da madrugada não derruba mais as TVs:** no teste de 10 h as 3 TVs caíram juntas entre 02:00 e 02:04, hora do backup automático. Agora o backup lê em lotes de 200 com pausa entre eles, espera se houver aula ao vivo (até o último ter 30 h) e o log mostra a maior travada do servidor (`[Backup] … maior travada do servidor X ms`).
+- **TV (fim da aula):** aula de 1 h ou mais (ex.: 10:00:00) não passa mais para fora do anel da duração nem da coluna "tempo em cada zona"; na TV 2560×1440 o botão "REPETIR AULA" não cobre mais o pódio.
+- **TV (desafio automático):** quando um desafio começa, o resultado do anterior fecha (antes, dois desafios a menos de 30 s um do outro: o resultado do 1º cobria o 2º).
+- **Bateria no Windows:** `testes/saida.js` guarda o código que o teste pediu; se o Node 24 quebrar só ao fechar (libuv `UV_HANDLE_CLOSING`), o `rodar.js` conta como passou. Falha de verdade continua ❌.
+- **App (Keiser):** o Android não entrega o nome da Keiser. Agora a lista aceita a Keiser pelos dados do fabricante e mostra "Keiser M3 nº X" (antes: "Aparelho / longe").
+
+**Por quê**
+- Mario pediu o e-mail de fim de aula, conquistas e desafios no padrão da arte dele.
+- Na academia, a lista do celular mostrava "Aparelho / longe" para as Keiser.
+
+**Como confirmar**
+- `SO=emails node testes/rodar.js` (novo, 34 verificações); `SO=aula15,keiser` (relatório e Keiser sem nome).
+- Portal da academia → E-mails automáticos → prévia de cada tipo.
+- Console do app: `[ProRider Aluno] BUILD 07/10c`.
+
+**Cuidados**
+- Migração automática: `aulas_tv.relatorio`.
+- As imagens novas do e-mail precisam estar publicadas em `/img` (vão na pasta do site do pacote).
+
+---
+
+## 2026-10-07 · ginasio · 07/10b — pendrive ANT+ na TV
+
+**O que mudou**
+- **`gin/antplus.js` (novo):** leitor do pendrive ANT+ (Garmin/Dynastream USB-m, USB2 e compatíveis, fabricante 0x0FCF).
+  - Funciona pela **Web Serial**, quando o Windows mostra o pendrive como porta COM, igual ao BLED112, ou pela **WebUSB** (driver WinUSB).
+  - Põe o pendrive em **escuta contínua** na rede ANT+, com o nº e o tipo de cada aparelho em cada pacote, e escuta **todas as bikes da sala ao mesmo tempo**.
+- **Perfis lidos:**
+  - FE-C (bikes e rolos): página 0x19, página 0x15 e FC da página 0x10;
+  - Potência: página 0x10;
+  - Cadência e Vel+Cad: pelas voltas do pedivela;
+  - FC: a cinta é lida, mas não entra na lista de bikes.
+- **Pareamento:** botão **ANT+** na tela de pareamento; gira-se o pedal e escolhe-se na lista ("ANT+ FE-C 12345 · 230 W · 85 rpm"). A bike pareada entra no mesmo caminho da Keiser (`_prProcessDevice`): cartões, %FTP com o FTP do aluno, repasse aos celulares e resumo.
+- **Ao abrir:** com bikes ANT+ pareadas, a TV liga o pendrive sozinha, sem pedir nada, e religa se ele desconectar.
+- **`_processDevice`** saiu de dentro do BLED112 e virou `_prProcessDevice`, a mesma entrada para os dois dongles. Os dados ANT+ não contam como "sinal" do BLED112.
+
+**Por quê**
+- Schwinn Echelon2/MPower, Spinner Blade ION, ICG/Life Fitness TFT 1.0 e Technogym Skillbike só mandam potência por ANT+, e o celular não lê ANT+.
+
+**Como confirmar**
+- `testes/antplus.test.js` (pendrive ANT+ simulado no protocolo ANT):
+  - comandos de preparo com a chave ANT+ e a conferência XOR;
+  - páginas lidas;
+  - lista sem a cinta e sem pacote estragado;
+  - pareamento de 2 bikes;
+  - cartões, aluno com o FTP dele e repasse ao celular;
+  - religar sozinho depois de reabrir.
+- **29 grupos** na bateria.
+
+**Cuidados**
+- Arquivo novo **`antplus.js`** no zip do Ginásio. O `.bat` e o `conferir_pacote.py` já exigem esse arquivo.
+- **Programa da TV (`main.js`):** o seletor de porta serial precisa aceitar o pendrive ANT+ (fabricante 0x0FCF) além do BLED112. Para WebUSB, liberar o fabricante 0x0FCF (veja `MENSAGEM_DESENVOLVEDOR_07-10b.md`).
+
+## 2026-10-07 · servidor + ginasio + app + admin · 07/10a — atualização automática das TVs e Keiser direto no celular
+
+**Atualização automática das TVs pelo servidor (sem pendrive e sem TeamViewer)**
+- **Módulo do programa da TV:** `atualizador-tv/atualizador-tv.js` e `preload-atualizador.js`. É instalado uma vez no `main.js`; veja o `atualizador-tv/LEIA-ME.md`.
+  - Baixa só de `app.prorider.app.br` e confere a assinatura Ed25519 da ProRider e o SHA-256.
+  - Recusa arquivo com pasta (`../`).
+  - Grava em `<dados do app>/versoes/<versão>` e guarda a anterior.
+  - A versão nova precisa se confirmar. Se não confirmar em 3 min, ou se fechar 2 vezes sem confirmar, volta sozinha.
+- **Ferramentas:**
+  - `ferramentas/chaves-atualizacao-tv.js`: cria o par de chaves, só fora do projeto, e nunca sobrescreve uma chave existente.
+  - `ferramentas/montar-atualizacao-tv.js`: monta e assina `public/ginasio/atualizacao/` (manifesto + `.prpack`, ~580 KB).
+- **Servidor:**
+  - `GET /display/atualizacao`: só para a academia com a atualização ligada, se a versão da TV for outra e se o manifesto for da `GINASIO_VERSAO`.
+  - `POST /display/atualizacao/status` e `POST /admin/licencas/:codigo/tv-atualizacao` (ligar/desligar e "atualizar agora").
+  - Colunas `licencas.tv_auto_atualizar` e `tv_atualizar_agora`, e `licenca_computadores.atualizacao`.
+- **Ginásio:**
+  - pergunta a cada 10 min;
+  - instala só na tela de espera (sem aula), das 02:00 às 05:00 no relógio da TV, ou na hora com "atualizar agora";
+  - confirma a versão nova em 60 s;
+  - avisa "programa sem atualizador" quando o programa ainda não tem o módulo.
+- **Admin:**
+  - Licenças: "⟳ auto ligada/desligada" e "atualizar agora";
+  - Saúde → TVs: o que aconteceu na última atualização;
+  - aviso no topo quando falha ou volta à anterior.
+
+**Keiser direto no celular (app das lojas)**
+- O app lê o **anúncio oficial da Keiser** (dev.keiser.com/mseries/direct) pelo plugin nativo, sem conectar, porque a Keiser M3 não aceita conexão. Em vários pontos, o código antigo tentava conectar.
+- **Na aula da academia:**
+  - a TV manda o **nº da Keiser** de cada bike da sala (`sala_info.keiser`);
+  - o celular ouve a própria bike e o ponteiro usa esse número na hora, com o FTP do aluno;
+  - sem anúncio por 2,5 s, volta ao número da TV.
+- **Em casa:** a lista mostra **"Keiser M3 nº 7"**, uma linha por bike.
+- **Resumo da Keiser** ("review", o console mostrando a média depois que o aluno parou): agora é **ignorado no app e na TV**. Antes podia aparecer como watts ao vivo.
+- **Lista de bikes:** nomes novos (PM5, Spinner, Precor, BH, Stages IC, IC5–IC8, CXP, Group Cycle).
+- **`MARCAS_BLUETOOTH.md` refeito,** com a pesquisa marca por marca e as fontes:
+  - como cada bike se identifica;
+  - quantos aparelhos leem ao mesmo tempo;
+  - quais são só ANT+;
+  - como testar com o nRF Connect.
+
+**Como confirmar**
+- `testes/autoatualiza.test.js` e `testes/keiser.test.js` (novos).
+- `testes/aula15.test.js`: a TV ignora o resumo da Keiser.
+- **28 grupos** na bateria.
+
+**Cuidados**
+- **A chave privada da atualização** nunca vai para o GitHub, o servidor ou o chat.
+- **Os pacotes de teste** são apagados pelo próprio teste.
+- **A 1ª instalação do atualizador** ainda é pelo `.bat`, a última do jeito antigo.
+
+## 2026-10-07 · servidor + app + ginasio · 03/10z — internet ruim no celular e internet da academia caindo
+
+**Testes novos (com uma "rede de mentira", `testes/rede.js`: lenta, engasgando, sumindo sem aviso, caindo)**
+- **`redecel`:** 3 celulares de verdade com a TV de verdade, cada um numa rede:
+  - aluno 1 em 3G (300–600 ms): o número novo chega em ~0,7 s;
+  - aluno 2 em rede péssima (1–1,5 s): o número novo chega em ~1,7 s, e ele volta depois de uma queda de 10 s;
+  - aluno 3 com engasgos de 6 s e com a internet sumindo por 20 s e por 70 s: continua na aula e volta sozinho.
+- **`redetv`:** a internet da academia some sem aviso por 60 s e por 4 min, com os celulares no 4G. Depois, a aula termina com a TV ainda sem internet.
+
+**Falhas encontradas e corrigidas**
+1. **Aluno fantasma e números zerados (Ginásio).**
+   - **Antes:** quando o celular do aluno caía, a TV tirava o aluno. A bike dele, que continuava sendo pedalada, virava "Aluno 03": aparecia um aluno a mais no ranking e no resumo (resumo com 5 em vez de 3), e as calorias e a distância do aluno de verdade recomeçavam do zero.
+   - **Agora:** com a aula rodando, o aluno fica na bike e o dongle continua somando para ele.
+2. **Internet lenta (app).** A nova tentativa de 4 em 4 s criava uma segunda conexão enquanto a primeira ainda abria, e dava erro de JavaScript. Agora o app espera a tentativa em andamento por até 10 s, e cada conexão só fala por ela mesma.
+3. **Internet da academia caindo por mais de 3 min (servidor).** O servidor apagava a sala depois de 3 min sem a TV e **expulsava os alunos**. Com a aula rodando, agora o servidor espera 20 min (`CARENCIA_AULA_S`).
+4. **A TV demorava a perceber a internet sumida (Ginásio).**
+   - Batimento de 5 em 5 s. Sem resposta do servidor em 15 s, a TV religa sozinha.
+   - Conexão que não abre em 10 s conta como falha.
+5. **O fim da aula se perdia quando a aula terminava sem internet (Ginásio).**
+   - O fim fica pendente até um batimento confirmar que chegou.
+   - Se a TV sair da tela da aula, uma conexão curta tenta entregar o fim de 10 em 10 s por até 30 min.
+   - O resumo já ficava guardado (03/10f) e chega com os 3 alunos.
+6. **Aviso no celular (app + servidor).**
+   - Com a aula rodando e a TV calada há mais de 15 s, o servidor manda `tv_sem_sinal` e o app mostra a faixa "📡 A TV da academia está sem internet. A aula continua na TV…".
+   - Quando a TV volta, o servidor manda `tv_voltou` e a faixa some.
+   - TVs antigas (sem o batimento de 5 s) só disparam o aviso depois de 40 s.
+
+**Como confirmar**
+- Bateria com **26 grupos**, "TUDO OK".
+
+**Cuidados**
+- **TVs:** instalar a **03/10z**, porque o Ginásio mudou (`GINASIO_VERSAO` = 03/10z).
+- Se o Ginásio for fechado à força no meio da aula, os celulares ficam com o aviso "TV sem internet" até 20 min e depois a aula é encerrada. O aluno pode sair antes, pelo botão.
+
+## 2026-10-07 · servidor + admin · 03/10y — "aulas ao vivo agora" (não atualizar o servidor no meio da aula)
+
+**O que mudou**
+- **Admin → Saúde, no topo:** uma faixa **vermelha**, "🔴 N aula(s) ao vivo agora — NÃO atualize o servidor agora", com academia, aula, alunos, minutos de aula e situação (rodando / pausada / TV religando). Sem aula, a faixa fica **verde**: "pode atualizar o servidor".
+- **`GET /status/ao-vivo`** (público, sem nomes): `{aulas, alunos, pode_atualizar}`. Serve para o desenvolvedor conferir antes do deploy, ou para um script de deploy.
+- **O que conta como ao vivo:** a TV mandou o andamento da aula (`update_aula`, 1x/s) nos últimos 10 min e não encerrou. Sala aberta sem START não conta.
+- **`GINASIO_VERSAO` no servidor:** é a versão do Ginásio que o servidor espera, separada da versão do servidor.
+  - Pacote só de servidor e site **não obriga a reinstalar as TVs**: elas continuam na **03/10x** sem ⚠ na Saúde.
+  - O `conferir_pacote.py` e o `testes/versao.test.js` conferem que o `GINASIO_VERSAO` é igual ao `PR_BUILD` do Ginásio do pacote.
+
+**Por quê**
+- O teste `queda` mostrou que um deploy no meio da aula derrubava os alunos. Isso já foi corrigido na 03/10x, mas o melhor é não atualizar com aula rodando.
+
+**Como confirmar**
+- `testes/aovivo.test.js`:
+  - sem aula, "pode atualizar";
+  - aula rodando, 1 aula com 2 alunos, com a faixa vermelha na tela do Admin;
+  - a rota pública não mostra academia nem sala;
+  - depois do fim da aula, volta a "pode atualizar".
+- Bateria com 24 grupos.
+
+**Cuidados**
+- Depois de um reinício do servidor, a aula volta a contar assim que a TV religa (em até ~5 s).
+
+## 2026-10-07 · servidor + app + ginasio + admin + testes · 03/10x — ensaio do dia 17/10, carga, servidor caindo no meio da aula e aula longa
+
+**Ensaio da aula de 17/10 (`testes/aula15.test.js`)**
+- Roda a TV de verdade com **15 bikes Keiser no dongle** (simulado na mesma entrada do BLED112) e **15 celulares pelo servidor**, cada um com um FTP diferente.
+- Confere, para os 15:
+  - o watt do dongle mais o FTP do celular dá o %FTP e a zona certos na TV;
+  - cada celular recebe a intensidade da **sua** bike.
+- Mede:
+  - o atraso dongle → TV → servidor → celular: **cerca de 0,3 s**;
+  - o esforço da TV: **~34% de um núcleo**.
+- Também confere:
+  - os 15 cartões sem corte;
+  - o fim da aula nos 15 celulares;
+  - o resumo com 15 alunos.
+
+**Carga (`testes/carga.test.js` + `ferramentas/teste-carga.js`)**
+- A ferramenta assina o token de TV com o `JWT_SECRET` do servidor testado (`CARGA_JWT_SECRET`), porque desde a 03/10w só a TV ativada abre sala.
+- Usa o mesmo formato de `bikes_live` do Ginásio.
+- Recusa rodar contra `app.prorider.app.br`.
+- Resultados no servidor local:
+  - **3 academias × 15 bikes:** 100% entregue, p95 4 ms;
+  - **30 academias × 20 bikes** (630 conexões): 100% entregue, p95 5 ms, nenhuma queda.
+
+**Servidor caindo no meio da aula (`testes/queda.test.js`) — falha encontrada e corrigida**
+- **O que acontecia:** quando o servidor reiniciava (deploy, travamento, Railway), o celular voltava antes da TV recriar a sala. O servidor respondia "Sala não encontrada" e o app **encerrava a aula do aluno** (ia para o resultado).
+- **App:** em plena aula, "sala não encontrada" agora significa "esperar a TV voltar". O app tenta de novo de 4 em 4 s por até 90 s, com o aviso "Esperando a TV da academia voltar…". Só depois disso encerra.
+- **Ginásio:** durante a aula, tenta religar de 5 em 5 s, não mais 3 → 6 → 12 → 30 s.
+- **O teste:**
+  - sobe um servidor só dele (porta 4011);
+  - abre a TV e 3 celulares de verdade;
+  - **mata o servidor** no meio da aula e sobe de novo.
+- **Confere:**
+  - a TV religa;
+  - os celulares voltam para a mesma bike, sem sair da aula;
+  - a intensidade continua certa;
+  - o relógio da aula não para;
+  - o fim chega a todos;
+  - o resumo é salvo com os 3.
+- Passa com 8 s e com 40 s de servidor fora.
+
+**Saúde da TV (para a aula longa e para achar vazamento)**
+- **O Ginásio manda a cada minuto** (`POST /display/saude`):
+  - a memória do JavaScript;
+  - os nós da tela e os quadros por segundo;
+  - o tempo ligada e o tempo de aula;
+  - os alunos, as quedas de conexão e os erros.
+- **O que fica guardado:**
+  - o último valor em `licenca_computadores.saude`;
+  - um histórico de 3 dias em `tv_saude` (1 ponto a cada 5 min).
+- **Admin → Saúde → TVs:**
+  - coluna "Saúde da TV", com quanto a memória subiu na última hora;
+  - link "histórico", com o gráfico da memória;
+  - aviso quando a memória sobe mais de 150 MB/h ou passa de 80% do limite.
+- Ver `GET /admin/tv-saude?lic=&dev=`.
+
+**Aula longa (`testes/longo.test.js`)**
+- Roda a TV com 15 bikes e 15 celulares, com blocos de 30 s.
+- A cada 30 s força a coleta de lixo e mede a memória e os nós da tela.
+- **Ensaio de 20 min:** 40 trocas de bloco, memória estável (tendência −0,1 MB/h), nós da tela estáveis e nenhum erro.
+- Na bateria, roda 4 min (`LONGO_MIN`).
+- **Para o Mario em casa:** aula `TESTE_10_HORAS.json` (10 h, 124 blocos), com o roteiro em `TESTE_10_HORAS.md`.
+
+**Dependências**
+- **Servidor:** `npm audit` sem nenhuma vulnerabilidade (express 5, ws 8, pg 8, jsonwebtoken 9, bcryptjs 3).
+- **`app-lojas`:**
+  - o que vai dentro do app: 0 vulnerabilidades;
+  - as 7 apontadas são só de ferramentas de build do desenvolvedor (`@capacitor/cli`, `@capacitor/assets`: tar, sharp, uuid) e não vão para o celular;
+  - o `package-lock.json` foi acertado com o `package.json`, porque android e ios estavam como dev no lock e o `npm ci` podia reclamar.
+
+**Como confirmar**
+- `node testes/rodar.js`: **23 grupos, "TUDO OK"**.
+- Admin → Saúde → TVs: a coluna "Saúde da TV" é preenchida 15 s depois que a TV 03/10x abre.
+
+**Cuidados**
+- **Ordem:** servidor primeiro, depois as TVs, como sempre. A TV 03/10x num servidor antigo só perde a saúde (o servidor responde 404 e ela ignora).
+- **Para números de memória exatos no Electron:** no `main.js` do programa da TV, `app.commandLine.appendSwitch('enable-precise-memory-info')`. É opcional: sem isso a memória vem arredondada, mas a tendência de horas aparece igual.
+
+## 2026-10-07 · servidor + app + portal + ginasio · 03/10w — revisão de segurança, números sem simulação e imagens das lojas
+
+**Segurança (revisão antes do lançamento; cada item tem teste em `testes/invasao.test.js`)**
+- **Crítico — gestor/coordenador trocava a senha de qualquer conta,** inclusive do super admin (o coordenador passava sem conferir a academia). Agora `_podeMexer`:
+  - só a própria academia;
+  - nunca admin;
+  - na equipe, só o gestor.
+
+  Vale para `GET/PUT /gestor/alunos/:id` e para o reset de senha. O `temAcessoLicenca` não libera mais um gestor sem academia.
+- **Crítico — qualquer um ativava a TV de qualquer academia** com o código da licença, que é público e aparece na página da academia. Isso derrubava a TV verdadeira e dava acesso a dados da academia.
+  - Agora existe o **código da TV** (`licencas.codigo_tv`, 8 caracteres, secreto), que aparece no Admin → Licenças e no "Meu perfil" do gestor.
+  - TV já ativada continua ativada.
+- **Crítico — a sala ao vivo podia ser tomada por qualquer um:**
+  - `criar_sala` exige o token da TV, e a sala fica presa à academia;
+  - mensagens de professor (fim de aula, gráfico, desafio etc.) só são aceitas da TV;
+  - o aluno é identificado pelo token dele, não por um `user_id` mandado pelo app;
+  - ninguém derruba um aluno logado usando o mesmo nome.
+- **Crítico — rotas antigas `/license/*` deixavam o aluno virar professor sozinho:** removidas, junto com `/onboarding/lic/*`, que dependiam da tabela `licenses`, que não existe mais.
+- **Alto:**
+  - o link de cadastro da academia trocava senha e papel de uma conta que já existia; agora recusa;
+  - o gestor se dava acesso a outra academia (`/gestor/professores` com `license_id`);
+  - o totem mostrava e reservava aluno de qualquer academia; agora só da própria, com limite de tentativas.
+- **Médio:**
+  - rankings abertos mostram só o primeiro nome + a inicial;
+  - o gestor não puxa aluno de outra academia para a equipe;
+  - walk-in e "zerar conexões" só na própria academia;
+  - o duelo entre academias só aceita token de TV;
+  - o e-mail de teste só vai para o próprio gestor;
+  - a conta padrão `gestor001@prorider.com` (senha no código) não é mais criada e, se existir com a senha antiga, a senha vira aleatória;
+  - o app não tem mais a senha fixa "1234" para o Construtor, que é aberto a todos.
+
+**App: sem número inventado**
+- Sem bike nem TV mandando dados, o app mostrava RPM, watts e %FTP simulados (o "83 RPM"), uma FC calculada pelo %FTP e uma distância fictícia, e isso ia para o resultado. Agora mostra "—" e não conta nada; médias, máximo e zonas vêm só do que foi medido.
+- Corrigido o %FTP da bike por Bluetooth, que usava 150 W fixos em vez do FTP do aluno.
+- Etiqueta "ERG" fora de cima da barra de números. "SEATE" (cortado) virou "SENTADO" / "EM PÉ".
+
+**Imagens das lojas (`6_APPS_DAS_LOJAS/imagens-das-lojas/`)**
+- 6 telas para o Google (1080×1920) e para o iPhone 6,9" (1290×2796) e 6,5" (1242×2688), feitas das telas reais do app e da TV, mais a imagem de destaque do Google (1024×500).
+
+**Testes:** novos `invasao.test.js` e `semdado.test.js`. 20 grupos no total.
+
+**Cuidados**
+- **Para ativar uma TV nova ou reativar uma TV:** use o **código da TV** (Admin → Licenças, "TV: XXXXXXXX"). O código da licença não serve mais.
+- Os rankings abertos (sem login) passam a mostrar "Marina S." em vez do nome completo.
+
+---
+
+## 2026-10-07 · ginasio + servidor + admin · 03/10v — versão errada nas TVs não passa mais despercebida
+
+**O que aconteceu**
+- As 3 TVs foram "atualizadas", mas continuaram na **03/10n**. O programa foi gerado com os arquivos antigos. A causa provável é o "Extrair tudo" do Windows, que cria uma subpasta com o nome do zip, e assim o `app\` continuou com os arquivos velhos.
+
+**O que mudou**
+- **`GERAR_PROGRAMA_DA_TV.bat`** (no zip do Ginásio, fica em `app\`). Antes de rodar o `npm run dist`, ele confere:
+  - que está em `...\Executavel\app\`, ao lado do `package.json`;
+  - que não sobrou a subpasta `ProRider_1_GINASIO_*`;
+  - que o `script.js` é da versão do pacote;
+  - que os arquivos principais existem.
+
+  Se algo estiver errado, mostra [ERRO] com a correção e não gera nada. Se estiver tudo certo, move os `.exe` antigos para `dist\antigos` e mostra o programa novo.
+- **Saúde do sistema:** TV vista nos últimos 14 dias com BUILD diferente do servidor gera:
+  - um **aviso no topo**;
+  - **⚠ em laranja** na tabela de TVs;
+  - **amarelo** no semáforo da academia, com o motivo.
+
+  Some sozinho quando a TV é atualizada. A regra: a TV certa tem o mesmo número do servidor, porque o pacote sobe os dois juntos.
+- `conferir_pacote.py` exige o `.bat` no zip com a versão do pacote e com quebras de linha do Windows.
+- Teste novo `testes/versao.test.js`. 17 grupos de teste no total.
+
+**Como confirmar**
+- Rodar o `.bat` com o zip extraído numa subpasta → [ERRO].
+- Rodar o `.bat` com tudo certo → gera e mostra o `.exe`.
+- Na Saúde: TV antiga em ⚠ laranja; depois de instalada, BUILD 03/10v sem aviso.
+
+---
+
+## 2026-10-06 · app + apps das lojas · 03/10u — Bluetooth nativo e projeto dos apps (Android e iPhone)
+
+**O que mudou**
+- **Projeto `app-lojas/` (Capacitor 8):** o app instalado abre o app do aluno do servidor (`server.url`) com o **Bluetooth nativo** (`@capacitor-community/bluetooth-le`). Ele já tem:
+  - permissões (Android e iOS) e textos em português;
+  - ícone e abertura com o raio do logo;
+  - página "sem internet".
+  - Como gerar: `app-lojas/LEIA-ME.md`.
+- **Ponte "BLUETOOTH NO APP DAS LOJAS" no `aluno.html`:** no app instalado, cria um `navigator.bluetooth` igual ao do Chrome por cima do plugin nativo, com a lista própria de aparelhos e o mesmo filtro do Chrome. No navegador comum não faz nada.
+  - Com isso, o **iPhone não precisa mais do Bluefy** quando o app estiver na App Store.
+- **Teste novo `testes/blenativo.test.js`:** o app com um plugin nativo simulado (rolo FTMS com controle e cinta). Confere:
+  - a lista só com as bikes;
+  - conectar e receber os números;
+  - a carga automática chegando ao rolo;
+  - a cinta;
+  - cancelar e a queda com reconexão.
+- `APPS_NAS_LOJAS.md`: contas, custos, passo a passo, textos da loja, formulários de privacidade e a decisão sobre compras dentro do app.
+- 16 grupos de teste.
+
+**Como confirmar**
+- `node testes/rodar.js` → 16 grupos, "TUDO OK".
+- No navegador, o app continua igual. A ponte só liga dentro do app instalado.
+
+**Cuidados**
+- Antes de publicar: decisão do Mario sobre compras de bens digitais dentro do app.
+- Depois de publicar: trocar os links do QR da TV ("Ainda não tem o app?") para os das lojas.
+
+---
+
+## 2026-10-06 · servidor + testes · 03/10t — horário de Brasília no banco e teste das telas do Portal e do app
+
+**O que mudou**
+- **Horário de Brasília em toda conexão com o banco** (`SET TIME ZONE 'America/Sao_Paulo'` ao conectar). O banco do Railway fica em UTC, e isso causava dois erros:
+  - **Depois das 21h, "hoje" já era amanhã.** A reserva da aula da noite sumia de "Minhas reservas" e do destaque "Você reservou a bike". O mesmo acontecia com a contagem de reservas de hoje, o "ausente" automático 10 min depois do início e a lista de espera.
+  - **A conta dos minutos até a próxima aula** (`/display/proxima-aula`, `/gestor/proxima-aula`, `/sessao/status`) **errava em horas o dia todo.** Exemplo: aula às 23h, consultada às 22h20, dava 1299 min em vez de 39. Essa conta alimenta a contagem, a janela do QR e o início automático.
+- Dia da semana de Brasília (não do servidor UTC) nas mesmas rotas e no relatório do mês.
+- **Faturas pagas no cartão** mostram a data do pagamento (`confirmedDate`). Antes ficava "—" até o dinheiro cair, uns 30 dias depois.
+- **Teste novo `testes/portal.test.js`**, num navegador de verdade:
+  - **Gestor:** aceita os termos e cria uma aula na grade.
+  - **Financeiro:** aceita os termos e paga (Asaas simulado + webhook); a página fica "Em dia".
+  - **Admin:** a academia aparece na Saúde e na lista "em dia".
+  - **Aluno:** cria a conta (sem os termos não cria), reserva a bike 5 na grade e entra na aula pelo código. A escolha da bike mostra a reserva, e a reserva vira presença. Depois a aula começa e termina pela "TV".
+  - Nenhum erro de JavaScript. As fotos de cada tela ficam numa pasta.
+- **Teste novo `testes/fuso.test.js`:** minutos até a próxima aula e reservas de hoje, a qualquer hora.
+- 15 grupos de teste no total.
+
+**Como confirmar**
+- `node testes/rodar.js` → 15 grupos, "TUDO OK".
+- Depois das 21h, uma reserva para a aula da noite continua em "Minhas reservas".
+
+**Cuidados**
+- Datas e horas que o banco devolve como texto (`to_char`, `::date`) passam a sair no horário de Brasília, que é o certo. Os horários gravados não mudam.
+- TV: a 03/10t é igual à 03/10s; quem já instalou a s não precisa reinstalar.
+
+---
+
+## 2026-10-06 · testes + ginasio + app · 03/10s — teste automático das telas da TV e carga automática (ERG)
+
+**O que mudou**
+- **Teste das telas da TV (`testes/tv.test.js`)**: a cada pacote, o Ginásio abre num navegador de verdade contra o servidor de teste e passa por uma aula inteira:
+  - tela de espera com a grade do dia, menu com a versão;
+  - tela do QR (código, QR, sala aberta, nunca volta sozinha para a espera);
+  - aluno entra pelo "celular" (WebSocket real), START, números chegando, cartões e ranking;
+  - fim da aula (celular recebe o fim, resumo gravado no banco) e volta ao início;
+  - TV parada no menu volta para a espera;
+  - cartões de 1 a 30 alunos com números de 3 dígitos e nomes longos: nada cortado;
+  - nenhum erro de JavaScript, nenhuma queda falsa e nenhum aviso falso na Saúde.
+  - Fotos de cada tela ficam numa pasta mostrada no fim do teste.
+- **Teste do ERG (`testes/erg.test.js`)**: o app de verdade com um "rolo de mentira" que guarda os comandos.
+- **Correções na TV que o teste novo achou:**
+  - **Fim de aula contava como queda do servidor.** A TV fecha a conexão de propósito no fim da aula (e ao abrir), mas o aviso de queda disparava mesmo assim, e a próxima conexão mandava "A TV perdeu a conexão com o servidor e religou sozinha" para a Saúde. Isso acontecia **depois de toda aula**. Agora conexão fechada de propósito não conta.
+  - **Resumo da aula ia sem o código da sala** (a sala já tinha sido fechada). Agora vai o código guardado no START.
+  - **Cartões com poucos alunos cortavam o número:** com 1 a 6 alunos, "100%" e o nome da zona saíam cortados. O tamanho agora é o menor entre o de antes e o que cabe no cartão.
+  - O nome do aluno passava por baixo do "BIKE 3". Agora tem espaço reservado.
+- **Carga automática (ERG) no app**: rolos e bikes com FTMS e controle recebem a potência-alvo de cada bloco (FTP × meio da faixa de %FTP). Detalhes em `MARCAS_BLUETOOTH.md`.
+  - Liga e desliga na tela de conectar e começa desligada.
+  - Na aula, a etiqueta "ERG 196 W" solta o rolo com um toque.
+  - Pausa solta; ao retomar, volta.
+  - Vale na aula do app, na aula ao vivo e na aula gravada.
+- `testes/rodar.js`:
+  - grupos `erg` e `tv`;
+  - `SO=tv` roda só um grupo;
+  - grupo pulado (sem Playwright) aparece com ⚠ e não reprova.
+- **Pasta `ginasio/` na raiz do repositório:** os 12 arquivos do Ginásio, usados pelo teste da TV. A TV continua sendo instalada pelo zip.
+
+**Por quê**
+- Pegar erro de tela antes de chegar na academia (pedido do Mario), e rolo inteligente seguindo a aula sozinho.
+
+**Como confirmar**
+- `node testes/rodar.js` → 13 grupos, "TUDO OK".
+- Na Saúde, depois de uma aula real, **não aparece** mais "A TV perdeu a conexão…".
+
+**Cuidados**
+- O teste da TV e o do ERG precisam do Playwright: `npm i -D playwright && npx playwright install chromium`, uma vez.
+- ERG: confirmar com cada rolo real no 1º uso.
+
+---
+
+## 2026-10-06 · servidor + app + portal + ginasio · 03/10r — domínio próprio app.prorider.app.br
+
+**O que mudou**
+- O sistema passa a usar o endereço **https://app.prorider.app.br** (domínio do Mario no Registro.br, apontado para o prorider-server no Railway: CNAME `app` → `416c6tdi.up.railway.app` + TXT `_railway-verify.app`; validado em 06/10).
+- **O endereço antigo `prorider-server-production-5784.up.railway.app` continua funcionando** (é o mesmo servidor). Nada é desligado.
+- **Portal, Construtor e app do aluno:** usam o endereço por onde foram abertos (`location.origin`). Quem abrir pelo antigo continua no antigo; quem abrir pelo novo fica no novo. Fora do servidor (arquivo local), usam o novo.
+- **Ginásio (TV):** fala com `https://app.prorider.app.br` / `wss://app.prorider.app.br`. O QR da tela e o link do APK também usam o novo.
+- **Servidor:** links dos e-mails (`PORTAL_URL`) por padrão no novo endereço.
+- **Corrigido:** o link de "compartilhar aula" (`/aula/share`) saía de um endereço que não existe (`prorider-server-production.up.railway.app`, sem o 5784). Agora sai do `PORTAL_URL`.
+- Teste novo `testes/dominio.test.js` (11 grupos no total).
+
+**Por quê**
+- Endereço próprio e fácil de lembrar; se um dia o servidor mudar de lugar, só se troca o DNS.
+
+**Como confirmar**
+- `https://app.prorider.app.br/ping` responde igual ao antigo.
+- Saúde do sistema: servidor 03/10r; TVs com BUILD 03/10r.
+
+**Cuidados**
+- **Railway → Variables:** se existir `PORTAL_URL` com o endereço antigo, trocar para `https://app.prorider.app.br` (ou apagar a variável).
+- Login fica guardado por endereço: quem entrar pela primeira vez no novo endereço precisa fazer login uma vez (TV não: o login da TV continua).
+- **Dropbox:** adicionar o Redirect URI `https://app.prorider.app.br/studio.html` (sem apagar o antigo).
+- **Asaas:** webhook para `https://app.prorider.app.br/...` (mesmo caminho de hoje). **UptimeRobot:** monitor para `https://app.prorider.app.br/ping`.
+- **Não apagar** o domínio antigo no Railway nem os registros do Resend no Registro.br.
+
+---
+
+## 2026-10-06 · construtor + ginasio + servidor · 03/10q — Dropbox conectado no Construtor
+
+**O que mudou**
+- **Botão "📦 Dropbox" no Construtor**, na trilha de música e no vídeo de fundo:
+  - O professor clica em **Conectar Dropbox** uma vez. O login é seguro, sem senha guardada (OAuth com PKCE), e o acesso fica naquele navegador.
+  - O Dropbox cria a pasta **Aplicativos/ProRider Cycling** na conta dele. O app "ProRider Cycling" (App key `lngo9p5iaprfa1f`) é do tipo **App folder**, então só enxerga essa pasta.
+  - O Construtor lista as músicas (mp3, m4a, wav, aac, ogg) ou os vídeos (mp4, webm, mov), inclusive em subpastas. O professor marca na ordem que quiser, e o link de compartilhamento é criado sozinho. A onda da música é desenhada como num MP3 do computador.
+  - O link vai na aula como antes (`trilha[].link` / `video.link`), e a TV baixa antes da aula.
+  - O acesso é renovado sozinho; existe o botão Desconectar.
+- **Links colados à mão:** o Dropbox agora vira o endereço direto `dl.dropboxusercontent.com`. O `raw=1` às vezes não abria no navegador, e o Construtor tenta os dois. Link de **pasta** (`/scl/fo/`) agora avisa que precisa ser o link de cada música ou o botão Dropbox.
+- **Ginásio e servidor** (vídeo da loja) usam o mesmo endereço direto.
+
+**Configuração no Dropbox** (feita pelo Mario em 06/10)
+- App **ProRider Cycling**: Scoped access + App folder.
+- Permissões: `files.metadata.read`, `files.content.read`, `sharing.write` (e as de leitura automáticas).
+- Redirect URI: `https://prorider-server-production-5784.up.railway.app/studio.html`. **Se o Construtor ganhar outro endereço (ex.: prorider.app.br), adicionar lá também.**
+- "Allow public clients (PKCE)": Allow. Usuários adicionais liberados (até 500 contas, para os professores testarem). Para mais contas: "Apply for production".
+
+**Como confirmar**
+- Teste no navegador com o Dropbox simulado:
+  - conectar pela janelinha;
+  - listar com subpasta;
+  - marcar 2 músicas fora de ordem (respeita a ordem);
+  - criar o link (inclusive quando ele já existia);
+  - desenhar a onda;
+  - salvar a aula com os links;
+  - listar os vídeos;
+  - renovar o acesso vencido;
+  - avisar link de pasta.
+  Tudo OK.
+- Real: Construtor → 📦 Dropbox → Conectar → pôr um MP3 em Aplicativos/ProRider Cycling → Atualizar → Pôr na trilha.
+
+---
+
+## 2026-10-06 · infraestrutura · monitor externo do servidor (UptimeRobot)
+
+**O que mudou**
+- Monitor **"ProRider servidor"** no UptimeRobot (conta grátis do Mario): confere `https://prorider-server-production-5784.up.railway.app/ping` a cada 5 min. Se o servidor não responder, manda e-mail para marioelite@hotmail.com (e notificação no celular, se o app do UptimeRobot estiver instalado).
+- Funciona junto com o vigia interno (Saúde do sistema). O vigia não consegue avisar quando o próprio servidor está fora do ar; o UptimeRobot avisa de fora.
+
+**Como confirmar**
+- UptimeRobot → Monitoramento → ProRider servidor: "Para cima" (verde). Primeira checagem em 06/10: 95 ms, 100%.
+
+**Cuidados**
+- Se o endereço do servidor mudar (domínio próprio, outro serviço), trocar a URL do monitor.
+- Não remover a rota `/ping` do servidor.
+
+---
+
+## 2026-10-06 · app + ginasio + servidor · 03/10p — Bikes, rolos e sensores de outras marcas (Bluetooth padrão)
+
+**O que mudou**
+- **App, leitura Bluetooth:** funções novas `prFtmsParse`, `prCpsParse` e `prCscParse`, mais `btConnectBike`, que tenta FTMS → Cycling Power → CSC.
+  - **Corrigido o FTMS:** o bit 0 ("mais dados") quer dizer que a velocidade vem quando ele é 0, e a velocidade média (bit 1) não era pulada. Em vários rolos (KICKR, Tacx, Elite) a cadência e os watts saíam errados.
+  - **Corrigida a cadência dos medidores de potência:** agora vem das voltas do pedivela; antes lia o campo de torque.
+  - **Novo:** sensores só de cadência (CSC).
+  - **Novo:** FC enviada pela própria bike pelo FTMS (a cinta tem prioridade).
+  - **Novo:** filtro por nome das marcas que não anunciam o serviço.
+- **Academia:** o app manda 1 vez por segundo `dados_aluno` com `watts`, `rpm` e `fonte:'celular'` (exceto da Keiser). O servidor repassa `fonte`, e a TV calcula %FTP, zona, potência máxima, kcal e km. O dongle tem prioridade. Se o celular parar, os números zeram em 4 s.
+- Lista de marcas e padrões em `MARCAS_BLUETOOTH.md`.
+
+**Como confirmar**
+- Testes dos parsers com pacotes de cada padrão: OK.
+- TV simulada: celular → cartão com os números certos; dongle tem prioridade; celular parou → zera.
+- `node testes/rodar.js` → 9 grupos ✅.
+- Com o aparelho real: conectar no app (Pedal livre) e conferir watts e cadência.
+
+---
+
+## 2026-10-06 · servidor + app + portal · 03/10o — Termos de uso, Política de privacidade e aceite (LGPD)
+
+**O que mudou**
+- Páginas novas **`/termos.html`** e **`/privacidade.html`**, no visual ProRider e legíveis no celular. O texto é provisório até a revisão do advogado.
+- **Cadastro (app e Portal):** duas caixas obrigatórias.
+  1. "Li e aceito os Termos de uso e a Política de privacidade".
+  2. "Autorizo o uso dos meus dados de treino e de saúde…". A frequência cardíaca é dado sensível pela LGPD e precisa de consentimento destacado.
+  Sem as duas, o servidor não cria a conta (`/user/register` responde 400 com `termos:true`).
+- **Contas que já existem:** no próximo acesso aparece a tela "Antes de continuar" e a pessoa só sai dela aceitando ou saindo da conta. Vale para o app do aluno, o Portal, o portal do aluno e a página do financeiro. O super admin e o modo suporte não são bloqueados.
+- **Prova do aceite:** tabela `termos_aceites` (usuário, e-mail, versão, saúde, onde, IP, aparelho, data). Em `users` ficam `termos_versao` e `termos_aceitos_em`.
+- **Rotas:** `GET /termos/versao` e `POST /user/termos/aceitar`. O login e o `/user/me` devolvem `termos_pendente`.
+- **Versão dos termos:** vem da linha `<meta name="pr-versao" content="2026-10-06">` em `termos.html`.
+  - Mudou a data → todo mundo aceita de novo.
+  - Só corrigiu um erro de digitação → não mude a data.
+- Código compartilhado em `pr-suporte.js`: `prTermosCaixas`, `prTermosLidos`, `prTermosChecar`.
+- **Registro de acessos (Marco Civil, art. 15):** tabela `registros_acesso` com usuário, IP, aparelho e hora. Grava 1 linha por pessoa+IP a cada 6 h e também no login e no cadastro. Guarda 6 meses.
+- **Auditoria:** tabela `auditoria`. Registra toda rota `/admin` que muda algo, o download de backup e tudo o que é feito no modo suporte (as telas vistas contam 1 vez a cada 10 min). Guarda 1 ano. Admin → Saúde → **Registro de acessos administrativos** (rota `GET /admin/auditoria`).
+- **Textos finais:** aptidão física, sigilo da equipe da academia, direitos autorais das músicas, assinaturas e chargeback, serviços de terceiros, transferência para futura empresa, disposições gerais, Bluetooth e câmera, acesso do suporte, revisão de decisões automáticas (art. 20 da LGPD) e prazos de guarda.
+
+**Por quê**
+- A LGPD exige isso antes de alunos reais (piloto no Clube).
+
+**Como confirmar**
+- `node testes/rodar.js` → 9 grupos ✅ (novo: `termos`).
+- No app: "Criar conta" mostra as 2 caixas. Uma conta antiga, ao entrar, vê a tela de aceite.
+
+---
+
+## 2026-10-06 · ginasio · 03/10n — TV parada volta sozinha para a tela de espera
+
+**O que mudou**
+- Depois de **10 min sem ninguém mexer**, a TV volta para a tela de espera (logo + aulas de hoje passando embaixo).
+- **Causa do problema:** com o controle (joystick) ligado, o Ginásio "zerava" o contador de inatividade a cada quadro, e a TV nunca voltava. Agora só conta quando alguém aperta um botão ou mexe o direcional.
+- **Nunca volta sozinha** (`_podeIdle`) com:
+  - a aula rodando;
+  - a aula pausada no meio;
+  - a contagem 3-2-1;
+  - a gravação ou transmissão ligada;
+  - a sessão livre;
+  - a tela do QR, mesmo vazia: o professor deixa a aula preparada 20–30 min antes e sai, e os alunos vão chegando e entrando.
+  O menu e a tela de fim de aula voltam normalmente.
+- O painel antigo da direita "Grade de hoje" não aparece mais. Sem internet, ele ficava "carregando" por cima do relógio.
+
+**Como confirmar**
+- Teste no navegador com um controle simulado: menu parado → tela de espera; apertando botões → fica; QR (com ou sem aluno), aula rodando ou pausada → fica; fim de aula → tela de espera.
+- Na TV: deixar no menu, com o controle ligado, por 10 min → aparece a tela de espera.
+
+## 2026-10-06 · servidor + admin · 03/10n — "✓ Resolvido" confere antes de fechar
+
+**O que mudou**
+- O botão **"✓ Resolvido"** de cada aviso agora pergunta ao servidor se o problema acabou mesmo antes de fechar:
+  - TV desligada / TV caiu na aula: a TV tem que estar falando com o servidor agora;
+  - Asaas recusado: nenhum aviso do Asaas recusado na última hora;
+  - Conferência com o Asaas: roda a conferência de novo; se ainda achar pagamento sem registro, não fecha;
+  - Backup: último backup ok e com menos de 36 h; "Baixe uma cópia": cópia baixada nos últimos 8 dias;
+  - Picos de erros, disco e memória: o número de agora tem que estar abaixo do limite.
+- Se **não** estiver resolvido, aparece a mensagem "Ainda NÃO está resolvido: …" com o que falta, e o aviso continua aberto. Dá para "fechar mesmo assim" (alarme falso), e fica registrado "fechado mesmo sem resolver por …".
+
+**Por quê**
+- Pedido do Mario: o aviso só deve fechar quando o problema foi resolvido de verdade.
+
+**Como confirmar**
+- `node testes/rodar.js` → 8 grupos ✅ (vigia parte 5; conferencia parte 1).
+
+---
+
+## 2026-10-06 · servidor + admin · 03/10m — pausar avisos por academia, "✓ Resolvido", contador de e-mails
+
+**O que mudou**
+- **Pausar os avisos de uma academia até uma data** (Saúde → clicar na academia → "Pausar os avisos desta academia até…"). Enquanto pausada: o vigia não abre aviso de "TV desligada" nem de "TV caiu na aula" para ela (nem e-mail), os avisos abertos dela fecham na hora, e no semáforo ela fica cinza com "Avisos pausados até dd/mm". Volta sozinha no dia seguinte à data, ou no botão "Retomar avisos agora". Coluna nova `licencas.avisos_pausados_ate`.
+- **Botão "✓ Resolvido"** em cada aviso em aberto (fica registrado quem resolveu). Rota `POST /admin/alertas/:id/resolver`.
+- **Asaas com cartão já cadastrado:** quando o admin muda o vencimento e o Asaas recusa ("não é possível alterar o vencimento… Cartão de Crédito"), isso vira **aviso**, não erro do servidor, e a resposta explica que vale a data da assinatura.
+- **Contador de e-mails da Saúde** conta todos os e-mails que o servidor tentou mandar (enviados e falhas em 24 h). Tabela nova `email_envios` (guarda 30 dias). Antes contava só alguns tipos e mostrava "0 enviados" com alertas enviados.
+
+**Por quê**
+- O Clube ainda não começou e a TV de lá está desligada: chegava e-mail vermelho a cada horário da grade.
+- Os 2 "erros" de 06/10 11:08 eram só o Asaas recusando mudar data de fatura com cartão.
+
+**Como confirmar**
+- `node testes/rodar.js` → 8 grupos ✅ (vigia: parte 5; conferencia: parte 4).
+- Produção: Saúde → Clube Alto dos Pinheiros → pausar até a data do piloto → os avisos vermelhos dele somem e ele fica cinza.
+
+---
+
+## 2026-10-06 · servidor · 03/10l — desligamento limpo no deploy (fim dos e-mails "Deployment crashed")
+
+**O que mudou**
+- O servidor agora trata o `SIGTERM` (e `SIGINT`): para de aceitar conexões, fecha os WebSockets com código 1012 ("servidor reiniciando"; TVs e celulares reconectam sozinhos no servidor novo, como já faziam), fecha o banco e sai com **código 0**. No máximo 8 s.
+- **Railway → prorider-server → Settings → Deploy → Custom Start Command: `node server.js`** (em vez de `npm start`).
+
+**Por quê**
+- A investigação do desenvolvedor mostrou que os 3 "Deployment crashed" de 05/10 não foram travamentos: a cada deploy novo o Railway manda `SIGTERM` ao container antigo; o `npm` trata isso como erro (`npm error signal SIGTERM`) e sai com código ≠ 0, e o Railway avisa "crashed".
+- Testado aqui: com `node server.js` a saída é **0** em ~30 ms; com `npm start` continua **143** (o npm morre antes do Node), por isso o start command precisa ser `node server.js`.
+
+**Como confirmar**
+- Fazer o deploy: o deploy anterior deve aparecer como "Removed"/encerrado sem e-mail de crash. No log do antigo: `[Servidor] SIGTERM recebido (deploy novo ou parada): desligando com calma`.
+
+---
+
+## 2026-10-06 · servidor + admin · 03/10k — conferência diária dos pagamentos com o Asaas
+
+**O que mudou**
+- **Conferência diária com o Asaas:** uma vez por dia (entre 7h e 22h; ou assim que der, se passar de 30 h) o servidor pergunta ao Asaas as cobranças de cada licença com cliente/assinatura no Asaas (`externalReference` = código da licença e `subscription`). Pagamento **confirmado/recebido** lá que não está registrado aqui → registra (igual ao webhook) e libera a licença. **Estornado/chargeback** lá e confirmado aqui → desfaz. Pedidos da **loja** em aberto (até 45 dias) que o Asaas diz pagos → marca como pago.
+- O que o webhook fazia virou duas funções usadas pelos dois caminhos: `asaasPagoRegistrar` e `asaasPagoDesfazer` (o webhook continua igual por fora).
+- Se achou alguma coisa → **aviso amarelo** na Saúde ("N pagamento(s) não tinham chegado pelo aviso automático") — sinal de que o webhook está falhando. Sem e-mail (só vermelhos mandam e-mail).
+- **Admin → Saúde do sistema → Conferência com o Asaas:** última conferência, o que registrou/desfez e o botão **Conferir agora**.
+- Rotas: `GET /admin/asaas/conferencia`, `POST /admin/asaas/conferir` (só super admin). Variável opcional `ASAAS_CONFERIR_DESLIGADO=1` desliga a conferência automática.
+
+**Por quê**
+- Em 05/10 o pagamento de 03/10 do Clube Alto dos Pinheiros estava CONFIRMADO no Asaas, mas não registrado no ProRider, e os Logs de Webhooks do Asaas estavam vazios. Sem o registro, a TV travaria 5 dias depois do vencimento com a academia em dia.
+
+**Como confirmar**
+- `node testes/rodar.js` → `conferencia` ✅ (pago sem aviso é registrado, rodar de novo não duplica, fatura em aberto/apagada é ignorada, estorno desfaz, loja paga, só admin).
+- Em produção: Admin → Saúde → Conferência com o Asaas → **Conferir agora**. A cobrança do Clube de 03/10 deve aparecer como "registrado R$ 5,00".
+
+**Cuidados**
+- Só **lê** do Asaas (GET). Não cria nem altera cobrança.
+- O Ginásio não mudou (só o número da versão).
+
+---
+
+## 2026-10-06 · servidor + admin · 03/10j — backup do banco feito pelo próprio servidor (plano B até o Railway Pro)
+
+**O que mudou**
+- **Backup automático:** toda madrugada (2h–6h, Brasília) o servidor salva uma cópia completa de todas as tabelas (`prorider_AAAA-MM-DD_HHMM.json.gz`), numa fotografia só (transação REPEATABLE READ), em `BACKUP_DIR` ou, sem ela, em `<pasta das gravações>/../backups` (no Railway: `/data/backups`, no Volume). Guarda as 7 últimas (`BACKUP_GUARDAR`). Se o servidor ficou desligado, faz assim que passar de 30 h.
+- **Admin → Saúde do sistema → Backup do banco:** lista, "Fazer backup agora" e **Baixar** (para guardar fora do Railway). Card "Backup do banco" no topo.
+- **Avisos:** backup falhou (vermelho, com e-mail), atrasado há mais de 36 h (amarelo), mais de 8 dias sem baixar uma cópia (amarelo). Fecham sozinhos quando resolvidos.
+- Rotas novas (admin): `GET /admin/backup`, `POST /admin/backup/agora`, `GET /admin/backup/baixar/:arquivo`.
+- **`ferramentas/restaurar-backup.js`:** devolve um backup para um banco (pede para digitar o nome do banco; confere as contagens de cada tabela; acerta os contadores de id).
+- Teste novo `testes/backup.test.js`: faz, baixa e **restaura num banco vazio**, conferindo contagens, acentos e cadastro novo depois.
+
+**Por quê**
+- Backups automáticos do Railway só no plano Pro. **PRIORIDADE: contratar o Railway Pro ao concluir o projeto / antes das academias pagantes.** Até lá, este backup + a cópia semanal baixada pelo Mario.
+
+**Como confirmar**
+- `node testes/rodar.js` → TUDO OK (7 grupos).
+- Saúde do sistema → Backup do banco → "Fazer backup agora" → aparece o arquivo → "Baixar".
+
+**Cuidados**
+- O backup fica no mesmo Volume das gravações: se o Railway inteiro tiver problema, só sobra a cópia baixada. Por isso o aviso de 8 dias.
+
+---
+
+## 2026-10-05 · servidor + ginasio · 03/10i — queda e volta normal da TV não conta mais como erro
+
+**O que mudou**
+- As linhas "Professor caiu da sala… aguardando 3 min", "Sala retomada" e "Sala removida" (a TV reconectando, que é normal) não vão mais para a lista de erros da Saúde do sistema nem contam para o "pico de erros". A TV que cai **no meio da aula** continua gerando o aviso vermelho do vigia.
+- Ginásio: só o número da versão (BUILD 03/10i).
+
+**Por quê**
+- Em produção, a Saúde mostrava "3 erros do servidor" que eram só a TV reconectando (alarme falso).
+
+**Como confirmar**
+- `node testes/rodar.js` → TUDO OK. Saúde do sistema sem "Professor caiu da sala" na lista de erros.
+
+---
+
+## 2026-10-05 · servidor + site + app + ginasio · 03/10h — semáforo das academias, painel por academia, lupinha e código do erro
+
+**O que mudou**
+- **Avisos no painel, e-mail só dos vermelhos:** amarelos ficam só na Saúde do sistema; os 🔴 (agir agora) também vão por e-mail. Chave "e-mail dos 🔴" na Saúde (`POST /admin/alertas/email`, cfg `alertas_email`).
+- **Semáforo das academias** (`GET /admin/saude/licencas`): cada academia ativa em vermelho (aviso grave em aberto, licença suspensa), amarelo (aviso em aberto, erro nas telas em 24 h, problema reportado, pagamento vencido, TV sumida há 2+ dias), verde (tudo certo) ou cinza (sem TV). Vermelhos primeiro. O número de vermelhos aparece no título da aba.
+- **Painel de uma academia** (`GET /admin/saude/licenca/:codigo`): situação, TVs (versão e última vez vista), última aula, pagamento e uma linha do tempo de 30 dias com avisos, erros das telas (com os códigos), problemas reportados e aulas. Filtros: tudo, só problemas, aulas, reportados. Botão "Entrar no Portal dela".
+- **Código do erro:** todo erro numa tela ganha um código curto (`E-7F3A`). Portal, financeiro e app mostram no canto "Algo deu errado · código E-7F3A · Reportar" (no máximo a cada 30 s); a TV mostra "⚠ E-7F3A" pequeno no canto de baixo por 10 s. O "Reportar um problema" leva os últimos códigos junto. Tabela nova `erro_codigos`.
+- **Lupinha** (`GET /admin/saude/busca?q=`): acha por código (E-…, S-… do evento, A-… do aviso, R-… do relato), por academia (nome ou código) ou pelo texto do erro, e abre o painel da academia já no ponto do erro.
+- `sistema_alertas` ganhou `detalhe`.
+
+**Por quê**
+- Pouco e-mail; tudo num painel só. Quando o cliente liga, a ProRider entra direto no painel dele ou busca o código que ele leu na tela.
+
+**Como confirmar**
+- `node testes/rodar.js` → TUDO OK (casos novos em telas e vigia).
+- Saúde do sistema: cartões coloridos das academias no topo; clicar abre o painel; buscar um código E-… acha o erro.
+
+---
+
+## 2026-10-04 · servidor + admin · 03/10g — vigia: avisos automáticos por e-mail
+
+**O que mudou**
+- **Vigia no servidor:** a cada minuto (`ALERTAS_INTERVALO_S`, padrão 60) confere e manda e-mail na hora:
+  - TV desligada/sem internet de 10 min antes até 5 min depois de uma aula da grade (só academias com TV vista nos últimos 14 dias);
+  - TV caiu no meio da aula (sala iniciada sem a TV há 90 s — `ALERTA_TV_CAIU_S`);
+  - 10+ erros do servidor em 10 min; 25+ erros das telas em 15 min;
+  - aviso do Asaas recusado (token do webhook) na última hora;
+  - menos de 2 GB para as gravações; memória acima de 1,5 GB (`ALERTA_MEMORIA_MB`);
+  - banco de dados fora do ar (e quando volta).
+- Cada aviso vai uma vez só (tabela nova `sistema_alertas`, chave única). Os de TV fecham sozinhos quando a TV volta e mandam "TV ligou de novo / voltou" (só se o aviso tem menos de 3 h).
+- Destino: `ALERTAS_EMAIL` (vários separados por vírgula); sem ela, o e-mail do super admin.
+- Rotas novas (admin): `GET /admin/alertas`, `POST /admin/alertas/ligar`, `POST /admin/alertas/rodar` ("Verificar agora"), `POST /admin/alertas/teste` (e-mail de teste).
+- **Admin → Saúde do sistema:** quadro "Avisos automáticos" (ligar/desligar, Verificar agora, Mandar e-mail de teste, lista de 7 dias com e-mail enviado e situação). O número vermelho do menu conta os avisos em aberto.
+- Ginásio: só o número da versão (03/10g).
+
+**Por quê**
+- Pós-venda: a ProRider fica sabendo do problema na academia antes do cliente ligar — inclusive à noite e no fim de semana.
+
+**Como confirmar**
+- `node testes/rodar.js` → TUDO OK (novo grupo: vigia).
+- Saúde do sistema → "Mandar e-mail de teste" → chega o e-mail "🧪 ProRider — teste dos avisos".
+
+**Cuidados**
+- Precisa do e-mail (Resend) ligado para os avisos saírem; sem ele, ficam só na Saúde do sistema.
+
+---
+
+## 2026-10-03 · servidor + site + app + ginasio · 03/10f — pós-venda: erros chegam sozinhos, TV sem internet não perde nada, teste de carga, senha trocada derruba sessões
+
+**O que mudou**
+- **Erros das telas na Saúde do sistema:** rota `POST /suporte/erro` (token opcional; com token da TV ou do usuário, sabe a academia). Recebe lotes de até 20; ignora "Script error." e ResizeObserver; mesmo erro da mesma academia em 24 h soma em `vezes`; 120 pedidos/h por IP. Novas colunas em `sistema_eventos`: `origem` (NULL = servidor; tv, app, portal, financeiro, admin), `licenca`, `chave`, `vezes`, `detalhe`.
+- **Admin → Saúde do sistema:** cartão "Telas (24 h)", tabela "O que as telas avisaram" (onde, academia, mensagem, detalhes, vezes) e "Limpar lista" separado para telas e servidor. Os erros do servidor não misturam com os das telas.
+- **Site e app (`pr-suporte.js`):** captura `window.onerror` e promessas rejeitadas (queda de internet não conta), no máximo 30 por página, o mesmo erro a cada 10 min; `prErroConfig(...)` em index, academia, financeiro e app.
+- **Ginásio (`script.js`):** caixa de saída `_prFilaPost` — resumo da aula, resultado do campeonato e ficha da gravação que falham por rede/servidor ficam em `localStorage 'pr_fila'` (até 7 dias, sobrevive a fechar o programa) e são reenviados a cada 30 s e quando a internet volta; a ficha da gravação, quando chega, segue com o envio do vídeo para o app. Erros de JavaScript e avisos (câmera não abriu, internet caiu e voltou, envio do vídeo parou, YouTube não tocou, "guardado e enviado depois") vão para a Saúde, também guardados se estiver offline.
+- **`/display/gravacao`** aceita a mesma ficha de novo (mesmo `uid` = mesma gravação). `/display/aula/resumo` e `/display/campeonato/resultado` já aceitavam repetição.
+- **Trocou a senha → outras sessões caem:** `users.senha_trocada_em` (+ cópia em memória). Todo token de login emitido antes da troca deixa de valer em todas as rotas (`jwt.verify` central). Vale para troca no perfil (`PUT /user/senha` devolve um token novo para quem trocou), "Esqueci minha senha", "Nova senha" do admin e senha trocada pelo gestor. Tokens da TV não são afetados.
+- **`ferramentas/teste-carga.js`:** simula N academias × N bikes (TV 4 msg/s, celular 1 msg/s, app consultando) e mede atraso e quedas. Recusa rodar no servidor de produção.
+- **Testes:** `testes/telas.test.js` (novo) e caso novo em `seguranca.test.js` (senha trocada).
+
+**Por quê**
+- Pós-venda: a ProRider fica sabendo do problema na academia antes do cliente ligar, com a academia, a tela e a versão.
+- Internet de academia cai; o fim da aula não pode se perder.
+- Saber quanto o servidor aguenta antes de vender em escala.
+- Senha vazada/trocada precisa tirar quem estava logado.
+
+**Como confirmar**
+- `node testes/rodar.js` → TUDO OK (pagamento, loja, desafios, segurança, telas).
+- Admin → Saúde do sistema → aparece "O que as telas avisaram".
+- TV: tirar o cabo de rede no fim da aula → aviso "Sem internet — … guardado na TV"; recolocar → "Internet de volta: … enviado ✓" e, na Saúde, "TV ficou sem internet — …: guardado na TV e enviado depois (nada perdido)".
+- Teste de carga local (100 academias × 20 bikes = 2.100 conexões, 60 s): 100% entregue, atraso p95 7 ms, 0 quedas, ~135 MB de memória.
+
+**Cuidados**
+- Após subir, quem trocar a senha sai dos outros aparelhos (é o esperado).
+- Nada de variável nova. Migração automática (`Migração 03/10e/f (segurança e saúde) OK` no log).
+
+---
+
 ## 2026-10-03 · servidor + site + app · 03/10e — segurança, saúde do sistema, testes automáticos e backup
 
 **O que mudou**

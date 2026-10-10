@@ -106,5 +106,6 @@ const limpo = h => !/\{[a-z_]+\}|undefined|NaN|\[object/.test(h);
   const antes = (await caixa()).length;
   await j('POST', '/aula/complete', { aula_nome: 'Mais uma', duracao_sec: 600, zona_predominante: 'z2', zonas: { z2: 100 }, watts_med: 120, rpm_med: 80, kcal: 60 }, A); await espera(1500);
   ok((await caixa()).length === antes, 'resumo desligado no Portal: nada sai');
+  await j('PUT', '/gestor/emails', Object.assign({}, g.cfg, { resumo_aula: true }), G);   // devolve ligado (os grupos seguintes usam a mesma academia)
   process.exit(f ? 1 : 0);
 })().catch(e => { console.error(e); process.exit(1); });

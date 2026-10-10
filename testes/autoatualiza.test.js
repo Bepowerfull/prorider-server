@@ -57,6 +57,14 @@ function limpar() { try { fs.rmSync(DEST, { recursive: true, force: true }); } c
     await j('POST', '/admin/licencas/D5448D47/tv-atualizacao', { ligado: false }, ADM);
     r = await j('GET', '/display/atualizacao', null, TK, VELHA);
     ok(r.d.versao === VER && r.d.agora === true, '"atualizar agora" funciona mesmo com o automático desligado', r.d);
+    // 07/10f: a Saúde mostra o que o servidor respondeu na última consulta da TV
+    let sdc = ((await j('GET', '/admin/saude', null, ADM)).d.tvs.lista || []).find(x => x.device_id === 'tv-atu') || {};
+    ok(sdc.atu_consulta && sdc.atu_consulta.motivo === 'agora' && sdc.atu_consulta.versao === VER, 'Saúde: "última consulta: atualizar agora"', sdc.atu_consulta);
+    await sql(`UPDATE licencas SET tv_atualizar_agora=NULL WHERE codigo='D5448D47'`);
+    await j('GET', '/display/atualizacao', null, TK, VELHA);
+    sdc = ((await j('GET', '/admin/saude', null, ADM)).d.tvs.lista || []).find(x => x.device_id === 'tv-atu') || {};
+    ok(sdc.atu_consulta && sdc.atu_consulta.motivo === 'desligada', 'Saúde: "última consulta: atualização desligada"', sdc.atu_consulta);
+    await j('POST', '/admin/licencas/D5448D47/tv-atualizacao', { agora: true }, ADM);   // devolve o pedido como estava
     await j('POST', '/admin/licencas/D5448D47/tv-atualizacao', { ligado: true }, ADM);
 
     console.log('3) O módulo do programa (o mesmo do Electron)');

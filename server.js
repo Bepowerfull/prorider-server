@@ -477,7 +477,7 @@ function emailNumsResumo(x, serie, ftp, zonas) {
     { ic: '⏱️', v: x.min, un: 'min', l: 'Duração', cor: '#ffb020' },
     { ic: '🔥', v: _nBR(x.kcal), un: 'kcal', l: 'Calorias', cor: '#ea860c', corV: '#ff6a3d' },
     { ic: '⚡', v: x.w, un: 'W', l: 'Potência média', cor: '#295fe8' },
-    { ic: '🎯', v: x.rpm, un: 'rpm', l: 'RPM médio', cor: '#5db13d' },
+    { ic: '🎯', v: x.rpm || '—', un: x.rpm ? 'rpm' : '', l: 'RPM médio', cor: '#5db13d' },
     { ic: '📊', v: z, un: '', l: 'Zona predominante', cor: zc },
     { ic: '🏆', v: '+' + _nBR(x.pontos), un: '', l: 'Pontos', cor: '#d7c414', corV: '#ffd23f' }]) + g;
 }
@@ -1157,6 +1157,7 @@ async function runMigrations() {
     // 07/10a: atualização automática da TV (por academia) e o que aconteceu na última
     await db.query(`ALTER TABLE licencas ADD COLUMN IF NOT EXISTS tv_auto_atualizar BOOLEAN DEFAULT FALSE, ADD COLUMN IF NOT EXISTS tv_atualizar_agora TIMESTAMPTZ`);
     await db.query(`ALTER TABLE licenca_computadores ADD COLUMN IF NOT EXISTS atualizacao JSONB`);
+    await db.query(`ALTER TABLE licenca_computadores ADD COLUMN IF NOT EXISTS atu_consulta JSONB`);   // 07/10f: o que o servidor respondeu na última consulta da TV
     await garantirCodigoTv();
 
   } catch(e) {
@@ -2936,12 +2937,16 @@ function manifestoTv() {
 app.get('/display/atualizacao', displayAuth, async (req, res) => {
   try {
     if (!db || req.user.role !== 'display') return res.json({ nada: true });
-    const m = manifestoTv(); if (!m) return res.json({ nada: true, motivo: 'sem_pacote' });
-    if (String(req.headers['x-pr-build'] || '').trim() === 'BUILD ' + m.versao) return res.json({ nada: true, motivo: 'em_dia' });
+    // 07/10f: guarda a última resposta para a Saúde mostrar POR QUE a TV não atualizou
+    const anota = (motivo, versao) => { if (req.user.device_id) db.query('UPDATE licenca_computadores SET atu_consulta=$1 WHERE license_codigo=$2 AND device_id=$3',
+      [{ motivo, versao: versao || null, build: String(req.headers['x-pr-build'] || '').slice(0, 30), em: new Date().toISOString() }, req.user.license_id, req.user.device_id]).catch(() => {}); };
+    const m = manifestoTv(); if (!m) { anota('sem_pacote'); return res.json({ nada: true, motivo: 'sem_pacote' }); }
+    if (String(req.headers['x-pr-build'] || '').trim() === 'BUILD ' + m.versao) { anota('em_dia', m.versao); return res.json({ nada: true, motivo: 'em_dia' }); }
     const l = (await db.query('SELECT tv_auto_atualizar, tv_atualizar_agora FROM licencas WHERE codigo=$1', [req.user.license_id])).rows[0];
     // 08/10: "atualizar agora" vale mesmo com o automático desligado (antes a TV respondia "desligada" e não instalava)
     const agora = !!(l && l.tv_atualizar_agora && Date.now() - new Date(l.tv_atualizar_agora).getTime() < 6 * 3600000);
-    if (!l || (!l.tv_auto_atualizar && !agora)) return res.json({ nada: true, motivo: 'desligada', disponivel: m.versao });
+    if (!l || (!l.tv_auto_atualizar && !agora)) { anota('desligada', m.versao); return res.json({ nada: true, motivo: 'desligada', disponivel: m.versao }); }
+    anota(agora ? 'agora' : 'janela', m.versao);
     const base = (process.env.TV_ATUALIZACAO_BASE || 'https://app.prorider.app.br').replace(/\/$/, '');
     res.json({ versao: m.versao, url: base + '/ginasio/atualizacao/' + m.arquivo, sha256: m.sha256, assinatura: m.assinatura, tamanho: m.tamanho,
       janela: process.env.TV_JANELA || '02:00-05:00', agora });
@@ -6260,6 +6265,7 @@ async function daMigrar() {
       id SERIAL PRIMARY KEY, user_id INTEGER REFERENCES users(id) ON DELETE CASCADE, license_id TEXT NOT NULL, sala TEXT NOT NULL,
       aula_nome TEXT, nota SMALLINT NOT NULL CHECK (nota BETWEEN 1 AND 5), inicio TIMESTAMPTZ, created_at TIMESTAMPTZ DEFAULT NOW(), UNIQUE(user_id, sala));
     CREATE INDEX IF NOT EXISTS aulas_notas_lic ON aulas_notas (license_id, created_at);
+    CREATE TABLE IF NOT EXISTS totem_aulas (uid TEXT NOT NULL, user_id INTEGER NOT NULL, criado_em TIMESTAMPTZ DEFAULT NOW(), PRIMARY KEY (uid, user_id));   -- 07/10f
     CREATE TABLE IF NOT EXISTS desafios_academias (
       id SERIAL PRIMARY KEY, codigo TEXT UNIQUE NOT NULL, nome TEXT NOT NULL, criador_license TEXT NOT NULL,
       tipo TEXT NOT NULL DEFAULT 'periodo', metrica TEXT NOT NULL DEFAULT 'wpp',
@@ -6417,6 +6423,25 @@ app.get('/user/desafios-academias', authMiddleware, async (req, res) => {
   } catch (e) { log('user desafios-academias: ' + e.message); res.status(500).json({ error: 'Erro interno' }); }
 });
 
+// 07/10f: quem pedalou pelo TOTEM (sem celular) e se identificou pelo e-mail também tem a aula
+// gravada (histórico e pontos) e recebe o e-mail do resumo — com os números que a TV mediu.
+async function totemGravarAulas(licId, salaCode, uidAula, nomeAula, durSeg, alunos) {
+  const sala = salas[salaCode]; if (!db || !sala || !sala.totem) return;
+  for (const [nome, t] of sala.totem) {
+    const userId = parseInt(t && t.user_id, 10); if (!userId) continue;
+    const a = alunos.find(x => x.nome === nome); if (!a) continue;
+    const u = (await db.query('SELECT id, ftp FROM users WHERE id=$1 AND license_id=$2', [userId, licId])).rows[0]; if (!u) continue;
+    const ins = await db.query('INSERT INTO totem_aulas (uid, user_id) VALUES ($1,$2) ON CONFLICT DO NOTHING RETURNING uid', [uidAula, userId]);
+    if (!ins.rows.length) continue;   // a TV reenviou o mesmo resumo: já gravado
+    const pontos = calcPoints({ sem_pausas: true }), ftp = parseInt(u.ftp) || 0;
+    await db.query(`INSERT INTO aulas_completadas (user_id, aula_nome, duracao_sec, pontos, watts_med, rpm_medio, kcal) VALUES ($1,$2,$3,$4,$5,0,$6)`, [userId, nomeAula, durSeg, pontos, a.w, a.kcal]);
+    await db.query(`INSERT INTO aula_historico (user_id, nome, dur_seg, kcal, zona_pct, avg_ftp, avg_rpm, avg_watts) VALUES ($1,$2,$3,$4,'{}',$5,0,$6)`,
+      [userId, nomeAula, durSeg, a.kcal, ftp > 0 && a.w > 0 ? Math.round(a.w * 100 / ftp) : 0, a.w]);
+    const r = await db.query('UPDATE users SET points=points+$1, updated_at=NOW() WHERE id=$2 RETURNING points', [pontos, userId]);
+    await db.query('UPDATE users SET level=$1 WHERE id=$2', [calcLevel(r.rows[0].points), userId]);
+    emailResumoAula(userId, { aula_nome: nomeAula, duracao_sec: durSeg, kcal: a.kcal, watts_med: a.w, rpm_med: 0, zona_predominante: null, pontos, serie_min: [], zonas: null }).catch(() => {});
+  }
+}
 // ── TV ─────────────────────────────────────────────────────────
 // resumo de cada aula que termina (vale para os desafios entre academias)
 app.post('/display/aula/resumo', displayAuth, async (req, res) => {
@@ -6449,6 +6474,7 @@ app.post('/display/aula/resumo', displayAuth, async (req, res) => {
        n, Math.round(soma('wpp') * 100) / 100, soma('kcal'), Math.round(soma('km') * 100) / 100,
        comW.length ? Math.round(comW.reduce((s, a) => s + a.w, 0) / comW.length) : 0, JSON.stringify(alunos)]);
     if (rel) await db.query(`UPDATE aulas_tv SET relatorio=$3 WHERE license_id=$1 AND uid=$2`, [req.user.license_id, uid, rel]).catch(() => {});
+    totemGravarAulas(req.user.license_id, String(b.sala || ''), uid, String(b.nome_aula || 'Aula').slice(0, 80), parseInt(b.dur_seg, 10) || 0, alunos).catch(e => log('totem aula: ' + e.message));   // 07/10f
     // desafios ao vivo desta academia que batem com esta aula
     const ao = await db.query(`SELECT d.id FROM desafios_academias d JOIN desafios_academias_part p ON p.desafio_id=d.id
       WHERE p.license_id=$1 AND d.tipo='ao_vivo' AND d.data_hora BETWEEN $2::timestamptz - INTERVAL '30 minutes' AND $2::timestamptz + INTERVAL '30 minutes'`, [req.user.license_id, ini]);
@@ -6748,7 +6774,7 @@ app.post('/display/gravacao/:id/enviar', displayAuth, async (req, res) => {
 // 03/10e — SEGURANÇA E SAÚDE: esqueci a senha, reportar problema,
 // excluir minha conta (LGPD) e a página "Saúde do sistema" do admin
 // ══════════════════════════════════════════════════════════════
-const SERVIDOR_VERSAO = '07/10d';
+const SERVIDOR_VERSAO = '07/10f';
 // 03/10y: versão do Ginásio que vai junto com este servidor. Pacote só de servidor/site não muda isto,
 // e as TVs não precisam ser reinstaladas. Mude junto com o PR_BUILD do Ginásio.
 const GINASIO_VERSAO = '07/10d';
@@ -6964,7 +6990,7 @@ app.get('/admin/saude', adminAuth, async (req, res) => {
     if (livre !== null && livre < 2) al('erro', 'Pouco espaço para gravações: ' + livre + ' GB livres.');
   } catch (e) {}
   try {
-    const tv = (await db.query(`SELECT lc.license_codigo, COALESCE(l.nome_fantasia, l.nome) AS academia, lc.nome_computador, lc.device_id, lc.build, lc.visto_em, lc.saude, lc.saude_em, lc.atualizacao, l.tv_auto_atualizar,
+    const tv = (await db.query(`SELECT lc.license_codigo, COALESCE(l.nome_fantasia, l.nome) AS academia, lc.nome_computador, lc.device_id, lc.build, lc.visto_em, lc.saude, lc.saude_em, lc.atualizacao, lc.atu_consulta, l.tv_auto_atualizar,
         (SELECT h.d->>'mem_mb' FROM tv_saude h WHERE h.license_codigo=lc.license_codigo AND h.device_id=lc.device_id AND h.em < NOW() - INTERVAL '55 minutes' AND h.em > NOW() - INTERVAL '2 hours' ORDER BY h.em DESC LIMIT 1) AS mem_1h
       FROM licenca_computadores lc LEFT JOIN licencas l ON l.codigo=lc.license_codigo ORDER BY lc.visto_em DESC LIMIT 40`)).rows;
     out.tvs = { lista: tv, online: tv.filter(x => Date.now() - new Date(x.visto_em).getTime() < 5 * 60000).length, versao_atual: 'BUILD ' + GINASIO_VERSAO, pacote_auto: (manifestoTv() || {}).versao || null };   // 07/10a

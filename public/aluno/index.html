@@ -125,7 +125,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>ProRider</title>
-<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow+Condensed:wght@300;400;700;900&family=Barlow:wght@300;400;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow+Condensed:ital,wght@0,300;0,400;0,700;0,900;1,800;1,900&family=Barlow:wght@300;400;600&family=Oswald:wght@500;600&family=Inter:wght@500;600&family=Montserrat:ital,wght@1,600;1,900&display=swap" rel="stylesheet">
 <style>
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{height:100%;overflow:hidden;background:#111;color:#fff;font-family:'Barlow',sans-serif}
@@ -379,7 +379,58 @@ img{display:block;max-width:100%}
 input[type=file]{display:none}
 
 /* bottom bar */
-.lbot{display:flex;align-items:center;padding:8px 16px 18px;flex-shrink:0;border-top:1px solid rgba(255,255,255,.05);background:#181818;cursor:pointer}
+.lbot{display:flex;align-items:center;padding:10px 16px calc(22px + env(safe-area-inset-bottom,0px));flex-shrink:0;border-top:1px solid rgba(255,255,255,.05);background:#181818;cursor:pointer}
+/* 09/10: no iPhone (app salvo na tela de início) arrastar de baixo fecha o app. Agora é um toque, num botão grande e mais alto */
+.lbot-btn{display:block;width:100%;max-width:240px;margin:0 auto;min-height:40px;padding:0 18px;border:none;border-radius:30px;background:#ea860c;color:#fff;font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:900;letter-spacing:2px;text-transform:uppercase;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.lbot-btn:active{opacity:.85}
+/* 09/10 — compartilhar: 2 modelos lado a lado */
+.sh-car{display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;padding:4px 12% 6px;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+.sh-car::-webkit-scrollbar{display:none}
+.sh-sl{flex:0 0 76%;scroll-snap-align:center;position:relative;transition:transform .3s,opacity .3s}
+.sh-sl canvas{width:100%;display:block;border-radius:16px;box-shadow:0 10px 30px rgba(0,0,0,.5)}
+.sh-sl.fora{transform:scale(.93);opacity:.55}
+.sh-tag{position:absolute;top:10px;left:10px;background:rgba(0,0,0,.6);color:#fff;font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:800;letter-spacing:2px;padding:4px 9px;border-radius:20px}
+.sh-nav{display:flex;justify-content:center;gap:8px;margin-top:10px}
+.sh-dot{width:8px;height:8px;border-radius:4px;background:rgba(255,255,255,.25);transition:all .3s;cursor:pointer}.sh-dot.on{width:22px;background:#ea860c}
+.sh-dica{text-align:center;margin-top:8px;font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:800;letter-spacing:2px;color:#ea860c;text-transform:uppercase;cursor:pointer;animation:shPulsa 1.4s ease-in-out infinite}
+.sh-dica b{display:inline-block;font-size:20px;animation:shSeta 1.4s ease-in-out infinite}
+@keyframes shSeta{0%,100%{transform:translateX(0)}50%{transform:translateX(8px)}}
+@keyframes shPulsa{0%,100%{opacity:.65}50%{opacity:1}}
+
+/* 09/10 — TELA DE FIM DA AULA (padrão do app e dos e-mails) */
+.rs-hero{padding:22px 18px 4px}
+.rs-top{display:flex;align-items:center;gap:8px}
+.rs-k{font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:800;letter-spacing:3px;color:#ea860c}
+.rs-t{font-family:'Bebas Neue',sans-serif;font-size:36px;letter-spacing:1.5px;color:#fff;line-height:1.05;margin-top:6px;text-wrap:balance}
+.rs-sub{font-size:11.5px;font-weight:700;letter-spacing:2px;color:rgba(255,255,255,.45);text-transform:uppercase;margin-top:4px}
+.rs-pts{margin:14px 18px 0;padding:14px 16px;border-radius:16px;background:linear-gradient(135deg,rgba(234,134,12,.22),rgba(214,45,45,.12));border:1px solid rgba(234,134,12,.4);display:flex;align-items:center;gap:14px}
+.rs-ptsv{font-family:'Bebas Neue',sans-serif;font-size:48px;line-height:1;color:#ffb020;white-space:nowrap}.rs-ptsv small{font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:800;color:rgba(255,255,255,.55);margin-left:3px}
+.rs-lv{font-size:12px;font-weight:800;color:#fff;letter-spacing:1px;text-transform:uppercase}.rs-nx{font-size:11px;color:rgba(255,255,255,.45)}
+.rs-bar{height:8px;background:rgba(255,255,255,.1);border-radius:4px;overflow:hidden}.rs-bar>div{height:100%;width:0%;background:linear-gradient(90deg,#ea860c,#d62d2d);border-radius:4px;transition:width .8s ease}
+.rs-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;padding:14px 18px 0}
+.rs-c{background:#17171c;border:1px solid #2a2a31;border-bottom:3px solid var(--c);border-radius:14px;padding:12px 4px 10px;text-align:center;min-width:0}
+.rs-c i{font-style:normal;font-size:18px;line-height:20px;display:block}
+.rs-v{font-family:'Barlow Condensed',sans-serif;font-size:26px;font-weight:800;color:#fff;line-height:1.1;margin-top:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-variant-numeric:tabular-nums}
+.rs-v small{font-size:12px;font-weight:700;color:#b9b9c0;margin-left:2px}
+.rs-l{font-size:9px;font-weight:800;letter-spacing:.8px;color:#8d8d96;text-transform:uppercase;margin-top:3px;line-height:1.2}
+.rs-mini{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));margin:8px 18px 0;background:#121216;border:1px solid #23232a;border-radius:12px;padding:8px 0}
+.rs-mini>div{text-align:center;border-left:1px solid #23232a}.rs-mini>div:first-child{border-left:none}
+.rs-mini b{display:block;font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:800;color:#fff;font-variant-numeric:tabular-nums}.rs-mini span{font-size:8.5px;font-weight:800;letter-spacing:.8px;color:#77777f;text-transform:uppercase}
+.rs-box{margin:10px 18px 0;background:#17171c;border:1px solid #2a2a31;border-radius:14px;padding:12px 12px 10px}
+.rs-h{font-size:10px;font-weight:800;letter-spacing:1.5px;color:#8d8d96;margin-bottom:10px}
+.rs-gw{display:flex;gap:6px}.rs-gb{flex:1;position:relative;height:118px;display:flex;align-items:flex-end;gap:1px;border-bottom:1px solid #2a2a31}
+.rs-gb>i{flex:1;min-width:1px;border-radius:2px 2px 0 0}
+.rs-gr{display:flex;flex-direction:column;justify-content:space-between;height:118px;font-size:9px;font-weight:800;line-height:1}
+.rs-gx{display:flex;justify-content:space-between;font-size:9.5px;color:#77777f;margin-top:4px;padding-right:24px}
+.rs-zbar{display:flex;height:12px;border-radius:6px;overflow:hidden;background:#26262d}.rs-zbar>i{display:block;height:100%}
+.rs-zl{display:flex;flex-direction:column;gap:6px;margin-top:10px}
+.rs-zr{display:grid;grid-template-columns:10px minmax(0,1fr) auto 38px;gap:8px;align-items:center;font-size:12.5px;color:rgba(255,255,255,.75)}
+.rs-zr i{width:10px;height:10px;border-radius:50%}.rs-zr b{color:#fff;font-variant-numeric:tabular-nums}.rs-zr span:last-child{text-align:right;color:#8d8d96;font-variant-numeric:tabular-nums}
+.rs-btn{width:100%;min-height:44px;border:none;border-radius:30px;background:#ea860c;color:#fff;font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:900;letter-spacing:2px;cursor:pointer}
+.rs-btn2{width:100%;min-height:40px;border-radius:30px;background:transparent;border:1.5px solid rgba(234,134,12,.55);color:#fff;font-family:'Barlow Condensed',sans-serif;font-size:13.5px;font-weight:800;letter-spacing:1.5px;cursor:pointer}
+.rs-btn3{width:100%;padding:9px;border-radius:30px;background:transparent;border:1px solid rgba(255,255,255,.14);font-size:13px;font-weight:700;color:rgba(255,255,255,.45);cursor:pointer}
+@media (max-width:360px){.rs-v{font-size:22px}.rs-t{font-size:30px}}
+
 .lbot-hint{flex:1;font-size:9px;font-weight:700;letter-spacing:1px;color:rgba(255,255,255,.18);text-transform:uppercase}
 .lbot-timer{flex:1;text-align:center;font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:900;letter-spacing:3px;color:rgba(255,255,255,.4)}
 .lbot-hint-r{flex:1;text-align:right;font-size:9px;font-weight:700;letter-spacing:1px;color:rgba(255,255,255,.18);text-transform:uppercase}
@@ -1415,8 +1466,8 @@ input[type=file]{display:none}
     </div>
   </div>
 
-  <div class="lbot" ontouchstart="botTS(event)" ontouchend="botTE(event)" style="justify-content:center;">
-    <div class="lbot-hint" style="flex:none;text-align:center;">▲ &nbsp;CONTROLES&nbsp; ▲</div>
+  <div class="lbot" ontouchstart="botTS(event)" ontouchend="botTE(event)" onclick="openDrawer()" style="justify-content:center;">
+    <button type="button" class="lbot-btn" id="lbotBtn" onclick="event.stopPropagation();openDrawer()">▲ &nbsp;CONTROLES</button>
     <span id="botT" style="display:none;"></span>
   </div>
 
@@ -1507,59 +1558,75 @@ input[type=file]{display:none}
 </div>
 
 <!-- Results screen -->
-<div class="screen" id="sResults" style="padding-bottom:66px;overflow-y:auto;background:linear-gradient(160deg,#0a0812 0%,#110808 60%,#080a14 100%);">
-  <div style="padding:20px 18px 0;display:flex;align-items:center;justify-content:space-between;">
-    <div><div style="font-size:10px;font-weight:700;letter-spacing:3px;color:rgba(255,255,255,.3);text-transform:uppercase;">Aula concluida</div><div style="font-family:'Bebas Neue',sans-serif;font-size:32px;letter-spacing:2px;color:#fff;line-height:1;margin-top:2px;" id="resAulaName">Treino</div></div>
-    <svg width="32" height="39" viewBox="0 0 44 56" fill="none"><defs><linearGradient id="rGr" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#ffe033"/><stop offset="45%" stop-color="#ea860c"/><stop offset="100%" stop-color="#d62d2d"/></linearGradient></defs><path d="M30 4 L10 30 L20 30 L14 52 L34 26 L24 26Z" fill="url(#rGr)"/></svg>
+<div class="screen" id="sResults" style="padding-bottom:76px;overflow-y:auto;background:linear-gradient(160deg,#0a0812 0%,#110808 60%,#080a14 100%);">
+  <!-- 09/10: tela de fim da aula no padrão do app e dos e-mails -->
+  <div class="rs-hero">
+    <div class="rs-top"><svg width="26" height="33" viewBox="0 0 44 56" fill="none"><defs><linearGradient id="rGr" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#ffe033"/><stop offset="45%" stop-color="#ea860c"/><stop offset="100%" stop-color="#d62d2d"/></linearGradient></defs><path d="M30 4 L10 30 L20 30 L14 52 L34 26 L24 26Z" fill="url(#rGr)"/></svg><span class="rs-k">AULA CONCLUÍDA</span></div>
+    <div class="rs-t" id="resAulaName">Treino</div>
+    <div class="rs-sub" id="resData">–</div>
   </div>
-  <div style="display:flex;gap:8px;padding:14px 18px 0;">
-    <div style="flex:1;background:rgba(255,255,255,.05);border-radius:12px;padding:12px;text-align:center;border:1px solid rgba(255,255,255,.07);"><div style="font-size:32px;font-weight:900;color:#fff;line-height:1;" id="resTot">00:00</div><div style="font-size:10px;font-weight:700;letter-spacing:2px;color:rgba(255,255,255,.3);margin-top:3px;">DURACAO</div></div>
-    <div style="flex:1;background:rgba(255,255,255,.05);border-radius:12px;padding:12px;text-align:center;border:1px solid rgba(255,255,255,.07);"><div style="font-size:32px;font-weight:900;color:#fff;line-height:1;" id="resKcal">0</div><div style="font-size:10px;font-weight:700;letter-spacing:2px;color:rgba(255,255,255,.3);margin-top:3px;">KCAL</div></div>
-    <div style="flex:1;background:rgba(255,255,255,.05);border-radius:12px;padding:12px;text-align:center;border:1px solid rgba(255,255,255,.07);"><div style="font-size:32px;font-weight:900;color:#ea860c;line-height:1;" id="resTSS">0</div><div style="font-size:10px;font-weight:700;letter-spacing:2px;color:rgba(255,255,255,.3);margin-top:3px;">TSS</div></div>
-    <div style="flex:1;background:rgba(255,255,255,.05);border-radius:12px;padding:12px;text-align:center;border:1px solid rgba(255,255,255,.07);"><div style="font-size:32px;font-weight:900;color:#fff;line-height:1;" id="resDist">0.0</div><div style="font-size:10px;font-weight:700;letter-spacing:2px;color:rgba(255,255,255,.3);margin-top:3px;">KM</div></div>
+  <div class="rs-pts" id="resPtsBox" style="display:none;">
+    <div class="rs-ptsv"><span id="sumPts">+0</span><small>pts</small></div>
+    <div style="flex:1;min-width:0;">
+      <div style="display:flex;justify-content:space-between;gap:8px;margin-bottom:6px;"><div id="sumLevel" class="rs-lv">–</div><div id="sumNextLevel" class="rs-nx">–</div></div>
+      <div class="rs-bar"><div id="sumLevelBar"></div></div>
+      <div id="sumTotalPts" class="rs-nx" style="text-align:right;margin-top:4px;">0 pts total</div>
+    </div>
   </div>
-  <div style="display:flex;gap:8px;padding:8px 18px 0;">
-    <div style="flex:1;background:rgba(255,255,255,.04);border-radius:10px;padding:10px;text-align:center;border:1px solid rgba(255,255,255,.06);"><div style="font-size:26px;font-weight:900;color:#fff;line-height:1;" id="resAvgFtp">0</div><div style="font-size:9px;font-weight:700;color:rgba(255,255,255,.28);margin-top:2px;">FTP% MED</div></div>
-    <div style="flex:1;background:rgba(255,255,255,.04);border-radius:10px;padding:10px;text-align:center;border:1px solid rgba(255,255,255,.06);"><div style="font-size:26px;font-weight:900;color:#fff;line-height:1;" id="resAvgRpm">0</div><div style="font-size:9px;font-weight:700;color:rgba(255,255,255,.28);margin-top:2px;">RPM MED</div></div>
-    <div style="flex:1;background:rgba(255,255,255,.04);border-radius:10px;padding:10px;text-align:center;border:1px solid rgba(255,255,255,.06);"><div style="font-size:26px;font-weight:900;color:#fff;line-height:1;" id="resMaxRpm">0</div><div style="font-size:9px;font-weight:700;color:rgba(255,255,255,.28);margin-top:2px;">RPM MAX</div></div>
-    <div style="flex:1;background:rgba(255,255,255,.04);border-radius:10px;padding:10px;text-align:center;border:1px solid rgba(255,255,255,.06);"><div style="font-size:26px;font-weight:900;color:#fff;line-height:1;" id="resWatts">0</div><div style="font-size:9px;font-weight:700;color:rgba(255,255,255,.28);margin-top:2px;">WATTS MED</div></div>
+  <div class="rs-grid">
+    <div class="rs-c" style="--c:#ffb020"><i>⏱️</i><div class="rs-v" id="resTot">00:00</div><div class="rs-l">Duração</div></div>
+    <div class="rs-c" style="--c:#ea860c"><i>🔥</i><div class="rs-v" style="color:#ff6a3d"><span id="resKcal">0</span><small>kcal</small></div><div class="rs-l">Calorias</div></div>
+    <div class="rs-c" style="--c:#295fe8"><i>⚡</i><div class="rs-v"><span id="resWatts">0</span><small>W</small></div><div class="rs-l">Potência média</div></div>
+    <div class="rs-c" style="--c:#5db13d"><i>🎯</i><div class="rs-v"><span id="resAvgRpm">0</span><small>rpm</small></div><div class="rs-l">RPM médio</div></div>
+    <div class="rs-c" id="resZonaC" style="--c:#9b30ff"><i>📊</i><div class="rs-v" id="resZona">–</div><div class="rs-l">Zona predominante</div></div>
+    <div class="rs-c" style="--c:#d62d2d"><i>❤️</i><div class="rs-v"><span id="resHR">–</span><small id="resHRu"></small></div><div class="rs-l">FC média</div></div>
   </div>
-  <div style="padding:14px 18px 6px;"><div style="font-size:11px;font-weight:700;letter-spacing:3px;color:rgba(255,255,255,.3);text-transform:uppercase;">Distribuicao por zona</div></div>
-  <div id="resZoneChart" style="display:none;"></div>
-  <div style="display:flex;align-items:center;gap:16px;padding:8px 18px 0;"><svg id="resDonut" width="130" height="130" viewBox="0 0 100 100" style="flex-shrink:0;"></svg><div id="resZoneList" style="flex:1;display:flex;flex-direction:column;gap:7px;"></div></div>
-  <div style="padding:18px 18px;display:flex;flex-direction:column;gap:10px;">
-    <button onclick="saveAndGoHistory()" style="width:100%;padding:15px;border-radius:30px;border:none;background:linear-gradient(135deg,#ffb02e,#ea860c);font-size:17px;font-weight:900;letter-spacing:2px;color:#fff;cursor:pointer;">SALVAR ATIVIDADE</button>
-    <button onclick="shareCard()" style="width:100%;padding:15px;border-radius:30px;border:none;background:linear-gradient(135deg,#833ab4,#fd1d1d,#fcb045);font-size:17px;font-weight:900;letter-spacing:2px;color:#fff;cursor:pointer;">📸 COMPARTILHAR RESULTADO</button>
-    <button id="resTcxBtn" onclick="prExportarTCX()" style="width:100%;padding:13px;border-radius:30px;border:1.5px solid #fc4c02;background:rgba(252,76,2,.1);font-size:15px;font-weight:800;color:#fff;cursor:pointer;">⬇ Arquivo para Strava / Garmin</button>
-    <button onclick="go('sHome')" style="width:100%;padding:13px;border-radius:30px;background:transparent;border:1px solid rgba(255,255,255,.14);font-size:14px;font-weight:700;color:rgba(255,255,255,.4);cursor:pointer;">Voltar ao inicio</button>
+  <div class="rs-mini">
+    <div><b id="resAvgFtp">0</b><span>%FTP médio</span></div>
+    <div><b id="resMaxRpm">0</b><span>RPM máx</span></div>
+    <div><b id="resTSS">0</b><span>TSS</span></div>
+    <div><b id="resDist">–</b><span>Distância</span></div>
+  </div>
+  <div class="rs-box" id="resGrafBox" style="display:none;"><div class="rs-h">POTÊNCIA MINUTO A MINUTO</div><div id="resGraf"></div></div>
+  <div class="rs-box"><div class="rs-h">TEMPO EM CADA ZONA</div>
+    <div id="resZoneChart" class="rs-zbar"></div>
+    <svg id="resDonut" width="0" height="0" style="display:none"></svg>
+    <div id="resZoneList" class="rs-zl"></div>
+  </div>
+  <div style="padding:16px 18px 6px;display:flex;flex-direction:column;gap:10px;">
+    <button class="rs-btn" onclick="shareCard()">📸 COMPARTILHAR RESULTADO</button>
+    <button class="rs-btn2" onclick="saveAndGoHistory()">VER NO HISTÓRICO</button>
+    <button class="rs-btn2" id="resTcxBtn" onclick="prExportarTCX()" style="border-color:rgba(252,76,2,.6)">⬇ Arquivo para Strava / Garmin</button>
+    <button class="rs-btn3" onclick="go('sHome')">Voltar ao início</button>
   </div>
 </div>
 
 <!-- ══════════════════════════════════
      SHARE CARD preview overlay
 ══════════════════════════════════ -->
-<div id="shareOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:9000;flex-direction:column;align-items:center;justify-content:flex-start;overflow-y:auto;padding:20px 16px 40px;">
-  <div style="width:100%;max-width:420px;">
-    <!-- Header -->
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
-      <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:2px;color:#fff;">Compartilhar</div>
-      <button onclick="document.getElementById('shareOverlay').style.display='none'" style="background:rgba(255,255,255,.1);border:none;color:#fff;width:36px;height:36px;border-radius:50%;font-size:20px;cursor:pointer;">×</button>
+<div id="shareOverlay" style="display:none;position:fixed;inset:0;background:rgba(6,5,10,.96);z-index:9000;flex-direction:column;align-items:center;justify-content:flex-start;overflow-y:auto;padding:18px 0 40px;">
+  <div style="width:100%;max-width:480px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin:0 16px 12px;">
+      <div><div style="font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:800;letter-spacing:3px;color:#ea860c;">COMPARTILHAR</div><div style="font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:1.5px;color:#fff;line-height:1;">Escolha o seu modelo</div></div>
+      <button onclick="document.getElementById('shareOverlay').style.display='none'" style="background:rgba(255,255,255,.1);border:none;color:#fff;width:38px;height:38px;border-radius:50%;font-size:20px;cursor:pointer;">×</button>
     </div>
-    <!-- Card preview -->
-    <canvas id="shareCanvas" style="width:100%;border-radius:16px;display:block;"></canvas>
-    <!-- Buttons -->
-    <div style="display:flex;flex-direction:column;gap:10px;margin-top:16px;">
-      <!-- Foto de fundo -->
+    <!-- 09/10: dois modelos lado a lado; arrasta para o lado para ver o outro -->
+    <div class="sh-car" id="shCar" onscroll="shRolou()">
+      <div class="sh-sl"><canvas id="shareCanvas1"></canvas><div class="sh-tag">MODELO 1</div></div>
+      <div class="sh-sl"><canvas id="shareCanvas2"></canvas><div class="sh-tag">MODELO 2</div></div>
+    </div>
+    <div class="sh-nav"><span class="sh-dot on" onclick="shIr(0)"></span><span class="sh-dot" onclick="shIr(1)"></span></div>
+    <div class="sh-dica" id="shDica" onclick="shIr(1)">arraste para o lado <b>›</b></div>
+    <div style="display:flex;flex-direction:column;gap:10px;margin:14px 16px 0;">
       <label style="width:100%;display:block;">
         <input type="file" id="cardBgInput" accept="image/*" style="display:none;" onchange="applyBgPhoto(this)"/>
-        <div style="width:100%;box-sizing:border-box;padding:15px;border-radius:30px;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.07);font-size:15px;font-weight:900;letter-spacing:1px;color:rgba(255,255,255,.7);cursor:pointer;text-align:center;">📷 USAR FOTO DE FUNDO</div>
+        <div class="rs-btn" id="btnFotoCard" style="display:flex;align-items:center;justify-content:center;box-sizing:border-box;">📷 ESCOLHER MINHA FOTO</div>
       </label>
-      <!-- Remove foto -->
-      <button id="btnRemoveBg" onclick="removeBgPhoto()" style="display:none;width:100%;padding:12px;border-radius:30px;border:1px solid rgba(214,45,45,.4);background:rgba(214,45,45,.1);font-size:13px;font-weight:700;color:rgba(214,45,45,.8);cursor:pointer;">✕ Remover foto</button>
-      <button onclick="downloadCard()" style="width:100%;padding:15px;border-radius:30px;border:none;background:linear-gradient(135deg,#833ab4,#fd1d1d,#fcb045);font-size:16px;font-weight:900;letter-spacing:2px;color:#fff;cursor:pointer;">⬇️ SALVAR IMAGEM</button>
-      <button onclick="nativeShare()" id="btnNativeShare" style="display:none;width:100%;padding:15px;border-radius:30px;border:none;background:linear-gradient(135deg,#ffb02e,#ea860c);font-size:16px;font-weight:900;letter-spacing:2px;color:#fff;cursor:pointer;">📤 COMPARTILHAR</button>
+      <button class="rs-btn2" onclick="nativeShare()" id="btnNativeShare" style="display:none;">📤 COMPARTILHAR ESTE MODELO</button>
+      <button class="rs-btn2" onclick="downloadCard()" id="btnSalvarCard">⬇ SALVAR IMAGEM</button>
+      <button id="btnRemoveBg" onclick="removeBgPhoto()" class="rs-btn3" style="display:none;">Tirar a foto</button>
     </div>
-    <div style="font-size:11px;color:rgba(255,255,255,.25);text-align:center;margin-top:12px;">Salve a imagem e publique no Instagram Stories ou Feed</div>
+    <div style="font-size:11px;color:rgba(255,255,255,.3);text-align:center;margin-top:12px;">Formato retrato (1080 × 1456), como a arte do ProRider. Publique no Instagram, WhatsApp ou onde quiser.</div>
   </div>
 </div>
 
@@ -1625,59 +1692,6 @@ input[type=file]{display:none}
       <button id="lgBtn" onclick="lgSubmit()" style="width:100%;padding:16px;border-radius:30px;border:none;background:linear-gradient(135deg,#ffb02e,#ea860c);font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:900;letter-spacing:2px;color:#fff;cursor:pointer;margin-top:4px;">ENTRAR</button>
       <!-- Pular -->
       <button onclick="go('sHome')" style="width:100%;padding:13px;border-radius:30px;background:transparent;border:1px solid rgba(255,255,255,.1);font-size:14px;font-weight:600;color:rgba(255,255,255,.3);cursor:pointer;">Continuar sem login</button>
-    </div>
-  </div>
-</div>
-
-<!-- ══════════════════════════════════
-     SUMMARY PÓS-AULA (PONTOS)
-══════════════════════════════════ -->
-<div class="screen" id="sSummary" style="background:linear-gradient(160deg,#0a0812 0%,#110808 60%,#080a14 100%);overflow-y:auto;padding-bottom:66px;">
-  <div style="padding:40px 24px 0;text-align:center;">
-    <div style="font-size:11px;font-weight:700;letter-spacing:3px;color:rgba(255,255,255,.3);text-transform:uppercase;margin-bottom:6px;">Treino concluído</div>
-    <div id="sumAulaName" style="font-family:'Bebas Neue',sans-serif;font-size:36px;letter-spacing:2px;color:#fff;line-height:1.1;margin-bottom:24px;">–</div>
-
-    <!-- Pontos ganhos -->
-    <div style="background:linear-gradient(135deg,rgba(234,134,12,.2),rgba(214,45,45,.15));border:1px solid rgba(234,134,12,.35);border-radius:24px;padding:32px 24px;margin-bottom:20px;">
-      <div style="font-size:13px;font-weight:700;letter-spacing:3px;color:rgba(255,255,255,.4);text-transform:uppercase;margin-bottom:8px;">Pontos ganhos</div>
-      <div style="display:flex;align-items:baseline;justify-content:center;gap:8px;">
-        <div id="sumPts" style="font-family:'Bebas Neue',sans-serif;font-size:96px;color:#ea860c;line-height:1;">+0</div>
-        <div style="font-size:28px;font-weight:700;color:rgba(255,255,255,.4);">pts</div>
-      </div>
-      <!-- Barra de progresso de nível -->
-      <div style="margin-top:20px;">
-        <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
-          <div id="sumLevel" style="font-size:12px;font-weight:700;color:rgba(255,255,255,.5);letter-spacing:1px;text-transform:uppercase;">–</div>
-          <div id="sumNextLevel" style="font-size:12px;color:rgba(255,255,255,.25);">–</div>
-        </div>
-        <div style="height:8px;background:rgba(255,255,255,.1);border-radius:4px;overflow:hidden;">
-          <div id="sumLevelBar" style="height:100%;background:linear-gradient(90deg,#ea860c,#d62d2d);border-radius:4px;width:0%;transition:width .8s ease;"></div>
-        </div>
-        <div id="sumTotalPts" style="font-size:11px;color:rgba(255,255,255,.25);margin-top:5px;text-align:right;">0 pts total</div>
-      </div>
-    </div>
-
-    <!-- Stats rápidos -->
-    <div style="display:flex;gap:10px;margin-bottom:20px;">
-      <div style="flex:1;background:rgba(255,255,255,.05);border-radius:14px;padding:16px;border:1px solid rgba(255,255,255,.07);">
-        <div id="sumDur" style="font-family:'Bebas Neue',sans-serif;font-size:32px;color:#fff;line-height:1;">–</div>
-        <div style="font-size:10px;font-weight:700;letter-spacing:2px;color:rgba(255,255,255,.3);margin-top:3px;">DURAÇÃO</div>
-      </div>
-      <div style="flex:1;background:rgba(255,255,255,.05);border-radius:14px;padding:16px;border:1px solid rgba(255,255,255,.07);">
-        <div id="sumZona" style="font-family:'Bebas Neue',sans-serif;font-size:32px;color:#ea860c;line-height:1;">–</div>
-        <div style="font-size:10px;font-weight:700;letter-spacing:2px;color:rgba(255,255,255,.3);margin-top:3px;">ZONA PRIM.</div>
-      </div>
-      <div style="flex:1;background:rgba(255,255,255,.05);border-radius:14px;padding:16px;border:1px solid rgba(255,255,255,.07);">
-        <div id="sumRpm" style="font-family:'Bebas Neue',sans-serif;font-size:32px;color:#295fe8;line-height:1;">–</div>
-        <div style="font-size:10px;font-weight:700;letter-spacing:2px;color:rgba(255,255,255,.3);margin-top:3px;">RPM MÉD</div>
-      </div>
-    </div>
-
-    <!-- Botões -->
-    <div style="display:flex;flex-direction:column;gap:10px;">
-      <button onclick="saveAndGoHistory()" style="width:100%;padding:15px;border-radius:30px;border:none;background:linear-gradient(135deg,#ffb02e,#ea860c);font-family:'Barlow Condensed',sans-serif;font-size:17px;font-weight:900;letter-spacing:2px;color:#fff;cursor:pointer;">VER HISTÓRICO</button>
-      <button onclick="shareCard()" style="width:100%;padding:15px;border-radius:30px;border:none;background:linear-gradient(135deg,#833ab4,#fd1d1d,#fcb045);font-family:'Barlow Condensed',sans-serif;font-size:17px;font-weight:900;letter-spacing:2px;color:#fff;cursor:pointer;">📸 COMPARTILHAR</button>
-      <button onclick="go('sHome')" style="width:100%;padding:13px;border-radius:30px;background:transparent;border:1px solid rgba(255,255,255,.14);font-size:14px;font-weight:700;color:rgba(255,255,255,.4);cursor:pointer;">Voltar ao início</button>
     </div>
   </div>
 </div>
@@ -5905,7 +5919,7 @@ function _prTvAviso(on){
 }
 function _encerrarAulaApp(){
   try{ _prTvAviso(false); }catch(e){}
-  try{ if(lastCode){ window._prNotaSala=lastCode; window._prNotaNome=(typeof cAula!=='undefined'&&cAula&&cAula.nome)||''; setTimeout(prNotaPedir,1500); } }catch(e){}   // 07/10d: nota da aula
+  try{ if(lastCode){ window._prNotaSala=lastCode; window._prNotaNome=(typeof aulaGraficoNome!=='undefined'&&aulaGraficoNome)||(typeof cAula!=='undefined'&&cAula&&cAula.nome)||''; setTimeout(prNotaPedir,1500); } }catch(e){}   // 07/10d: nota da aula
   _prEsquecerSala('professor encerrou');
   var sl=document.getElementById('sLive');
   var emAula=(typeof lInt!=='undefined' && lInt) || (sl && sl.classList.contains('active'));
@@ -5978,6 +5992,10 @@ function prSerieMin(am){
 function showResultsReal(){
   closeDrawer();
   if(audio){audio.pause();}
+  // 09/10: AULA DA TV (entrou pelo QR). O treino é o da TV, então cAula ficava vazio e a aula
+  // não era gravada no servidor: sem histórico, sem pontos e sem o e-mail do resumo — para todo mundo.
+  try{ if((!cAula || cAula.tipo==='sala') && typeof aulaGraficoNome!=='undefined' && (aulaGraficoNome || (typeof _lsAcc!=='undefined' && _lsAcc.dur>0)))
+    cAula={ nome:aulaGraficoNome||'Aula na academia', blocos:(typeof aulaGrafico!=='undefined'&&aulaGrafico)||[], tipo:'sala' }; }catch(e){}
   // Se o tick não acumulou (totS=0) mas o acumulador ao vivo tem dado real, usa-o.
   // Assim a tela de resultado (duração, médias, zonas e payload do servidor) sai correta.
   // 03/10v: médias, máximo e zonas vêm SÓ do que foi medido (_lsAcc: TV ou Bluetooth).
@@ -5990,7 +6008,8 @@ function showResultsReal(){
   }
   var nameEl=document.getElementById('resAulaName');
   if(nameEl&&cAula) nameEl.textContent=cAula.nome;
-  var totEl=document.getElementById('resTot'); if(totEl) totEl.textContent=fmHMS(totS);
+  var totEl=document.getElementById('resTot'); if(totEl) totEl.textContent=_rsDur(totS);
+  try{ var _pb=document.getElementById('resPtsBox'); if(_pb) _pb.style.display='none'; }catch(e){}
   var kcalEl=document.getElementById('resKcal'); if(kcalEl) kcalEl.textContent=prKcal(prWattsMed(),totS,prPesoKg());
   var tssEl=document.getElementById('resTSS'); if(tssEl) tssEl.textContent=(cAula&&cAula.blocos)?prTSS(cAula.blocos).tss:0;
   var distEl=document.getElementById('resDist'); if(distEl) distEl.textContent='\u2014';   // 03/10v: sem distância inventada
@@ -5999,9 +6018,11 @@ function showResultsReal(){
   var maxREl=document.getElementById('resMaxRpm'); if(maxREl) maxREl.textContent=maxRpm>0?Math.round(maxRpm):'\u2014';
   var wEl=document.getElementById('resWatts'); if(wEl){ wEl.textContent=prWattsMed()||'\u2014'; }
   buildResChart();
+  try{ prResExtra(); }catch(e){}
 
   // Se logado: salva no servidor e abre tela de pontos
   if(prToken && cAula){
+    try{ var _cv=document.getElementById('prConvite'); if(_cv) _cv.style.display='none'; }catch(e){}
     var zOrder=['z7','z6','z5','z4','z3','z2','z1'];
     var zPred='z2';
     for(var zi=0;zi<zOrder.length;zi++){ if(zoneTime[zOrder[zi]]>0){zPred=zOrder[zi];break;} }
@@ -6039,40 +6060,79 @@ function showResultsReal(){
         else go('sResults');
       }).catch(function(){ go('sResults'); });
   } else {
+    // 07/10f: SEM LOGIN — guarda esta aula no aparelho (24 h) e convida a criar a conta.
+    // Ao criar a conta ou entrar, a aula vai para o servidor e o resumo chega por e-mail.
+    try{ if(cAula && totS>0){
+      var _zO=['z7','z6','z5','z4','z3','z2','z1'], _zP='z2', _tz=0, _zp={};
+      for(var _i=0;_i<_zO.length;_i++){ if(zoneTime[_zO[_i]]>0){_zP=_zO[_i];break;} }
+      ['z1','z2','z3','z4','z5','z6','z7'].forEach(function(z){ _tz+=zoneTime[z]; });
+      ['z1','z2','z3','z4','z5','z6','z7'].forEach(function(z){ _zp[z]=_tz>0?Math.round(zoneTime[z]/_tz*100):0; });
+      localStorage.setItem('pr_aula_pendente', JSON.stringify({ em:Date.now(), d:{ aula_nome:cAula.nome, duracao_sec:totS, zona_predominante:_zP, badge:cAula.badge||'', sem_pausas:true, zonas:_zp,
+        watts_med:prWattsMed(), rpm_med:(cntRpm>0?Math.round(sumRpm/cntRpm):0), kcal:prKcal(prWattsMed(),totS,prPesoKg()), serie_min:prSerieMin(typeof _lsAcc!=='undefined'?_lsAcc.am:null) } }));
+      prConviteConta();
+    } }catch(e){}
     go('sResults');
   }
 }
+// 07/10f: convite no resultado de quem pedalou sem login
+function prConviteConta(){
+  var r=document.getElementById('sResults'); if(!r) return;
+  var c=document.getElementById('prConvite');
+  if(!c){ c=document.createElement('div'); c.id='prConvite'; r.insertBefore(c, r.children[1]||null); }
+  c.innerHTML='<div style="margin:14px 18px 0;padding:16px;border-radius:16px;background:linear-gradient(135deg,rgba(234,134,12,.22),rgba(214,45,45,.12));border:1px solid rgba(234,134,12,.45);">'+
+    '<div style="font-family:\'Barlow Condensed\',sans-serif;font-size:20px;font-weight:800;letter-spacing:1px;color:#fff;">📩 RECEBA ESTE RESUMO POR E-MAIL</div>'+
+    '<div style="font-size:13px;line-height:1.45;color:rgba(255,255,255,.7);margin:6px 0 12px;">Crie sua conta grátis (ou entre): esta aula vai para o seu histórico, soma pontos e o resumo chega no seu e-mail.</div>'+
+    '<button type="button" onclick="prConviteIr()" style="width:100%;min-height:46px;border:none;border-radius:23px;background:#ea860c;color:#111;font-family:\'Barlow Condensed\',sans-serif;font-size:17px;font-weight:800;letter-spacing:2px;">CRIAR CONTA / ENTRAR</button></div>';
+  c.style.display='block';
+}
+function prConviteIr(){ try{ go('sSplash'); }catch(e){} }
+// envia a aula guardada sem login, assim que a pessoa entra (uma vez, até 24 h depois)
+function prAulaPendenteEnviar(){
+  try{
+    if(!prToken) return; var p=JSON.parse(localStorage.getItem('pr_aula_pendente')||'null'); if(!p) return;
+    localStorage.removeItem('pr_aula_pendente');
+    var c=document.getElementById('prConvite'); if(c) c.style.display='none';
+    if(!p.d || Date.now()-(p.em||0)>24*3600000) return;
+    fetch(SERVER_HTTP+'/aula/complete',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+prToken},body:JSON.stringify(p.d)})
+      .then(function(r){ return r.json(); }).then(function(d){ if(d&&d.pontos_ganhos) _toast('✓ Sua aula foi salva: +'+d.pontos_ganhos+' pontos. O resumo vai para o seu e-mail.','#5db13d'); }).catch(function(){});
+  }catch(e){}
+}
 function buildResChart(){
-  var chart=document.getElementById('resZoneChart');
-  var donut=document.getElementById('resDonut');
-  var list=document.getElementById('resZoneList');
-  if(!chart||!donut||!list) return;
-  donut.innerHTML=''; list.innerHTML='';
-  var zOrder=['z1','z2','z3','z4','z5','z6','z7'];
-  var zName={z1:'Recovery',z2:'Endurance',z3:'Tempo',z4:'Threshold',z5:'VO2 Max',z6:'Anaerobic',z7:'Neuro'};
-  var totalT=0;
-  for(var i=0;i<zOrder.length;i++) totalT+=zoneTime[zOrder[i]];
-  if(totalT===0) totalT=1;
-  var offset=0; var r=36; var circ=2*3.14159*r;
-  for(var i=0;i<zOrder.length;i++){
-    var z=zOrder[i]; var t=zoneTime[z]; if(t===0) continue;
-    var dash=(t/totalT)*circ;
-    var circle=document.createElementNS('http://www.w3.org/2000/svg','circle');
-    circle.setAttribute('cx','50'); circle.setAttribute('cy','50'); circle.setAttribute('r',r);
-    circle.setAttribute('fill','none'); circle.setAttribute('stroke',zC[z]);
-    circle.setAttribute('stroke-width','12');
-    circle.setAttribute('stroke-dasharray',dash+' '+(circ-dash));
-    circle.setAttribute('stroke-dashoffset',-offset);
-    circle.setAttribute('transform','rotate(-90 50 50)');
-    donut.appendChild(circle);
-    offset+=dash;
-    var li=document.createElement('div');
-    li.style.cssText='display:flex;align-items:center;gap:6px;';
-    li.innerHTML='<div style="width:10px;height:10px;border-radius:50%;background:'+zC[z]+';flex-shrink:0;"></div>'
-      +'<div style="flex:1;font-size:13px;color:rgba(255,255,255,.7);">'+zName[z]+'</div>'
-      +'<div style="font-size:14px;font-weight:800;color:#fff;">'+fmMS(t)+'</div>';
-    list.appendChild(li);
-  }
+  // 09/10: barra empilhada + lista (tempo e % em cada zona), no lugar da rosca antiga
+  var bar=document.getElementById('resZoneChart'), list=document.getElementById('resZoneList');
+  if(!bar||!list) return;
+  var zO=['z1','z2','z3','z4','z5','z6','z7'];
+  var zN={z1:'Recuperação',z2:'Resistência',z3:'Ritmo',z4:'Limiar',z5:'VO2 máx',z6:'Anaeróbico',z7:'Neuromuscular'};
+  var tot=0; zO.forEach(function(z){ tot+=zoneTime[z]||0; });
+  if(!tot){ bar.innerHTML=''; list.innerHTML='<div style="font-size:12.5px;color:#8d8d96">Sem dados de potência nesta aula.</div>'; return; }
+  bar.innerHTML=zO.filter(function(z){ return zoneTime[z]>0; }).map(function(z){ return '<i style="width:'+(zoneTime[z]/tot*100).toFixed(2)+'%;background:'+zC[z]+'"></i>'; }).join('');
+  list.innerHTML=zO.filter(function(z){ return zoneTime[z]>0; }).reverse().map(function(z){
+    return '<div class="rs-zr"><i style="background:'+zC[z]+'"></i><span><b style="color:'+zC[z]+'">'+z.toUpperCase()+'</b> '+zN[z]+'</span><b>'+fmMS(zoneTime[z])+'</b><span>'+Math.round(zoneTime[z]/tot*100)+'%</span></div>'; }).join('');
+}
+// duração curta: 50:00 · longa: 1:05:00
+function _rsDur(s){ s=Math.max(0,Math.floor(s||0)); var h=Math.floor(s/3600),m=Math.floor((s%3600)/60),x=s%60; return (h?h+':'+(m<10?'0':''):'')+m+':'+(x<10?'0':'')+x; }
+// data, zona predominante, FC média e o gráfico da potência minuto a minuto
+function prResExtra(){
+  var d=new Date(), M=['JAN','FEV','MAR','ABR','MAI','JUN','JUL','AGO','SET','OUT','NOV','DEZ'];
+  var el=document.getElementById('resData'); if(el) el.textContent=(d.getDate()<10?'0':'')+d.getDate()+' '+M[d.getMonth()]+' '+d.getFullYear()+'  ·  '+Math.round((totS||0)/60)+' MIN';
+  var zO=['z7','z6','z5','z4','z3','z2','z1'], zp=null; for(var i=0;i<zO.length;i++){ if(zoneTime[zO[i]]>0){ zp=zO[i]; break; } }
+  el=document.getElementById('resZona'); if(el){ el.textContent=zp?zp.toUpperCase():'–'; el.style.color=zp?zC[zp]:'#fff'; }
+  var zc=document.getElementById('resZonaC'); if(zc&&zp) zc.style.setProperty('--c',zC[zp]);
+  var am=(typeof _lsAcc!=='undefined'&&_lsAcc.am)||[], hs=0, hn=0; am.forEach(function(x){ if(x[3]>0){ hs+=x[3]; hn++; } });
+  el=document.getElementById('resHR'); if(el) el.textContent=hn?Math.round(hs/hn):'–';
+  el=document.getElementById('resHRu'); if(el) el.textContent=hn?'bpm':'';
+  // gráfico: barras por minuto, cor da zona pelo %FTP, escala até 135% do FTP
+  var box=document.getElementById('resGrafBox'), g=document.getElementById('resGraf'); if(!box||!g) return;
+  var sm=prSerieMin(am), ftp=0; try{ ftp=parseInt(_ftpDoAluno(),10)||0; }catch(e){}
+  if(sm.length<2){ box.style.display='none'; return; }
+  var top=Math.max(ftp>0?ftp*1.35:0, Math.max.apply(null,sm)*1.05, 1);
+  var zDe=function(w){ if(!ftp) return '#ea860c'; var p=w/ftp*100; for(var k=1;k<8;k++){ if(p<ZEDGES[k]||k===7) return zC['z'+k]; } return zC.z7; };
+  var bars=sm.map(function(w){ return '<i style="height:'+Math.max(2,Math.round(w/top*100))+'%;background:'+zDe(w)+'"></i>'; }).join('');
+  var regua=ftp?['z5','z4','z3','z2','z1'].map(function(z){ return '<span style="color:'+zC[z]+'">'+z.toUpperCase()+'</span>'; }).join(''):'';
+  var n=sm.length, meio=Math.round(n/2);
+  g.innerHTML='<div class="rs-gw"><div class="rs-gb">'+bars+'</div>'+(regua?'<div class="rs-gr">'+regua+'</div>':'')+'</div>'
+    +'<div class="rs-gx"><span>0\'</span><span>'+meio+'\'</span><span>'+n+'\'</span></div>';
+  box.style.display='block';
 }
 function showFtpResult(){
   clearInterval(lInt); closeDrawer(); if(audio){audio.pause();}
@@ -6129,6 +6189,11 @@ function showFtpResult(){
       zList.appendChild(row);
     }
   }
+  // 07/10f: o teste de FTP do app também é uma aula: vai para o histórico, soma pontos e manda o resumo
+  try{ if(prToken){ var _dur=ftpTestWatts.length, _sw=0; ftpTestWatts.forEach(function(w){ _sw+=w; }); var _wm=_dur?Math.round(_sw/_dur):0;
+    fetch(SERVER_HTTP+'/aula/complete',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+prToken},
+      body:JSON.stringify({ aula_nome:(cAula&&cAula.nome)||'Teste de FTP', duracao_sec:totS||_dur, zona_predominante:'z4', badge:'', sem_pausas:true, zonas:{},
+        watts_med:_wm, rpm_med:(cntRpm>0?Math.round(sumRpm/cntRpm):0), kcal:prKcal(_wm,totS||_dur,prPesoKg()), serie_min:prSerieMin(typeof _lsAcc!=='undefined'?_lsAcc.am:null) })}).catch(function(){}); } }catch(e){}
   go('sFtpResult');
 }
 // ══════════════════════════════════════════════════════════════
@@ -7483,6 +7548,7 @@ function requireLogin(msg) {
 })();
 
 function updateProfileUI(){
+  try{ prAulaPendenteEnviar(); }catch(e){}   // 07/10f
   try{ if(prToken&&window.prTermosChecar&&window._tcChecado!==prToken){ window._tcChecado=prToken; prTermosChecar(SERVER_HTTP,prToken,'app',lgLogout); } }catch(e){}   // 03/10o: quem ainda não aceitou os Termos
   var card=document.getElementById('profUserCard');
   var btnLogin=document.getElementById('profLoginBtn');
@@ -7635,7 +7701,8 @@ function showSummaryScreen(pontosGanhos, totalPontos, nivel){
   el=document.getElementById('sumTotalPts'); if(el) el.textContent=pts.toLocaleString('pt-BR')+' pts total';
   // Atualiza prUser
   if(prUser){ prUser.points=pts; prUser.level=nivel||prUser.level; updateProfileUI(); }
-  go('sSummary');
+  try{ var _pb=document.getElementById('resPtsBox'); if(_pb) _pb.style.display='flex'; }catch(e){}
+  go('sResults');   // 09/10: tela única de fim da aula
 }
 
 // ── Share Card ───────────────────────────────────────────────────
@@ -7644,45 +7711,146 @@ var _cardBgImage=null; // imagem de fundo personalizada
 function applyBgPhoto(input){
   if(!input.files||!input.files[0]) return;
   var reader=new FileReader();
-  reader.onload=function(e){
-    var img=new Image();
-    img.onload=function(){
-      _cardBgImage=img;
-      // Redesenha com a foto
-      var canvas=document.getElementById('shareCanvas');
-      var ready=document.fonts?document.fonts.ready:Promise.resolve();
-      ready.then(function(){ _drawShareCard(canvas); });
-      // Mostra botão de remover
-      var btn=document.getElementById('btnRemoveBg');
-      if(btn) btn.style.display='block';
-    };
-    img.src=e.target.result;
-  };
+  reader.onload=function(e){ var img=new Image(); img.onload=function(){ _cardBgImage=img; shDesenhar(); var b=document.getElementById('btnRemoveBg'); if(b) b.style.display='block'; var f=document.getElementById('btnFotoCard'); if(f) f.textContent='📷 TROCAR A FOTO'; }; img.src=e.target.result; };
   reader.readAsDataURL(input.files[0]);
 }
-
 function removeBgPhoto(){
-  _cardBgImage=null;
-  var input=document.getElementById('cardBgInput');
-  if(input) input.value='';
-  var btn=document.getElementById('btnRemoveBg');
-  if(btn) btn.style.display='none';
-  // Redesenha sem foto
-  var canvas=document.getElementById('shareCanvas');
-  var ready=document.fonts?document.fonts.ready:Promise.resolve();
-  ready.then(function(){ _drawShareCard(canvas); });
+  _cardBgImage=null; var i=document.getElementById('cardBgInput'); if(i) i.value='';
+  var b=document.getElementById('btnRemoveBg'); if(b) b.style.display='none'; var f=document.getElementById('btnFotoCard'); if(f) f.textContent='📷 ESCOLHER MINHA FOTO'; shDesenhar();
 }
+// ══ 09/10 — COMPARTILHAR: 2 MODELOS. O fundo é a foto que o aluno escolhe (sem foto: fundo escuro do ProRider) ══
+var _shFotos=[null,null], _shAtual=0, _shViu2=false;
 
 function shareCard(){
-  var overlay=document.getElementById('shareOverlay');
-  var canvas=document.getElementById('shareCanvas');
-  if(!overlay||!canvas) return;
-  overlay.style.display='flex';
-  // Aguarda fontes carregarem antes de desenhar
-  var ready = document.fonts ? document.fonts.ready : Promise.resolve();
-  ready.then(function(){ _drawShareCard(canvas); });
+  var ov=document.getElementById('shareOverlay'); if(!ov) return;
+  ov.style.display='flex'; _shAtual=0; shIr(0,true);
+  var d=document.getElementById('shDica'); if(d) d.style.display=_shViu2?'none':'block';
+  var b=document.getElementById('btnNativeShare'); if(b) b.style.display=navigator.share?'block':'none';
+  var ready=document.fonts?document.fonts.ready:Promise.resolve();
+  ready.then(function(){ shDesenhar(); return _shFontes(); }).then(function(){ shDesenhar(); });
 }
-
+function shDesenhar(){ try{ var d=_shDados(); _shModelo1(document.getElementById('shareCanvas1'),d); _shModelo2(document.getElementById('shareCanvas2'),d); }catch(e){ console.warn('[ProRider] compartilhar:',e); } }
+function shIr(i,semAnim){ var c=document.getElementById('shCar'); if(!c) return; var sl=c.children[i]; if(sl) c.scrollTo({left:sl.offsetLeft-(c.clientWidth-sl.clientWidth)/2,behavior:semAnim?'auto':'smooth'}); _shMarcar(i); }
+function shRolou(){ var c=document.getElementById('shCar'); if(!c) return; var i=c.scrollLeft>(c.scrollWidth-c.clientWidth)/2?1:0; _shMarcar(i); }
+function _shMarcar(i){ _shAtual=i; var c=document.getElementById('shCar');
+  if(c) [].forEach.call(c.children,function(x,k){ x.classList.toggle('fora',k!==i); });
+  [].forEach.call(document.querySelectorAll('.sh-dot'),function(x,k){ x.classList.toggle('on',k===i); });
+  if(i===1){ _shViu2=true; var d=document.getElementById('shDica'); if(d) d.style.display='none'; } }
+function _shCanvasAtual(){ return document.getElementById('shareCanvas'+(_shAtual+1)); }
+// os números do aluno (os mesmos da tela de resultado)
+function _shDados(){
+  var am=(typeof _lsAcc!=='undefined'&&_lsAcc.am)||[], hs=0, hn=0; am.forEach(function(x){ if(x[3]>0){ hs+=x[3]; hn++; } });
+  var zO=['z7','z6','z5','z4','z3','z2','z1'], zp=null; for(var i=0;i<zO.length;i++){ if(zoneTime[zO[i]]>0){ zp=zO[i]; break; } }
+  var ftp=0; try{ ftp=parseInt(_ftpDoAluno(),10)||0; }catch(e){}
+  var d=new Date(), M=['JAN','FEV','MAR','ABR','MAI','JUN','JUL','AGO','SET','OUT','NOV','DEZ'];
+  return { w:prWattsMed()||0, kcal:prKcal(prWattsMed(),totS,prPesoKg())||0, rpm:cntRpm>0?Math.round(sumRpm/cntRpm):0, dur:_rsDur(totS), min:Math.round((totS||0)/60),
+    hr:hn?Math.round(hs/hn):0, zona:zp, tss:(function(){ try{ return (cAula&&cAula.blocos&&cAula.blocos.length)?prTSS(cAula.blocos).tss:0; }catch(e){ return 0; } })(), ftpPct:cntFtp>0?Math.round(sumFtp/cntFtp):0, serie:prSerieMin(am), ftp:ftp,
+    data:(d.getDate()<10?'0':'')+d.getDate()+' '+M[d.getMonth()]+' '+d.getFullYear(), nome:(cAula&&cAula.nome)||'' };
+}
+// 09/10: os 2 modelos copiam a arte aprovada pelo Mario (proporção 759×1024 → 1080×1456).
+// Letras: logo Montserrat Black Itálico, títulos e rótulos Inter, números Oswald.
+var _SH_W=1080, _SH_H=1456, _SH_K=1080/759;
+function _shFontes(){ if(!document.fonts||!document.fonts.load) return Promise.resolve();
+  return Promise.all(['italic 900 60px Montserrat','italic 600 20px Montserrat','600 60px Oswald','500 30px Oswald','600 24px Inter','500 24px Inter']
+    .map(function(f){ return document.fonts.load(f).catch(function(){}); })); }
+function _shFundo(ctx,W,H,img,modelo){
+  if(img){ var sc=Math.max(W/img.width,H/img.height), dw=img.width*sc, dh=img.height*sc; ctx.drawImage(img,(W-dw)/2,(H-dh)/2,dw,dh); return; }
+  // sem foto do aluno: fundo escuro com brilho laranja de pôr do sol
+  var g=ctx.createLinearGradient(0,0,0,H); g.addColorStop(0,'#1b1a22'); g.addColorStop(.45,'#3a2416'); g.addColorStop(1,'#0c0b0f'); ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
+  var r=ctx.createRadialGradient(W*.85,H*(modelo===1?.3:.28),10,W*.85,H*(modelo===1?.3:.28),W*.75); r.addColorStop(0,'rgba(255,170,60,.75)'); r.addColorStop(.4,'rgba(234,110,20,.25)'); r.addColorStop(1,'rgba(234,110,20,0)'); ctx.fillStyle=r; ctx.fillRect(0,0,W,H);
+}
+function _shSp(ctx,v){ if(ctx.letterSpacing!==undefined) ctx.letterSpacing=v+'px'; }
+function _shT(ctx,t,x,y,font,cor,esp,alin){ ctx.font=font; ctx.fillStyle=cor; ctx.textAlign=alin||'left'; _shSp(ctx,esp||0); ctx.fillText(t,x,y); var w=ctx.measureText(t).width; _shSp(ctx,0); ctx.textAlign='left'; return w; }
+function _shSombra(ctx,on){ ctx.shadowColor=on?'rgba(0,0,0,.55)':'transparent'; ctx.shadowBlur=on?14:0; ctx.shadowOffsetY=on?2:0; }
+// raio do logo e do ícone de potência (amarelo → laranja)
+function _shRaio(ctx,x,y,h){ var k=h/100; ctx.save(); ctx.translate(x,y); ctx.scale(k,k);
+  var g=ctx.createLinearGradient(0,0,0,100); g.addColorStop(0,'#ffd23f'); g.addColorStop(.55,'#f7a01c'); g.addColorStop(1,'#ea5a12'); ctx.fillStyle=g;
+  ctx.beginPath(); ctx.moveTo(52,0); ctx.lineTo(4,58); ctx.lineTo(30,58); ctx.lineTo(14,100); ctx.lineTo(66,36); ctx.lineTo(40,36); ctx.lineTo(60,0); ctx.closePath(); ctx.fill(); ctx.restore(); }
+function _shLogo(ctx,x,y,esc){   // x,y = canto de cima do raio; esc 1 = arte do modelo 1
+  ctx.save(); _shSombra(ctx,true);
+  _shRaio(ctx,x,y,114*esc);
+  var fs=Math.round(76*esc), bx=x+104*esc, by=y+74*esc;
+  ctx.font='italic 900 '+fs+'px Montserrat, "Barlow Condensed", Arial'; ctx.fillStyle='#fff'; ctx.textAlign='left'; ctx.fillText('PRO',bx,by);
+  var wp=ctx.measureText('PRO ').width, wr=ctx.measureText('RIDER').width;
+  var g=ctx.createLinearGradient(bx+wp,0,bx+wp+wr,0); g.addColorStop(0,'#ffb21e'); g.addColorStop(.5,'#f26b1d'); g.addColorStop(1,'#e8262f'); ctx.fillStyle=g; ctx.fillText('RIDER',bx+wp,by);
+  _shT(ctx,'CYCLING PERFORMANCE',bx+4*esc,by+42*esc,'italic 600 '+Math.round(23*esc)+'px Montserrat, Arial','#fff',Math.round(7.6*esc));
+  ctx.restore();
+}
+// ícones desenhados (iguais aos da arte)
+function _shIco(ctx,tipo,cx,cy,t){ ctx.save(); ctx.lineCap='round'; ctx.lineJoin='round';
+  if(tipo==='w'){ _shRaio(ctx,cx-t*.36,cy-t*.5,t); }
+  else if(tipo==='kcal'){ var g=ctx.createLinearGradient(0,cy-t/2,0,cy+t/2); g.addColorStop(0,'#ff6a2b'); g.addColorStop(1,'#e8262f'); ctx.fillStyle=g;
+    ctx.beginPath(); ctx.moveTo(cx,cy+t*.5); ctx.bezierCurveTo(cx-t*.48,cy+t*.48,cx-t*.5,cy+t*.02,cx-t*.24,cy-t*.22); ctx.bezierCurveTo(cx-t*.22,cy-t*.04,cx-t*.12,cy+t*.02,cx-t*.06,cy+t*.02);
+    ctx.bezierCurveTo(cx-t*.16,cy-t*.24,cx-t*.04,cy-t*.42,cx+t*.06,cy-t*.52); ctx.bezierCurveTo(cx+t*.08,cy-t*.3,cx+t*.5,cy-t*.12,cx+t*.44,cy+t*.18); ctx.bezierCurveTo(cx+t*.42,cy+t*.4,cx+t*.24,cy+t*.5,cx,cy+t*.5); ctx.fill();
+    ctx.globalCompositeOperation='destination-out'; ctx.beginPath(); ctx.moveTo(cx,cy+t*.44); ctx.bezierCurveTo(cx-t*.2,cy+t*.42,cx-t*.2,cy+t*.18,cx-t*.04,cy+t*.04); ctx.bezierCurveTo(cx-t*.02,cy+t*.16,cx+t*.1,cy+t*.18,cx+t*.08,cy+t*.06); ctx.bezierCurveTo(cx+t*.22,cy+t*.18,cx+t*.2,cy+t*.42,cx,cy+t*.44); ctx.fill(); }
+  else if(tipo==='rpm'){ ctx.strokeStyle='#1ed27a'; ctx.lineWidth=t*.1; ctx.beginPath(); ctx.arc(cx,cy,t*.42,Math.PI*.62,Math.PI*2.38); ctx.stroke();
+    ctx.fillStyle='#1ed27a'; ctx.beginPath(); ctx.arc(cx,cy,t*.13,0,7); ctx.fill(); ctx.beginPath(); ctx.moveTo(cx-t*.32,cy+t*.36); ctx.lineTo(cx-t*.1,cy+t*.44); ctx.stroke(); }
+  else if(tipo==='dur'){ ctx.strokeStyle='#fff'; ctx.lineWidth=t*.08; ctx.beginPath(); ctx.arc(cx,cy+t*.06,t*.38,0,7); ctx.stroke(); ctx.beginPath(); ctx.moveTo(cx,cy-t*.32); ctx.lineTo(cx,cy-t*.42); ctx.moveTo(cx-t*.12,cy-t*.46); ctx.lineTo(cx+t*.12,cy-t*.46); ctx.stroke();
+    ctx.lineWidth=t*.07; ctx.beginPath(); ctx.moveTo(cx,cy+t*.06); ctx.lineTo(cx,cy-t*.14); ctx.stroke(); }
+  else if(tipo==='hr'){ ctx.fillStyle='#ff1f3d'; ctx.beginPath(); ctx.moveTo(cx,cy+t*.46); ctx.bezierCurveTo(cx-t*.78,cy-t*.02,cx-t*.56,cy-t*.62,cx,cy-t*.26); ctx.bezierCurveTo(cx+t*.56,cy-t*.62,cx+t*.78,cy-t*.02,cx,cy+t*.46); ctx.fill(); }
+  else if(tipo==='ftp'){ ctx.strokeStyle='#c9c9cf'; ctx.lineWidth=t*.08; ctx.beginPath(); ctx.arc(cx,cy+t*.18,t*.42,Math.PI,0); ctx.stroke(); ctx.beginPath(); ctx.moveTo(cx,cy+t*.18); ctx.lineTo(cx+t*.24,cy-t*.1); ctx.stroke(); ctx.fillStyle='#c9c9cf'; ctx.beginPath(); ctx.arc(cx,cy+t*.18,t*.07,0,7); ctx.fill(); }
+  else if(tipo==='tss'){ ctx.fillStyle='#b9b9c0'; ctx.beginPath(); ctx.moveTo(cx-t*.5,cy+t*.36); ctx.lineTo(cx-t*.12,cy-t*.3); ctx.lineTo(cx+t*.1,cy+t*.06); ctx.lineTo(cx+t*.22,cy-t*.12); ctx.lineTo(cx+t*.52,cy+t*.36); ctx.closePath(); ctx.fill(); }
+  ctx.restore(); }
+function _shNum(ctx,v,un,x,y,tam,alin){   // número Oswald + unidade menor e cinza
+  ctx.font='600 '+tam+'px Oswald, "Barlow Condensed", Arial'; var wv=ctx.measureText(String(v)).width;
+  ctx.font='500 '+Math.round(tam*.56)+'px Oswald, "Barlow Condensed", Arial'; var wu=un?ctx.measureText(un).width+tam*.2:0;
+  var x0=alin==='center'?x-(wv+wu)/2:x;
+  _shT(ctx,String(v),x0,y,'600 '+tam+'px Oswald, "Barlow Condensed", Arial','#fff');
+  if(un) _shT(ctx,un,x0+wv+tam*.2,y,'500 '+Math.round(tam*.56)+'px Oswald, "Barlow Condensed", Arial','#d4d4da');
+}
+function _shCabeca(ctx,d,x,y,K){
+  _shT(ctx,'AULA CONCLUÍDA',x,y,'500 '+Math.round(26*K)+'px Inter, Arial','#fff',Math.round(5*K));
+  _shT(ctx,d.data+'  •  '+d.min+' MIN',x,y+33*K,'500 '+Math.round(19*K)+'px Inter, Arial','rgba(255,255,255,.72)',Math.round(3*K));
+}
+var _SHZ={z1:'#8e8e96',z2:'#2f6bff',z3:'#22b14c',z4:'#ffc21a',z5:'#ff7a1a',z6:'#ff2d2d',z7:'#d81b60'};   // cores da arte
+// MODELO 1 — foto inteira; números em coluna à esquerda (igual à arte da ciclista de costas)
+function _shModelo1(cv,d){
+  if(!cv) return; var W=_SH_W,H=_SH_H,K=_SH_K; cv.width=W; cv.height=H; var ctx=cv.getContext('2d');
+  _shFundo(ctx,W,H,_cardBgImage,1);
+  var g=ctx.createLinearGradient(0,0,W*.62,0); g.addColorStop(0,'rgba(0,0,0,.62)'); g.addColorStop(.55,'rgba(0,0,0,.28)'); g.addColorStop(1,'rgba(0,0,0,0)'); ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
+  var v=ctx.createLinearGradient(0,0,0,H); v.addColorStop(0,'rgba(0,0,0,.35)'); v.addColorStop(.16,'rgba(0,0,0,0)'); v.addColorStop(.85,'rgba(0,0,0,0)'); v.addColorStop(1,'rgba(0,0,0,.35)'); ctx.fillStyle=v; ctx.fillRect(0,0,W,H);
+  _shLogo(ctx,55*K,47*K,K*.655);
+  ctx.save(); _shSombra(ctx,true); _shCabeca(ctx,d,63*K,213*K,K);
+  var it=[['w',d.w,'W','POTÊNCIA MÉDIA'],['kcal',d.kcal,'kcal','CALORIAS'],['rpm',d.rpm||'—',d.rpm?'rpm':'','RPM MÉDIO'],['dur',d.dur,'','DURAÇÃO']];
+  if(d.hr) it.push(['hr',d.hr,'bpm','FC MÉDIA']);
+  var y0=343*K, passo=108*K;
+  it.forEach(function(x,i){ var y=y0+i*passo; _shIco(ctx,x[0],88*K,y-20*K,50*K); _shNum(ctx,x[1],x[2],143*K,y,Math.round(50*K));
+    _shT(ctx,x[3],145*K,y+31*K,'600 '+Math.round(15.5*K)+'px Inter, Arial','rgba(255,255,255,.86)',Math.round(2.4*K)); });
+  ctx.restore();
+}
+// MODELO 2 — foto em cima; linha de 3, gráfico da aula e rodapé de 4 (igual à arte do close)
+function _shModelo2(cv,d){
+  if(!cv) return; var W=_SH_W,H=_SH_H,K=_SH_K; cv.width=W; cv.height=H; var ctx=cv.getContext('2d');
+  ctx.fillStyle='#0c0c0f'; ctx.fillRect(0,0,W,H);
+  _shFundo(ctx,W,H*.62,_cardBgImage,2);
+  var v=ctx.createLinearGradient(0,0,0,H*.62); v.addColorStop(0,'rgba(0,0,0,.3)'); v.addColorStop(.25,'rgba(0,0,0,0)'); v.addColorStop(.62,'rgba(12,12,15,.35)'); v.addColorStop(1,'#0c0c0f'); ctx.fillStyle=v; ctx.fillRect(0,0,W,H*.62+2);
+  _shLogo(ctx,57*K,50*K,K*.655);
+  ctx.save(); _shSombra(ctx,true); _shCabeca(ctx,d,52*K,423*K,K); ctx.restore();
+  // linha de 3
+  var col=[[70,116],[318,360],[575,627]], t3=[['w',d.w,'W','POTÊNCIA MÉDIA'],['kcal',d.kcal,'kcal','CALORIAS'],['rpm',d.rpm||'—',d.rpm?'rpm':'','RPM MÉDIO']];
+  t3.forEach(function(x,i){ _shIco(ctx,x[0],col[i][0]*K,518*K,40*K); _shNum(ctx,x[1],x[2],col[i][1]*K,534*K,Math.round(40*K));
+    _shT(ctx,x[3],col[i][1]*K+2*K,555*K,'600 '+Math.round(12*K)+'px Inter, Arial','rgba(255,255,255,.8)',Math.round(1.6*K)); });
+  ctx.fillStyle='rgba(255,255,255,.16)'; [263,512].forEach(function(xx){ ctx.fillRect(xx*K,494*K,1.5*K,66*K); });
+  // gráfico
+  var bx=25*K,by=587*K,bw=708*K,bh=213*K; ctx.fillStyle='rgba(22,22,27,.92)'; roundRect(ctx,bx,by,bw,bh,14*K); ctx.fill(); ctx.strokeStyle='rgba(255,255,255,.12)'; ctx.lineWidth=1.5*K; roundRect(ctx,bx,by,bw,bh,14*K); ctx.stroke();
+  var gx=40*K, gyb=748*K, gw=628*K, gh=125*K, s=d.serie||[];
+  ctx.strokeStyle='rgba(255,255,255,.07)'; ctx.lineWidth=1; for(var q=1;q<5;q++){ ctx.beginPath(); ctx.moveTo(gx+gw*q/5,gyb-gh); ctx.lineTo(gx+gw*q/5,gyb); ctx.stroke(); }
+  if(s.length>1){
+    var top=Math.max(Math.max.apply(null,s)*1.04,1), lb=gw/s.length;
+    var zDe=function(w){ if(!d.ftp) return '#ea860c'; var p=w/d.ftp*100; for(var k=1;k<8;k++){ if(p<ZEDGES[k]||k===7) return _SHZ['z'+k]; } return _SHZ.z7; };
+    s.forEach(function(w,i){ var h=Math.max(3*K,w/top*gh), x=gx+i*lb; var c=zDe(w); var gr=ctx.createLinearGradient(0,gyb-h,0,gyb); gr.addColorStop(0,c); gr.addColorStop(.7,c+'dd'); gr.addColorStop(1,c+'99'); ctx.fillStyle=gr;
+      ctx.beginPath(); ctx.moveTo(x+lb*.06,gyb); ctx.lineTo(x+lb*.06,gyb-h+3*K); ctx.quadraticCurveTo(x+lb*.06,gyb-h,x+lb*.06+3*K,gyb-h); ctx.lineTo(x+lb*.94-3*K,gyb-h); ctx.quadraticCurveTo(x+lb*.94,gyb-h,x+lb*.94,gyb-h+3*K); ctx.lineTo(x+lb*.94,gyb); ctx.fill(); });
+    // linha branca fina por cima (potência)
+    ctx.strokeStyle='rgba(255,255,255,.85)'; ctx.lineWidth=1.3*K; ctx.beginPath(); s.forEach(function(w,i){ var x=gx+(i+.5)*lb, y=gyb-Math.max(3*K,w/top*gh)+6*K; if(i) ctx.lineTo(x,y); else ctx.moveTo(x,y); }); ctx.stroke();
+    if(d.ftp) ['z6','z5','z4','z3','z2','z1'].forEach(function(z,i){ _shT(ctx,z.toUpperCase(),690*K,(626+i*24)*K,'600 '+Math.round(13.5*K)+'px Inter, Arial',_SHZ[z]); });
+    var mx=s.length; [0,.2,.4,.6,.8,1].forEach(function(f){ _shT(ctx,Math.round(f*mx)+'’',gx+f*gw,774*K,'500 '+Math.round(14*K)+'px Inter, Arial','rgba(255,255,255,.75)',0,f===0?'left':f===1?'right':'center'); });
+  } else _shT(ctx,'gráfico da aula',bx+bw/2,by+bh/2,'500 '+Math.round(14*K)+'px Inter, Arial','rgba(255,255,255,.35)',2,'center');
+  // rodapé de 4
+  var cx4=[90,272,450,645], b4=[['dur',d.dur,'','DURAÇÃO'],['ftp',d.ftpPct||'—',d.ftpPct?'%':'','FTP MÉDIO'],['tss',d.tss||'—','','CARGA (TSS)'],['hr',d.hr||'—',d.hr?'bpm':'','FC MÉDIA']];
+  b4.forEach(function(x,i){ _shIco(ctx,x[0],cx4[i]*K,866*K,34*K); _shNum(ctx,x[1],x[2],cx4[i]*K,917*K,Math.round(36*K),'center');
+    _shT(ctx,x[3],cx4[i]*K,945*K,'600 '+Math.round(11.5*K)+'px Inter, Arial','rgba(255,255,255,.75)',Math.round(1.5*K),'center'); });
+  ctx.fillStyle='rgba(255,255,255,.16)'; [185,363,556].forEach(function(xx){ ctx.fillRect(xx*K,836*K,1.5*K,118*K); });
+}
 function _drawShareCard(canvas){
   var W=1080, H=1920;
   canvas.width=W; canvas.height=H;
@@ -7879,7 +8047,7 @@ function roundRect(ctx, x, y, w, h, r){
 }
 
 function downloadCard(){
-  var canvas=document.getElementById('shareCanvas');
+  var canvas=_shCanvasAtual();
   if(!canvas) return;
   var link=document.createElement('a');
   var nome=(cAula?cAula.nome:'treino').toLowerCase().replace(/\s+/g,'-').replace(/[^a-z0-9\-]/g,'');
@@ -7889,7 +8057,7 @@ function downloadCard(){
 }
 
 function nativeShare(){
-  var canvas=document.getElementById('shareCanvas');
+  var canvas=_shCanvasAtual();
   if(!canvas||!navigator.share) return;
   canvas.toBlob(function(blob){
     var file=new File([blob],'prorider-resultado.png',{type:'image/png'});
@@ -8857,7 +9025,7 @@ updateProfileUI = function() {
          + ' fill="none" stroke="'+col(fm)+'" stroke-width="30" stroke-linecap="'+cap+'"/>';
     }
     g.innerHTML=out;
-    try{ console.log('%c[ProRider Aluno] BUILD 07/10d — nota da aula (1 a 5 estrelas no fim da aula) + 07/10c: Keiser sem nome aparece como Keiser M3 nº X; manda a potencia minuto a minuto (grafico do e-mail) + 07/10a: app das lojas le a Keiser direto (anuncio), lista com o numero de cada Keiser + 03/10z: aviso "TV da academia sem internet" e internet lenta sem conexao dupla + 03/10x: servidor reiniciou no meio da aula: o celular espera a TV voltar (ate 90 s) em vez de encerrar a aula + 03/10h: erro mostra codigo (E-XXXX) e vai junto no Reportar + 03/10f: erros do app chegam sozinhos na Saude do sistema + 03/10e: esqueci a senha por e-mail, reportar problema, excluir conta + 03/10c: loja (comprar aulas, pacotes, assinatura), desafios reais (21 dias, Quebra FTP, ranking, grupos), pré-treino igual ao da TV, Bluetooth novo + 02/10f: aula recomeçada zera os números da largada + 02/10d: caixas da aula gravada mais justas e nas pontas da tela; aulas gravadas abertas a qualquer login na fase de teste + 02/10b: aula gravada na Loja (vídeo do professor + gráfico e números do próprio aluno, ranking com quem fez ao vivo) + lista de espera na reserva, assistir a aula ao vivo, arquivo .tcx para Strava/Garmin, desafio entre academias no início + 01/10b: reserva com escolha da bike (mapa das bikes, a reservada aparece como SUA na hora de entrar) + 01/10a: campeonato no app (posição, camisas, próxima etapa) + camisas conquistadas no perfil + logo original no início + 30/09e: Construtor do celular = o mesmo Construtor online do computador (mesmas funções, mesma conta) + Perto de mim na lupinha (GPS do celular, distância até a academia, aula ao vivo no topo) + faixa verde da aula ao vivo na academia + aulas de hoje na grade + brasões novos (subiu de nível) + Criar aula do Portal abre direto o Construtor (/aluno#construtor) + FC da cinta do celular vai para o Ginasio; Avg. HR = media da aula; aula termina quando a sala some + resultado do teste de FTP da aula no celular (1 min; automatico grava, senao pergunta) + home do professor: sai o Build Workout antigo (com senha), fica Agenda + Treino do Treinador + Construtor de Treino + voltar para a propria bike depois de reabrir o app + relogio do bloco anda sem bike transmitindo + vigia: reentra na sala se a aula parar de chegar + resultado do desafio no celular (10 s, toque fecha) + sexo enviado na entrada da sala (desafio Homens x Mulheres) + aluno sem nome nao entra mais como "-" na sala + leitor do app aceita o QR de Minhas Aulas do Ginasio + aula anterior nao fica mais grudada (fim da aula fecha o socket em qualquer tela; QR de outra sala troca de sala) + gauge com FTP e BLOCO simetricos + marcha e FC na aula da academia + %FTP com o FTP da gaveta na hora + FTP da gaveta vai para a sala na hora + FTP tambem na entrada pela reserva + Revisar o treino mostra a aula do Ginasio + caloria por watt (kJ/eficiencia) + basal Mifflin-St Jeor no cadastro + historico gravado no aparelho + FTP na gaveta + card 1080x1920 reposicionado + 6 protocolos de FTP + TSS + teste de 3 min + fator do teste de 5 min corrigido (era 1,05) + explicacao de FTP em cada teste + gaveta esconde pela propria altura + importacao de treino do TrainingPeaks (grade 2x2 na tela inicial + construtor) com tela de conferencia (botoes acima da navegacao) + corrigido: aula aberta por objeto agora e a que roda + botao Revisar o treino na gaveta + FTP e peso persistem no aparelho + gauge reequilibrado + textos do Brasil + codigo de sala normalizado (QR do navegador deixava a sala inexistente) + faixa de voltar corrigida + reconexao nao trava mais + sala encerrada limpa o codigo guardado + VISTA DA SALA + card comprido de Construtor para professor + fim da corrida no login','color:#ea860c;font-weight:700;'); }catch(e){}
+    try{ console.log('%c[ProRider Aluno] BUILD 07/10f — tela de fim da aula nova (cartoes, grafico minuto a minuto, zonas, pontos); compartilhar com 2 modelos (foto do aluno de fundo); botao CONTROLES laranja de um toque (iPhone na tela de inicio fechava o app ao arrastar); sem login: convite e a aula vai para a conta ao criar/entrar; teste de FTP do app gravado + 07/10e: aula da TV (entrou pelo QR) volta a ser gravada no servidor: historico, pontos e e-mail do resumo + 07/10d: nota da aula (1 a 5 estrelas no fim da aula) + 07/10c: Keiser sem nome aparece como Keiser M3 nº X; manda a potencia minuto a minuto (grafico do e-mail) + 07/10a: app das lojas le a Keiser direto (anuncio), lista com o numero de cada Keiser + 03/10z: aviso "TV da academia sem internet" e internet lenta sem conexao dupla + 03/10x: servidor reiniciou no meio da aula: o celular espera a TV voltar (ate 90 s) em vez de encerrar a aula + 03/10h: erro mostra codigo (E-XXXX) e vai junto no Reportar + 03/10f: erros do app chegam sozinhos na Saude do sistema + 03/10e: esqueci a senha por e-mail, reportar problema, excluir conta + 03/10c: loja (comprar aulas, pacotes, assinatura), desafios reais (21 dias, Quebra FTP, ranking, grupos), pré-treino igual ao da TV, Bluetooth novo + 02/10f: aula recomeçada zera os números da largada + 02/10d: caixas da aula gravada mais justas e nas pontas da tela; aulas gravadas abertas a qualquer login na fase de teste + 02/10b: aula gravada na Loja (vídeo do professor + gráfico e números do próprio aluno, ranking com quem fez ao vivo) + lista de espera na reserva, assistir a aula ao vivo, arquivo .tcx para Strava/Garmin, desafio entre academias no início + 01/10b: reserva com escolha da bike (mapa das bikes, a reservada aparece como SUA na hora de entrar) + 01/10a: campeonato no app (posição, camisas, próxima etapa) + camisas conquistadas no perfil + logo original no início + 30/09e: Construtor do celular = o mesmo Construtor online do computador (mesmas funções, mesma conta) + Perto de mim na lupinha (GPS do celular, distância até a academia, aula ao vivo no topo) + faixa verde da aula ao vivo na academia + aulas de hoje na grade + brasões novos (subiu de nível) + Criar aula do Portal abre direto o Construtor (/aluno#construtor) + FC da cinta do celular vai para o Ginasio; Avg. HR = media da aula; aula termina quando a sala some + resultado do teste de FTP da aula no celular (1 min; automatico grava, senao pergunta) + home do professor: sai o Build Workout antigo (com senha), fica Agenda + Treino do Treinador + Construtor de Treino + voltar para a propria bike depois de reabrir o app + relogio do bloco anda sem bike transmitindo + vigia: reentra na sala se a aula parar de chegar + resultado do desafio no celular (10 s, toque fecha) + sexo enviado na entrada da sala (desafio Homens x Mulheres) + aluno sem nome nao entra mais como "-" na sala + leitor do app aceita o QR de Minhas Aulas do Ginasio + aula anterior nao fica mais grudada (fim da aula fecha o socket em qualquer tela; QR de outra sala troca de sala) + gauge com FTP e BLOCO simetricos + marcha e FC na aula da academia + %FTP com o FTP da gaveta na hora + FTP da gaveta vai para a sala na hora + FTP tambem na entrada pela reserva + Revisar o treino mostra a aula do Ginasio + caloria por watt (kJ/eficiencia) + basal Mifflin-St Jeor no cadastro + historico gravado no aparelho + FTP na gaveta + card 1080x1920 reposicionado + 6 protocolos de FTP + TSS + teste de 3 min + fator do teste de 5 min corrigido (era 1,05) + explicacao de FTP em cada teste + gaveta esconde pela propria altura + importacao de treino do TrainingPeaks (grade 2x2 na tela inicial + construtor) com tela de conferencia (botoes acima da navegacao) + corrigido: aula aberta por objeto agora e a que roda + botao Revisar o treino na gaveta + FTP e peso persistem no aparelho + gauge reequilibrado + textos do Brasil + codigo de sala normalizado (QR do navegador deixava a sala inexistente) + faixa de voltar corrigida + reconexao nao trava mais + sala encerrada limpa o codigo guardado + VISTA DA SALA + card comprido de Construtor para professor + fim da corrida no login','color:#ea860c;font-weight:700;'); }catch(e){}
   }
   if(document.readyState!=='loading') buildGaugeArc();
   else document.addEventListener('DOMContentLoaded', buildGaugeArc);
@@ -9645,7 +9813,7 @@ go=function(id){
   if(id==='sDetail'||id==='sConnect'){ var n=document.getElementById('bNav'); if(n) n.style.display='none'; }
 };
 
-var APP_BUILD='07/10d';
+var APP_BUILD='07/10f';
 try{ if(typeof prErroConfig==='function') prErroConfig(SERVER_HTTP,'app',function(){ return (typeof prToken!=='undefined'&&prToken)||localStorage.getItem('pr_token')||''; },APP_BUILD); }catch(e){}   // 03/10f: erros do app chegam na Saúde
 // ── 03/10e: no Perfil — reportar um problema e excluir a conta (LGPD) ──
 (function(){

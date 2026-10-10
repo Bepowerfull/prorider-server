@@ -969,7 +969,7 @@ function lpLogoToque(){}
 setTimeout(lpStats, 300); setInterval(lpStats, 30000);
 
 var adminToken = localStorage.getItem('pr_admin_token') || '';
-try { if (typeof prErroConfig === 'function') prErroConfig(SERVER, 'admin', function () { return adminToken; }, 'Admin 07/10d'); } catch (e) {}   // 03/10f
+try { if (typeof prErroConfig === 'function') prErroConfig(SERVER, 'admin', function () { return adminToken; }, 'Admin 07/10f'); } catch (e) {}   // 03/10f
 var adminUser  = JSON.parse(localStorage.getItem('pr_admin_user') || 'null');
 var allLicencas = [];
 var allAlunos   = [];
@@ -1875,7 +1875,17 @@ async function tvAutoAtu(cod, ligado, agora){
   if(agora) alert(r.disponivel?'Pedido enviado: a TV instala a '+r.disponivel+' em até 10 min, se estiver sem aula.':'Pedido salvo, mas ainda não há pacote assinado no servidor.');
   try{ loadLicencas(); }catch(e){}
 }
-function sdTvAtu(t){
+function sdTvAtu(t){ return sdTvAtu0(t)+sdTvConsulta(t); }
+// 07/10f: o que o servidor respondeu na última vez que a TV perguntou (a cada 10 min)
+function sdTvConsulta(t){
+  const c=t.atu_consulta; if(!c||!c.motivo) return '';
+  const tx={sem_pacote:['#ff8a8a','sem pacote assinado no servidor (o desenvolvedor precisa assinar a versão)'],em_dia:['#8fe06a','em dia'],
+    desligada:['#ffb45a','há a '+(c.versao||'')+', mas a atualização está desligada (ligue ou clique em "atualizar agora")'],
+    agora:['#7fb2ff','"atualizar agora": instala a '+(c.versao||'')+' quando a TV estiver na tela de espera'],
+    janela:['#7fb2ff','a '+(c.versao||'')+' será instalada entre 2h e 5h, com a TV na tela de espera']}[c.motivo]||['inherit',c.motivo];
+  return '<div style="font-size:12px;margin-top:3px;color:'+tx[0]+'">última consulta '+sdQuando(c.em)+': '+sdEsc(tx[1])+'</div>';
+}
+function sdTvAtu0(t){
   const a=t.atualizacao; if(!a) return t.tv_auto_atualizar?'<span style="color:var(--muted)">⟳ auto ligada</span>':'';
   const cor={ok:'#8fe06a',erro:'#ff8a8a',voltou:'#ffb45a',baixando:'#7fb2ff',instalada:'#7fb2ff',sem_suporte:'var(--muted)'}[a.etapa]||'inherit';
   const txt={ok:'atualizou',erro:'falhou',voltou:'voltou à anterior',baixando:'baixando',instalada:'instalada, confirmando',sem_suporte:'programa sem atualizador'}[a.etapa]||a.etapa;
