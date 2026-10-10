@@ -29,10 +29,12 @@ const conf = (process.argv.find(a => a.startsWith('--confirmar=')) || '').split(
   const c = new Client({ connectionString: URL_DEST, ssl: /localhost|127\.0\.0\.1/.test(u.hostname) ? false : { rejectUnauthorized: false } });
   await c.connect();
   const existe = new Set((await c.query(`SELECT tablename FROM pg_tables WHERE schemaname='public'`)).rows.map(x => x.tablename));
-  const linhas = readline.createInterface({ input: fs.createReadStream(arq).pipe(zlib.createGunzip()), crlfDelay: Infinity });
   let meta = null, fim = null; const cont = {}, pulou = new Set(), q = t => '"' + t.replace(/"/g, '""') + '"';
   await c.query('BEGIN');
   await c.query("SET LOCAL session_replication_role = replica");   // sem checar chaves estrangeiras durante a carga
+  // 10/10i: o leitor de linhas é criado SÓ AGORA, logo antes do "for await". Criado antes dos dois "await" acima,
+  // um arquivo pequeno era lido inteiro antes do laço começar e as linhas se perdiam ("Arquivo incompleto").
+  const linhas = readline.createInterface({ input: fs.createReadStream(arq).pipe(zlib.createGunzip()), crlfDelay: Infinity });
   for await (const l of linhas) {
     if (!l.trim()) continue; const o = JSON.parse(l);
     if (o.prorider_backup) {

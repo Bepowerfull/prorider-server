@@ -32,7 +32,7 @@ const FOTOS = fs.mkdtempSync(path.join(os.tmpdir(), 'prorider-telas-tv-'));
 
   const nav = await chromium.launch();
   const p = await nav.newPage({ viewport: { width: 1920, height: 1080 }, timezoneId: 'America/Sao_Paulo', locale: 'pt-BR' });   // a TV fica no Brasil
-  const erros = [], cons = []; p.on('pageerror', e => erros.push(e.message.slice(0, 160))); p.on('console', m => cons.push(m.type() + ': ' + m.text().slice(0, 200)));
+  const erros = [], cons = []; p.on('pageerror', e => erros.push(e.message.slice(0, 160) + ' @ ' + String(e.stack || '').split('\n').slice(1, 3).join(' | ').slice(0, 220))); p.on('console', m => cons.push(m.type() + ': ' + m.text().slice(0, 200)));
   const foto = async n => { try { await p.screenshot({ path: path.join(FOTOS, n + '.png') }); } catch (e) {} };
   await p.route(/^https?:/, async r => {
     const u = r.request().url();
@@ -175,6 +175,7 @@ const FOTOS = fs.mkdtempSync(path.join(os.tmpdir(), 'prorider-telas-tv-'));
   ok(s.sala !== sala, 'aula seguinte terá sala nova');
   await p.evaluate(() => { try { sairIdle(); } catch (e) {} mostrarEscolha(); IDLE_MS = 1500; resetIdleTimer(); }); await espera(3000);
   ok(await p.evaluate(() => idleOn), 'parada no menu, volta sozinha para a tela de espera');
+  ok(await p.evaluate(() => boxMode === 'idle' && _prAtuPodeAgora()), 'na tela de espera (vinda do menu) a TV pode se atualizar sozinha', await p.evaluate(() => boxMode));
   await foto('5_espera_de_novo');
 
   console.log('8) Sem erros');
@@ -195,6 +196,55 @@ const FOTOS = fs.mkdtempSync(path.join(os.tmpdir(), 'prorider-telas-tv-'));
   await p.evaluate(() => { fecharPreAula(); settingsToggleDemo(); }); await espera(500);
   ok(await p.evaluate(() => { const d = JSON.parse(localStorage.getItem('pr_demo') || 'null'); return d && d.on === false && !demoOn; }), 'desligar também fica salvo');
   ok(erros.length === 0, 'sem erro de JavaScript no demo', erros.slice(0, 3));
+  console.log('10) Aula automática (09/10): contagem → QR com relógio → START sozinho');
+  await p.evaluate(() => { try { if (_diag.on) diagFechar(); } catch (e) {} resetSessao(); ativarIdle(); });
+  await espera(800);
+  await p.evaluate(() => _gymIniciarCountdown({ nome: 'Spin Automático', professor_nome: 'Prof Auto', duracao_min: 45, modo_inicio: 'automatico' }, 304));
+  await espera(1200);
+  let au = await p.evaluate(() => ({ modo: boxMode, txt: (document.getElementById('boxCountdown') || {}).innerText || '', vis: getComputedStyle(document.getElementById('boxCountdown')).display }));
+  ok(au.modo === 'countdown' && au.vis !== 'none' && /Spin Automático/i.test(au.txt) && /COMEÇA SOZINHA/.test(au.txt) && /\d\d:\d\d/.test(au.txt), 'contagem nova na tela (nome, relógio, "começa sozinha")', au.txt.replace(/\s+/g, ' ').slice(0, 140));
+  await foto('6_contagem_automatica');
+  await espera(4500);
+  au = await p.evaluate(() => ({ modo: boxMode, idle: idleOn, faixa: (document.getElementById('autoFaixa') || {}).innerText || '' }));
+  ok(au.modo === 'preAula' && au.idle === false && /AULA AUTOMÁTICA/.test(au.faixa), 'aos 5 min: abre a tela do QR com a faixa "começa sozinha em…" e sai de vez da tela de espera', au);
+  await foto('7_qr_automatico');
+  await p.evaluate(() => { window._gpFake = { index: 0, id: 'teste', axes: [0, 0], buttons: Array.from({ length: 17 }, () => ({ pressed: false, value: 0 })) }; navigator.getGamepads = () => [window._gpFake]; startGamepad(); });
+  const aperta2 = (bs, v) => p.evaluate(([bs, v]) => bs.forEach(b => { window._gpFake.buttons[b] = { pressed: v, value: v ? 1 : 0 }; }), [bs, v]);
+  for (const b of [13, 1]) { await aperta2([b], true); await espera(300); await aperta2([b], false); await espera(800); }
+  ok(await p.evaluate(() => boxMode === 'preAula' && !!window._autoAula), 'direcional e B rápido não tiram da tela do QR (antes voltava ao menu inicial)');
+  await p.evaluate(() => { window._autoAula.inicioEm = Date.now() + 1500; }); await espera(3500);
+  ok(await p.evaluate(() => boxMode === 'live' && !document.getElementById('autoFaixa')), 'na hora marcada a aula começa sozinha (START automático)', await p.evaluate(() => boxMode));
+  await p.evaluate(() => { navigator.getGamepads = () => []; try { resetSessao(); } catch (e) {} });
+  ok(erros.length === 0, 'sem erro de JavaScript na aula automática', erros.slice(0, 3));
+  console.log('11) Aula automática com a aula escolhida na grade (biblioteca da academia)');
+  const bcrypt = require(require.resolve('bcryptjs', { paths: [RAIZ] }));
+  const H = await bcrypt.hash('123456', 10);
+  await sql(`DELETE FROM users WHERE email IN ('gestor@auto.test','outro@auto.test')`);
+  await sql(`INSERT INTO users (email,name,password_hash,role,license_id,termos_versao) VALUES ('gestor@auto.test','Gestor Auto','${H}','gestor','D5448D47','x'),('outro@auto.test','Outro Gestor','${H}','gestor','OUTRA-AUTO','x')`);
+  const GA = (await j('POST', '/user/login', { email: 'gestor@auto.test', password: '123456' })).d.token;
+  const GO = (await j('POST', '/user/login', { email: 'outro@auto.test', password: '123456' })).d.token;
+  const treino = { nome: 'HIIT Biblioteca', workout: [{ intensity: 'z2', duration: 1, ftpMin: 60, ftpMax: 70, rpmMin: 85, rpmMax: 95, position: 'Sentado', segmentId: 'warmup' }, { intensity: 'z5', duration: 1, ftpMin: 105, ftpMax: 120, rpmMin: 90, rpmMax: 100, position: 'Em pé', segmentId: 'main_1' }, { intensity: 'z1', duration: 1, ftpMin: 40, ftpMax: 55, rpmMin: 80, rpmMax: 90, position: 'Sentado', segmentId: 'cooldown' }] };
+  let rb = await j('POST', '/gestor/biblioteca', { nome: 'HIIT Biblioteca', json: JSON.stringify(treino) }, GA);
+  ok(rb.s === 200 && rb.d.id && rb.d.duracao_sec === 180, 'gestor sobe o arquivo da aula na biblioteca', rb.d);
+  ok((await j('POST', '/gestor/biblioteca', { nome: 'Ruim', json: '{"x":1}' }, GA)).s === 400, 'arquivo que não é aula: recusado');
+  ok(((await j('GET', '/gestor/biblioteca', null, GA)).d.aulas || []).some(x => x.id === rb.d.id), 'biblioteca da academia lista a aula');
+  ok(!((await j('GET', '/gestor/biblioteca', null, GO)).d.aulas || []).some(x => x.id === rb.d.id), 'outra academia não vê');
+  const agora2 = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
+  let ra = await j('POST', '/gestor/agenda', { nome: 'Auto Biblioteca', dia_semana: agora2.getDay(), hora: '23:59', duracao_min: 45, vagas_max: 12, modo_inicio: 'automatico', treino_id: rb.d.id, sem_professor: true }, GA);
+  ok(ra.s === 200 && ra.d.treino_id === rb.d.id && ra.d.sem_professor === true, 'aula automática da grade com a aula escolhida e "sem professor"', ra.d && { t: ra.d.treino_id, sp: ra.d.sem_professor });
+  ok((await j('POST', '/gestor/agenda', { nome: 'X', dia_semana: 1, hora: '10:00', modo_inicio: 'automatico', treino_id: rb.d.id }, GO)).s === 400, 'outra academia não usa a aula desta');
+  ok((await j('GET', '/display/aula-automatica/' + ra.d.id, null, TK)).d.nome === 'HIIT Biblioteca', 'a TV baixa a aula escolhida');
+  await p.evaluate(() => { resetSessao(); ativarIdle(); }); await espera(600);
+  await p.evaluate(([id]) => _gymIniciarCountdown({ id, nome: 'Auto Biblioteca', duracao_min: 45, modo_inicio: 'automatico', treino_id: 1, sem_professor: true }, 200), [ra.d.id]);
+  au = null; for (let i = 0; i < 30; i++) { await espera(500); au = await p.evaluate(() => ({ modo: boxMode, n: (workout || []).length, z: (workout || []).map(b => b.intensity).join(','), faixa: !!document.getElementById('autoFaixa') })); if (au.modo === 'preAula' && au.faixa) break; }
+  ok(au.modo === 'preAula' && au.n === 3 && au.z === 'z2,z5,z1' && au.faixa, 'TV abre o QR com o gráfico da aula escolhida (3 blocos) e o relógio, sem ninguém mexer', au);
+  await foto('8_qr_automatico_aula_escolhida');
+  await p.evaluate(() => { window._autoAula.inicioEm = Date.now() + 1000; }); await espera(3000);
+  ok(await p.evaluate(() => boxMode === 'live'), 'começa sozinha na hora');
+  await sql(`DELETE FROM aulas_agenda WHERE nome='Auto Biblioteca'`); await sql(`DELETE FROM treinos_professor WHERE nome='HIIT Biblioteca'`); await sql(`DELETE FROM users WHERE email IN ('gestor@auto.test','outro@auto.test')`);
+  ok(erros.length === 0, 'sem erro de JavaScript', erros.slice(0, 3));
+  // encerra a aula automática que ficou rodando (senão a sala fica "TV religando" por 20 min e o teste aovivo conta uma aula a mais)
+  await p.evaluate(() => { try { wsProf.send(JSON.stringify({ tipo: 'fim_aula' })); } catch (e) {} }); await espera(500);
   al.close(); await nav.close();
   await sql(`DELETE FROM aulas_agenda WHERE nome='Spin Teste TV'`);
   console.log('  fotos das telas: ' + FOTOS);

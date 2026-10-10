@@ -122,6 +122,14 @@ const caixa = async () => (await (await fetch(MOCK + '/_emails')).json());
     const idA = parseInt(await sql(`SELECT id FROM users WHERE email='aluna@fim.test'`), 10);
     await sql(`UPDATE users SET license_id='D5448D47' WHERE id=${idA}`);
     const tv = await sock(), SALA = 'PR-FIM5-TEST'; tv.send(JSON.stringify({ tipo: 'criar_sala', codigo: SALA, display_token: TK })); await espera(400);
+    // 09/10: "aula aberta" só com a TV na tela do QR ou em aula
+    tv.send(JSON.stringify({ tipo: 'tv_modo', modo: 'idle' })); await espera(300);
+    let av = await j('GET', '/agenda/aula-ativa/D5448D47');
+    ok(!(av.d && av.d.ativa && av.d.codigo === SALA), 'TV na tela de espera: o app NÃO mostra "entrar na aula"', av.d);
+    ok((await j('POST', '/totem/totemfimteste123456789/entrar', { bike: 7, user_id: idA })).s === 409, 'totem: sem aula aberta não entra');
+    tv.send(JSON.stringify({ tipo: 'tv_modo', modo: 'preAula' })); await espera(300);
+    av = await j('GET', '/agenda/aula-ativa/D5448D47');
+    ok(av.d && av.d.ativa && av.d.codigo === SALA && av.d.fase === 'comecando', 'TV na tela do QR: "aula começando"', av.d && av.d.fase);
     const en = await j('POST', '/totem/totemfimteste123456789/entrar', { bike: 7, user_id: idA });
     ok(en.s === 200, 'aluna entra pelo totem', en.d);
     const c0 = await conta('aluna@fim.test'), antes = (await caixa()).length, UID = 'fim5-' + Date.now();
@@ -132,6 +140,10 @@ const caixa = async () => (await (await fetch(MOCK + '/_emails')).json());
     ok(em.length === 1 && />30<\/span>/.test(em[0].html) && />320<\/span>/.test(em[0].html) && />150<\/span>/.test(em[0].html) && !/NaN|undefined/.test(em[0].html), 'e-mail do resumo com 30 min, 320 kcal e 150 W', (em[0] || {}).subject);
     await j('POST', '/display/aula/resumo', corpo, TK); await espera(1200);
     ok(await conta('aluna@fim.test') === c0 + 1 && (await chegou('aluna@fim.test', antes)).length === 1, 'TV reenviando o mesmo resumo não duplica');
+    tv.send(JSON.stringify({ tipo: 'iniciar_aula', grafico: graf, blocoIdx: 0, nomeAula: 'Spin Totem' })); await espera(300);
+    av = await j('GET', '/agenda/aula-ativa/D5448D47');
+    ok(av.d && av.d.ativa && av.d.fase === 'andamento', 'aula começou: "aula em andamento"', av.d && av.d.fase);
+    tv.send(JSON.stringify({ tipo: 'fim_aula' })); await espera(300);   // encerra (senão o vigia acusa "TV caiu no meio da aula" nos testes seguintes)
     tv.close(); await sql(`UPDATE licencas SET totem_token=NULL WHERE codigo='D5448D47'`); }
   await nav.close();
   await sql(`DELETE FROM users WHERE email LIKE '%@fim.test'`);

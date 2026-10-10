@@ -2151,7 +2151,7 @@ wss.on('connection', (ws) => {
         const salaCode = ws._salaCode;
         if (!salaCode || !salas[salaCode]) return;
         const sala = salas[salaCode];
-        sala.estado.encerrada = false; // 26/09d: aula correndo de novo
+        if (sala.estado.encerrada) break;
         sala.aoVivoEm = Date.now(); if (typeof msg.totTime === 'number' && msg.totTime >= 0) sala.aulaSeg = msg.totTime;   // 03/10y: "aulas ao vivo agora"
         if (msg.grafico)              sala.estado.grafico  = msg.grafico;
         if (msg.blocoIdx !== undefined) sala.estado.blocoIdx = msg.blocoIdx;
@@ -2219,6 +2219,11 @@ wss.on('connection', (ws) => {
       }
 
       // 09/10: DIAGNÓSTICO DA SALA (painel escondido da TV): mede o atraso de cada celular até o servidor
+      case 'tv_modo': {   // 09/10: em que tela a TV está (idle, escolha, preAula, live…)
+        const sd = salas[ws._salaCode]; if (!sd || sd.professor !== ws) return;
+        sd.tvModo = String(msg.modo || '').slice(0, 20); sd.tvModoEm = Date.now();
+        break;
+      }
       case 'diag_pedir': {
         const sd = salas[ws._salaCode];
         if (!sd || sd.professor !== ws) return;
@@ -2938,15 +2943,16 @@ app.get('/display/atualizacao', displayAuth, async (req, res) => {
   try {
     if (!db || req.user.role !== 'display') return res.json({ nada: true });
     // 07/10f: guarda a última resposta para a Saúde mostrar POR QUE a TV não atualizou
-    const anota = (motivo, versao) => { if (req.user.device_id) db.query('UPDATE licenca_computadores SET atu_consulta=$1 WHERE license_codigo=$2 AND device_id=$3',
+    // 10/10i: gravada ANTES de responder (sem isso, duas consultas seguidas podiam gravar fora de ordem e a Saúde mostrar a velha)
+    const anota = async (motivo, versao) => { if (req.user.device_id) await db.query('UPDATE licenca_computadores SET atu_consulta=$1 WHERE license_codigo=$2 AND device_id=$3',
       [{ motivo, versao: versao || null, build: String(req.headers['x-pr-build'] || '').slice(0, 30), em: new Date().toISOString() }, req.user.license_id, req.user.device_id]).catch(() => {}); };
-    const m = manifestoTv(); if (!m) { anota('sem_pacote'); return res.json({ nada: true, motivo: 'sem_pacote' }); }
-    if (String(req.headers['x-pr-build'] || '').trim() === 'BUILD ' + m.versao) { anota('em_dia', m.versao); return res.json({ nada: true, motivo: 'em_dia' }); }
+    const m = manifestoTv(); if (!m) { await anota('sem_pacote'); return res.json({ nada: true, motivo: 'sem_pacote' }); }
+    if (String(req.headers['x-pr-build'] || '').trim() === 'BUILD ' + m.versao) { await anota('em_dia', m.versao); return res.json({ nada: true, motivo: 'em_dia' }); }
     const l = (await db.query('SELECT tv_auto_atualizar, tv_atualizar_agora FROM licencas WHERE codigo=$1', [req.user.license_id])).rows[0];
     // 08/10: "atualizar agora" vale mesmo com o automático desligado (antes a TV respondia "desligada" e não instalava)
     const agora = !!(l && l.tv_atualizar_agora && Date.now() - new Date(l.tv_atualizar_agora).getTime() < 6 * 3600000);
-    if (!l || (!l.tv_auto_atualizar && !agora)) { anota('desligada', m.versao); return res.json({ nada: true, motivo: 'desligada', disponivel: m.versao }); }
-    anota(agora ? 'agora' : 'janela', m.versao);
+    if (!l || (!l.tv_auto_atualizar && !agora)) { await anota('desligada', m.versao); return res.json({ nada: true, motivo: 'desligada', disponivel: m.versao }); }
+    await anota(agora ? 'agora' : 'janela', m.versao);
     const base = (process.env.TV_ATUALIZACAO_BASE || 'https://app.prorider.app.br').replace(/\/$/, '');
     res.json({ versao: m.versao, url: base + '/ginasio/atualizacao/' + m.arquivo, sha256: m.sha256, assinatura: m.assinatura, tamanho: m.tamanho,
       janela: process.env.TV_JANELA || '02:00-05:00', agora });
@@ -2987,7 +2993,8 @@ app.post('/display/saude', displayAuth, async (req, res) => {
   const b = req.body || {}, n = (v, max) => { v = Number(v); return Number.isFinite(v) && v >= 0 ? Math.min(Math.round(v * 10) / 10, max) : null; };
   const d = { mem_mb: n(b.mem_mb, 1e5), mem_lim_mb: n(b.mem_lim_mb, 1e5), nos: n(b.nos, 1e7), fps: n(b.fps, 1000), ligada_min: n(b.ligada_min, 1e6),
     aula_min: n(b.aula_min, 1e5), alunos: n(b.alunos, 1000), quedas_ws: n(b.quedas_ws, 1e6), erros: n(b.erros, 1e6), build: String(b.build || '').slice(0, 40),
-    atualizador: typeof b.atualizador === 'boolean' ? b.atualizador : null };   // 07/10c: o programa da TV tem o atualizador?
+    atualizador: typeof b.atualizador === 'boolean' ? b.atualizador : null,   // 07/10c: o programa da TV tem o atualizador?
+    atu_motivo: b.atu_motivo ? String(b.atu_motivo).slice(0, 60) : null, tela: b.tela ? String(b.tela).slice(0, 20) : null };   // 09/10: por que a TV não instalou + em que tela está
   try {
     await db.query('UPDATE licenca_computadores SET saude=$1, saude_em=NOW() WHERE license_codigo=$2 AND device_id=$3', [d, req.user.license_id, req.user.device_id]);
     const k = req.user.license_id + '|' + req.user.device_id, ult = _tvSaudeUlt.get(k) || 0;
@@ -3036,7 +3043,7 @@ app.get('/display/proxima-aula', displayAuth, async (req, res) => {
   // Redireciona internamente chamando a mesma lógica via forward
   // Mais simples: duplicar só a query essencial
   if (!db) return res.status(503).json({ error: 'Banco indisponível' });
-  const MINUTOS = 10;
+  const MINUTOS = 15;   // 09/10: a contagem da aula automática começa 15 min antes (a tela do QR abre aos 5)
   try {
     const licId = req.user.license_id;
     const diaN  = _hojeBR().d.getDay();   // 03/10s: dia de Brasília (o servidor fica em UTC)
@@ -3389,7 +3396,7 @@ const PAPEIS_EQUIPE = ['aluno', 'professor', 'coordenador', 'financeiro'];
 app.get('/gestor/equipe', gestorAuth, async (req, res) => {
   if (!db) return res.status(503).json({ error: 'Banco indisponível' });
   try {
-    const r = await db.query(`SELECT id, name, email, role, status, created_at FROM users
+    const r = await db.query(`SELECT id, name, email, role, status, created_at, COALESCE(painel_prof,false) AS painel_prof FROM users
       WHERE license_id=$1 AND role <> 'aluno' ORDER BY CASE role WHEN 'gestor' THEN 0 WHEN 'coordenador' THEN 1 WHEN 'professor' THEN 2 ELSE 3 END, name`, [req.user.license_id]);
     res.json(r.rows);
   } catch (e) { res.status(500).json({ error: e.message }); }
@@ -3433,6 +3440,57 @@ app.put('/gestor/equipe/:id/papel', gestorAuth, async (req, res) => {
     if (!r.rows.length) return res.status(404).json({ error: 'Pessoa não encontrada nesta academia (ou é gestor).' });
     res.json(r.rows[0]);
   } catch (e) { res.status(500).json({ error: e.message }); }
+});
+// 10/10: o gestor liga/desliga o painel de cada professor (ou coordenador)
+app.put('/gestor/equipe/:id/painel', gestorAuth, async (req, res) => {
+  if (!db) return res.status(503).json({ error: 'Banco indisponível' });
+  if (!['gestor', 'admin', 'super_admin'].includes(req.user.role)) return res.status(403).json({ error: 'Só o gestor libera o painel.' });
+  try {
+    const r = await db.query(`UPDATE users SET painel_prof=$1, updated_at=NOW() WHERE id=$2 AND license_id=$3 AND role IN ('professor','coordenador') RETURNING id, painel_prof`,
+      [!!(req.body && req.body.ligado), parseInt(req.params.id, 10) || 0, req.user.license_id]);
+    if (!r.rows.length) return res.status(404).json({ error: 'Professor não encontrado nesta academia.' });
+    res.json(r.rows[0]);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+// ══ 10/10 — PAINEL DO PROFESSOR: as aulas dele, alunos, presença, notas e evolução da turma ══
+app.get('/professor/painel', professorAuth, async (req, res) => {
+  if (!db) return res.status(503).json({ error: 'Banco indisponível' });
+  try {
+    let alvoId = req.user.id;
+    if (req.user.role !== 'professor' && req.query.id) alvoId = parseInt(req.query.id, 10) || req.user.id;   // gestor/coordenador vê o painel de um professor
+    const me = (await db.query('SELECT id, name, license_id, role, COALESCE(painel_prof,false) AS painel_prof FROM users WHERE id=$1', [alvoId])).rows[0];
+    if (!me || me.license_id !== req.user.license_id) return res.status(404).json({ error: 'Professor não encontrado.' });
+    if (req.user.role === 'professor' && !me.painel_prof) return res.status(403).json({ error: 'O gestor ainda não liberou o seu painel.', desligado: true });
+    const aulas = (await db.query(`SELECT a.id, a.nome, a.dia_semana, to_char(a.hora,'HH24:MI') AS hora, a.duracao_min, a.vagas_max,
+        to_char(CURRENT_DATE + ((a.dia_semana - EXTRACT(DOW FROM CURRENT_DATE)::int + 7) % 7), 'YYYY-MM-DD') AS proxima_data,
+        (SELECT COUNT(*)::int FROM aulas_reservas r WHERE r.agenda_id=a.id AND r.data_aula=CURRENT_DATE + ((a.dia_semana - EXTRACT(DOW FROM CURRENT_DATE)::int + 7) % 7) AND r.status NOT IN ('cancelado','ausente')) AS reservas_proxima,
+        (SELECT COUNT(*)::int FROM aulas_reservas r WHERE r.agenda_id=a.id AND r.status='presente' AND r.data_aula > CURRENT_DATE - 30) AS presencas_30d,
+        (SELECT COUNT(*)::int FROM aulas_reservas r WHERE r.agenda_id=a.id AND r.status='ausente' AND r.data_aula > CURRENT_DATE - 30) AS faltas_30d
+      FROM aulas_agenda a WHERE a.license_id=$1 AND a.ativa=TRUE AND (a.professor_id=$2 OR LOWER(TRIM(a.professor_nome))=LOWER(TRIM($3)))
+      ORDER BY ((a.dia_semana + 6) % 7), a.hora`, [me.license_id, me.id, me.name || '¤'])).rows;
+    const ids = aulas.map(a => a.id);
+    // aulas dadas (fechadas na TV) nos horários dele, com a nota média de cada uma
+    const dadas = ids.length ? (await db.query(`SELECT t.sala, t.nome_aula, to_char(t.inicio AT TIME ZONE 'America/Sao_Paulo','YYYY-MM-DD') AS data,
+        to_char(t.inicio AT TIME ZONE 'America/Sao_Paulo','HH24:MI') AS hora, t.dur_seg, t.n_alunos, t.watts_med, t.kcal_total,
+        (SELECT ROUND(AVG(n.nota)::numeric,1)::float FROM aulas_notas n WHERE n.license_id=t.license_id AND n.sala=t.sala) AS nota,
+        (SELECT COUNT(*)::int FROM aulas_notas n WHERE n.license_id=t.license_id AND n.sala=t.sala) AS n_notas
+      FROM aulas_tv t
+      WHERE t.license_id=$1 AND t.inicio > NOW() - INTERVAL '90 days'
+        AND EXISTS (SELECT 1 FROM aulas_agenda a WHERE a.id = ANY($2::int[])
+          AND EXTRACT(DOW FROM (t.inicio AT TIME ZONE 'America/Sao_Paulo'))::int = a.dia_semana
+          AND ABS(EXTRACT(EPOCH FROM ((t.inicio AT TIME ZONE 'America/Sao_Paulo')::time - a.hora))) <= 1800)
+      ORDER BY t.inicio DESC LIMIT 60`, [me.license_id, ids])).rows : [];
+    const alunos = ids.length ? (await db.query(`SELECT u.id, u.name AS nome, COUNT(*) FILTER (WHERE r.status='presente')::int AS presencas,
+        COUNT(*) FILTER (WHERE r.status='ausente')::int AS faltas, to_char(MAX(r.data_aula) FILTER (WHERE r.status='presente'),'YYYY-MM-DD') AS ultima, u.ftp
+      FROM aulas_reservas r JOIN users u ON u.id=r.user_id
+      WHERE r.agenda_id = ANY($1::int[]) AND r.data_aula > CURRENT_DATE - 60 AND r.data_aula <= CURRENT_DATE
+      GROUP BY u.id ORDER BY presencas DESC, u.name LIMIT 100`, [ids])).rows : [];
+    const comNota = dadas.filter(d => d.n_notas), notaMed = comNota.length ? Math.round(comNota.reduce((s, d) => s + d.nota * d.n_notas, 0) / comNota.reduce((s, d) => s + d.n_notas, 0) * 10) / 10 : null;
+    const ult30 = dadas.filter(d => new Date(d.data) > new Date(Date.now() - 30 * 86400000));
+    res.json({ professor: { id: me.id, nome: me.name }, aulas, dadas, alunos,
+      resumo: { aulas_30d: ult30.length, media_alunos: ult30.length ? Math.round(ult30.reduce((s, d) => s + (d.n_alunos || 0), 0) / ult30.length * 10) / 10 : 0,
+        nota_media: notaMed, n_notas: comNota.reduce((s, d) => s + d.n_notas, 0), alunos_60d: alunos.filter(a => a.presencas).length } });
+  } catch (e) { log('painel professor: ' + e.message); res.status(500).json({ error: 'Erro interno' }); }
 });
 // Manda um e-mail de teste para quem está logado (confere a configuração)
 app.post('/gestor/emails/teste', gestorAuth, async (req, res) => {
@@ -3955,8 +4013,10 @@ app.get('/gestor/agenda', gestorAuth, async (req, res) => {
   try {
     const r = await db.query(`
       SELECT a.*,
+        -- 09/10: a contagem e a lista usam a MESMA data: a próxima vez que a aula acontece (hoje, se for o dia dela)
+        to_char(CURRENT_DATE + ((a.dia_semana - EXTRACT(DOW FROM CURRENT_DATE)::int + 7) % 7), 'YYYY-MM-DD') AS proxima_data,
         (SELECT COUNT(*) FROM aulas_reservas r
-         WHERE r.agenda_id=a.id AND r.data_aula=CURRENT_DATE AND r.status NOT IN ('cancelado','ausente')) as reservas_hoje
+         WHERE r.agenda_id=a.id AND r.data_aula=CURRENT_DATE + ((a.dia_semana - EXTRACT(DOW FROM CURRENT_DATE)::int + 7) % 7) AND r.status NOT IN ('cancelado','ausente')) as reservas_hoje
       FROM aulas_agenda a
       WHERE a.license_id=$1
       ORDER BY a.dia_semana, a.hora
@@ -3987,10 +4047,12 @@ app.post('/gestor/agenda', gestorAuth, async (req, res) => {
     // janela_reserva em horas; vazio ou 0 = sem limite (guardado como NULL)
     const janela = (janela_reserva === '' || janela_reserva === null || janela_reserva === undefined)
       ? null : (parseInt(janela_reserva) || null);
+    const tId = await treinoDaAcademia(req.body.treino_id, req.user.license_id);
+    if (req.body.treino_id && !tId) return res.status(400).json({ error: 'Esta aula não está na biblioteca da academia.' });
     const r = await db.query(`
-      INSERT INTO aulas_agenda (license_id, nome, professor_nome, dia_semana, hora, duracao_min, vagas_max, sala, cidade, modo_inicio, janela_reserva, cor)
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) RETURNING *
-    `, [req.user.license_id, nome, professor_nome||null, dia_semana, hora, duracao_min||50, vagasSolicitadas, sala||null, cidade, modoValido, janela, cor||null]);
+      INSERT INTO aulas_agenda (license_id, nome, professor_nome, dia_semana, hora, duracao_min, vagas_max, sala, cidade, modo_inicio, janela_reserva, cor, treino_id, sem_professor)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14) RETURNING *
+    `, [req.user.license_id, nome, professor_nome||null, dia_semana, hora, duracao_min||50, vagasSolicitadas, sala||null, cidade, modoValido, janela, cor||null, tId, req.body.sem_professor === true]);
     res.json(r.rows[0]);
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
@@ -4011,12 +4073,14 @@ app.put('/gestor/agenda/:id', gestorAuth, async (req, res) => {
         error: `A sala tem ${teto} bikes disponíveis no momento. Você não pode configurar mais vagas do que isso.`
       });
     const modoValido = ['automatico','professor'].includes(modo_inicio) ? modo_inicio : 'professor';
+    const tId = await treinoDaAcademia(req.body.treino_id, req.user.license_id);
+    if (req.body.treino_id && !tId) return res.status(400).json({ error: 'Esta aula não está na biblioteca da academia.' });
     const r = await db.query(`
       UPDATE aulas_agenda SET
         nome=$1, professor_nome=$2, dia_semana=$3, hora=$4,
-        duracao_min=$5, vagas_max=$6, sala=$7, ativa=$8, modo_inicio=$9
+        duracao_min=$5, vagas_max=$6, sala=$7, ativa=$8, modo_inicio=$9, treino_id=$12, sem_professor=$13
       WHERE id=$10 AND license_id=$11 RETURNING *
-    `, [nome, professor_nome, dia_semana, hora, duracao_min, vagasSolicitadas, sala, ativa !== false, modoValido, req.params.id, req.user.license_id]);
+    `, [nome, professor_nome, dia_semana, hora, duracao_min, vagasSolicitadas, sala, ativa !== false, modoValido, req.params.id, req.user.license_id, tId, req.body.sem_professor === true]);
     if (!r.rows.length) return res.status(404).json({ error: 'Não encontrado' });
     res.json(r.rows[0]);
   } catch(e) { res.status(500).json({ error: e.message }); }
@@ -4194,6 +4258,10 @@ function aulaAtivaDe(licId) {
     if (!sala.licenca || String(sala.licenca) !== String(licId)) continue;
     if (!sala.professor || sala.professor.readyState !== WebSocket.OPEN) continue;
     if (sala.estado && sala.estado.encerrada) continue;
+    // 09/10: só é "aula aberta" com a TV na tela do QR ou em aula. Antes qualquer TV ligada (até na
+    // tela de espera) tinha sala aberta, e o app mostrava "entre já" e levava para uma aula que não existia.
+    const _emAula = !!(sala.estado && sala.estado.iniciada);
+    if (!_emAula) { if (sala.tvModo === undefined || !['preAula', 'live', 'livre', 'sessao'].includes(sala.tvModo)) continue; }
     const info = sala.lastSalaInfo || {};
     const pedalando = [...sala.alunos.values()].filter(w => w.readyState === WebSocket.OPEN).length + (sala.totem ? sala.totem.size : 0);
     const num = parseInt(info.numBikes) || 0;
@@ -4204,6 +4272,7 @@ function aulaAtivaDe(licId) {
       nome_aula: (sala.estado && sala.estado.nomeAula) || pre.nome || 'Aula ao vivo',
       professor: pre.professor || '', duracao_min: pre.duracao_min || null,
       iniciada: !!(sala.estado && sala.estado.iniciada),
+      fase: (sala.estado && sala.estado.iniciada) ? 'andamento' : 'comecando',   // 09/10
       desde: pre.desde || null,
       pedalando, bikes: num, livres: num ? Math.max(0, num - ocupadas) : null,
       bikes_lista: info.bikes || [], ocupadas: info.ocupadas || [],
@@ -6265,6 +6334,10 @@ async function daMigrar() {
       id SERIAL PRIMARY KEY, user_id INTEGER REFERENCES users(id) ON DELETE CASCADE, license_id TEXT NOT NULL, sala TEXT NOT NULL,
       aula_nome TEXT, nota SMALLINT NOT NULL CHECK (nota BETWEEN 1 AND 5), inicio TIMESTAMPTZ, created_at TIMESTAMPTZ DEFAULT NOW(), UNIQUE(user_id, sala));
     CREATE INDEX IF NOT EXISTS aulas_notas_lic ON aulas_notas (license_id, created_at);
+    ALTER TABLE aulas_agenda ADD COLUMN IF NOT EXISTS treino_id INTEGER;              -- 09/10: aula automática: qual treino a TV roda
+    ALTER TABLE aulas_agenda ADD COLUMN IF NOT EXISTS sem_professor BOOLEAN DEFAULT FALSE;   -- 09/10: a TV conduz a aula sozinha
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS painel_prof BOOLEAN DEFAULT FALSE;   -- 10/10: o gestor libera o painel do professor
+    ALTER TABLE treinos_professor ADD COLUMN IF NOT EXISTS rede BOOLEAN DEFAULT FALSE;  -- 10/10: aula da rede ProRider (todas as academias)
     CREATE TABLE IF NOT EXISTS totem_aulas (uid TEXT NOT NULL, user_id INTEGER NOT NULL, criado_em TIMESTAMPTZ DEFAULT NOW(), PRIMARY KEY (uid, user_id));   -- 07/10f
     CREATE TABLE IF NOT EXISTS desafios_academias (
       id SERIAL PRIMARY KEY, codigo TEXT UNIQUE NOT NULL, nome TEXT NOT NULL, criador_license TEXT NOT NULL,
@@ -6774,10 +6847,10 @@ app.post('/display/gravacao/:id/enviar', displayAuth, async (req, res) => {
 // 03/10e — SEGURANÇA E SAÚDE: esqueci a senha, reportar problema,
 // excluir minha conta (LGPD) e a página "Saúde do sistema" do admin
 // ══════════════════════════════════════════════════════════════
-const SERVIDOR_VERSAO = '07/10f';
+const SERVIDOR_VERSAO = '07/10i';
 // 03/10y: versão do Ginásio que vai junto com este servidor. Pacote só de servidor/site não muda isto,
 // e as TVs não precisam ser reinstaladas. Mude junto com o PR_BUILD do Ginásio.
-const GINASIO_VERSAO = '07/10d';
+const GINASIO_VERSAO = '07/10i';
 // 03/10v: a TV certa tem o mesmo número do servidor (o pacote sobe os dois juntos)
 function tvVersaoOk(b) { return String(b || '').trim() === 'BUILD ' + GINASIO_VERSAO; }
 const _inicioServidor = Date.now();
@@ -6944,8 +7017,9 @@ app.delete('/user/conta', authMiddleware, async (req, res) => {
 function _aulasAoVivo() {
   const agora = Date.now(), out = [];
   for (const [codigo, sala] of Object.entries(salas)) {
-    if (!sala || !sala.aoVivoEm || sala.estado.encerrada || agora - sala.aoVivoEm > 600000) continue;
+    if (!sala || !sala.aoVivoEm || sala.estado.encerrada) continue;
     const tvOk = !!(sala.professor && sala.professor.readyState === WebSocket.OPEN);
+    if (agora - sala.aoVivoEm > (tvOk ? 600000 : 120000)) continue;  // TV online: 10 min; TV offline: 2 min
     out.push({ sala: codigo, licenca: sala.licenca || null, nome: sala.estado.nomeAula || '', alunos: sala.alunos.size + ((sala.totem && sala.totem.size) || 0),
       aula_min: Math.round((sala.aulaSeg || 0) / 6) / 10, situacao: !tvOk ? 'TV religando' : agora - sala.aoVivoEm > 20000 ? 'pausada' : 'rodando' });
   }
@@ -7982,6 +8056,96 @@ setInterval(() => { const lim = Date.now() - 12 * 3600000; for (const [k, v] of 
 if (process.env.EMAIL_ROTINA_TESTE === '1') app.post('/_teste/rotina-emails', adminAuth, async (req, res) => {
   const d = String((req.body && req.body.data) || ''); if (!/^\d{4}-\d{2}-\d{2}$/.test(d)) return res.status(400).json({ error: 'data' });
   await rotinaEmailsDiaria(d); res.json({ ok: true });
+});
+// ══ 09/10 — BIBLIOTECA DE AULAS DA ACADEMIA (aula automática) ══════════════
+// São os treinos do construtor salvos por quem trabalha na academia (gestor, coordenador, professor)
+// e os arquivos de aula que o gestor sobe aqui. A aula automática da grade escolhe um deles; a TV o baixa.
+async function treinoDaAcademia(id, licId) {
+  id = parseInt(id, 10); if (!id || !db) return null;
+  const r = await db.query(`SELECT t.id FROM treinos_professor t JOIN users u ON u.id=t.user_id
+    WHERE t.id=$1 AND (t.rede = TRUE OR (u.license_id=$2 AND u.role <> 'aluno'))`, [id, licId]);
+  return r.rows.length ? id : null;
+}
+function treinoValido(j) {
+  try { const d = typeof j === 'string' ? JSON.parse(j) : j;
+    return !!(d && ((Array.isArray(d.workout) && d.workout.length) || (Array.isArray(d.Structure) && d.Structure.length))); } catch (e) { return false; }
+}
+app.get('/gestor/biblioteca', gestorAuth, async (req, res) => {
+  if (!db) return res.status(503).json({ error: 'Banco indisponível' });
+  try {
+    const r = await db.query(`SELECT t.id, t.nome, t.duracao_sec, t.updated_at, u.name AS autor, u.role AS autor_papel
+      FROM treinos_professor t JOIN users u ON u.id=t.user_id WHERE u.license_id=$1 AND u.role <> 'aluno' AND COALESCE(t.rede,FALSE)=FALSE ORDER BY t.updated_at DESC LIMIT 300`, [req.user.license_id]);
+    // 10/10i: aulas-padrão da rede ProRider (o super admin sobe; valem para todas as academias)
+    const rd = await db.query(`SELECT id, nome, duracao_sec, updated_at FROM treinos_professor WHERE rede = TRUE ORDER BY nome LIMIT 300`);
+    res.json({ aulas: r.rows, rede: rd.rows });
+  } catch (e) { log('biblioteca: ' + e.message); res.status(500).json({ error: 'Erro interno' }); }
+});
+app.post('/gestor/biblioteca', gestorAuth, async (req, res) => {
+  if (!db) return res.status(503).json({ error: 'Banco indisponível' });
+  const b = req.body || {}, nome = String(b.nome || '').trim().slice(0, 80), j = b.json;
+  const txt = typeof j === 'string' ? j : JSON.stringify(j || null);
+  if (!nome) return res.status(400).json({ error: 'Dê um nome para a aula.' });
+  if (txt.length > 900000) return res.status(413).json({ error: 'Arquivo grande demais.' });
+  if (!treinoValido(txt)) return res.status(400).json({ error: 'Arquivo não é uma aula do construtor do ProRider (ou do TrainingPeaks).' });
+  try {
+    let dur = 0; try { const d = JSON.parse(txt); (d.workout || []).forEach(x => { dur += (x.durationSec != null ? Number(x.durationSec) : Number(x.duration || 0) * 60) || 0; }); } catch (e) {}
+    const r = await db.query('INSERT INTO treinos_professor (user_id, nome, json, duracao_sec) VALUES ($1,$2,$3,$4) RETURNING id, nome, duracao_sec', [req.user.id, nome, txt, Math.round(dur)]);
+    res.json(r.rows[0]);
+  } catch (e) { log('biblioteca subir: ' + e.message); res.status(500).json({ error: 'Erro interno' }); }
+});
+// ── 10/10i: BIBLIOTECA DA REDE — aulas-padrão ProRider, para todas as academias (só super admin mexe) ──
+app.get('/admin/biblioteca-rede', adminAuth, async (req, res) => {
+  if (!db) return res.status(503).json({ error: 'Banco indisponível' });
+  try {
+    const r = await db.query(`SELECT t.id, t.nome, t.duracao_sec, t.updated_at,
+        (SELECT COUNT(*)::int FROM aulas_agenda a WHERE a.treino_id=t.id) AS em_grades
+      FROM treinos_professor t WHERE t.rede = TRUE ORDER BY t.nome LIMIT 500`);
+    res.json({ aulas: r.rows });
+  } catch (e) { log('rede lista: ' + e.message); res.status(500).json({ error: 'Erro interno' }); }
+});
+app.post('/admin/biblioteca-rede', adminAuth, async (req, res) => {
+  if (!db) return res.status(503).json({ error: 'Banco indisponível' });
+  const b = req.body || {}, nome = String(b.nome || '').trim().slice(0, 80), j = b.json;
+  const txt = typeof j === 'string' ? j : JSON.stringify(j || null);
+  if (!nome) return res.status(400).json({ error: 'Dê um nome para a aula.' });
+  if (txt.length > 900000) return res.status(413).json({ error: 'Arquivo grande demais.' });
+  if (!treinoValido(txt)) return res.status(400).json({ error: 'Arquivo não é uma aula do construtor do ProRider (ou do TrainingPeaks).' });
+  try {
+    let dur = 0; try { const d = JSON.parse(txt); (d.workout || []).forEach(x => { dur += (x.durationSec != null ? Number(x.durationSec) : Number(x.duration || 0) * 60) || 0; }); } catch (e) {}
+    const r = await db.query('INSERT INTO treinos_professor (user_id, nome, json, duracao_sec, rede) VALUES ($1,$2,$3,$4,TRUE) RETURNING id, nome, duracao_sec', [req.user.id, nome, txt, Math.round(dur)]);
+    res.json(r.rows[0]);
+  } catch (e) { log('rede subir: ' + e.message); res.status(500).json({ error: 'Erro interno' }); }
+});
+app.put('/admin/biblioteca-rede/:id', adminAuth, async (req, res) => {
+  if (!db) return res.status(503).json({ error: 'Banco indisponível' });
+  const nome = String((req.body && req.body.nome) || '').trim().slice(0, 80);
+  if (!nome) return res.status(400).json({ error: 'Dê um nome para a aula.' });
+  try {
+    const r = await db.query('UPDATE treinos_professor SET nome=$1, updated_at=NOW() WHERE id=$2 AND rede=TRUE RETURNING id, nome', [nome, parseInt(req.params.id, 10) || 0]);
+    if (!r.rows.length) return res.status(404).json({ error: 'Aula não encontrada' });
+    res.json(r.rows[0]);
+  } catch (e) { res.status(500).json({ error: 'Erro interno' }); }
+});
+app.delete('/admin/biblioteca-rede/:id', adminAuth, async (req, res) => {
+  if (!db) return res.status(503).json({ error: 'Banco indisponível' });
+  const id = parseInt(req.params.id, 10) || 0;
+  try {
+    // as grades que usavam esta aula voltam a "aula livre" (sem treino), em vez de quebrar
+    await db.query('UPDATE aulas_agenda SET treino_id=NULL WHERE treino_id=$1', [id]);
+    const r = await db.query('DELETE FROM treinos_professor WHERE id=$1 AND rede=TRUE RETURNING id', [id]);
+    if (!r.rows.length) return res.status(404).json({ error: 'Aula não encontrada' });
+    res.json({ ok: true });
+  } catch (e) { log('rede apagar: ' + e.message); res.status(500).json({ error: 'Erro interno' }); }
+});
+// a TV baixa o treino da aula automática da grade dela
+app.get('/display/aula-automatica/:agenda_id', displayAuth, async (req, res) => {
+  if (!db || req.user.role !== 'display') return res.status(403).json({ error: 'Acesso negado' });
+  try {
+    const r = await db.query(`SELECT t.nome, t.json FROM aulas_agenda a JOIN treinos_professor t ON t.id=a.treino_id
+      WHERE a.id=$1 AND a.license_id=$2`, [parseInt(req.params.agenda_id, 10) || 0, req.user.license_id]);
+    if (!r.rows.length) return res.status(404).json({ error: 'Sem aula escolhida' });
+    res.json(r.rows[0]);
+  } catch (e) { res.status(500).json({ error: 'Erro interno' }); }
 });
 app.post('/aluno/nota', authMiddleware, async (req, res) => {
   if (!db) return res.status(503).json({ error: 'Banco indisponível' });

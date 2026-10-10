@@ -422,6 +422,9 @@ button{font-family:inherit}
 .cp-tb{width:100%;border-collapse:collapse}
 .cp-tb td,.cp-tb th{padding:8px 6px;text-align:left;font-size:14px;border-bottom:1px solid var(--border)}
 .cp-tb th{font-size:11px;letter-spacing:1.3px;color:var(--muted);text-transform:uppercase}
+/* 09/10: listas de opções legíveis (no Windows abriam letra branca em fundo branco) */
+select{color-scheme:dark}
+select option,select optgroup{background:#17171c;color:#fff}
 </style>
 <link href="https://fonts.googleapis.com/css2?family=Permanent+Marker&family=Barlow:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="pr-suporte.js"></script>
@@ -784,6 +787,11 @@ button{font-family:inherit}
 
 
   <!-- OCUPAÇÃO E SUMIDOS (02/10d) -->
+  <!-- 10/10: PAINEL DO PROFESSOR -->
+  <div class="page content" id="page-meupainel">
+    <div class="pr-hd"><div><h1 id="mpTitulo">Meu painel</h1><p>Suas aulas, alunos, presença, notas e a evolução da turma</p></div></div>
+    <div id="mpConteudo"></div>
+  </div>
   <div class="page content" id="page-ocupacao">
     <div class="pr-hd"><div><h1>Ocupação e sumidos</h1><p>Quais horários enchem, quais ficam vazios, e quem parou de vir</p></div>
       <div style="display:flex;gap:6px" id="ocDias"></div></div>
@@ -1011,13 +1019,25 @@ button{font-family:inherit}
       <!-- Modo de início — define comportamento do ProRider Jim (mini PC) -->
       <div class="fg" style="margin-top:12px">
         <label>🖥️ Início da aula no mini PC</label>
-        <select id="fModoInicio" style="padding:10px 14px;border-radius:9px;border:1px solid var(--border);background:rgba(255,255,255,.05);color:#fff;font-size:13px;width:100%">
+        <select id="fModoInicio" onchange="autoMostrar()" style="padding:10px 14px;border-radius:9px;border:1px solid var(--border);background:rgba(255,255,255,.05);color:#fff;font-size:13px;width:100%">
           <option value="professor">⏸ Aguardar professor pressionar Iniciar</option>
-          <option value="automatico">▶ Automático — inicia quando o cronômetro chegar a zero</option>
+          <option value="automatico">▶ Automático — começa sozinha na hora</option>
         </select>
-        <div style="font-size:11px;color:var(--muted);margin-top:4px;line-height:1.5">
-          O mini PC exibe a tela de QR automaticamente 10 min antes da aula começar.
+        <div id="fModoAjuda" style="font-size:11px;color:var(--muted);margin-top:4px;line-height:1.5">
+          O professor abre a aula na TV e aperta START.
         </div>
+      </div>
+      <!-- 09/10: aula automática — qual aula a TV roda e se tem professor -->
+      <div id="fAutoBox" style="display:none;margin-top:12px;padding:14px;border-radius:12px;border:1px solid rgba(234,134,12,.4);background:rgba(234,134,12,.06)">
+        <div class="fg"><label>🎬 Qual aula a TV vai rodar</label>
+          <select id="fTreino" style="padding:10px 14px;border-radius:9px;border:1px solid var(--border);background:rgba(255,255,255,.05);color:#fff;font-size:13px;width:100%"><option value="">Aula livre (só a duração da grade)</option></select>
+          <div style="display:flex;gap:8px;align-items:center;margin-top:8px;flex-wrap:wrap">
+            <label class="pr-btn pr-bg" style="padding:7px 12px;cursor:pointer;margin:0">⬆ Subir arquivo da aula (.json)<input type="file" id="fTreinoArq" accept=".json,application/json" style="display:none" onchange="autoSubir(this)"></label>
+            <span id="fTreinoMsg" style="font-size:11.5px;color:var(--muted)">Aulas salvas no construtor por você e pelos professores da academia.</span>
+          </div>
+        </div>
+        <label style="display:flex;align-items:center;gap:8px;margin-top:10px;font-size:13px;cursor:pointer"><input type="checkbox" id="fSemProf" style="width:auto"> Sem professor — a TV conduz a aula sozinha</label>
+        <div style="font-size:11px;color:var(--muted);margin-top:8px;line-height:1.5">A TV mostra a contagem 15 min antes, abre a tela do QR 5 min antes (com quem reservou) e começa sozinha na hora. A música e o vídeo vêm da aula escolhida (links do Dropbox e YouTube públicos tocam na TV).</div>
       </div>
       <div style="display:flex;gap:10px;margin-top:20px">
         <button onclick="salvarAula()" style="flex:1;padding:11px;border-radius:10px;border:none;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;font-size:14px;font-weight:700;cursor:pointer" id="btnSalvarAula">Salvar</button>
@@ -1313,6 +1333,7 @@ const PR_NAV = [
   ['Pessoas', [
     ['alunos','👥','Alunos',[]],
     ['equipe','🎓','Equipe e acessos',['gestor','coordenador','admin','super_admin']],
+    ['meupainel','📈','Meu painel',['painel']],   // 10/10: professor com o painel liberado pelo gestor (o gestor abre pela Equipe)
   ]],
   ['Academia', [
     ['rankingtv','📺','Ranking na TV',['gestor','admin','super_admin']],
@@ -1336,6 +1357,7 @@ const PROF_ABAS = ['criar','perfil'];
 function prInicial(){ return prPapel()==='professor' ? 'criar' : 'dashboard'; }
 function prPode(tab){
   const r = prPapel();
+  if (tab === 'meupainel') return !!window._painelOn || !!window._painelId;
   if (r === 'professor') return PROF_ABAS.includes(tab);
   if (tab === 'pagfin') return !!(user && user.financeiro && !user.impersonated_by);
   if (tab === 'financeiro') return !!(user && (user.impersonated_by || ['admin','super_admin'].includes(user.role)));   // 02/10h: o financeiro tem página própria
@@ -1502,8 +1524,39 @@ async function loadEquipe(){
         ? `<select onchange="eqMudarPapel(${p.id}, this.value)" style="background:var(--card2);border:1px solid var(--border);color:#fff;border-radius:8px;padding:6px 10px;font-family:inherit">
             ${['professor','coordenador','financeiro','aluno'].map(r => `<option value="${r}"${r===p.role?' selected':''}>${r==='aluno'?'Tirar acesso (vira aluno)':ROLE_NOME[r]}</option>`).join('')}</select>`
         : `<span class="pr-role r-${p.role}">${ROLE_NOME[p.role]||p.role}</span>`}
+      ${podeMudar && ['professor','coordenador'].includes(p.role) ? `<button class="pr-btn ${p.painel_prof?'pr-bp':'pr-bg'}" style="padding:6px 10px;margin-left:6px" title="Liga ou desliga o painel deste professor (aulas dele, alunos, presença, notas e evolução)" onclick="eqPainel(${p.id}, ${!p.painel_prof})">📈 Painel ${p.painel_prof?'ligado':'desligado'}</button><button class="pr-btn pr-bg" style="padding:6px 10px;margin-left:4px" onclick="eqVerPainel(${p.id})">ver</button>` : ''}
     </div>`).join('');
   } catch(e) { el.innerHTML = `<div class="pr-empty">${prEsc(e.message||'Erro ao carregar')}</div>`; }
+}
+async function eqPainel(id, ligado){
+  try { await apiSend('PUT', `/gestor/equipe/${id}/painel`, { ligado }); toast(ligado ? '✓ Painel liberado para o professor' : 'Painel desligado'); loadEquipe(); } catch (e) { toast('⚠ ' + e.message); }
+}
+function eqVerPainel(id){ window._painelId = id; prMontarMenu(); showTab('meupainel'); }
+// 10/10 — PAINEL DO PROFESSOR
+async function loadMeuPainel(){
+  const el = document.getElementById('mpConteudo'); if (!el) return;
+  el.innerHTML = '<div class="pr-empty">Carregando…</div>';
+  try {
+    const q = window._painelId && prPapel() !== 'professor' ? '?id=' + window._painelId : '';
+    const d = await api('/professor/painel' + q); if (d.error) throw new Error(d.error);
+    const DS = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'], R = d.resumo || {};
+    document.getElementById('mpTitulo').textContent = prPapel() === 'professor' ? 'Meu painel' : 'Painel de ' + (d.professor.nome || 'professor');
+    const card = (v, l, c) => '<div class="pr-card" style="padding:14px 16px"><div style="font-family:\'Barlow Condensed\',sans-serif;font-weight:900;font-size:30px;color:' + (c || '#fff') + '">' + v + '</div><div style="color:var(--muted);font-size:12.5px">' + l + '</div></div>';
+    const est = n => n == null ? '—' : n.toLocaleString('pt-BR', { minimumFractionDigits: 1 }) + ' ★';
+    // evolução: potência média e alunos por aula (as últimas, da mais antiga para a mais nova)
+    const ev = (d.dadas || []).slice(0, 12).reverse(), mxW = Math.max(1, ...ev.map(x => x.watts_med || 0)), mxN = Math.max(1, ...ev.map(x => x.n_alunos || 0));
+    const graf = ev.length ? '<div style="display:flex;align-items:flex-end;gap:6px;height:130px;margin-top:6px">' + ev.map(x => '<div title="' + x.data + ' ' + x.hora + ' · ' + (x.watts_med||0) + ' W · ' + (x.n_alunos||0) + ' alunos" style="flex:1;max-width:56px;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:3px;height:100%"><span style="font-size:10.5px;color:var(--muted)">' + (x.watts_med || 0) + '</span><div style="width:100%;border-radius:6px 6px 0 0;background:linear-gradient(180deg,#ffb020,#ea860c);height:' + Math.max(4, Math.round((x.watts_med || 0) / mxW * 90)) + '%"></div><span style="font-size:10px;color:var(--muted)">' + x.data.slice(8, 10) + '/' + x.data.slice(5, 7) + '</span></div>').join('') + '</div><div style="color:var(--muted);font-size:12px;margin-top:6px">Potência média da turma (W) em cada aula. Passe o mouse para ver os alunos.</div>' : '<div class="pr-empty">Nenhuma aula fechada na TV nos seus horários ainda.</div>';
+    el.innerHTML = '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:14px">'
+      + card(R.aulas_30d || 0, 'aulas dadas (30 dias)') + card((R.media_alunos || 0).toLocaleString('pt-BR'), 'alunos por aula', '#ffb45a') + card(est(R.nota_media), 'nota média (' + (R.n_notas || 0) + ' notas)', '#ffb020') + card(R.alunos_60d || 0, 'alunos que vieram (60 dias)', '#8fe06a') + '</div>'
+      + '<div class="cp-g"><div class="pr-card" style="min-width:0"><h3 style="margin-bottom:8px">Minhas aulas na grade</h3>'
+      + ((d.aulas || []).length ? d.aulas.map(a => '<div style="display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 10px;padding:10px 12px;border-radius:10px;background:var(--card2);margin-bottom:6px"><b>' + DS[a.dia_semana] + ' ' + a.hora + ' · ' + prEsc(a.nome) + '</b><span style="color:var(--muted);font-size:12.5px">' + a.duracao_min + ' min</span><span style="color:var(--muted);font-size:12.5px">próxima: ' + a.reservas_proxima + '/' + a.vagas_max + ' reservas · 30 dias: ' + a.presencas_30d + ' presenças, ' + a.faltas_30d + ' faltas</span></div>').join('') : '<div class="pr-empty">Nenhuma aula da grade no seu nome. Peça ao gestor para colocar o seu nome nas aulas.</div>')
+      + '</div><div class="pr-card" style="min-width:0"><h3 style="margin-bottom:8px">Evolução da turma</h3>' + graf + '</div></div>'
+      + '<div class="pr-card" style="margin-top:14px;min-width:0"><h3 style="margin-bottom:8px">Últimas aulas</h3>'
+      + ((d.dadas || []).length ? '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:13px"><tr style="color:var(--muted);text-align:left"><th style="padding:6px">Data</th><th>Aula</th><th>Alunos</th><th>Potência</th><th>kcal</th><th>Nota</th></tr>' + d.dadas.slice(0, 20).map(x => '<tr style="border-top:1px solid var(--border)"><td style="padding:6px">' + x.data.split('-').reverse().slice(0, 2).join('/') + ' ' + x.hora + '</td><td>' + prEsc(x.nome_aula || '') + '</td><td>' + (x.n_alunos || 0) + '</td><td>' + (x.watts_med || 0) + ' W</td><td>' + (x.kcal_total || 0) + '</td><td>' + (x.n_notas ? est(x.nota) + ' <small style="color:var(--muted)">(' + x.n_notas + ')</small>' : '—') + '</td></tr>').join('') + '</table></div>' : '<div class="pr-empty">Sem aulas ainda.</div>')
+      + '</div><div class="pr-card" style="margin-top:14px;min-width:0"><h3 style="margin-bottom:8px">Meus alunos <small style="color:var(--muted);font-weight:500;text-transform:none;font-family:Barlow,sans-serif">últimos 60 dias, pela reserva</small></h3>'
+      + ((d.alunos || []).length ? d.alunos.map(u => '<div style="display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;padding:8px 12px;border-radius:10px;background:var(--card2);margin-bottom:6px"><b style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + prEsc(u.nome || '—') + '</b><span style="font-size:12.5px;color:var(--muted)">' + u.presencas + ' presença' + (u.presencas === 1 ? '' : 's') + (u.faltas ? ' · ' + u.faltas + ' falta' + (u.faltas === 1 ? '' : 's') : '') + (u.ultima ? ' · última ' + u.ultima.split('-').reverse().slice(0, 2).join('/') : '') + (u.ftp ? ' · FTP ' + u.ftp + ' W' : '') + '</span></div>').join('') : '<div class="pr-empty">Ainda sem reservas nas suas aulas.</div>')
+      + '</div>';
+  } catch (e) { el.innerHTML = '<div class="pr-empty">' + prEsc(e.message || 'Não consegui carregar') + '</div>'; }
 }
 async function eqMudarPapel(id, papel){
   try { await apiSend('PUT', `/gestor/equipe/${id}/papel`, { papel }); toast('✓ Acesso atualizado'); loadEquipe(); }
@@ -1817,6 +1870,7 @@ function showTab(t) {
   try { history.replaceState(null, '', '#' + t); } catch(e) {}
   if (t === 'dashboard') loadDashboard();
   if (t === 'alunos') loadAlunos();
+  if (t === 'meupainel') loadMeuPainel();
   if (t === 'financeiro') loadFinanceiro();
   if (t === 'grade') loadGrade();
   if (t === 'leaderboard') loadLeaderboard();
@@ -2095,6 +2149,8 @@ async function showApp() {
     document.getElementById('impNome').textContent = user.academia_nome || String(user.name||'').replace(/^⚡\s*/,'').replace(/\s*\(modo suporte\)$/,'') || user.license_id;
   }
   prMontarMenu(); prMontarMe();
+  // 10/10: professor/coordenador com o painel liberado ganha "Meu painel"
+  if (['professor','coordenador'].includes(prPapel())) { try { const r = await fetch(SERVER + '/professor/painel', { headers: { Authorization: 'Bearer ' + token } }); if (r.ok) { window._painelOn = true; prMontarMenu(); } } catch (e) {} }
   // quem não monta aula (financeiro) não vê o destaque do Construtor
   document.querySelectorAll('#page-dashboard .pr-hero').forEach(h => h.style.display = prPode('criar') ? '' : 'none');
   const now = new Date();
@@ -2440,7 +2496,7 @@ function aulaCard(a) {
       </div>
       <div style="text-align:right">
         <div style="font-family:'Barlow Condensed',sans-serif;font-size:24px;font-weight:900;color:var(--accent)">${a.hora.slice(0,5)}</div>
-        <div style="font-size:10px;color:var(--muted)">${a.duracao_min} min${a.sala?' · '+a.sala:''}${a.modo_inicio==='automatico'?' · ▶ Auto':' · ⏸ Prof'}</div>
+        <div style="font-size:10px;color:var(--muted)">${a.duracao_min} min${a.sala?' · '+a.sala:''}${a.modo_inicio==='automatico'?' · ▶ Auto'+(a.sem_professor?' sem professor':''):' · ⏸ Prof'}</div>
       </div>
     </div>
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
@@ -2450,7 +2506,7 @@ function aulaCard(a) {
       <div style="font-size:11px;font-weight:700;color:${cor}">${reservas}/${vagas}</div>
     </div>
     <div style="display:flex;gap:8px">
-      <button onclick="openReservas(${a.id},'${a.nome}','${a.hora.slice(0,5)}')" style="flex:1;padding:7px;border-radius:8px;border:1px solid var(--border);background:rgba(255,255,255,.04);color:#fff;font-size:12px;cursor:pointer">👥 Ver lista</button>
+      <button onclick="openReservas(${a.id},'${a.nome}','${a.hora.slice(0,5)}','${a.proxima_data||''}')" style="flex:1;padding:7px;border-radius:8px;border:1px solid var(--border);background:rgba(255,255,255,.04);color:#fff;font-size:12px;cursor:pointer">👥 Ver lista</button>
       <button onclick="openEditAula(${a.id})" style="padding:7px 10px;border-radius:8px;border:1px solid var(--border);background:rgba(255,255,255,.04);color:var(--muted);font-size:12px;cursor:pointer">✏️</button>
       <button onclick="deleteAula(${a.id})" style="padding:7px 10px;border-radius:8px;border:1px solid rgba(214,45,45,.3);background:rgba(214,45,45,.06);color:var(--accent2);font-size:12px;cursor:pointer">🗑</button>
     </div>
@@ -2487,6 +2543,7 @@ function openNovaAula() {
   _applyMaxBikes(licConfig.max_bikes || 20);
   document.getElementById('fSala').value = '';
   document.getElementById('fModoInicio').value = 'professor';
+  autoPreencher(null, false);
   document.getElementById('aulaErr').style.display = 'none';
   document.getElementById('aulaModal').style.display = 'flex';
 }
@@ -2504,6 +2561,7 @@ function openEditAula(id) {
   _applyMaxBikes(a.vagas_max);
   document.getElementById('fSala').value = a.sala || '';
   document.getElementById('fModoInicio').value = a.modo_inicio || 'professor';
+  autoPreencher(a.treino_id || null, !!a.sem_professor);
   document.getElementById('aulaErr').style.display = 'none';
   document.getElementById('aulaModal').style.display = 'flex';
 }
@@ -2589,6 +2647,42 @@ function fecharSessaoModal() {
   clearInterval(sessaoPollingTimer);
 }
 
+// 09/10: aula automática — biblioteca da academia
+let _biblio = [];
+function autoMostrar(){
+  const auto = document.getElementById('fModoInicio').value === 'automatico';
+  document.getElementById('fAutoBox').style.display = auto ? 'block' : 'none';
+  document.getElementById('fModoAjuda').textContent = auto ? 'Contagem 15 min antes, QR 5 min antes e START sozinho na hora.' : 'O professor abre a aula na TV e aperta START.';
+}
+function _biblioOpcoes(sel){
+  const el = document.getElementById('fTreino'); if (!el) return;
+  const fmt = s => s ? Math.round(s/60) + ' min' : '';
+  const op = t => '<option value="' + t.id + '"' + (String(sel) === String(t.id) ? ' selected' : '') + '>' + cpEsc(t.nome) + (t.duracao_sec ? ' · ' + fmt(t.duracao_sec) : '') + (t.autor ? ' · ' + cpEsc(t.autor) : '') + '</option>';
+  // 10/10i: aulas-padrão da rede ProRider ficam num grupo à parte
+  el.innerHTML = '<option value="">Aula livre (só a duração da grade)</option>'
+    + (_biblioRede.length ? '<optgroup label="⚡ Aulas da rede ProRider">' + _biblioRede.map(op).join('') + '</optgroup>' : '')
+    + (_biblio.length ? '<optgroup label="Aulas da academia">' + _biblio.map(op).join('') + '</optgroup>' : '');
+}
+let _biblioRede = [];
+async function autoPreencher(treinoId, semProf){
+  document.getElementById('fSemProf').checked = !!semProf;
+  autoMostrar();
+  try { const d = await api('/gestor/biblioteca'); _biblio = d.aulas || []; _biblioRede = d.rede || []; } catch (e) { _biblio = []; _biblioRede = []; }
+  _biblioOpcoes(treinoId || '');
+}
+async function autoSubir(inp){
+  const f = inp.files && inp.files[0]; if (!f) return;
+  const msg = document.getElementById('fTreinoMsg');
+  try {
+    const txt = await f.text(); JSON.parse(txt);
+    const nome = f.name.replace(/\.json$/i, '').slice(0, 80);
+    const r = await fetch(SERVER + '/gestor/biblioteca', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token }, body: JSON.stringify({ nome, json: txt }) });
+    const d = await r.json(); if (!r.ok) throw new Error(d.error || 'Não consegui subir.');
+    _biblio.unshift({ id: d.id, nome: d.nome, duracao_sec: d.duracao_sec, autor: 'você' }); _biblioOpcoes(d.id);
+    msg.textContent = '✓ "' + d.nome + '" subiu e já está escolhida.'; msg.style.color = '#8fe06a';
+  } catch (e) { msg.textContent = e.message && !/JSON/.test(e.message) ? e.message : 'Este arquivo não é uma aula (.json do construtor).'; msg.style.color = '#ff8a8a'; }
+  inp.value = '';
+}
 async function salvarAula() {
   const body = {
     nome: document.getElementById('fNome').value.trim(),
@@ -2599,6 +2693,8 @@ async function salvarAula() {
     vagas_max:    parseInt(document.getElementById('fVagas').value),
     sala:         document.getElementById('fSala').value.trim() || null,
     modo_inicio:  document.getElementById('fModoInicio').value,
+    treino_id:    document.getElementById('fModoInicio').value === 'automatico' ? (parseInt(document.getElementById('fTreino').value, 10) || null) : null,
+    sem_professor: document.getElementById('fModoInicio').value === 'automatico' && document.getElementById('fSemProf').checked,
   };
   const errEl = document.getElementById('aulaErr');
   if (!body.nome) { errEl.textContent = 'Nome obrigatório.'; errEl.style.display = 'block'; return; }
@@ -2625,10 +2721,11 @@ async function deleteAula(id) {
 }
 
 // ── Reservas / Lista de alunos ──
-async function openReservas(id, nome, hora) {
+async function openReservas(id, nome, hora, data) {
   reservasAgendaId = id;
   document.getElementById('resModalTitle').textContent = nome + ' · ' + hora;
-  const today = new Date().toISOString().split('T')[0];
+  // 09/10: abre na data da contagem do cartão (próxima vez da aula); antes era a data de hoje em UTC
+  const today = /^\d{4}-\d{2}-\d{2}$/.test(data||'') ? data : new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0];
   document.getElementById('resData').value = today;
   document.getElementById('reservasModal').style.display = 'flex';
   await loadReservas();

@@ -1,6 +1,6 @@
 // Versao visivel na tela inicial (canto inferior direito) — 24/09b.
 // Trocar AQUI e na linha do BUILD no fim do arquivo a cada versao.
-var PR_BUILD='BUILD 07/10d';
+var PR_BUILD='BUILD 07/10i';
 // ═══ 03/10f — A TV NÃO PERDE NADA SEM INTERNET + ERROS CHEGAM SOZINHOS NA SAÚDE ═══
 // _prFilaPost(caminho, corpo, rotulo, extra): manda agora; se a internet ou o servidor
 // falharem, guarda no computador (localStorage 'pr_fila', até 7 dias) e tenta de novo a
@@ -419,7 +419,7 @@ function _podeIdle(){
   return true;
 }
 function ativarIdle(){
-  idleOn=true;
+  idleOn=true; boxMode='idle';   // 09/10: antes ficava 'escolha'/'end' na tela de espera — e a atualização automática nunca via a TV "parada"
   // Garante que nenhuma tela de seleção/setup fique por baixo do idle
   if(typeof _fecharTodasTelas==='function') _fecharTodasTelas();
   resetSessao();
@@ -855,29 +855,46 @@ async function _gymGradeAtualizar(){
       if(!proximaResp.bloqueada && pa.mostrar_qr && pa.modo_inicio==='automatico'){
         _gymProxAula = pa;
         var segs = Math.round(pa.segundos_ate_aula||0);
-        if(segs>=0 && !_gymCountdownInt) _gymIniciarCountdown(pa, segs);
+        if(segs>=0 && !_gymCountdownInt && !window._autoAula && (idleOn||boxMode==='escolha'||boxMode==='idle')) _gymIniciarCountdown(pa, segs);
       }
     }
   }catch(e){ /* silencioso */ }
 }
 
-// Inicia a tela de countdown automático
+// ══ 09/10 — AULA AUTOMÁTICA: contagem (até 5 min antes) → tela do QR com relógio → START sozinho na hora ══
+var _AUTO_QR_SEG=300;                      // a tela do QR abre 5 min antes do início
+window._autoAula=null;                     // {nome, inicioEm} enquanto a aula automática está na tela do QR
 function _gymIniciarCountdown(aula, segsInicial){
   if(_gymCountdownInt) return; // já rodando
-  _gymCountdownSec = segsInicial;
-  // Mostrar tela countdown
-  var box = document.getElementById('boxCountdown');
-  if(box){
-    box.style.display='flex';
-    document.getElementById('cdNome').textContent = aula.nome||'—';
-    document.getElementById('cdProf').textContent = '👨‍🏫 '+(aula.professor_nome||'—')+'   ·   ⏱ '+(aula.duracao_min||'—')+' min';
-    document.getElementById('cdBadge').textContent = '▶ INÍCIO AUTOMÁTICO';
-  }
+  _gymProxAula=aula;
+  var inicioEm=Date.now()+Math.max(0,segsInicial)*1000;
+  aula._inicioEm=inicioEm;
+  if(segsInicial<=_AUTO_QR_SEG){ _gymLancarQRAuto(); return; }   // já está perto: vai direto para o QR
+  _gymCountdownSec = segsInicial-_AUTO_QR_SEG;
+  _cdMontar(aula);
+  var box=document.getElementById('boxCountdown'); if(box) box.style.display='flex';
   boxMode = 'countdown';
   _gymTickCountdown();
   _gymCountdownInt = setInterval(_gymTickCountdown, 1000);
 }
-
+// arte da contagem (TV 1920×1080): anel de progresso, relógio grande, nome da aula e o recado para a sala
+function _cdMontar(aula){
+  var box=document.getElementById('boxCountdown'); if(!box) return;
+  var hi=new Date(aula._inicioEm||Date.now()), hh=String(hi.getHours()).padStart(2,'0')+':'+String(hi.getMinutes()).padStart(2,'0');
+  var esc=function(t){ return String(t==null?'':t).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); };
+  box.className='cd2';
+  box.innerHTML='<div class="cd2-bg"></div><div class="cd2-zonas"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>'
+    +'<div class="cd2-top"><img src="logo-prorider.png" alt="ProRider"><span id="cdBadge">AULA AUTOMÁTICA</span></div>'
+    +'<div class="cd2-meio">'
+      +'<div class="cd2-anel"><svg viewBox="0 0 200 200"><defs><linearGradient id="cd2G" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffd23f"/><stop offset=".5" stop-color="#ea860c"/><stop offset="1" stop-color="#d62d2d"/></linearGradient></defs>'
+        +'<circle cx="100" cy="100" r="88" class="cd2-trilho"/><circle cx="100" cy="100" r="88" class="cd2-prog" id="cdAnel"/></svg>'
+        +'<div class="cd2-rel"><div class="cd2-k">A TELA DO QR ABRE EM</div><div id="cdTimer">10:00</div><div class="cd2-k2">a aula começa às <b>'+hh+'</b></div></div></div>'
+      +'<div class="cd2-info"><div class="cd2-k">PRÓXIMA AULA</div><div id="cdNome">'+esc(aula.nome||'Aula')+'</div>'
+        +'<div id="cdProf">'+(aula.sem_professor?'aula guiada pela TV  ·  ':(aula.professor_nome?'com '+esc(aula.professor_nome)+'  ·  ':''))+(aula.duracao_min?aula.duracao_min+' min':'')+'</div>'
+        +'<div class="cd2-passos"><div><b>1</b>Pegue a sua bike</div><div><b>2</b>Abra o app ProRider</div><div><b>3</b>Escaneie o QR quando ele abrir</div></div>'
+        +'<div class="cd2-auto">▶ COMEÇA SOZINHA NA HORA — não precisa apertar nada</div></div>'
+    +'</div>';
+}
 function _gymTickCountdown(){
   var el = document.getElementById('cdTimer');
   if(!el) return;
@@ -885,29 +902,73 @@ function _gymTickCountdown(){
   var m = Math.floor(Math.max(0,s)/60);
   var ss = Math.max(0,s)%60;
   el.textContent = String(m).padStart(2,'0')+':'+String(ss).padStart(2,'0');
-  el.style.color = s<=60?'#d62d2d':s<=180?'#ea860c':'#fff';
+  var a=document.getElementById('cdAnel'); if(a){ var tot=Math.max(1,(_gymProxAula&&_gymProxAula._cdTot)||(_gymProxAula._cdTot=Math.max(s,1))); a.style.strokeDashoffset=(553*(1-Math.max(0,s)/tot)).toFixed(1); }
+  var box=document.getElementById('boxCountdown'); if(box) box.classList.toggle('cd2-fim', s<=60);
   if(s<=0){
-    // Chegou a zero — iniciar QR automático
     clearInterval(_gymCountdownInt); _gymCountdownInt=null;
-    var box=document.getElementById('boxCountdown');if(box)box.style.display='none';
+    if(box) box.style.display='none';
     _gymLancarQRAuto();
     return;
   }
   _gymCountdownSec--;
 }
 
-// Lança a tela de QR para aula automática
+// Lança a tela de QR da aula automática: relógio na tela e START sozinho na hora marcada
 function _gymLancarQRAuto(){
   if(!_gymProxAula) return;
-  // Carregar aula livre (sem blocos) com dados da aula do sistema
+  var aula=_gymProxAula;
+  // 09/10: sai da tela de espera de verdade (antes o idle ficava ligado por baixo e
+  // qualquer botão do controle — até o direcional — voltava para o menu inicial)
+  try{ idleOn=false; var ie=document.getElementById('idleScreen'); if(ie) ie.classList.remove('active'); }catch(e){}
+  try{ resetIdleTimer(); }catch(e){}
+  var cb=document.getElementById('boxCountdown'); if(cb) cb.style.display='none';
+  window._autoAula={ nome:aula.nome||'Aula', inicioEm:aula._inicioEm||Date.now(), semProf:!!aula.sem_professor };
+  clearInterval(window._autoQRInt); window._autoQRInt=setInterval(_autoQRTick,1000);
+  // 09/10: a aula escolhida na grade (biblioteca da academia): gráfico, música e vídeo do construtor
+  if(aula.treino_id){ _autoCarregarTreino(aula); return; }
+  _autoAulaLivre(aula);
+}
+function _autoAulaLivre(aula){
   if(typeof workout!=='undefined') workout=[{
-    duration:(_gymProxAula.duracao_min||60), rpmMin:60, rpmMax:120,
+    duration:(aula.duracao_min||60), rpmMin:60, rpmMax:120,
     intensity:'z1', ftpMin:40, ftpMax:135, position:'Livre', notes:'', segmentId:'main_1'
   }];
-  mostrarPreAula(_gymProxAula, false, false);
-  // Sobrescrever nome na pré-aula
-  var n=document.getElementById('preAulaNome');if(n)n.textContent=_gymProxAula.nome||'—';
+  mostrarPreAula(aula, false, false);
+  var n=document.getElementById('preAulaNome');if(n)n.textContent=aula.nome||'—';
+  _autoQRTick();
 }
+async function _autoCarregarTreino(aula){
+  window._autoAula.picker=true; window._autoAula.criado=Date.now();   // espera a aula montar (o relógio não some)
+  try{
+    var r=await fetch(SERVER_HTTP+'/display/aula-automatica/'+encodeURIComponent(aula.id),{headers:{'Authorization':'Bearer '+_gymDisplayToken}});
+    if(!r.ok) throw new Error('servidor '+r.status);
+    var t=await r.json(), bruto=(t.json!=null?t.json:t.dados), dados=(typeof bruto==='string')?JSON.parse(bruto):bruto;
+    if(dados && !dados.workout && dados.Structure){ var tp=_prDeTrainingPeaks(dados,t.nome); if(tp) dados=tp; }
+    if(!dados||!dados.workout||!dados.workout.length) throw new Error('aula sem blocos');
+    dados.nome=aula.nome||dados.nome||t.nome;
+    usbList=[{name:(t.nome||'Aula')+'.json', data:dados, _auto:true}]; usbIdx=0;
+    await abrirAula();
+  }catch(e){
+    console.warn('[ProRider] aula automática: não abriu a aula escolhida ('+(e&&e.message)+') — vai como aula livre');
+    if(window._autoAula) window._autoAula.picker=false;
+    _autoAulaLivre(aula);
+  }
+}
+// faixa da aula automática na tela do QR + START na hora
+function _autoQRTick(){
+  var au=window._autoAula;
+  if(au && au.picker && boxMode!=='preAula' && boxMode!=='live' && Date.now()-au.criado<90000) return;   // ainda montando a aula escolhida (música e vídeo)
+  if(!au || boxMode!=='preAula'){ clearInterval(window._autoQRInt); window._autoQRInt=null; var f0=document.getElementById('autoFaixa'); if(f0) f0.remove(); if(boxMode!=='preAula') window._autoAula=null; return; }
+  var rest=Math.round((au.inicioEm-Date.now())/1000);
+  var f=document.getElementById('autoFaixa');
+  if(!f){ f=document.createElement('div'); f.id='autoFaixa'; document.body.appendChild(f); }
+  var m=Math.floor(Math.max(0,rest)/60), s=Math.max(0,rest)%60;
+  f.className=rest<=30?'auto-fim':'';
+  f.innerHTML='<span class="af-k">AULA AUTOMÁTICA</span><span class="af-t">começa sozinha em</span><b>'+String(m).padStart(2,'0')+':'+String(s).padStart(2,'0')+'</b><span class="af-d">START começa agora · segure B 3 s para cancelar</span>';
+  if(rest<=0){ clearInterval(window._autoQRInt); window._autoQRInt=null; f.remove(); window._autoAula=null; try{ iniciarAula(); }catch(e){ console.warn('[ProRider] início automático falhou:',e); } }
+}
+function _autoCancelar(){ clearInterval(window._autoQRInt); window._autoQRInt=null; window._autoAula=null; var f=document.getElementById('autoFaixa'); if(f) f.remove(); fecharPreAula(); }
+function _autoAvisoB(){ try{ if(typeof _parToast==='function') _parToast('Aula automática: começa sozinha. Para cancelar, segure B por 3 segundos.'); }catch(e){} }
 
 // Startup: verificar ativação e iniciar polling
 window.addEventListener('load', function(){
@@ -915,7 +976,7 @@ window.addEventListener('load', function(){
     if(!verificarAtivacao()) return; // mostra tela de ativação se necessário
     _gymGradeAtualizar();
     _gymPollInt = setInterval(function(){
-      if(idleOn || boxMode==='countdown') _gymGradeAtualizar();
+      if(idleOn || boxMode==='countdown' || boxMode==='escolha') _gymGradeAtualizar();   // 09/10: parada no menu também entra a aula automática
     }, 60000);
   }, 2000);
 
@@ -942,7 +1003,6 @@ window.addEventListener('load', function(){
 document.addEventListener('keydown', function(e){
   if((e.key==='Enter'||e.code==='Gamepad0'||e.key===' ')&&boxMode==='countdown'){
     clearInterval(_gymCountdownInt); _gymCountdownInt=null;
-    var box=document.getElementById('boxCountdown');if(box)box.style.display='none';
     _gymLancarQRAuto();
   }
 });
@@ -2957,6 +3017,12 @@ function _fitAlunosGrid(){
 // 26/09b: substituido por CSS em ginasio.html (.pb-sel / .pb-brw). Mantido vazio
 // para nao quebrar chamadas antigas.
 function _fitPreAulaCol3(){}
+// ── 09/10: a TV avisa ao servidor em que tela está (o app só mostra "entrar na aula" com o QR aberto ou em aula) ──
+(function(){ var ult='', em=0; setInterval(function(){ try{
+  if(typeof wsProf==='undefined'||!wsProf||wsProf.readyState!==1) { ult=''; return; }
+  var m=String(typeof boxMode!=='undefined'?boxMode:''); if(idleOn) m='idle';
+  if(m!==ult || Date.now()-em>30000){ ult=m; em=Date.now(); wsProf.send(JSON.stringify({tipo:'tv_modo',modo:m})); }
+}catch(e){} },1500); })();
 // ── 07/10d: DIAGNÓSTICO DA SALA (secreto) — na tela do QR, LB+RB 2 s abre; B fecha ──
 var _diag={on:false,t:null,ped:0,hold:0};
 function _diagHold(lb,rb){ if(lb&&rb){ if(!_diag.hold)_diag.hold=Date.now(); if(!_diag.on&&Date.now()-_diag.hold>=2000){ _diag.hold=0; diagAbrir(); } return true; } _diag.hold=0; return false; }
@@ -3127,6 +3193,9 @@ function mostrarPreAula(d,vc,mc){
 function fecharPreAula(){
   clearInterval(preAulaTimer);
   var el=document.getElementById('boxPreAula');if(el)el.style.display='none';
+  // 09/10: volta UMA tela — a de música e vídeo — quando a aula passou por ela
+  if(_bgPickerData && !window._autoAula && typeof abrirBgPicker==='function' && boxMode==='preAula'){ try{ abrirBgPicker(_bgPickerData.d,_bgPickerData.vc,_bgPickerData.mc); return; }catch(e){} }
+  window._autoAula=null;
   // Se usbList veio de pendrive/sistema E a escolha foi via USB (não aula livre),
   // volta para a lista. Caso contrário volta para a tela de escolha.
   if(usbList.length>0 && boxMode!=='livre')mostrarUSB();else{usbList=[];mostrarEscolha();}
@@ -3995,7 +4064,7 @@ function atualizaCards(){
     var wtxt=(a.watts!=null&&a.watts!=='')?(a.watts+' W'):'';
     var bikeTxt=(a.bike?('BIKE '+a.bike):'');
     var _fc=_hrDe(a), _mar=parseInt(a.gear,10)||0;
-    c.innerHTML='<div class="pc-name">'+nome+'</div>'
+    c.innerHTML='<div class="pc-name">'+_rkBrasao(nome)+nome+'</div>'
       +(bikeTxt?'<div class="pc-bike">'+bikeTxt+'</div>':'')
       // Marca do aluno simulado. Demo e real podem conviver — nao disputam
       // bike nem dado —, mas na tela ficavam identicos. Numa demonstracao com
@@ -4131,6 +4200,9 @@ function _rkAplicarCfg(c){
 function _rkBrasao(nome){
   try{
     var n=(typeof alunosMap!=='undefined'&&alunosMap[nome])?alunosMap[nome].nivel:null;
+    // 10/10i: guarda o nível — na tela final o aluno pode já ter saído da sala
+    var _c=window._rkNivCache||(window._rkNivCache={});
+    if(n) _c[nome]=n; else n=_c[nome]||null;
     if(!n || !window.prBrasaoSVG || n==='iniciante'||n==='aquecimento') return '';
     return prBrasaoSVG(n, 40, true).replace('<svg ','<svg style="height:1.05em;width:auto;vertical-align:-.16em;margin-right:.22em" ');
   }catch(e){ return ''; }
@@ -4839,7 +4911,7 @@ function _desPodioHTML(lista,cor,op){
     var prim=String(nome).trim().split(/\s+/); var curto=prim[0]+(prim[1]?' '+prim[1][0]+'.':'');
     h+='<div class="dsx-pd '+cls[k]+'">'
       +'<div class="dsx-pd-av" style="border-color:'+corL+';color:'+corL+';">'+av+'</div>'
-      +'<div class="dsx-pd-nome">'+_desEsc(curto)+'</div>'
+      +'<div class="dsx-pd-nome">'+_rkBrasao(nome)+_desEsc(curto)+'</div>'
       +'<div class="dsx-pd-val" style="color:'+corL+';">'+_desFmt(_desafioGetMetrica(nome))+'<small>'+unit+'</small></div>'
       +'<div class="dsx-pd-bloco"><b>'+(i+1)+'</b></div></div>';
   });
@@ -4859,7 +4931,7 @@ function _desLinhas(vis,base,cor,op,nLin,destaque){
     linhas+='<div class="dsx-row'+(destaque&&pos<=3?' dsx-podio':'')+(!destaque&&pos===1?' dsx-lider1':'')+'">'
       +'<div class="dsx-pos '+med+'">'+pos+'</div>'
       +'<div class="dsx-av" style="border-color:'+corL+';color:'+corL+';">'+av+'</div>'
-      +'<div class="dsx-nm"><div class="dsx-nome">'+_desEsc(nome)+'</div>'
+      +'<div class="dsx-nm"><div class="dsx-nome">'+_rkBrasao(nome)+_desEsc(nome)+'</div>'
       +'<i class="dsx-barra"><s style="width:'+(op.max>0?Math.max(2,Math.min(100,_desafioGetMetrica(nome)/op.max*100)):0).toFixed(1)+'%;background:'+corL+';"></s></i></div>'
       +'<div class="dsx-val" style="color:'+corL+';">'+_desFmt(_desafioGetMetrica(nome))+'<small>'+unit+'</small></div>'
       +'</div>';
@@ -6721,7 +6793,7 @@ function _ftpLinha(d,pos,destaque){
   return '<div class="dsx-row'+(destaque&&pos<=3?' dsx-podio':'')+'">'
     +'<div class="dsx-pos '+med+'">'+pos+'</div>'
     +'<div class="dsx-av" style="border-color:'+cor+';color:'+cor+';">'+av+'</div>'
-    +'<div class="dsx-nm"><div class="dsx-nome">'+_desEsc(d.nome)+'</div>'
+    +'<div class="dsx-nm"><div class="dsx-nome">'+_rkBrasao(d.nome)+_desEsc(d.nome)+'</div>'
       +'<i class="dsx-barra dsx-barra-ftp"><s style="width:'+larg.toFixed(1)+'%;background:'+cor+';"></s></i></div>'
     +'<div class="dsx-val" style="color:'+cor+';">'+(sem?'--':d.proj)+'<small>'+(sem?'sem dados':((d.diff>0?'+':'')+d.diff+' W'))+'</small></div>'
     +'</div>';
@@ -6742,7 +6814,7 @@ function _ftpPodio(tres){
     var av=d.a.foto?'<img src="'+d.a.foto+'" alt="">':_desEsc(ini);
     var pr=String(d.nome).trim().split(/\s+/), curto=pr[0]+(pr[1]?' '+pr[1][0]+'.':'');
     h+='<div class="dsx-pd '+cls[k]+'"><div class="dsx-pd-av" style="border-color:'+cor+';color:'+cor+';">'+av+'</div>'
-      +'<div class="dsx-pd-nome">'+_desEsc(curto)+'</div>'
+      +'<div class="dsx-pd-nome">'+_rkBrasao(d.nome)+_desEsc(curto)+'</div>'
       +'<div class="dsx-pd-val" style="color:'+cor+';">'+d.proj+'<small>W</small></div>'
       +'<div class="dsx-pd-sub" style="color:'+cor+';">'+(d.pct>=0?'+':'')+d.pct.toFixed(1).replace('.',',')+'%</div>'
       +'<div class="dsx-pd-bloco"><b>'+(i+1)+'</b></div></div>';
@@ -7383,6 +7455,12 @@ function startGamepad(){
         var _dh=_diagHold(gp.buttons[4]&&gp.buttons[4].pressed, gp.buttons[5]&&gp.buttons[5].pressed);
         if(_diag.on){ if(edge(1)) diagFechar(); gpState[id].p=now; continue; }
         if(_dh){ gpState[id].p=now; continue; }
+        if(window._autoAula){   // 09/10: aula automática — B sozinho não sai; segurar B 3 s cancela
+          if(now[1]){ if(!gpState[id]._bIni) gpState[id]._bIni=Date.now(); else if(Date.now()-gpState[id]._bIni>=3000){ gpState[id]._bIni=0; _autoCancelar(); } }
+          else { if(gpState[id]._bIni && Date.now()-gpState[id]._bIni<3000) _autoAvisoB(); gpState[id]._bIni=0; }
+          if(edge(9)){ clearInterval(window._autoQRInt); window._autoQRInt=null; window._autoAula=null; var _af=document.getElementById('autoFaixa'); if(_af) _af.remove(); iniciarAula(); }
+          gpState[id].p=now;continue;
+        }
         if(edge(9))iniciarAula();if(edge(1)||edge(8))fecharPreAula();
         gpState[id].p=now;continue;
       }
@@ -7706,8 +7784,8 @@ window.addEventListener('keydown',function(e){
   if(boxMode==='preAula'){
     if(_diag.on){ if(k==='Escape'||k==='b'||k==='B') diagFechar(); return; }   // 07/10d
     if((k==='d'||k==='D')&&e.ctrlKey&&e.shiftKey){ diagAbrir(); e.preventDefault(); return; }
-    if(k==='Enter'||k===' '){iniciarAula();e.preventDefault();return;}
-    if(k==='Escape'||k==='b'||k==='B'){fecharPreAula();return;}
+    if(k==='Enter'||k===' '){ if(window._autoAula){ clearInterval(window._autoQRInt); window._autoQRInt=null; window._autoAula=null; var _af=document.getElementById('autoFaixa'); if(_af) _af.remove(); } iniciarAula();e.preventDefault();return;}
+    if(k==='Escape'||k==='b'||k==='B'){ if(window._autoAula){ _autoAvisoB(); return; } fecharPreAula();return;}
     return;
   }
   // endRanking — qualquer tecla vai para home
@@ -9526,6 +9604,8 @@ function startCountdown(blockIndex, onComplete){
 // ══════════════════════════════════════════
 function runTimer(timestamp){
   if(!isPlaying) return;
+  if(!workout||!workout.length) return;
+  if(!workout[currentBlockIndex]) currentBlockIndex=Math.max(0,Math.min(currentBlockIndex,workout.length-1));   // 09/10: aula trocada com o relógio rodando
   const cb=workout[currentBlockIndex];
   const totalMs=_prSec(cb)*1000;
   const elapsed=timestamp-blockStartTime;
@@ -10275,7 +10355,8 @@ function renderLiveTimeline(){
 
 // ── ATUALIZAR TELA ──
 function updateLiveScreen(progress){
-  const cb=workout[currentBlockIndex]; const zone=zi(cb.intensity);
+  const cb=workout[currentBlockIndex]; if(!cb) return;   // 09/10: troca de aula com o relógio da anterior ainda rodando
+  const zone=zi(cb.intensity);
   try{ _pg2Pin(progress); }catch(e){}
   const deg=progress*360;
   timerCircle.style.setProperty("--circleColor",zone.color);
@@ -10373,7 +10454,7 @@ function _fimLinha(a,pos,cor,max){
   if(!a) return '<div class="dsx-row dsx-vazia"></div>';
   var av=a.foto?'<img src="'+a.foto+'" alt="">':_desEsc(_fimIni(a.nome));
   return '<div class="dsx-row"><div class="dsx-pos">'+pos+'</div><div class="dsx-av" style="border-color:'+cor+';color:'+cor+';">'+av+'</div>'
-    +'<div class="dsx-nm"><div class="dsx-nome">'+_desEsc(a.nome)+'</div><i class="dsx-barra"><s style="width:'+(max>0?Math.max(2,a.wpp/max*100):0).toFixed(0)+'%;background:'+cor+'"></s></i></div>'
+    +'<div class="dsx-nm"><div class="dsx-nome">'+_rkBrasao(a.nome)+_desEsc(a.nome)+'</div><i class="dsx-barra"><s style="width:'+(max>0?Math.max(2,a.wpp/max*100):0).toFixed(0)+'%;background:'+cor+'"></s></i></div>'
     +'<div class="dsx-val" style="color:'+cor+'">'+a.wpp.toFixed(1).replace('.',',')+'<small>WPP</small></div></div>';
 }
 function _fimPodioCol(al){
@@ -10381,7 +10462,7 @@ function _fimPodioCol(al){
   var pod='<div class="dsx-podio3">'+o.map(function(i,k){ var a=al[i]; if(!a) return '<div class="dsx-pd '+c[k]+' dsx-pdv"></div>';
       var pr=String(a.nome).trim().split(/\s+/), curto=pr[0]+(pr[1]?' '+pr[1][0]+'.':'');
       var av=a.foto?'<img src="'+a.foto+'" alt="">':_desEsc(_fimIni(a.nome));
-      return '<div class="dsx-pd '+c[k]+'"><div class="dsx-pd-av" style="border-color:'+cor+';color:'+cor+';">'+av+'</div><div class="dsx-pd-nome">'+_desEsc(curto)+'</div><div class="dsx-pd-val" style="color:'+cor+';">'+a.wpp.toFixed(1).replace('.',',')+'<small>WPP</small></div><div class="dsx-pd-bloco"><b>'+(i+1)+'</b></div></div>'; }).join('')+'</div>';
+      return '<div class="dsx-pd '+c[k]+'"><div class="dsx-pd-av" style="border-color:'+cor+';color:'+cor+';">'+av+'</div><div class="dsx-pd-nome">'+_rkBrasao(a.nome)+_desEsc(curto)+'</div><div class="dsx-pd-val" style="color:'+cor+';">'+a.wpp.toFixed(1).replace('.',',')+'<small>WPP</small></div><div class="dsx-pd-bloco"><b>'+(i+1)+'</b></div></div>'; }).join('')+'</div>';
   var lin=''; for(var i=3;i<10;i++) lin+=_fimLinha(al[i],i+1,cor,max);
   return '<div class="dsx-col" style="--dsxc:#ea860c;"><div class="dsx-colhead"><span class="dsx-sim">🏆</span><span class="dsx-tit">PÓDIO WPP</span><span class="dsx-pag">'+al.length+' alunos</span></div>'+pod
     +'<div class="dsx-lista" style="grid-template-rows:repeat(7,minmax(0,1fr));">'+lin+'</div></div>';
@@ -10797,7 +10878,7 @@ checkSpotifyCallback();
   v.addEventListener('emptied',function(){ _amostras=[]; document.documentElement.style.removeProperty('--prVidCrop'); });
   v.addEventListener('playing',function(){ setTimeout(medir,500); });
 })();
-try{ console.log('%c[ProRider] BUILD 07/10d — diagnostico da sala (LB+RB 2 s na tela do QR) + alunos demo ficam ligados + 07/10c: relatorio da aula (falhas por bike, quedas, fps) na Saude + 07/10b: pendrive ANT+ na TV (bikes que so falam ANT+: Schwinn Echelon2, Spinner Blade ION, ICG TFT 1.0...) lidas todas ao mesmo tempo, como a Keiser + 07/10a: atualizacao automatica pelo servidor (assinada, de madrugada, volta sozinha se falhar), Keiser: resumo (review) ignorado e nº da Keiser enviado ao app + 03/10z: internet da academia caindo: a TV percebe em 15 s e religa sozinha, o aluno que cai continua na bike (sem aluno fantasma no resumo), o fim da aula chega aos celulares quando a internet volta + 03/10x: TV volta sozinha quando o servidor reinicia no meio da aula (tenta de 5 em 5 s) e manda a propria saude (memoria, fps, tempo ligada) para a Saude + 03/10w: ativacao pelo codigo da TV (secreto, Admin > Licencas) + 03/10v: GERAR_PROGRAMA_DA_TV.bat confere a versao antes de gerar o programa + 03/10s: fim de aula nao conta mais como queda do servidor (sem aviso falso na Saude), resumo da aula com o codigo da sala, cartoes com o numero sempre inteiro (100% e zona nao cortam) e nome sem passar por baixo da bike + 03/10r: TV conversa com o servidor pelo endereco novo app.prorider.app.br + 03/10q: musica e video do Dropbox baixados pelo endereco direto do arquivo + 03/10p: bike/rolo de outras marcas (FTMS, potencia) ligado no celular do aluno aparece na TV; a Keiser continua pelo dongle + 03/10n: TV parada volta sozinha para a tela de espera (aulas de hoje) depois de 10 min sem uso, mesmo com o controle ligado; nunca durante a aula, aula pausada, contagem, gravacao, sessao livre ou na tela do QR + 03/10h: erro da TV mostra um codigo pequeno no canto (E-XXXX) para buscar na lupinha da Saude + 03/10f: sem internet a TV guarda o resumo da aula, o resultado do campeonato e a ficha da gravacao e envia sozinha quando a conexao volta (ate 7 dias); erros e avisos da TV chegam sozinhos na Saude do sistema + 03/10c: gravacao avisa na TV (nao comecou / salva / enviada ao app / falhou) + 03/10a: tela de transicao de segmento entra cobrindo a tela principal (sem o corte do grafico/video) + 02/10j: aula em rede: nas outras academias o professor principal vira o fundo (sem video) ou um quadrinho no canto (com video); na principal, com video escolhido, a camera so grava/transmite; musica e video por link baixados antes da aula (C:\ProRider\Cache, apagados em 2 dias); video da aula por link + 02/10f: musica por LINK (Dropbox/Google Drive) com o pendrive de reserva; aula em rede: START da mae libera 5 min antes do horario, as outras seguem sozinhas 5 min depois se ela nao comecar, RECOMECAR em todas nos primeiros 5 min (alunos continuam conectados) + 02/10e: AULA AO VIVO EM REDE: a academia que criou o desafio ao vivo da a aula; as outras entram por "Aula ao vivo em rede" no inicio, comecam junto com o START dela, seguem pausa e avanco, e mostram o video e a voz do professor num quadro + 02/10c: trilha do Construtor: varias musicas em sequencia, cada uma no trecho escolhido (de/ate), no mesmo relogio da aula + 02/10b: gravação = câmera limpa + roteiro da aula (aula gravada no app com os números do aluno), envio para teste + 02/10a: desafio entre academias (resumo de cada aula, placar ao vivo entre academias), gravar a aula (câmera + faixa da aula) e transmitir no app (WebRTC) e no YouTube Live (ffmpeg), quem está na bike reservada vira presente + 01/10f: reservas com bike: quem reservou aparece na bike reservada na tela do QR (amarelo; verde pedalando) e a bike fica bloqueada para os outros no app + 01/10e: telas de preparar a aula com o visual de volta (CSS completo), graficos de perfil proporcionais ao tempo, START responde na hora, menos carga + 01/10d: tela de espera opcao 2: logo original centralizado (maior) e as aulas de hoje passando embaixo + 01/10c: logo original em todas as telas + logo original (raio + PRO RIDER) em todas as telas + 01/10a: CAMPEONATO (Tour/Giro/Vuelta/Mundial): a TV acha a etapa de hoje, soma sprint e montanha bloco a bloco, manda o resultado no fim e mostra a classificacao como 3a tela do fim da aula; camisa ao lado do nome (grade de bikes, ranking) + 30/09f: camera ao vivo em cartao proprio na tela de configurar a aula + telas de preparar a aula no visual do Portal (inicio com 3 opcoes, Minhas aulas com QR no card e pendrive, aulas do sistema em grade com perfil, lista com detalhe, configurar aula com MP3/Spotify/sem musica e pendrive/YouTube/camera/sem video, QR com os dois codigos grandes e as bikes ao vivo) + YouTube de fundo sincronizado + contagem 3-2-1 com o play do Spotify + tela final com jornada, zonas e destaques + logo original em todas as telas + desafio do Construtor chega na aula + grafico 2 ~25% maior (sobe 32 px acima dos circulos) + grafico 2 no tamanho do projeto em qualquer TV (alturas no desenho 1920x1080, nao em vh) + tela de imersao cobrindo a TV inteira + SELECT: para teste/desafio, 2o SELECT volta ao grafico, sai da imersao + brasões novos (Aquecimento, Cadência, Pelotão antes do Bronze) + aulas do dia em cartões grandes na tela de espera (professor, tipo, duração, reservas, contagem regressiva, km e kcal do clube) + brasão ao lado do nome no ranking + aluno do totem (sem celular) na bike + nome/professor da aula aberta vão ao servidor (faixa verde do app) + ranking da TV com os campos escolhidos no Portal (ordem e colunas) + versao do Ginasio aparece no Portal + aluno da sala fica ligado a academia + novo mapa (RB=QR, Y=FC, LB+RB 5 s=espaco) + tela de frequencia cardiaca (bike ou cinta do celular) + fim de aula chega ao celular (pendente, ao fechar, sala encerrada) + fim de aula e ranking no padrao novo + modo espaco (LB+RB 1 s: tela escura com estrelas na velocidade da sala) + teste FTP: so entra quem pedala nos 10 primeiros s; resultado vai ao celular + lista da tela do QR sem rolagem + ranking >20 em rodizio de 10 s, nome e foto maiores + fluidez: anel do teste FTP a cada quadro pelo relogio real, desafio e FTP 10x/s, cartoes e ranking ~7x/s atualizados no lugar, agulha do perfil 5x/s + trocas de tela com esmaecimento rapido + teste de FTP na tela nova (ao vivo e resultado com podio por evolucao) + FTP pela MEDIA do teste x fator (antes: instante / fator) + grafico antigo desativado; esconder as caixas faz o grafico descer e crescer 30% + desafio fluido (4x/s, atualiza no lugar, kcal fracionaria, corda e barras deslizando; pico de potencia so dentro do desafio) + resultado do desafio congelado no fim + ranking com muitos alunos sem corte (linhas encolhem para caber, nome maior em duas colunas) + desafio automatico no bloco (construtor: tipo, modo e segundos; comeca sozinho e termina com o bloco) + desafio CABO DE GUERRA (corda pelo esforco de agora em %FTP) + podio no resultado final + barra de progresso por aluno + desafios equilibrados pelo FTP (kcal em pontos, potencia media em %FTP; potencia maxima bruta) + reconexao: confere os alunos com o servidor e libera a bike de quem nao voltou + desafio Homens x Mulheres com tela nova (10 por lado, troca a cada 5 s, sem rolagem) + resultado individual enviado ao celular + grafico 2 cabe entre os circulos + INICIO/FIM so no comeco e no fim da aula + mini grafico das telas de cartoes no mesmo eixo de tempo (sem os ~5 s de diferenca) + lobby: linha branca do perfil removida + coluna 3 sem sobreposicao (so CSS) + agulha do progresso andando no perfil da tela do QR + grafico 2 25% maior + altura 15% mais contrastada + largura mais proporcional ao tempo + caixas do rodape 25% maiores (texto se ajusta) + linha do perfil da pre-aula atras das barras + TrainingPeaks do pendrive + faixa preta gravada no video cortada sozinha + versao na tela inicial + linha do BUILD consertada + grade da sala limitada pelas bikes da licenca (/display/licenca) + grafico 2 troca de pagina na hora (nao fica atrasado conforme a tela) + bike 99 do professor aparece na aula e vai no relay + marcha e FC tambem nas bikes sem login + bled112.js unificado (Electron + Chrome) + marcha e FC nos cartoes + FC na lista do lobby + perfil do lobby alinhado (barras e linha no mesmo eixo) + cartao AULA SELECIONADA sem transbordar + QR sem dica flutuante + Meta FTP < 55% + 401 no pareamento oferece reativar + video travado no topo (faixa preta) + grafico 2: veu virou apagamento so nos cartoes + em pe/sentado pela borda de cima (sem P/S) + video de fundo cobrindo a tela inteira + gasto calorico pela mesma conta do app do aluno + painel de opcoes (quickbar) no visual das caixas do rodape + barra ao vivo ocupando a largura toda e com a posicao (de pe/sentado) + apagamento recortado bloco a bloco + pre-aula reorganizada + grafico pagina em telas + tela final: nome da aula, legenda alinhada + TSS na pre-aula e na tela final + protocolo de 60 min e fatores alinhados + grafico do topo acompanha pausa/avanco + lista de alunos sem rolagem + barras de rolagem removidas + dongle BLE: prova de vida, deteccao da velocidade e liberacao correta do leitor entre tentativas','color:#ea860c;font-weight:700;'); }catch(e){}
+try{ console.log('%c[ProRider] BUILD 07/10i — brasao do aluno no cartao de potencia e na tela final (podio e lista) + 07/10h: aula automatica com a aula escolhida na grade (biblioteca da academia: grafico, musica e video) e sem professor + 07/10g: aula automatica: contagem nova, QR 5 min antes com relogio e START sozinho; controle na tela do QR nao volta ao menu; TV avisa a tela e por que nao atualizou + 07/10d: diagnostico da sala (LB+RB 2 s na tela do QR) + alunos demo ficam ligados + 07/10c: relatorio da aula (falhas por bike, quedas, fps) na Saude + 07/10b: pendrive ANT+ na TV (bikes que so falam ANT+: Schwinn Echelon2, Spinner Blade ION, ICG TFT 1.0...) lidas todas ao mesmo tempo, como a Keiser + 07/10a: atualizacao automatica pelo servidor (assinada, de madrugada, volta sozinha se falhar), Keiser: resumo (review) ignorado e nº da Keiser enviado ao app + 03/10z: internet da academia caindo: a TV percebe em 15 s e religa sozinha, o aluno que cai continua na bike (sem aluno fantasma no resumo), o fim da aula chega aos celulares quando a internet volta + 03/10x: TV volta sozinha quando o servidor reinicia no meio da aula (tenta de 5 em 5 s) e manda a propria saude (memoria, fps, tempo ligada) para a Saude + 03/10w: ativacao pelo codigo da TV (secreto, Admin > Licencas) + 03/10v: GERAR_PROGRAMA_DA_TV.bat confere a versao antes de gerar o programa + 03/10s: fim de aula nao conta mais como queda do servidor (sem aviso falso na Saude), resumo da aula com o codigo da sala, cartoes com o numero sempre inteiro (100% e zona nao cortam) e nome sem passar por baixo da bike + 03/10r: TV conversa com o servidor pelo endereco novo app.prorider.app.br + 03/10q: musica e video do Dropbox baixados pelo endereco direto do arquivo + 03/10p: bike/rolo de outras marcas (FTMS, potencia) ligado no celular do aluno aparece na TV; a Keiser continua pelo dongle + 03/10n: TV parada volta sozinha para a tela de espera (aulas de hoje) depois de 10 min sem uso, mesmo com o controle ligado; nunca durante a aula, aula pausada, contagem, gravacao, sessao livre ou na tela do QR + 03/10h: erro da TV mostra um codigo pequeno no canto (E-XXXX) para buscar na lupinha da Saude + 03/10f: sem internet a TV guarda o resumo da aula, o resultado do campeonato e a ficha da gravacao e envia sozinha quando a conexao volta (ate 7 dias); erros e avisos da TV chegam sozinhos na Saude do sistema + 03/10c: gravacao avisa na TV (nao comecou / salva / enviada ao app / falhou) + 03/10a: tela de transicao de segmento entra cobrindo a tela principal (sem o corte do grafico/video) + 02/10j: aula em rede: nas outras academias o professor principal vira o fundo (sem video) ou um quadrinho no canto (com video); na principal, com video escolhido, a camera so grava/transmite; musica e video por link baixados antes da aula (C:\ProRider\Cache, apagados em 2 dias); video da aula por link + 02/10f: musica por LINK (Dropbox/Google Drive) com o pendrive de reserva; aula em rede: START da mae libera 5 min antes do horario, as outras seguem sozinhas 5 min depois se ela nao comecar, RECOMECAR em todas nos primeiros 5 min (alunos continuam conectados) + 02/10e: AULA AO VIVO EM REDE: a academia que criou o desafio ao vivo da a aula; as outras entram por "Aula ao vivo em rede" no inicio, comecam junto com o START dela, seguem pausa e avanco, e mostram o video e a voz do professor num quadro + 02/10c: trilha do Construtor: varias musicas em sequencia, cada uma no trecho escolhido (de/ate), no mesmo relogio da aula + 02/10b: gravação = câmera limpa + roteiro da aula (aula gravada no app com os números do aluno), envio para teste + 02/10a: desafio entre academias (resumo de cada aula, placar ao vivo entre academias), gravar a aula (câmera + faixa da aula) e transmitir no app (WebRTC) e no YouTube Live (ffmpeg), quem está na bike reservada vira presente + 01/10f: reservas com bike: quem reservou aparece na bike reservada na tela do QR (amarelo; verde pedalando) e a bike fica bloqueada para os outros no app + 01/10e: telas de preparar a aula com o visual de volta (CSS completo), graficos de perfil proporcionais ao tempo, START responde na hora, menos carga + 01/10d: tela de espera opcao 2: logo original centralizado (maior) e as aulas de hoje passando embaixo + 01/10c: logo original em todas as telas + logo original (raio + PRO RIDER) em todas as telas + 01/10a: CAMPEONATO (Tour/Giro/Vuelta/Mundial): a TV acha a etapa de hoje, soma sprint e montanha bloco a bloco, manda o resultado no fim e mostra a classificacao como 3a tela do fim da aula; camisa ao lado do nome (grade de bikes, ranking) + 30/09f: camera ao vivo em cartao proprio na tela de configurar a aula + telas de preparar a aula no visual do Portal (inicio com 3 opcoes, Minhas aulas com QR no card e pendrive, aulas do sistema em grade com perfil, lista com detalhe, configurar aula com MP3/Spotify/sem musica e pendrive/YouTube/camera/sem video, QR com os dois codigos grandes e as bikes ao vivo) + YouTube de fundo sincronizado + contagem 3-2-1 com o play do Spotify + tela final com jornada, zonas e destaques + logo original em todas as telas + desafio do Construtor chega na aula + grafico 2 ~25% maior (sobe 32 px acima dos circulos) + grafico 2 no tamanho do projeto em qualquer TV (alturas no desenho 1920x1080, nao em vh) + tela de imersao cobrindo a TV inteira + SELECT: para teste/desafio, 2o SELECT volta ao grafico, sai da imersao + brasões novos (Aquecimento, Cadência, Pelotão antes do Bronze) + aulas do dia em cartões grandes na tela de espera (professor, tipo, duração, reservas, contagem regressiva, km e kcal do clube) + brasão ao lado do nome no ranking + aluno do totem (sem celular) na bike + nome/professor da aula aberta vão ao servidor (faixa verde do app) + ranking da TV com os campos escolhidos no Portal (ordem e colunas) + versao do Ginasio aparece no Portal + aluno da sala fica ligado a academia + novo mapa (RB=QR, Y=FC, LB+RB 5 s=espaco) + tela de frequencia cardiaca (bike ou cinta do celular) + fim de aula chega ao celular (pendente, ao fechar, sala encerrada) + fim de aula e ranking no padrao novo + modo espaco (LB+RB 1 s: tela escura com estrelas na velocidade da sala) + teste FTP: so entra quem pedala nos 10 primeiros s; resultado vai ao celular + lista da tela do QR sem rolagem + ranking >20 em rodizio de 10 s, nome e foto maiores + fluidez: anel do teste FTP a cada quadro pelo relogio real, desafio e FTP 10x/s, cartoes e ranking ~7x/s atualizados no lugar, agulha do perfil 5x/s + trocas de tela com esmaecimento rapido + teste de FTP na tela nova (ao vivo e resultado com podio por evolucao) + FTP pela MEDIA do teste x fator (antes: instante / fator) + grafico antigo desativado; esconder as caixas faz o grafico descer e crescer 30% + desafio fluido (4x/s, atualiza no lugar, kcal fracionaria, corda e barras deslizando; pico de potencia so dentro do desafio) + resultado do desafio congelado no fim + ranking com muitos alunos sem corte (linhas encolhem para caber, nome maior em duas colunas) + desafio automatico no bloco (construtor: tipo, modo e segundos; comeca sozinho e termina com o bloco) + desafio CABO DE GUERRA (corda pelo esforco de agora em %FTP) + podio no resultado final + barra de progresso por aluno + desafios equilibrados pelo FTP (kcal em pontos, potencia media em %FTP; potencia maxima bruta) + reconexao: confere os alunos com o servidor e libera a bike de quem nao voltou + desafio Homens x Mulheres com tela nova (10 por lado, troca a cada 5 s, sem rolagem) + resultado individual enviado ao celular + grafico 2 cabe entre os circulos + INICIO/FIM so no comeco e no fim da aula + mini grafico das telas de cartoes no mesmo eixo de tempo (sem os ~5 s de diferenca) + lobby: linha branca do perfil removida + coluna 3 sem sobreposicao (so CSS) + agulha do progresso andando no perfil da tela do QR + grafico 2 25% maior + altura 15% mais contrastada + largura mais proporcional ao tempo + caixas do rodape 25% maiores (texto se ajusta) + linha do perfil da pre-aula atras das barras + TrainingPeaks do pendrive + faixa preta gravada no video cortada sozinha + versao na tela inicial + linha do BUILD consertada + grade da sala limitada pelas bikes da licenca (/display/licenca) + grafico 2 troca de pagina na hora (nao fica atrasado conforme a tela) + bike 99 do professor aparece na aula e vai no relay + marcha e FC tambem nas bikes sem login + bled112.js unificado (Electron + Chrome) + marcha e FC nos cartoes + FC na lista do lobby + perfil do lobby alinhado (barras e linha no mesmo eixo) + cartao AULA SELECIONADA sem transbordar + QR sem dica flutuante + Meta FTP < 55% + 401 no pareamento oferece reativar + video travado no topo (faixa preta) + grafico 2: veu virou apagamento so nos cartoes + em pe/sentado pela borda de cima (sem P/S) + video de fundo cobrindo a tela inteira + gasto calorico pela mesma conta do app do aluno + painel de opcoes (quickbar) no visual das caixas do rodape + barra ao vivo ocupando a largura toda e com a posicao (de pe/sentado) + apagamento recortado bloco a bloco + pre-aula reorganizada + grafico pagina em telas + tela final: nome da aula, legenda alinhada + TSS na pre-aula e na tela final + protocolo de 60 min e fatores alinhados + grafico do topo acompanha pausa/avanco + lista de alunos sem rolagem + barras de rolagem removidas + dongle BLE: prova de vida, deteccao da velocidade e liberacao correta do leitor entre tentativas','color:#ea860c;font-weight:700;'); }catch(e){}
 
 // 26/09d: fechar o programa (ou a janela) avisa os celulares que a aula acabou.
 // Sem isto, o celular so descobria 3 minutos depois (prazo do servidor).
@@ -10831,6 +10912,7 @@ window.addEventListener('beforeunload',function(){
         alunos:(typeof alunosMap!=='undefined'?Object.keys(alunosMap).filter(function(k){ return alunosMap[k]&&!alunosMap[k]._virtual; }).length:0),
         quedas_ws:(typeof _wsQuedas!=='undefined'?_wsQuedas:0), erros:_errosTv, build:PR_BUILD };
       d.atualizador=!!window.prAtualizador;   // 07/10c: o programa da TV tem o atualizador automático?
+      d.atu_motivo=window._prAtuMotivo||''; d.tela=(typeof idleOn!=='undefined'&&idleOn)?'espera':String(typeof boxMode!=='undefined'?boxMode:'');   // 09/10
       try{ _prRelAmostra(d.fps,d.mem_mb); }catch(e){}
       window._prSaudeTv=d;
       fetch(SERVER_HTTP+'/display/saude',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+_gymDisplayToken,'X-PR-Build':PR_BUILD},body:JSON.stringify(d)}).catch(function(){});
@@ -10856,16 +10938,18 @@ window.addEventListener('beforeunload',function(){
       body:JSON.stringify({etapa:etapa,de:de||'',para:para||'',msg:msg||''})}).catch(function(){}); }
   function naJanela(j){ var m=String(j||'02:00-05:00').match(/^(\d\d):(\d\d)-(\d\d):(\d\d)$/); if(!m) return false;
     var n=new Date(), x=n.getHours()*60+n.getMinutes(), a=(+m[1])*60+(+m[2]), b=(+m[3])*60+(+m[4]); return a<=b?(x>=a&&x<b):(x>=a||x<b); }
-  function parada(){ try{ if(typeof isPlaying!=='undefined'&&isPlaying) return false; return typeof boxMode!=='undefined'&&boxMode==='idle'; }catch(e){ return false; } }
+  function parada(){ try{ if(typeof isPlaying!=='undefined'&&isPlaying) return false; if(typeof boxMode==='undefined') return false; return boxMode==='idle'||(boxMode==='escolha'&&typeof idleOn!=='undefined'&&idleOn); }catch(e){ return false; } }
   window._prAtuPodeAgora=parada;
   async function checar(){
     var t=tk(); if(!t||window._PR_OFFLINE) return;
     var r; try{ r=await (await fetch(SERVER_HTTP+'/display/atualizacao',{headers:{'Authorization':'Bearer '+t,'X-PR-Build':PR_BUILD},cache:'no-store'})).json(); }catch(e){ return; }
     window._prAtuUltima=r;
-    if(!r||r.nada||!r.versao) return;
+    if(!r||r.nada||!r.versao){ window._prAtuMotivo=r&&r.motivo?r.motivo:'nada'; return; }
     if(!window.prAtualizador){ if(!_avisouSemSuporte){ _avisouSemSuporte=true; contar('sem_suporte',PR_BUILD.replace('BUILD ',''),r.versao,'o programa da TV ainda não tem o atualizador: instalar uma vez pelo GERAR_PROGRAMA_DA_TV.bat'); } return; }
-    if(!(r.agora||naJanela(r.janela))||!parada()) return;
-    if(_tentouEm[r.versao]&&Date.now()-_tentouEm[r.versao]<3600000) return;   // falhou há pouco: tenta de novo em 1 h
+    if(!(r.agora||naJanela(r.janela))){ window._prAtuMotivo='fora da janela (2h–5h)'; return; }
+    if(!parada()){ window._prAtuMotivo='esperando a tela de espera (agora: '+(typeof boxMode!=='undefined'?boxMode:'?')+')'; return; }
+    if(_tentouEm[r.versao]&&Date.now()-_tentouEm[r.versao]<3600000){ window._prAtuMotivo='falhou há pouco; tenta de novo em 1 h'; return; }   // falhou há pouco: tenta de novo em 1 h
+    window._prAtuMotivo='instalando '+r.versao;
     _tentouEm[r.versao]=Date.now();
     var de=PR_BUILD.replace('BUILD ','');
     try{ console.log('[ProRider] atualização automática: instalando a '+r.versao+'…'); }catch(e){}

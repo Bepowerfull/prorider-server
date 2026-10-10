@@ -2093,3 +2093,38 @@ button:active{ transform:scale(0.97); }
 #diagSala .dg-vazio{font-size:24px;color:#9a9aa2;padding:10px 0}
 #diagSala .ok{color:#5DB13D}#diagSala .wa{color:#FFB020}#diagSala .er{color:#ff5d58}
 #diagSala .dg-rod{display:flex;justify-content:space-between;font-size:21px;color:#9a9aa2;letter-spacing:2px;margin-top:auto}#diagSala .dg-rod b{color:#F3F1EE}
+/* 09/10: CONTAGEM DA AULA AUTOMÁTICA (arte nova) */
+#boxCountdown.cd2{background:#07060c;overflow:hidden;font-family:'Barlow Condensed','Arial Narrow',Arial,sans-serif;color:#fff}
+.cd2-bg{position:absolute;inset:0;background:radial-gradient(900px 600px at 30% 50%,rgba(234,134,12,.28),transparent 70%),radial-gradient(800px 700px at 85% 20%,rgba(214,45,45,.18),transparent 70%),radial-gradient(1200px 500px at 50% 120%,rgba(41,95,232,.22),transparent 70%);animation:cd2Resp 6s ease-in-out infinite}
+@keyframes cd2Resp{50%{opacity:.7}}
+.cd2-zonas{position:absolute;left:0;right:0;bottom:0;height:14px;display:flex}.cd2-zonas i{flex:1}
+.cd2-zonas i:nth-child(1){background:#888}.cd2-zonas i:nth-child(2){background:#295fe8}.cd2-zonas i:nth-child(3){background:#5db13d}.cd2-zonas i:nth-child(4){background:#d7c414}.cd2-zonas i:nth-child(5){background:#ea860c}.cd2-zonas i:nth-child(6){background:#d62d2d}.cd2-zonas i:nth-child(7){background:#9b30ff}
+.cd2-top{position:absolute;top:40px;left:60px;right:60px;display:flex;align-items:center;justify-content:space-between}
+.cd2-top img{height:64px}
+.cd2-top span{font-size:26px;font-weight:800;letter-spacing:5px;color:#ffb020;border:2px solid rgba(255,176,32,.6);border-radius:40px;padding:8px 26px;animation:cd2Pulsa 2s ease-in-out infinite}
+@keyframes cd2Pulsa{50%{box-shadow:0 0 30px rgba(255,176,32,.45)}}
+.cd2-meio{position:relative;display:flex;align-items:center;gap:90px;padding:0 80px}
+.cd2-anel{position:relative;width:560px;height:560px;flex:none}
+.cd2-anel svg{width:100%;height:100%;transform:rotate(-90deg)}
+.cd2-trilho{fill:none;stroke:rgba(255,255,255,.08);stroke-width:12}
+.cd2-prog{fill:none;stroke:url(#cd2G);stroke-width:12;stroke-linecap:round;stroke-dasharray:553;stroke-dashoffset:0;transition:stroke-dashoffset 1s linear;filter:drop-shadow(0 0 12px rgba(234,134,12,.6))}
+.cd2-rel{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.cd2-rel #cdTimer{font-family:'Bebas Neue',Impact,sans-serif;font-size:190px;line-height:.95;letter-spacing:4px;font-variant-numeric:tabular-nums}
+.cd2-k{font-size:24px;font-weight:700;letter-spacing:6px;color:rgba(255,255,255,.55)}
+.cd2-k2{font-size:28px;color:rgba(255,255,255,.7);letter-spacing:1px;margin-top:6px}.cd2-k2 b{color:#ffb020}
+.cd2-info{max-width:820px}
+.cd2-info #cdNome{font-family:'Bebas Neue',Impact,sans-serif;font-size:118px;line-height:.95;letter-spacing:2px;margin-top:8px;text-wrap:balance}
+.cd2-info #cdProf{font-size:36px;color:rgba(255,255,255,.75);margin-top:10px}
+.cd2-passos{display:flex;flex-direction:column;gap:14px;margin-top:36px}
+.cd2-passos div{display:flex;align-items:center;gap:18px;font-size:34px;font-weight:700}
+.cd2-passos b{width:52px;height:52px;border-radius:50%;background:#ea860c;color:#111;display:flex;align-items:center;justify-content:center;font-size:30px;flex:none}
+.cd2-auto{margin-top:34px;font-size:26px;font-weight:800;letter-spacing:2px;color:#8fe06a}
+#boxCountdown.cd2-fim #cdTimer{color:#ff5d3a;animation:cd2Bate 1s ease-in-out infinite}
+@keyframes cd2Bate{50%{transform:scale(1.05)}}
+/* faixa da aula automática na tela do QR */
+#autoFaixa{position:fixed;left:50%;bottom:62px;transform:translateX(-50%);z-index:30000;display:flex;align-items:center;gap:18px;background:rgba(10,10,14,.92);border:2px solid #ea860c;border-radius:60px;padding:12px 34px;font-family:'Barlow Condensed',Arial,sans-serif;color:#fff;box-shadow:0 0 40px rgba(234,134,12,.35)}
+#autoFaixa .af-k{font-size:20px;font-weight:800;letter-spacing:4px;color:#ffb020}
+#autoFaixa .af-t{font-size:24px;color:rgba(255,255,255,.75)}
+#autoFaixa b{font-family:'Bebas Neue',Impact,sans-serif;font-size:56px;line-height:1;letter-spacing:2px;font-variant-numeric:tabular-nums}
+#autoFaixa .af-d{font-size:17px;color:rgba(255,255,255,.45)}
+#autoFaixa.auto-fim{border-color:#ff3b30}#autoFaixa.auto-fim b{color:#ff5d3a}

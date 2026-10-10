@@ -180,6 +180,10 @@ button{font-family:inherit}
 .pr-k .v{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:44px;line-height:1.05;margin-top:4px}
 .pr-k .d{font-size:12px;color:var(--green);font-weight:600}
 .pr-k.link{cursor:pointer}.pr-k.link:hover{border-color:rgba(234,134,12,.4)}
+.sd-rol.aberto{max-height:560px;overflow-y:auto}
+.sd-rol.aberto thead th{position:sticky;top:0;background:var(--card);z-index:1}
+.sd-mais{display:block;width:100%;padding:10px;border:0;border-top:1px solid var(--border);background:transparent;color:var(--accent);font-weight:700;font-size:13px;cursor:pointer}
+.sd-mais:hover{background:rgba(234,134,12,.08)}
 .pr-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:18px}
 .pr-card h3{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:20px;text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;gap:10px}
 .pr-card h3 a{font-family:'Inter',sans-serif;font-size:12px;color:var(--accent);text-transform:none;letter-spacing:0;font-weight:600;cursor:pointer}
@@ -432,15 +436,15 @@ button{font-family:inherit}
 <!-- ENTRADA (29/09b): idêntica à arte do marketing -->
 <div id="loginScreen" class="lp">
 <div class="lpx" id="lpx"><div class="lpx-fill"></div>
-  <div class="lpx-art" id="lpxArt"><img src="img/entrada-arte.jpg" alt="ProRider — Ride with purpose" draggable="false">
+  <div class="lpx-art" id="lpxArt"><img src="img/entrada-arte-larga.jpg" alt="" aria-hidden="true" draggable="false" style="left:-26.4817%;width:152.9634%;right:auto"><img src="img/entrada-arte.jpg" alt="ProRider — Ride with purpose" draggable="false">
     <input class="lpx-o lpx-in" style="left:77.112%;top:43.548%;width:18.916%;height:5.040%" type="email" id="loginEmail" placeholder="voce@academia.com" autocomplete="username">
     <input class="lpx-o lpx-in" style="left:77.112%;top:52.117%;width:18.916%;height:5.040%" type="password" id="loginPass" placeholder="••••••••" autocomplete="current-password">
     <button type="button" class="lpx-o lpx-hit bt login-btn" style="left:77.112%;top:59.173%;width:18.916%;height:5.040%" onclick="doLogin()" aria-label="Entrar"></button>
     <button type="button" class="lpx-o lpx-hit" style="left:76.923%;top:65.323%;width:8.953%;height:3.226%" onclick="prEsqueciSenha(SERVER,(document.getElementById('loginEmail')||{}).value)" aria-label="Esqueci a senha"></button>
     <a class="lpx-o lpx-hit" style="left:89.029%;top:65.323%;width:7.188%;height:3.226%" href="/aluno" aria-label="Sou aluno: abrir o app"></a>
-    <a class="lpx-o" href="academia.html#criar" style="left:77.112%;top:68.6%;width:18.916%;height:auto;padding:7px 0;border:1px solid rgba(234,134,12,.55);border-radius:9px;background:rgba(234,134,12,.12);font:700 13px Barlow,sans-serif;color:#ffb45a;text-align:center;text-decoration:none">Primeiro acesso? Criar conta</a>
+    <a class="lpx-o" href="academia.html#criar" style="left:77.112%;top:71.4%;width:18.916%;height:auto;padding:calc(var(--u)*6) 0;border:1px solid rgba(234,134,12,.55);border-radius:9px;background:rgba(234,134,12,.12);font:700 calc(var(--u)*13) Barlow,sans-serif;color:#ffb45a;text-align:center;text-decoration:none">Primeiro acesso? Criar conta</a>
     <button type="button" class="lpx-o lpx-hit" style="left:2.774%;top:62.903%;width:41.488%;height:12.500%" onclick="lpVideo()" aria-label="Assista ao vídeo"></button>
-    <div class="lpx-o lpx-err login-err" id="loginErr" style="left:77.112%;top:73.6%;width:18.916%;height:4.032%;height:auto"></div>
+    <div class="lpx-o lpx-err login-err" id="loginErr" style="left:77.112%;top:75.2%;width:18.916%;height:4.032%;height:auto"></div>
     <div class="lpx-o lpx-dica" id="lpDica" style="left:75.662%;top:70.968%;width:21.942%;height:9.073%;height:auto">Peça ao gestor da sua academia uma senha nova (Portal → Alunos ou Equipe). Gestor: fale com o suporte ProRider.</div>
     <div class="lpx-o lpx-k" style="left:9.836%;top:80.343%;width:8.575%;height:5.645%"><b data-lp="atl">—</b><small data-lpd="atl">&nbsp;</small></div><div class="lpx-o lpx-k" style="left:24.968%;top:80.343%;width:8.575%;height:5.645%"><b data-lp="km">—</b><small data-lpd="km">&nbsp;</small></div><div class="lpx-o lpx-k" style="left:40.101%;top:80.343%;width:9.079%;height:5.645%"><b data-lp="kcal">—</b><small data-lpd="kcal">&nbsp;</small></div><div class="lpx-o lpx-k" style="left:55.612%;top:80.343%;width:9.332%;height:5.645%"><b data-lp="aulas">—</b><small data-lpd="aulas">&nbsp;</small></div><div class="lpx-o lpx-k" style="left:71.627%;top:80.343%;width:8.827%;height:5.645%"><b data-lp="horas">—</b><small data-lpd="horas">&nbsp;</small></div><div class="lpx-o lpx-k" style="left:87.201%;top:80.343%;width:8.197%;height:5.645%"><b data-lp="wpp">—</b><small data-lpd="wpp">&nbsp;</small></div>
   </div>
@@ -454,7 +458,7 @@ button{font-family:inherit}
   </div>
   <div class="lp-main">
     <div class="lp-head">
-      <img class="lp-brush" src="img/entrada-titulo.jpg" alt="Ride with purpose" style="transform:none;width:100%;max-width:640px;display:block;margin-top:6px;-webkit-mask-image:radial-gradient(ellipse 75% 70% at 50% 50%,#000 60%,transparent 100%);mask-image:radial-gradient(ellipse 75% 70% at 50% 50%,#000 60%,transparent 100%)">
+      <img class="lp-brush" src="img/entrada-titulo2.jpg" alt="Ride with purpose" style="transform:none;width:100%;max-width:640px;display:block;margin-top:6px;-webkit-mask-image:radial-gradient(ellipse 75% 70% at 50% 50%,#000 60%,transparent 100%);mask-image:radial-gradient(ellipse 75% 70% at 50% 50%,#000 60%,transparent 100%)">
       <div class="lp-sub">Potência, zonas e ranking ao vivo<br>na TV da academia e no celular de cada aluno.</div>
       <div class="lp-live off" data-lp="live"><i></i><span>Conectando…</span></div>
       <div class="lp-feats">
@@ -518,6 +522,7 @@ button{font-family:inherit}
     <div class="pr-it" onclick="showPage('alunos')" id="nav-alunos"><i>👥</i>Usuários</div>
     <div class="pr-it" onclick="showPage('financeiro')" id="nav-financeiro"><i>💳</i>Financeiro</div>
     <div class="pr-it" onclick="showPage('loja')" id="nav-loja"><i>🛒</i>Loja do app</div>
+    <div class="pr-it" onclick="showPage('rede')" id="nav-rede"><i>📚</i>Aulas da rede</div>
     <div class="pr-it" onclick="showPage('saude')" id="nav-saude"><i>🩺</i>Saúde do sistema<span class="n" id="nbSaude" style="display:none"></span></div>
     <div class="pr-sbh">Conta</div>
     <div class="pr-it" onclick="showPage('perfil')" id="nav-perfil"><i>👤</i>Meu perfil</div>
@@ -712,6 +717,19 @@ button{font-family:inherit}
       <div id="ljAdm"></div>
     </div>
   </div>
+  <!-- BIBLIOTECA DA REDE (10/10i): aulas-padrão ProRider para todas as academias -->
+  <div class="page" id="page-rede">
+    <div class="topbar"><h1>Aulas da rede ProRider</h1><div class="actions"><label class="btn btn-primary btn-sm" style="cursor:pointer">＋ Subir aula (.json)<input type="file" accept=".json,application/json" multiple style="display:none" onchange="redeSubir(this)" id="redeArq"></label></div></div>
+    <div class="content">
+      <div class="pr-card" style="margin-bottom:16px;color:var(--muted);font-size:14px;line-height:1.55">
+        As aulas daqui aparecem para <b style="color:#fff">todas as academias</b>, no Portal → Grade → aula automática, no grupo “⚡ Aulas da rede ProRider”.
+        Use arquivos do construtor de aulas do ProRider (ou TrainingPeaks .json). Ao apagar uma aula, as grades que a usavam viram “aula livre”.
+      </div>
+      <div id="redeMsg" style="margin-bottom:10px;font-size:14px"></div>
+      <div class="pr-card" style="padding:0;overflow-x:auto"><table style="width:100%;border-collapse:collapse" id="redeTab"><tbody><tr><td style="padding:22px;color:var(--muted)">Carregando…</td></tr></tbody></table></div>
+    </div>
+  </div>
+
   <!-- SAÚDE DO SISTEMA (03/10e) -->
   <div class="page" id="page-saude">
     <div class="topbar"><h1>Saúde do sistema</h1><div class="actions"><span id="sdHora" style="font-size:12px;color:var(--muted)"></span> <button class="btn btn-outline btn-sm" onclick="loadSaude()">↻ Atualizar</button></div></div>
@@ -969,7 +987,7 @@ function lpLogoToque(){}
 setTimeout(lpStats, 300); setInterval(lpStats, 30000);
 
 var adminToken = localStorage.getItem('pr_admin_token') || '';
-try { if (typeof prErroConfig === 'function') prErroConfig(SERVER, 'admin', function () { return adminToken; }, 'Admin 07/10f'); } catch (e) {}   // 03/10f
+try { if (typeof prErroConfig === 'function') prErroConfig(SERVER, 'admin', function () { return adminToken; }, 'Admin 07/10i'); } catch (e) {}   // 03/10f
 var adminUser  = JSON.parse(localStorage.getItem('pr_admin_user') || 'null');
 var allLicencas = [];
 var allAlunos   = [];
@@ -1057,8 +1075,55 @@ function showPage(page) {
   if (page === 'alunos')     loadAlunos();
   if (page === 'financeiro') loadFinanceiro();
   if (page === 'loja')       loadLoja();   // 03/10c
+  if (page === 'rede')       loadRede();   // 10/10i
   clearInterval(window._saudeT);
   if (page === 'saude')      { loadSaude(); window._saudeT = setInterval(loadSaude, 60000); }   // 03/10e
+}
+
+// ── Biblioteca da rede (10/10i) ───────────────────────────────
+function redeEsc(t){ return String(t==null?'':t).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+async function loadRede(){
+  const tb = document.querySelector('#redeTab tbody');
+  try {
+    const d = await api('/admin/biblioteca-rede'); const l = d.aulas || [];
+    if (!l.length) { tb.innerHTML = '<tr><td style="padding:26px;color:var(--muted);text-align:center">Nenhuma aula da rede ainda. Clique em “＋ Subir aula”.</td></tr>'; return; }
+    const th = 'padding:11px 14px;text-align:left;font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid var(--border)';
+    const td = 'padding:11px 14px;border-bottom:1px solid var(--border);font-size:14px';
+    tb.innerHTML = '<tr><th style="'+th+'">Aula</th><th style="'+th+'">Duração</th><th style="'+th+'">Em grades</th><th style="'+th+'">Atualizada</th><th style="'+th+'"></th></tr>'
+      + l.map(a => '<tr data-rede="'+a.id+'"><td style="'+td+';font-weight:600">'+redeEsc(a.nome)+'</td><td style="'+td+'">'+(a.duracao_sec?Math.round(a.duracao_sec/60)+' min':'—')+'</td><td style="'+td+'">'+(a.em_grades||0)+'</td><td style="'+td+';color:var(--muted)">'+(a.updated_at?new Date(a.updated_at).toLocaleDateString('pt-BR'):'')+'</td>'
+        + '<td style="'+td+';text-align:right;white-space:nowrap"><button class="btn btn-outline btn-sm" onclick="redeRenomear('+a.id+')">Renomear</button> <button class="btn btn-outline btn-sm" style="color:#ff8a8a" onclick="redeApagar('+a.id+',this)">Apagar</button></td></tr>').join('');
+  } catch (e) { tb.innerHTML = '<tr><td style="padding:22px;color:#ff8a8a">Não consegui carregar.</td></tr>'; }
+}
+function redeMsg(t, ok){ const m = document.getElementById('redeMsg'); m.textContent = t; m.style.color = ok ? '#8fe06a' : '#ff8a8a'; }
+async function redeSubir(inp){
+  const fs = Array.from(inp.files || []); let ok = 0, err = '';
+  for (const f of fs) {
+    try {
+      const txt = await f.text(); JSON.parse(txt);
+      const d = await api('/admin/biblioteca-rede', { method: 'POST', body: JSON.stringify({ nome: f.name.replace(/\.json$/i, '').slice(0, 80), json: txt }) });
+      if (d.error) throw new Error(d.error); ok++;
+    } catch (e) { err = f.name + ': ' + (e.message && !/JSON/.test(e.message) ? e.message : 'não é uma aula (.json do construtor).'); }
+  }
+  inp.value = '';
+  redeMsg(err ? (ok ? ok + ' aula(s) subiram. ' : '') + err : '✓ ' + ok + ' aula(s) subiram — já aparecem para todas as academias.', !err);
+  loadRede();
+}
+async function redeRenomear(id){
+  const tr = document.querySelector('tr[data-rede="'+id+'"]'); if (!tr) return;
+  const c = tr.cells[0], atual = c.textContent;
+  c.innerHTML = '<input value="'+redeEsc(atual)+'" maxlength="80" style="width:100%;padding:8px;border-radius:8px;border:1px solid var(--border);background:var(--bg);color:#fff">';
+  const i = c.querySelector('input'); i.focus(); i.select();
+  const salvar = async () => { const n = i.value.trim(); if (!n || n === atual) { c.textContent = atual; return; }
+    const d = await api('/admin/biblioteca-rede/'+id, { method: 'PUT', body: JSON.stringify({ nome: n }) });
+    if (d.error) { redeMsg(d.error); c.textContent = atual; } else c.textContent = d.nome; };
+  i.onkeydown = e => { if (e.key === 'Enter') i.blur(); if (e.key === 'Escape') { i.value = atual; i.blur(); } };
+  i.onblur = salvar;
+}
+async function redeApagar(id, btn){
+  // confirmação na própria linha (sem confirm() do navegador)
+  if (!btn.dataset.conf) { btn.dataset.conf = '1'; btn.textContent = 'Confirmar?'; setTimeout(() => { if (btn.isConnected) { delete btn.dataset.conf; btn.textContent = 'Apagar'; } }, 4000); return; }
+  const d = await api('/admin/biblioteca-rede/'+id, { method: 'DELETE' });
+  if (d.error) redeMsg(d.error); else { redeMsg('Aula apagada.', true); loadRede(); }
 }
 
 // ── Meu perfil (26/09e) ───────────────────────────────────────
@@ -1883,10 +1948,12 @@ function sdTvConsulta(t){
     desligada:['#ffb45a','há a '+(c.versao||'')+', mas a atualização está desligada (ligue ou clique em "atualizar agora")'],
     agora:['#7fb2ff','"atualizar agora": instala a '+(c.versao||'')+' quando a TV estiver na tela de espera'],
     janela:['#7fb2ff','a '+(c.versao||'')+' será instalada entre 2h e 5h, com a TV na tela de espera']}[c.motivo]||['inherit',c.motivo];
-  return '<div style="font-size:12px;margin-top:3px;color:'+tx[0]+'">última consulta '+sdQuando(c.em)+': '+sdEsc(tx[1])+'</div>';
+  const m=t.saude&&t.saude.atu_motivo?' · TV: '+sdEsc(t.saude.atu_motivo):'';
+  return '<div style="font-size:12px;margin-top:3px;color:'+tx[0]+'">última consulta '+sdQuando(c.em)+': '+sdEsc(tx[1])+m+'</div>';
 }
 function sdTvAtu0(t){
-  const a=t.atualizacao; if(!a) return t.tv_auto_atualizar?'<span style="color:var(--muted)">⟳ auto ligada</span>':'';
+  let a=t.atualizacao; if(a&&a.etapa==='sem_suporte'&&t.saude&&t.saude.atualizador===true) a=null;   // 09/10: aviso velho — a TV já tem o atualizador
+  if(!a) return t.tv_auto_atualizar?'<span style="color:var(--muted)">⟳ auto ligada</span>':'';
   const cor={ok:'#8fe06a',erro:'#ff8a8a',voltou:'#ffb45a',baixando:'#7fb2ff',instalada:'#7fb2ff',sem_suporte:'var(--muted)'}[a.etapa]||'inherit';
   const txt={ok:'atualizou',erro:'falhou',voltou:'voltou à anterior',baixando:'baixando',instalada:'instalada, confirmando',sem_suporte:'programa sem atualizador'}[a.etapa]||a.etapa;
   return '<span style="color:'+cor+'" title="'+sdEsc(a.msg||'')+'">⟳ '+txt+(a.para?' '+sdEsc(a.para):'')+' · '+sdQuando(a.em)+'</span>';
@@ -1917,7 +1984,31 @@ async function sdTvHist(a,lic,dev){
 }
 function sdEsc(s){ return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 function sdQuando(t){ if(!t) return '—'; const m=Math.round((Date.now()-new Date(t))/60000); return m<1?'agora':m<60?m+' min':m<1440?Math.round(m/60)+' h':Math.round(m/1440)+' d'; }
+// 10/10i: cada setor da Saúde mostra no máximo 10 linhas; a setinha abre tudo (com rolagem)
+const _sdAbertos = new Set();
+function sdLimitar(){
+  document.querySelectorAll('#sdConteudo .table-wrap').forEach(w => {
+    const tb = w.querySelector('table > tbody'); if (!tb) return;
+    const tab = tb.parentElement, rows = Array.from(tb.rows);
+    const key = ((w.querySelector('h2') || {}).textContent || w.id || '').replace(/\(.*?\)|·.*$/g, '').trim();
+    let bt = w.querySelector(':scope > .sd-mais');
+    if (rows.length <= 10) { if (bt) bt.remove(); rows.forEach(r => r.style.display = ''); return; }
+    if (!tab.parentElement.classList.contains('sd-rol')) { const r = document.createElement('div'); r.className = 'sd-rol'; tab.parentNode.insertBefore(r, tab); r.appendChild(tab); }
+    const aberto = _sdAbertos.has(key), rol = tab.parentElement;
+    rows.forEach((r, i) => { r.style.display = (!aberto && i >= 10) ? 'none' : ''; });
+    rol.classList.toggle('aberto', aberto);
+    if (!bt) { bt = document.createElement('button'); bt.type = 'button'; bt.className = 'sd-mais'; w.appendChild(bt); }
+    bt.onclick = () => { if (_sdAbertos.has(key)) _sdAbertos.delete(key); else _sdAbertos.add(key); sdLimitar(); };
+    const t = aberto ? '▲ Mostrar só as 10 primeiras' : '▼ Ver todas (' + rows.length + ')';
+    if (bt.textContent !== t) bt.textContent = t;
+  });
+}
+function sdVigiarLinhas(){
+  const el = document.getElementById('sdConteudo'); if (!el || el._vig) return; el._vig = 1;
+  let tm; new MutationObserver(() => { clearTimeout(tm); tm = setTimeout(sdLimitar, 40); }).observe(el, { childList: true, subtree: true });
+}
 async function loadSaude(){
+  sdVigiarLinhas();   // 10/10i
   sdSemaforo();   // 03/10h
   let d, av=null; try{ [d,av]=await Promise.all([api('/admin/saude'), api('/admin/alertas').catch(()=>null)]); }catch(e){ d={error:'sem conexão com o servidor'}; }
   const el=document.getElementById('sdConteudo'); if(!el) return;

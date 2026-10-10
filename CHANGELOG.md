@@ -33,6 +33,38 @@ Componentes: `servidor` · `app` · `ginasio` · `portal` · `banco`.
 
 ---
 
+## 2026-10-09 · servidor + ginasio + portal · 07/10h — aula automática com a aula escolhida (biblioteca)
+
+**O que mudou**
+- **Portal → Grade → Automático:** aba "Qual aula a TV vai rodar" (biblioteca da academia: treinos salvos no construtor por gestor, coordenador e professores, e arquivos `.json` que o gestor sobe ali) e "Sem professor — a TV conduz a aula sozinha".
+- **Servidor:** `aulas_agenda.treino_id` e `sem_professor` (migração automática); `GET/POST /gestor/biblioteca`; `GET /display/aula-automatica/:agenda_id` (a TV baixa a aula da grade dela). Só aulas da própria academia.
+- **TV:** na aula automática com aula escolhida, baixa o treino, monta gráfico, música e vídeo (a tela de música e vídeo confirma sozinha) e abre o QR com o relógio; START sozinho na hora. Sem aula escolhida, segue como aula livre. Proteção na tela da aula quando a aula é trocada com o relógio da anterior rodando.
+- **Atualização automática (correção importante):** quando a TV voltava sozinha do menu para a tela de espera, o programa continuava "no menu" e o atualizador nunca instalava (foi o que travou o teste no Clube). Agora a tela de espera é sempre reconhecida.
+
+**Como confirmar**
+- `tv` (biblioteca → grade → TV abre o QR com os 3 blocos da aula e começa sozinha), `notas` (Portal: aba da aula automática). **32 grupos**.
+
+**Cuidados**
+- Muda o Ginásio (**07/10h**): assinar a versão da TV.
+
+## 2026-10-09 · servidor + ginasio + app + portal · 07/10g — aula automática, "entrar na aula" certo, compartilhar igual à arte
+
+**O que mudou**
+- **Aula automática (TV):** contagem com arte nova a partir de 15 min antes; aos 5 min abre sozinha a tela do QR com a faixa "começa sozinha em mm:ss"; na hora, START automático (START antecipa; segurar B 3 s cancela). `/display/proxima-aula` passa a avisar 15 min antes.
+- **TV, tela do QR:** o controle não volta mais para o menu inicial (a tela de espera ficava ligada por baixo depois da contagem). B volta para a tela de música e vídeo.
+- **App, "entrar na aula":** só aparece com a TV na tela do QR ("Aula começando") ou em aula ("Aula em andamento"). A TV manda `tv_modo` pelo WebSocket; antes qualquer TV ligada tinha sala aberta e o app mostrava "entre já" em todas as academias. O totem segue a mesma regra.
+- **Portal, reservas:** a contagem do cartão e a lista usam a mesma data (a próxima vez da aula); antes a lista abria na data de hoje em UTC.
+- **Portal:** listas de opções legíveis (letra branca em fundo branco no Windows).
+- **App:** datas locais nas reservas; a tela de agendar rola (a última academia ficava cortada).
+- **Compartilhar:** logo da arte, linha de distância (a mesma conta da TV, pela cadência), ícones maiores no rodapé, botões menores no padrão do app. A tela de fim mostra a distância.
+- **Saúde:** a TV conta por que não instalou a atualização (ex.: "esperando a tela de espera (agora: escolha)") e em que tela está; o aviso antigo "programa sem atualizador" some quando a TV já tem o atualizador.
+
+**Como confirmar**
+- `tv` (aula automática com controle simulado), `fimaula` ("entrar na aula" só com QR/aula), bateria completa — **32 grupos**.
+
+**Cuidados**
+- Muda o Ginásio (**07/10g**): assinar a versão da TV (MENSAGEM, seção 1.B). Imagem nova `public/img/compartilhar-logo.png`.
+
 ## 2026-10-09 · servidor + app (site) · 07/10f — resumo em todas as formas de terminar; botão CONTROLES
 
 **O que mudou**

@@ -483,6 +483,7 @@ async function abrirBgPicker(d,vc,mc){
   if(uC){ uC.style.display='none'; }
   var s=document.getElementById('bgPickerScreen'); if(s) s.style.display='flex';
   boxMode='bgPicker';
+  if(window._autoAula&&window._autoAula.picker) setTimeout(function(){ if(boxMode==='bgPicker'&&window._autoAula) bgConfirmar(); },1500);   // 09/10: aula automática confirma música e vídeo sozinha
   _bgRenderAll();
   _bgPrevStart();
   if(_bgSumTimer) clearInterval(_bgSumTimer);

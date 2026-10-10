@@ -70,6 +70,15 @@ const caixa = async () => (await (await fetch(MOCK + '/_emails')).json());
     await p.evaluate(() => showTab('ocupacao'));
     let txt = ''; for (let i = 0; i < 20 && !/Prof Nota/.test(txt); i++) { await espera(300); txt = await p.evaluate(() => (document.getElementById('ocNotas') || {}).innerText || ''); }
     ok(/4,5/.test(txt) && /média de 2 notas/.test(txt) && /Prof Nota/.test(txt) && /2 notas/.test(txt), 'tela Ocupação mostra "Nota das aulas" com professor e horário', txt.replace(/\s+/g, ' ').slice(0, 160));
+    // 09/10: criar aula automática — aba "qual aula" (biblioteca) e "sem professor"
+    await sql(`INSERT INTO treinos_professor (user_id, nome, json, duracao_sec) SELECT id, 'Aula da Biblioteca', '{"workout":[{"intensity":"z2","duration":1}]}', 60 FROM users WHERE email='gestor@nota.test'`);
+    await p.evaluate(() => { showTab('grade'); }); await espera(800);
+    await p.evaluate(() => openNovaAula()); await espera(800);
+    const fa = await p.evaluate(async () => { const s = document.getElementById('fModoInicio'); s.value = 'automatico'; s.dispatchEvent(new Event('change')); await new Promise(r => setTimeout(r, 900));
+      const o = [...document.getElementById('fTreino').options].map(x => x.textContent); const opt = getComputedStyle(document.querySelector('#fTreino option')); return { vis: getComputedStyle(document.getElementById('fAutoBox')).display, o, cor: opt.color, fundo: opt.backgroundColor }; });
+    ok(fa.vis === 'block' && fa.o.some(x => /Aula da Biblioteca/.test(x)) && fa.cor !== fa.fundo, 'Portal: "Automático" abre a escolha da aula (biblioteca) e "sem professor"; opções legíveis', fa);
+    await p.screenshot({ path: path.join(require('os').tmpdir(), 'prorider-portal-aula-auto.png') }).catch(() => {});
+    await p.evaluate(() => closeAulaModal());
     ok(!erros.length, 'sem erro de JavaScript no Portal', erros);
     // app: a folha "Como foi a aula?" grava a nota
     const ap = await nav.newPage({ viewport: { width: 390, height: 844 } }); const ea = []; ap.on('pageerror', e => ea.push(e.message.slice(0, 160)));

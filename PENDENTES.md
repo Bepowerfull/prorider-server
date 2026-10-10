@@ -75,6 +75,13 @@ Lista do que foi combinado com o Mario e ainda não foi feito. Quem fizer um ite
 - [ ] TVs: Windows atualizado, sem TeamViewer gratuito; usar licença comercial ou RustDesk.
 - [ ] Antes do lançamento: rodar de novo a revisão de segurança (`testes/invasao.test.js` + revisão manual).
 
+## Feito na 07/10g
+- [x] Aula automática: contagem nova (15 min), QR aos 5 min com relógio, START sozinho. Controle no QR não volta ao menu.
+- [x] "Entrar na aula" só com QR aberto/aula; reservas no Portal; listas legíveis; agenda do app rola; compartilhar igual à arte.
+- [x] **Aula automática — aba "qual aula" (07/10h):** biblioteca da academia (construtor + .json subido pelo gestor) e "sem professor".
+- [ ] Biblioteca **da rede** (aulas padrão ProRider para todas as academias) e **aula gravada** (vídeo do professor) como opção da aula automática.
+- [ ] Arte da contagem: trocar pelo esboço do Mario quando chegar.
+
 ## Feito na 07/10f
 - [x] Toda forma de terminar grava a aula e manda o resumo: professor encerra na TV, aluno sai pelo "Encerrar Aula", teste de FTP do app, aula gravada.
 - [x] Totem (sem celular, identificado pelo e-mail): aula gravada (histórico e pontos) e resumo por e-mail com os números da TV.

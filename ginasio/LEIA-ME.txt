@@ -1,4 +1,19 @@
-ProRider — BUILD 07/10d (Ginasio)
+ProRider — BUILD 07/10i (Ginasio)
+
+07/10i: BRASAO DO ALUNO no cartao de potencia (ao lado do nome) e na tela final da aula
+(podio e lista), mesmo de quem ja saiu da sala. Aula automatica tambem roda as AULAS DA
+REDE ProRider (aulas-padrao escolhidas no Portal).
+
+07/10h: AULA AUTOMATICA COM A AULA ESCOLHIDA. Na grade do Portal, a aula automatica pode ter
+uma aula da biblioteca da academia (construtor ou arquivo .json subido pelo gestor) e a opcao
+"sem professor". A TV baixa a aula, monta grafico, musica e video sozinha e abre o QR.
+CORRECAO: a TV que voltava sozinha do menu para a tela de espera nunca se atualizava.
+
+07/10g: AULA AUTOMATICA. 15 min antes a TV mostra a contagem (arte nova); 5 min antes abre
+sozinha a tela do QR com o relogio "comeca sozinha em"; na hora, a aula comeca sem apertar
+nada (START antecipa; segurar B 3 s cancela). Na tela do QR, o controle nao volta mais para o
+menu inicial; B volta para a tela de musica e video. A TV avisa ao servidor em que tela esta
+(o app so mostra "entrar na aula" com o QR aberto ou em aula) e, na Saude, por que nao atualizou.
 
 07/10d: DIAGNOSTICO DA SALA (secreto, para manutencao). Na tela do QR, segure LB + RB
 por 2 segundos: abre o painel com o sinal do receptor de cada bike (verde, amarelo,
