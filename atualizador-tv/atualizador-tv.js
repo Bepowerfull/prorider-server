@@ -45,7 +45,24 @@ function criar(opts) {
 
   // Chamado ao ABRIR o programa: decide o arquivo a carregar. Versão pendente que já abriu 2 vezes
   // sem confirmar (travou, fechou, reiniciou) volta para a anterior.
+  // 13/10: versão que veio DENTRO do programa instalado (lida do script.js ao lado do ginasio.html padrão)
+  function buildDoInstalador(padrao) {
+    try { const m = fs.readFileSync(path.join(path.dirname(padrao), 'script.js'), 'utf8').match(/var PR_BUILD='BUILD ([^']+)'/); return m ? m[1] : null; }
+    catch (x) { return null; }
+  }
   function arquivoInicial(padrao) {
+    // 13/10: programa NOVO instalado à mão (.exe/.bat) vale mais que a versão baixada antes.
+    // Antes, a TV que já tinha se atualizado sozinha (ex.: 07/10d em <dados>/versoes) continuava abrindo
+    // essa versão para sempre, mesmo depois de instalar um programa mais novo por cima
+    // (desinstalar não apaga a pasta de dados). Agora: mudou a versão do instalador → abre a do instalador.
+    const bi = buildDoInstalador(padrao);
+    if (bi) { const e0 = ler();
+      if (e0.instalador !== bi) {
+        if (e0.atual) hist(e0, 'programa novo instalado (' + bi + '): deixa de abrir a ' + e0.atual + ' baixada antes');
+        e0.instalador = bi; e0.atual = null; e0.anterior = null; e0.pendente = false; e0.aberturas = 0;
+        gravar(e0);
+      }
+    }
     const e = ler();
     if (e.pendente) {
       e.aberturas = (e.aberturas || 0) + 1;
