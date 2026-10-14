@@ -1,4 +1,8 @@
-ProRider — BUILD 07/10i (Ginasio)
+ProRider — BUILD 07/10j (Ginasio)
+
+07/10j: versao para TESTAR a atualizacao automatica. A tela e igual a 07/10i; muda so o
+numero. Junto vai o atualizador corrigido (programa novo instalado por cima vale mais que a
+versao baixada antes).
 
 07/10i: BRASAO DO ALUNO no cartao de potencia (ao lado do nome) e na tela final da aula
 (podio e lista), mesmo de quem ja saiu da sala. Aula automatica tambem roda as AULAS DA

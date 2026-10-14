@@ -18,9 +18,7 @@ const JWT_SECRET = process.env.JWT_SECRET;
 if (!JWT_SECRET) {
   throw new Error('JWT_SECRET nao definido — adicione nas variaveis do Railway antes de fazer deploy');
 }
-const DB_URL        = process.env.DATABASE_URL;
-const ASAAS_API_KEY = process.env.ASAAS_API_KEY || null;
-console.log('[asaas] API_KEY:', ASAAS_API_KEY ? 'presente' : 'AUSENTE');
+const DB_URL     = process.env.DATABASE_URL;
 
 // ══ Express ═══════════════════════════════════════════════════
 const path = require('path');
@@ -2151,7 +2149,7 @@ wss.on('connection', (ws) => {
         const salaCode = ws._salaCode;
         if (!salaCode || !salas[salaCode]) return;
         const sala = salas[salaCode];
-        if (sala.estado.encerrada) break;
+        sala.estado.encerrada = false; // 26/09d: aula correndo de novo
         sala.aoVivoEm = Date.now(); if (typeof msg.totTime === 'number' && msg.totTime >= 0) sala.aulaSeg = msg.totTime;   // 03/10y: "aulas ao vivo agora"
         if (msg.grafico)              sala.estado.grafico  = msg.grafico;
         if (msg.blocoIdx !== undefined) sala.estado.blocoIdx = msg.blocoIdx;
@@ -6847,10 +6845,10 @@ app.post('/display/gravacao/:id/enviar', displayAuth, async (req, res) => {
 // 03/10e — SEGURANÇA E SAÚDE: esqueci a senha, reportar problema,
 // excluir minha conta (LGPD) e a página "Saúde do sistema" do admin
 // ══════════════════════════════════════════════════════════════
-const SERVIDOR_VERSAO = '07/10i';
+const SERVIDOR_VERSAO = '07/10j';
 // 03/10y: versão do Ginásio que vai junto com este servidor. Pacote só de servidor/site não muda isto,
 // e as TVs não precisam ser reinstaladas. Mude junto com o PR_BUILD do Ginásio.
-const GINASIO_VERSAO = '07/10i';
+const GINASIO_VERSAO = '07/10j';
 // 03/10v: a TV certa tem o mesmo número do servidor (o pacote sobe os dois juntos)
 function tvVersaoOk(b) { return String(b || '').trim() === 'BUILD ' + GINASIO_VERSAO; }
 const _inicioServidor = Date.now();
@@ -7017,9 +7015,8 @@ app.delete('/user/conta', authMiddleware, async (req, res) => {
 function _aulasAoVivo() {
   const agora = Date.now(), out = [];
   for (const [codigo, sala] of Object.entries(salas)) {
-    if (!sala || !sala.aoVivoEm || sala.estado.encerrada) continue;
+    if (!sala || !sala.aoVivoEm || sala.estado.encerrada || agora - sala.aoVivoEm > 600000) continue;
     const tvOk = !!(sala.professor && sala.professor.readyState === WebSocket.OPEN);
-    if (agora - sala.aoVivoEm > (tvOk ? 600000 : 120000)) continue;  // TV online: 10 min; TV offline: 2 min
     out.push({ sala: codigo, licenca: sala.licenca || null, nome: sala.estado.nomeAula || '', alunos: sala.alunos.size + ((sala.totem && sala.totem.size) || 0),
       aula_min: Math.round((sala.aulaSeg || 0) / 6) / 10, situacao: !tvOk ? 'TV religando' : agora - sala.aoVivoEm > 20000 ? 'pausada' : 'rodando' });
   }
@@ -8232,6 +8229,7 @@ app.post('/gestor/sumidos/:id/avisar', gestorAuth, async (req, res) => {
 // ══════════════════════════════════════════════════════════════
 // ASAAS — WEBHOOK DE PAGAMENTOS
 // ══════════════════════════════════════════════════════════════
+const ASAAS_API_KEY = process.env.ASAAS_API_KEY || null;
 const ASAAS_BASE    = process.env.ASAAS_URL || 'https://api.asaas.com/v3';   // ASAAS_URL só para teste (sandbox)
 async function asaasApi(metodo, caminho, corpo) {
   const r = await fetch(ASAAS_BASE + caminho, { method: metodo, headers: { 'Content-Type': 'application/json', 'access_token': ASAAS_API_KEY, 'User-Agent': 'ProRider' }, body: corpo ? JSON.stringify(corpo) : undefined });

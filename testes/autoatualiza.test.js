@@ -140,6 +140,19 @@ function limpar() { try { fs.rmSync(DEST, { recursive: true, force: true }); } c
     const a1 = atu4.arquivoInicial('PADRAO'), a2 = atu4.arquivoInicial('PADRAO'), a3 = atu4.arquivoInicial('PADRAO');
     ok(a1 !== 'PADRAO' && a2 !== 'PADRAO' && a3 === 'PADRAO', 'travou 2 vezes ao abrir: na 3ª abre a versão anterior', [a1.slice(-12), a2.slice(-12), a3]);
     ok(atu4.confirmar('BUILD 99/99z').ok === true || atu4.estado().pendente === false, 'confirmar depois de voltar não reativa a versão ruim');
+    // (d) 13/10: a TV tinha se atualizado sozinha (07/10d) e depois instalaram um programa MAIS NOVO por cima (.exe).
+    //     Antes ela continuava abrindo a 07/10d baixada (a pasta de dados fica). Agora abre a do instalador.
+    { const d5 = path.join(tmp, 'd5'), inst = path.join(tmp, 'inst5'), v = n => path.join(d5, 'versoes', n);
+      fs.mkdirSync(v('07_10d'), { recursive: true }); fs.writeFileSync(path.join(v('07_10d'), 'ginasio.html'), 'velha');
+      fs.writeFileSync(path.join(d5, 'versoes', 'estado.json'), JSON.stringify({ atual: '07/10d', anterior: null, pendente: false, aberturas: 0, historico: [] }));
+      fs.mkdirSync(inst, { recursive: true }); fs.writeFileSync(path.join(inst, 'ginasio.html'), 'nova'); fs.writeFileSync(path.join(inst, 'script.js'), "var PR_BUILD='BUILD 07/10i';");
+      const atu5 = criarAtu({ pastaDados: d5, chavePublica: PUBK, hosts: ['127.0.0.1'], log: () => {} }), P5 = path.join(inst, 'ginasio.html');
+      ok(atu5.arquivoInicial(P5) === P5 && atu5.estado().atual === null && atu5.estado().instalador === '07/10i', 'programa novo instalado por cima da versão baixada: abre o do instalador (07/10i), não a 07/10d', atu5.estado());
+      ok(atu5.arquivoInicial(P5) === P5, 'reabrindo: continua no do instalador');
+      // depois a TV se atualiza sozinha (07/10j): essa vale, porque o instalador não mudou
+      fs.mkdirSync(v('07_10j'), { recursive: true }); fs.writeFileSync(path.join(v('07_10j'), 'ginasio.html'), 'j');
+      const e5 = atu5.estado(); e5.atual = '07/10j'; fs.writeFileSync(path.join(d5, 'versoes', 'estado.json'), JSON.stringify(e5));
+      ok(atu5.arquivoInicial(P5) === path.join(v('07_10j'), 'ginasio.html'), 'depois, a versão baixada sozinha (07/10j) abre normalmente'); }
     // (c) programa antigo, sem atualizador: a TV avisa a Saúde "programa sem atualizador"
     await sql(`UPDATE licenca_computadores SET atualizacao=NULL WHERE device_id='tv-atu'`);
     const tv3 = await nav.newPage(); tv3.on('pageerror', x => erros.push(x.message.slice(0, 140))); await rota(tv3);
