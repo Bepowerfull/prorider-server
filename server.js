@@ -1934,7 +1934,7 @@ wss.on('connection', (ws) => {
         }).catch(() => {});
         log(`Aluno entrou: ${nome} na sala ${codigo}`);
         if (sala.professor && sala.professor.readyState === WebSocket.OPEN) {
-          sala.professor.send(JSON.stringify({ tipo: 'aluno_conectou', nome, bike: bike || null, foto: msg.foto || null, ftpBase: (msg.ftpBase != null ? msg.ftpBase : null), genero: ((msg.genero === 'F' || msg.genero === 'M') ? msg.genero : null), nivel: (typeof msg.nivel === 'string' ? msg.nivel.slice(0, 20) : null), horario: new Date().toLocaleTimeString('pt-BR') })); // 29/09a: nivel = brasão // 26/09b: genero para o desafio Homens x Mulheres
+          sala.professor.send(JSON.stringify({ tipo: 'aluno_conectou', nome, bike: bike || null, remoto: !!_remoto, foto: msg.foto || null, ftpBase: (msg.ftpBase != null ? msg.ftpBase : null), genero: ((msg.genero === 'F' || msg.genero === 'M') ? msg.genero : null), nivel: (typeof msg.nivel === 'string' ? msg.nivel.slice(0, 20) : null), horario: new Date().toLocaleTimeString('pt-BR') })); // 29/09a: nivel = brasão // 26/09b: genero para o desafio Homens x Mulheres
         }
         ws.send(JSON.stringify({ tipo: 'conectado', codigo, nome }));
         ws.send(JSON.stringify({ tipo: 'entrou_sala', codigo, nome }));
@@ -6845,10 +6845,10 @@ app.post('/display/gravacao/:id/enviar', displayAuth, async (req, res) => {
 // 03/10e — SEGURANÇA E SAÚDE: esqueci a senha, reportar problema,
 // excluir minha conta (LGPD) e a página "Saúde do sistema" do admin
 // ══════════════════════════════════════════════════════════════
-const SERVIDOR_VERSAO = '07/10j';
+const SERVIDOR_VERSAO = '07/10k';
 // 03/10y: versão do Ginásio que vai junto com este servidor. Pacote só de servidor/site não muda isto,
 // e as TVs não precisam ser reinstaladas. Mude junto com o PR_BUILD do Ginásio.
-const GINASIO_VERSAO = '07/10j';
+const GINASIO_VERSAO = '07/10k';
 // 03/10v: a TV certa tem o mesmo número do servidor (o pacote sobe os dois juntos)
 function tvVersaoOk(b) { return String(b || '').trim() === 'BUILD ' + GINASIO_VERSAO; }
 const _inicioServidor = Date.now();

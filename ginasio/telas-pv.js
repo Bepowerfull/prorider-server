@@ -806,7 +806,8 @@ function _renderPreAlunos(){
   var grid=document.getElementById('preAulaAlunos'); if(!grid) return;
   var al=(typeof alunosMap!=='undefined')?alunosMap:{}, nomes=Object.keys(al);
   var N=_pvBikes(), slots={}, semBike=[];
-  nomes.forEach(function(n){ var a=al[n]||{}, b=parseInt(a.bike,10); if(b>0 && !slots[b]){ slots[b]={n:n,a:a}; if(b>N) N=Math.min(40,b); } else semBike.push({n:n,a:a}); });
+  var casa=[];   // 13/10: quem pedala DE CASA (rolo/bike no celular) não ocupa bike da sala
+  nomes.forEach(function(n){ var a=al[n]||{}, b=parseInt(a.bike,10); if(a.remoto&&!(b>0)){ casa.push({n:n,a:a}); return; } if(b>0 && !slots[b]){ slots[b]={n:n,a:a}; if(b>N) N=Math.min(40,b); } else semBike.push({n:n,a:a}); });
   var rv=_resvPorBike(N);
   // demo e quem ainda não escolheu bike ocupam as livres do fim para o começo (nunca uma reservada)
   var livres=[]; for(var k=N;k>=1&&livres.length<semBike.length;k--){ if(!slots[k]&&!rv[k]) livres.unshift(k); }
@@ -839,7 +840,13 @@ function _renderPreAlunos(){
               :'<div style="color:rgba(255,255,255,.5);font-size:14px">'+(a._demo?'aluno de demonstração':(a._virtual&&r?'reservou · na bike':'na bike · parado'))+'</div>')+'</div>';
   }
   grid.innerHTML=h;
-  var c=document.getElementById('preAulaConect'); if(c) c.textContent='● '+naBike+' de '+N+' na bike · '+ped+' pedalando'+(nRes?' · '+nRes+(nRes===1?' reserva':' reservas'):'');
+  // 13/10: faixa "DE CASA" logo abaixo da grade de bikes
+  var cz=document.getElementById('preAulaCasa');
+  if(!cz&&casa.length&&grid.parentNode){ cz=document.createElement('div'); cz.id='preAulaCasa'; cz.style.cssText='display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:8px;font:600 15px Barlow,sans-serif;color:rgba(255,255,255,.85)'; grid.parentNode.insertBefore(cz,grid.nextSibling); }
+  if(cz){ cz.style.display=casa.length?'flex':'none';
+    cz.innerHTML=casa.length?'<span style="font-weight:800;letter-spacing:1px;color:#7fc8ff">🏠 DE CASA</span>'+casa.map(function(x){ var w=Math.round(x.a.watts||0);
+      return '<span style="padding:4px 10px;border-radius:14px;background:rgba(41,95,232,.18);border:1px solid rgba(127,200,255,.45)">'+_pvEsc(x.n)+(w>0?' · <b>'+w+' W</b>':'')+'</span>'; }).join(''):''; }
+  var c=document.getElementById('preAulaConect'); if(c) c.textContent='● '+naBike+' de '+N+' na bike · '+ped+' pedalando'+(nRes?' · '+nRes+(nRes===1?' reserva':' reservas'):'')+(casa.length?' · '+casa.length+' de casa':'');
   var c2=document.getElementById('preAulaConect2'); if(c2) c2.textContent=nomes.length;
   var dm=document.getElementById('preAulaDemo'); if(dm){ dm.style.display=demo?'inline-flex':'none'; dm.textContent='🤖 '+demo+(demo===1?' aluno demo':' alunos demo'); }
 }

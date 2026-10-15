@@ -1,4 +1,8 @@
-ProRider — BUILD 07/10j (Ginasio)
+ProRider — BUILD 07/10k (Ginasio)
+
+07/10k: ALUNO PEDALANDO DE CASA. Quem entra pelo app em "Vou pedalar de casa" (rolo ou bike
+propria ligada no celular) aparece na tela do QR numa faixa "DE CASA" (nao ocupa bike da sala)
+e no cartao de potencia com "EM CASA".
 
 07/10j: versao para TESTAR a atualizacao automatica. A tela e igual a 07/10i; muda so o
 numero. Junto vai o atualizador corrigido (programa novo instalado por cima vale mais que a
