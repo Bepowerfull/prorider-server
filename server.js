@@ -171,7 +171,22 @@ function calcLevel(points) {
   return k;
 }
 
+// 15/10: PONTOS = FAZER A AULA NOS BLOCOS CERTOS (por aproximação), igual ao WPP da TV.
+// wpp = minutos na zona pedida (1 zona de distância vale metade, 2 valem 1/4…), medido segundo a segundo
+// no celular do aluno (na aula livre o alvo é a zona do professor na bike 99). Pontos: 2 por minuto de wpp
+// + 50 se completou a aula + 25 se completou sem parar. Teste de FTP não pontua. Sem alvo nenhum = 0.
+// App antigo (não manda wpp) continua na conta antiga até atualizar.
 function calcPoints(aulaData) {
+  const d = aulaData || {};
+  if (d.wpp !== undefined && d.wpp !== null) {
+    if (d.ftp === true || /\bftp\b/i.test(String(d.aula_nome || ''))) return 0;
+    const durMin = Math.max(0, (parseInt(d.duracao_sec) || 0) / 60);
+    const wpp = Math.max(0, Math.min(Number(d.wpp) || 0, durMin + 0.5));   // não passa do tempo de aula
+    let pts = Math.round(wpp * 2);
+    const temAlvo = (parseInt(d.alvo_seg) || 0) > 0 || wpp > 0;
+    if (temAlvo && d.completou === true) { pts += 50; if (d.sem_pausas === true) pts += 25; }
+    return pts;
+  }
   let pts = 100; // base por completar
   if (aulaData.zona_predominante === 'z4' || aulaData.zona_predominante === 'z5') pts += 50;
   if (aulaData.zona_predominante === 'z6' || aulaData.zona_predominante === 'z7') pts += 75;
@@ -402,7 +417,7 @@ function emailLayout2(o) {
     ${o.sub ? `<div style="font-size:15px;line-height:22px;color:#d5d5da;margin-top:10px">${o.sub}</div>` : ''}
   </td></tr>
   <tr><td style="padding:8px 16px 4px;${EF};color:#d5d5da;font-size:14px;line-height:21px">${o.corpo}
-    ${o.botaoTxt ? `<div style="text-align:center;margin:16px 0 8px"><a href="${o.botaoUrl}" style="display:inline-block;background:#ea860c;color:#111;text-decoration:none;font-weight:800;font-size:15px;padding:13px 28px;border-radius:10px">${_esc(o.botaoTxt)}</a></div>` : ''}
+    ${o.botaoTxt ? `<div style="text-align:center;margin:16px 0 8px"><a href="${o.botaoUrl}" style="display:inline-block;background:#ea860c;color:#111;text-decoration:none;font-weight:800;font-size:15px;padding:13px 28px;border-radius:10px;margin:4px">${_esc(o.botaoTxt)}</a>${o.botao2 ? `<a href="${o.botao2.url}" style="display:inline-block;background:#111115;color:#ea860c;border:2px solid #ea860c;text-decoration:none;font-weight:800;font-size:15px;padding:11px 24px;border-radius:10px;margin:4px">${_esc(o.botao2.txt)}</a>` : ''}</div>` : ''}
   </td></tr>
   <tr><td style="padding:14px 22px 0"><div style="height:2px;background:#ea860c;background-image:linear-gradient(90deg,#ffb020,#ea860c,#d62d2d);font-size:0;line-height:0">&nbsp;</div></td></tr>
   <tr><td style="padding:16px 22px 4px;${EF}">
@@ -439,7 +454,7 @@ function emailTexto(cfg, tipo) {
 }
 function emailVars(t, v) { return String(t || '').replace(/\{(\w+)\}/g, (m, k) => (v && v[k] != null) ? String(v[k]) : m); }
 // corpo = abertura + [números] + [extra fixo] + fechamento; tudo escapado
-function emailMontar(tipo, cfg, v, numerosHtml, extraHtml, botaoUrl, academia) {
+function emailMontar(tipo, cfg, v, numerosHtml, extraHtml, botaoUrl, academia, botao2) {
   const t = emailTexto(cfg, tipo);
   const p = x => x ? `<p>${_esc(emailVars(x, v)).replace(/\n/g, '<br>')}</p>` : '';
   // 07/10c: modelo novo. O nome do aluno no título sai em destaque (laranja, linha de baixo)
@@ -449,7 +464,7 @@ function emailMontar(tipo, cfg, v, numerosHtml, extraHtml, botaoUrl, academia) {
   const corpo = emailTopoTipo(tipo, v) + ((t.numeros && numerosHtml) ? numerosHtml : '') + (extraHtml || '') +
     (fx ? (rc ? emailRecado(rc[0], emailVars(rc[1], v), fx) : `<p style="color:#d5d5da">${_esc(fx).replace(/\n/g, '<br>')}</p>`) : '');
   return { subject: emailVars(t.assunto, v), html: emailLayout2({ titulo: i > 0 ? tit.slice(0, i).trim() : tit, destaque: i > 0 ? tit.slice(i) : '',
-    sub: t.abertura ? _esc(emailVars(t.abertura, v)).replace(/\n/g, '<br>') : '', corpo, botaoTxt: t.botao ? emailVars(t.botao, v) : '', botaoUrl: botaoUrl || (PORTAL_URL + '/aluno'), academia }) };
+    sub: t.abertura ? _esc(emailVars(t.abertura, v)).replace(/\n/g, '<br>') : '', corpo, botaoTxt: t.botao ? emailVars(t.botao, v) : '', botaoUrl: botaoUrl || (PORTAL_URL + '/aluno'), academia, botao2 }) };
 }
 // 07/10c: cada tipo com a mesma cara — selo/cartões no topo e o recado (texto de fechamento) numa caixa
 const EMAIL_RECADO = { boas_vindas: ['🚴', 'Dica'], resumo_aula: ['📈', 'Excelente trabalho!'], sumido: ['💪', 'Bora voltar?'], novo_ftp: ['⚡', 'Zonas atualizadas'],
@@ -490,7 +505,7 @@ function emailNivel(total, ganhos, img) {
       <div style="font-size:13px;color:#d5d5da;margin-top:2px"><b style="color:#ffd23f">+${_nBR(ganhos)} pts</b> nesta aula · ${_nBR(n.pts)} pts no total</div>
       ${n.prox ? barra + `<div style="font-size:12px;color:#9a9aa2">Faltam <b style="color:#fff">${_nBR(n.faltam)} pts</b> para <b style="color:#fff">${_esc(n.prox)}</b></div>` : `<div style="font-size:12px;color:#9a9aa2;margin-top:6px">Você está no topo. Lenda!</div>`}
     </td></tr>
-    <tr><td colspan="2" style="padding:0 16px 14px;${EF};font-size:11.5px;line-height:17px;color:#8d8d96">Como ganhar pontos: aula completa <b style="color:#d5d5da">100</b> · na Z4 ou Z5 <b style="color:#d5d5da">+50</b> · na Z6 ou Z7 <b style="color:#d5d5da">+75</b> · sem pausas <b style="color:#d5d5da">+25</b></td></tr></table>`;
+    <tr><td colspan="2" style="padding:0 16px 14px;${EF};font-size:11.5px;line-height:17px;color:#8d8d96">Como ganhar pontos: pedalar na zona que o professor pediu — <b style="color:#d5d5da">2 pts por minuto</b> (perto da zona vale metade) · aula completa <b style="color:#d5d5da">+50</b> · sem parar <b style="color:#d5d5da">+25</b></td></tr></table>`;
 }
 // 07/10c: números dos e-mails no modelo novo
 const _nBR = n => Number(n || 0).toLocaleString('pt-BR');
@@ -605,7 +620,18 @@ async function emailResumoAula(uid, a) {
     zona: String(a.zona_predominante || '—').toUpperCase(), pontos: parseInt(a.pontos) || 0 };
   const nums = emailNivel(u.points, v.pontos) + emailNumsResumo({ min, kcal: v.kcal, w: parseInt(a.watts_med) || 0, rpm: v.rpm, zona: v.zona, pontos: v.pontos },
     a.serie_min, parseInt(u.ftp) || 0, a.zonas);   // 15/10: brasão no topo
-  const m = emailMontar('resumo_aula', c, v, nums, '', PORTAL_URL + '/aluno', u.academia);
+  // 15/10: botão "Compartilhar a aula" — abre o app direto nas 2 artes desta aula (dados guardados com um código)
+  let botao2 = null;
+  try {
+    const tok = crypto.randomBytes(12).toString('base64url'), w = parseInt(a.watts_med) || 0, ftp = parseInt(u.ftp) || 0, dur = parseInt(a.duracao_sec) || 0;
+    const M = ['JAN', 'FEV', 'MAR', 'ABR', 'MAI', 'JUN', 'JUL', 'AGO', 'SET', 'OUT', 'NOV', 'DEZ'], d = new Date(Date.now() - 3 * 3600000);
+    const dados = { w, kcal: v.kcal, rpm: v.rpm, seg: dur, min, km: Math.round(v.rpm * dur * 0.007 / 60 * 10) / 10, zona: (a.zona_predominante || '').toLowerCase() || null,
+      ftpPct: ftp > 0 && w > 0 ? Math.round(w * 100 / ftp) : 0, serie: Array.isArray(a.serie_min) ? a.serie_min.slice(0, 240) : [], ftp,
+      data: String(d.getUTCDate()).padStart(2, '0') + ' ' + M[d.getUTCMonth()] + ' ' + d.getUTCFullYear(), nome: String(a.aula_nome || 'Aula').slice(0, 80) };
+    await db.query('INSERT INTO aulas_compartilhar (token, user_id, dados) VALUES ($1,$2,$3)', [tok, uid, dados]);
+    botao2 = { txt: '📤 Compartilhar a aula', url: PORTAL_URL + '/aluno#compartilhar=' + tok };
+  } catch (e) { log('compartilhar (e-mail): ' + e.message); }
+  const m = emailMontar('resumo_aula', c, v, nums, '', PORTAL_URL + '/aluno', u.academia, botao2);
   await emailUmaVez('resumo_aula', 'u' + uid + ':' + Date.now(), uid, u.email, m.subject, m.html);
 }
 async function emailNovoFtp(uid, antes, depois) {
@@ -1440,7 +1466,7 @@ app.post('/aula/complete', authMiddleware, async (req, res) => {
   const rpm_med   = parseInt(req.body.rpm_med)   || 0;
   const kcal      = parseInt(req.body.kcal)      || 0;
   try {
-    const pontos = calcPoints({ zona_predominante, badge, sem_pausas });
+    const pontos = calcPoints(Object.assign({}, req.body, { aula_nome, duracao_sec }));   // 15/10: por aproximação (wpp)
     await db.query(
       `INSERT INTO aulas_completadas
         (user_id, aula_nome, duracao_sec, pontos, zona_predominante,
@@ -3388,7 +3414,7 @@ function emailPrevia(tipo, cfg, academia) {
   if (tipo === 'conquista_camisa') return emailCamisaMontar(cfg, v, { k: 'amarela', cat: 'lider', cor: '#ffd400', rotulo: 'Camisa amarela', pontos: 1840 }, academia);
   if (tipo === 'desafio_concluido') return emailDesafioMontar(cfg, v, '21dias', 500, { dias: 21 }, academia);
   if (tipo === 'seu_mes') return emailSeuMesMontar(cfg, Object.assign(v, { mes: 'setembro' }), { aulas: 14, horas: '12,5', kcal: 7840, watts: 171, dias: [1, 2, 4, 6, 8, 9, 11, 13, 15, 16, 20, 22, 25, 29], ndias: 30, aulas_ant: 11 }, academia);
-  return emailMontar(tipo, cfg, v, nums, '', PORTAL_URL + '/aluno', academia);
+  return emailMontar(tipo, cfg, v, nums, '', PORTAL_URL + '/aluno', academia, tipo === 'resumo_aula' ? { txt: '📤 Compartilhar a aula', url: PORTAL_URL + '/aluno' } : null);
 }
 app.post('/gestor/emails/previa', gestorAuth, async (req, res) => {
   const b = req.body || {}; const tipo = EMAIL_TEXTO_PADRAO[b.tipo] ? b.tipo : 'resumo_aula';
@@ -6356,6 +6382,7 @@ async function daMigrar() {
       watts_med INTEGER DEFAULT 0, detalhe JSONB, created_at TIMESTAMPTZ DEFAULT NOW(), UNIQUE(license_id, uid));
     CREATE INDEX IF NOT EXISTS aulas_tv_lic_inicio ON aulas_tv (license_id, inicio);
     ALTER TABLE aulas_tv ADD COLUMN IF NOT EXISTS relatorio JSONB;   -- 07/10c: relatório técnico da aula
+    CREATE TABLE IF NOT EXISTS aulas_compartilhar (token TEXT PRIMARY KEY, user_id INTEGER, dados JSONB, created_at TIMESTAMPTZ DEFAULT NOW());   -- 15/10: botão Compartilhar do e-mail do resumo
     CREATE TABLE IF NOT EXISTS aulas_notas (   -- 07/10d: nota da aula (1 a 5), uma por aluno por sala
       id SERIAL PRIMARY KEY, user_id INTEGER REFERENCES users(id) ON DELETE CASCADE, license_id TEXT NOT NULL, sala TEXT NOT NULL,
       aula_nome TEXT, nota SMALLINT NOT NULL CHECK (nota BETWEEN 1 AND 5), inicio TIMESTAMPTZ, created_at TIMESTAMPTZ DEFAULT NOW(), UNIQUE(user_id, sala));
@@ -6532,7 +6559,7 @@ async function totemGravarAulas(licId, salaCode, uidAula, nomeAula, durSeg, alun
     const u = (await db.query('SELECT id, ftp FROM users WHERE id=$1 AND license_id=$2', [userId, licId])).rows[0]; if (!u) continue;
     const ins = await db.query('INSERT INTO totem_aulas (uid, user_id) VALUES ($1,$2) ON CONFLICT DO NOTHING RETURNING uid', [uidAula, userId]);
     if (!ins.rows.length) continue;   // a TV reenviou o mesmo resumo: já gravado
-    const pontos = calcPoints({ sem_pausas: true }), ftp = parseInt(u.ftp) || 0;
+    const pontos = calcPoints({ wpp: a.wpp, duracao_sec: durSeg, completou: true, sem_pausas: true, aula_nome: nomeAula }), ftp = parseInt(u.ftp) || 0;   // 15/10: WPP que a TV mediu
     await db.query(`INSERT INTO aulas_completadas (user_id, aula_nome, duracao_sec, pontos, watts_med, rpm_medio, kcal) VALUES ($1,$2,$3,$4,$5,0,$6)`, [userId, nomeAula, durSeg, pontos, a.w, a.kcal]);
     await db.query(`INSERT INTO aula_historico (user_id, nome, dur_seg, kcal, zona_pct, avg_ftp, avg_rpm, avg_watts) VALUES ($1,$2,$3,$4,'{}',$5,0,$6)`,
       [userId, nomeAula, durSeg, a.kcal, ftp > 0 && a.w > 0 ? Math.round(a.w * 100 / ftp) : 0, a.w]);
@@ -6873,10 +6900,10 @@ app.post('/display/gravacao/:id/enviar', displayAuth, async (req, res) => {
 // 03/10e — SEGURANÇA E SAÚDE: esqueci a senha, reportar problema,
 // excluir minha conta (LGPD) e a página "Saúde do sistema" do admin
 // ══════════════════════════════════════════════════════════════
-const SERVIDOR_VERSAO = '07/10l';
+const SERVIDOR_VERSAO = '07/10m';
 // 03/10y: versão do Ginásio que vai junto com este servidor. Pacote só de servidor/site não muda isto,
 // e as TVs não precisam ser reinstaladas. Mude junto com o PR_BUILD do Ginásio.
-const GINASIO_VERSAO = '07/10k';
+const GINASIO_VERSAO = '07/10m';
 // 03/10v: a TV certa tem o mesmo número do servidor (o pacote sobe os dois juntos)
 function tvVersaoOk(b) { return String(b || '').trim() === 'BUILD ' + GINASIO_VERSAO; }
 const _inicioServidor = Date.now();
@@ -7563,6 +7590,11 @@ async function lojaMigrar() {
       aula_id INTEGER REFERENCES loja_aulas(id) ON DELETE CASCADE, pedido_id INTEGER REFERENCES loja_pedidos(id) ON DELETE CASCADE,
       valor NUMERIC(8,2) DEFAULT 0, created_at TIMESTAMPTZ DEFAULT NOW(), UNIQUE(user_id, aula_id));
     ALTER TABLE users ADD COLUMN IF NOT EXISTS asaas_customer TEXT;
+    -- 15/10: repasse por professor sobre o LÍQUIDO (depois das taxas do Asaas), % ajustável por professor
+    ALTER TABLE loja_pedidos ADD COLUMN IF NOT EXISTS valor_liquido NUMERIC(8,2);
+    ALTER TABLE loja_professores ADD COLUMN IF NOT EXISTS repasse_pct NUMERIC(5,2);
+    CREATE TABLE IF NOT EXISTS loja_repasse_pago (mes TEXT NOT NULL, professor_id INTEGER NOT NULL, liquido NUMERIC(10,2), pct NUMERIC(5,2), valor NUMERIC(10,2),
+      pago_em TIMESTAMPTZ DEFAULT NOW(), por TEXT, PRIMARY KEY (mes, professor_id));
     -- desafios (03/10c)
     CREATE TABLE IF NOT EXISTS desafio_conquistas (id SERIAL PRIMARY KEY, user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
       desafio TEXT NOT NULL, pontos INTEGER DEFAULT 0, info JSONB, created_at TIMESTAMPTZ DEFAULT NOW());
@@ -7748,8 +7780,10 @@ async function lojaWebhook(ev, p) {
   if (['PAYMENT_CONFIRMED', 'PAYMENT_RECEIVED'].includes(ev.event) || (ev.event === 'PAYMENT_RESTORED' && ['CONFIRMED', 'RECEIVED', 'RECEIVED_IN_CASH'].includes(p.status))) {
     if (ped.status === 'pago') return;
     const metodo = ({ CREDIT_CARD: 'cartão', PIX: 'PIX', BOLETO: 'boleto' }[p.billingType]) || 'Asaas';
-    await db.query(`UPDATE loja_pedidos SET status='pago', pago_em=NOW(), metodo=$2, asaas_id=COALESCE(asaas_id,$3),
-      valido_ate=CASE WHEN dias > 0 THEN NOW() + (dias || ' days')::interval ELSE NULL END WHERE id=$1`, [ped.id, metodo, p.id || null]);
+    // 15/10: guarda o líquido que o Asaas informa (netValue = valor - taxas); é sobre ele que sai o repasse
+    const liq = Number(p.netValue) > 0 ? Math.round(Number(p.netValue) * 100) / 100 : null;
+    await db.query(`UPDATE loja_pedidos SET status='pago', pago_em=NOW(), metodo=$2, asaas_id=COALESCE(asaas_id,$3), valor_liquido=COALESCE($4, valor_liquido),
+      valido_ate=CASE WHEN dias > 0 THEN NOW() + (dias || ' days')::interval ELSE NULL END WHERE id=$1`, [ped.id, metodo, p.id || null, liq]);
     if (ped.tipo === 'aula') await db.query('INSERT INTO loja_desbloqueios (user_id, aula_id, pedido_id, valor) VALUES ($1,$2,$3,$4) ON CONFLICT (user_id, aula_id) DO NOTHING', [ped.user_id, ped.ref_id, ped.id, ped.valor]);
     log(`[Loja] pedido ${ped.id} PAGO (${metodo})`);
   } else if (['PAYMENT_REFUNDED', 'PAYMENT_RECEIVED_IN_CASH_UNDONE', 'PAYMENT_DELETED', 'PAYMENT_CHARGEBACK_REQUESTED', 'PAYMENT_REFUND_IN_PROGRESS'].includes(ev.event)) {
@@ -7821,8 +7855,10 @@ const _txt = (v, n) => v === undefined ? undefined : (String(v || '').trim().sli
 const _num = v => v === undefined ? undefined : Math.max(0, Math.round((Number(String(v).replace(',', '.')) || 0) * 100) / 100);
 const _int = v => v === undefined ? undefined : Math.max(0, parseInt(v, 10) || 0);
 const _bool = v => v === undefined ? undefined : !!v;
-_lojaCrud('professores', ['nome', 'foto_url', 'bio', 'cidade', 'email', 'ativo', 'ordem'], b => {
-  const o = { nome: _txt(b.nome, 80), foto_url: _txt(b.foto_url, 500), bio: _txt(b.bio, 600), cidade: _txt(b.cidade, 80), email: _txt(b.email, 120), ativo: _bool(b.ativo), ordem: _int(b.ordem) };
+_lojaCrud('professores', ['nome', 'foto_url', 'bio', 'cidade', 'email', 'ativo', 'ordem', 'repasse_pct'], b => {
+  const o = { nome: _txt(b.nome, 80), foto_url: _txt(b.foto_url, 500), bio: _txt(b.bio, 600), cidade: _txt(b.cidade, 80), email: _txt(b.email, 120), ativo: _bool(b.ativo), ordem: _int(b.ordem),
+    // 15/10: % de repasse do professor (vazio = o padrão da loja)
+    repasse_pct: (b.repasse_pct === undefined) ? undefined : (String(b.repasse_pct).trim() === '' ? null : Math.min(100, _num(b.repasse_pct))) };
   if (b.nome !== undefined && !o.nome) return { erro: 'Nome do professor obrigatório' };
   return o;
 });
@@ -7865,20 +7901,58 @@ app.post('/admin/loja/cortesia', adminAuth, async (req, res) => {
     res.json({ ok: true, pedido_id: r.id });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
-// repasse do mês por professor: avulsas + créditos usados (valor do crédito) + assinaturas do professor
+// repasse do mês por professor: avulsas + créditos usados (valor do crédito) + assinaturas do professor.
+// 15/10: o repasse é sobre o LÍQUIDO (o que o Asaas deixou depois das taxas) × o % do professor (ou o padrão da loja).
+// Mês marcado como pago guarda o % e o valor daquele momento (mudar o % depois não muda o que já foi pago).
+const REPASSE_PADRAO = 50;
+async function repassePadrao() { const v = await cfgLer('loja_repasse_padrao', REPASSE_PADRAO); const n = Number(v); return n >= 0 && n <= 100 ? n : REPASSE_PADRAO; }
+async function repasseMes(mes) {
+  const r = await db.query(`
+    WITH v AS (
+      SELECT d.pedido_id, a.professor_id, d.valor, d.valor * COALESCE(p.valor_liquido, p.valor) / NULLIF(p.valor, 0) AS liquido
+        FROM loja_desbloqueios d JOIN loja_aulas a ON a.id=d.aula_id JOIN loja_pedidos p ON p.id=d.pedido_id
+        WHERE p.status='pago' AND to_char(d.created_at AT TIME ZONE 'America/Sao_Paulo','YYYY-MM')=$1
+      UNION ALL
+      SELECT p.id, p.professor_id, p.valor, COALESCE(p.valor_liquido, p.valor) FROM loja_pedidos p WHERE p.tipo='assinatura' AND p.status='pago' AND to_char(p.pago_em AT TIME ZONE 'America/Sao_Paulo','YYYY-MM')=$1)
+    SELECT COALESCE(lp.nome, 'Sem professor (assinatura geral)') AS professor, v.professor_id, COUNT(*)::int AS itens, SUM(v.valor)::numeric(10,2) AS valor,
+      COALESCE(SUM(v.liquido),0)::numeric(10,2) AS liquido, lp.repasse_pct, lp.email
+    FROM v LEFT JOIN loja_professores lp ON lp.id=v.professor_id GROUP BY lp.nome, v.professor_id, lp.repasse_pct, lp.email ORDER BY valor DESC`, [mes]);
+  const pad = await repassePadrao();
+  const pagos = {}; (await db.query('SELECT * FROM loja_repasse_pago WHERE mes=$1', [mes])).rows.forEach(x => { pagos[x.professor_id] = x; });
+  return { padrao: pad, professores: r.rows.map(x => {
+    const liq = Number(x.liquido) || 0, pg = x.professor_id ? pagos[x.professor_id] : null;
+    const pct = !x.professor_id ? 0 : (pg ? Number(pg.pct) : (x.repasse_pct != null ? Number(x.repasse_pct) : pad));
+    return { professor: x.professor, professor_id: x.professor_id, email: x.email || null, itens: x.itens, valor: x.valor, liquido: liq.toFixed(2),
+      pct, pct_proprio: x.repasse_pct != null, a_pagar: (pg ? Number(pg.valor) : Math.round(liq * pct) / 100).toFixed(2),
+      pago: pg ? { em: pg.pago_em, por: pg.por, valor: pg.valor } : null }; }) };
+}
 app.get('/admin/loja/repasse', adminAuth, async (req, res) => {
   try {
     const mes = /^\d{4}-\d{2}$/.test(String(req.query.mes || '')) ? req.query.mes : dataSP().slice(0, 7);
-    const r = await db.query(`
-      WITH v AS (
-        SELECT d.pedido_id, a.professor_id, d.valor FROM loja_desbloqueios d JOIN loja_aulas a ON a.id=d.aula_id JOIN loja_pedidos p ON p.id=d.pedido_id
-          WHERE p.status='pago' AND to_char(d.created_at AT TIME ZONE 'America/Sao_Paulo','YYYY-MM')=$1
-        UNION ALL
-        SELECT p.id, p.professor_id, p.valor FROM loja_pedidos p WHERE p.tipo='assinatura' AND p.status='pago' AND to_char(p.pago_em AT TIME ZONE 'America/Sao_Paulo','YYYY-MM')=$1)
-      SELECT COALESCE(lp.nome, 'Sem professor (assinatura geral)') AS professor, v.professor_id, COUNT(*)::int AS itens, SUM(v.valor)::numeric(10,2) AS valor
-      FROM v LEFT JOIN loja_professores lp ON lp.id=v.professor_id GROUP BY lp.nome, v.professor_id ORDER BY valor DESC`, [mes]);
-    const vend = (await db.query(`SELECT COUNT(*)::int AS n, COALESCE(SUM(valor),0)::numeric(10,2) AS total FROM loja_pedidos WHERE status='pago' AND valor > 0 AND to_char(pago_em AT TIME ZONE 'America/Sao_Paulo','YYYY-MM')=$1`, [mes])).rows[0];
-    res.json({ mes, vendas: vend, professores: r.rows });
+    const rp = await repasseMes(mes);
+    const vend = (await db.query(`SELECT COUNT(*)::int AS n, COALESCE(SUM(valor),0)::numeric(10,2) AS total, COALESCE(SUM(COALESCE(valor_liquido, valor)),0)::numeric(10,2) AS liquido
+      FROM loja_pedidos WHERE status='pago' AND valor > 0 AND to_char(pago_em AT TIME ZONE 'America/Sao_Paulo','YYYY-MM')=$1`, [mes])).rows[0];
+    res.json({ mes, vendas: vend, padrao: rp.padrao, professores: rp.professores });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+app.put('/admin/loja/repasse/padrao', adminAuth, async (req, res) => {
+  const n = Number(String((req.body || {}).pct).replace(',', '.'));
+  if (!(n >= 0 && n <= 100)) return res.status(400).json({ error: 'Percentual de 0 a 100.' });
+  try { await cfgGravar('loja_repasse_padrao', Math.round(n * 100) / 100); log(`[Loja] repasse padrão ${n}% por ${req.user.email}`); res.json({ ok: true, padrao: n }); }
+  catch (e) { res.status(500).json({ error: e.message }); }
+});
+// marca (ou desmarca) o repasse de um professor num mês como pago — guarda o % e o valor daquele momento
+app.post('/admin/loja/repasse/pagar', adminAuth, async (req, res) => {
+  const b = req.body || {}, mes = String(b.mes || ''), pid = parseInt(b.professor_id, 10) || 0;
+  if (!/^\d{4}-\d{2}$/.test(mes) || !pid) return res.status(400).json({ error: 'Mês e professor.' });
+  try {
+    if (b.desfazer) { await db.query('DELETE FROM loja_repasse_pago WHERE mes=$1 AND professor_id=$2', [mes, pid]); return res.json({ ok: true }); }
+    const x = (await repasseMes(mes)).professores.find(p => p.professor_id === pid);
+    if (!x) return res.status(404).json({ error: 'Este professor não tem vendas no mês.' });
+    if (x.pago) return res.json({ ok: true, ja: true });
+    await db.query('INSERT INTO loja_repasse_pago (mes, professor_id, liquido, pct, valor, por) VALUES ($1,$2,$3,$4,$5,$6)', [mes, pid, x.liquido, x.pct, x.a_pagar, req.user.email]);
+    log(`[Loja] repasse ${mes} do professor ${pid}: R$ ${x.a_pagar} (${x.pct}% de ${x.liquido}) marcado como pago por ${req.user.email}`);
+    res.json({ ok: true });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
@@ -8170,6 +8244,17 @@ app.get('/display/aula-automatica/:agenda_id', displayAuth, async (req, res) => 
       WHERE a.id=$1 AND a.license_id=$2`, [parseInt(req.params.agenda_id, 10) || 0, req.user.license_id]);
     if (!r.rows.length) return res.status(404).json({ error: 'Sem aula escolhida' });
     res.json(r.rows[0]);
+  } catch (e) { res.status(500).json({ error: 'Erro interno' }); }
+});
+// 15/10: dados de uma aula para o app montar as artes de compartilhar (link do e-mail do resumo; vale 90 dias)
+app.get('/compartilhar/:token', async (req, res) => {
+  if (!db) return res.status(503).json({ error: 'Banco indisponível' });
+  const t = String(req.params.token || ''); if (!/^[A-Za-z0-9_-]{10,40}$/.test(t)) return res.status(404).json({ error: 'Link inválido' });
+  if (limConta('comp:ip:' + ipDe(req), 15) > 120) return res.status(429).json({ error: 'Muitos pedidos.' });
+  try {
+    const r = await db.query(`SELECT dados FROM aulas_compartilhar WHERE token=$1 AND created_at > NOW() - INTERVAL '90 days'`, [t]);
+    if (!r.rows.length) return res.status(404).json({ error: 'Este link venceu. Abra a aula pelo histórico do app.' });
+    res.json(r.rows[0].dados);
   } catch (e) { res.status(500).json({ error: 'Erro interno' }); }
 });
 app.post('/aluno/nota', authMiddleware, async (req, res) => {

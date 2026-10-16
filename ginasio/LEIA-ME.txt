@@ -1,4 +1,8 @@
-ProRider — BUILD 07/10k (Ginasio)
+ProRider — BUILD 07/10m (Ginasio)
+
+07/10m: PONTOS POR APROXIMACAO. O WPP soma pelo tempo na zona que o bloco pede (perto vale
+metade); parado nao pontua. Aula/sessao LIVRE: a zona do professor na BIKE 99 e a base de todos
+(sem professor na 99, ninguem pontua). Teste de FTP nao pontua.
 
 07/10k: ALUNO PEDALANDO DE CASA. Quem entra pelo app em "Vou pedalar de casa" (rolo ou bike
 propria ligada no celular) aparece na tela do QR numa faixa "DE CASA" (nao ocupa bike da sala)

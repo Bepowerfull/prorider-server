@@ -1613,7 +1613,7 @@ input[type=file]{display:none}
   <div style="width:100%;max-width:480px;">
     <div style="display:flex;align-items:center;justify-content:space-between;margin:0 16px 12px;">
       <div><div style="font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:800;letter-spacing:3px;color:#ea860c;">COMPARTILHAR</div><div style="font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:1.5px;color:#fff;line-height:1;">Escolha o seu modelo</div></div>
-      <button onclick="document.getElementById('shareOverlay').style.display='none'" style="background:rgba(255,255,255,.1);border:none;color:#fff;width:38px;height:38px;border-radius:50%;font-size:20px;cursor:pointer;">×</button>
+      <button onclick="shFechar()" style="background:rgba(255,255,255,.1);border:none;color:#fff;width:38px;height:38px;border-radius:50%;font-size:20px;cursor:pointer;">×</button>
     </div>
     <!-- 09/10: dois modelos lado a lado; arrasta para o lado para ver o outro -->
     <div class="sh-car" id="shCar" onscroll="shRolou()">
@@ -2631,6 +2631,7 @@ function connectQR(code){
       }
       if(data.tipo==='aula_reiniciada'){ try{ _lsReset(); }catch(e){} if(typeof showToast==='function') showToast('A aula foi recomeçada: seus números voltaram a zero.'); }
       if(data.tipo==='fim_desafio'){ _desafioResultadoApp(data); }
+      if(data.tipo==='iniciar_ftp'||data.tipo==='ftp_resultado'){ try{ _lsAcc.ftp=true; }catch(e){} }   // 15/10: teste de FTP não pontua
       if(data.tipo==='ftp_resultado' && data.nome){
         // o ginasio manda um por aluno; cada celular pega o seu
         try{ var _eu=_entrarNome||(prUser&&prUser.name)||''; if(!_eu || String(data.nome)===String(_eu) || (prUser&&String(data.nome)===String(prUser.name))) _ftpResultadoApp(data); }catch(e){ _ftpResultadoApp(data); }
@@ -2665,6 +2666,8 @@ function connectQR(code){
       }
       if(data.tipo==='update_aula'){
         window._ultUpdateAula=Date.now();
+        if(data.alvoZona!==undefined) window._prAlvoTV={z:data.alvoZona||null,ts:Date.now()};   // 15/10: alvo da pontuação vindo da TV
+        if(typeof data.totTime==='number'&&typeof data.totRest==='number') window._prAulaTotSeg=Math.round(data.totTime+data.totRest);
         if(data.grafico && data.grafico.length>0){
           aulaGrafico=data.grafico; aulaBlocoIdx=data.blocoIdx||0; _graficoLocalAtivo=false;
           aulaGraficoNome=data.nomeAula||'ProRider';
@@ -6070,11 +6073,12 @@ function showResultsReal(){
         watts_med:prWattsMed(),
         rpm_med:(cntRpm>0?Math.round(sumRpm/cntRpm):0),
         kcal:prKcal(prWattsMed(),totS,prPesoKg()),
-        serie_min:prSerieMin(typeof _lsAcc!=='undefined'?_lsAcc.am:null)   // 07/10c: gráfico do e-mail
+        serie_min:prSerieMin(typeof _lsAcc!=='undefined'?_lsAcc.am:null),   // 07/10c: gráfico do e-mail
+        ...prPontosDados()   // 15/10: pontos por aproximação (wpp, completou, sem parar, FTP)
       })
     }).then(function(r){ return r.json(); })
       .then(function(d){
-        if(d.pontos_ganhos) showSummaryScreen(d.pontos_ganhos, d.total_pontos, d.nivel);
+        if(d && d.pontos_ganhos!=null) showSummaryScreen(d.pontos_ganhos, d.total_pontos, d.nivel);   // 15/10: mostra também +0 (pontos agora vêm do tempo na zona)
         else go('sResults');
       }).catch(function(){ go('sResults'); });
   } else {
@@ -6086,7 +6090,7 @@ function showResultsReal(){
       ['z1','z2','z3','z4','z5','z6','z7'].forEach(function(z){ _tz+=zoneTime[z]; });
       ['z1','z2','z3','z4','z5','z6','z7'].forEach(function(z){ _zp[z]=_tz>0?Math.round(zoneTime[z]/_tz*100):0; });
       localStorage.setItem('pr_aula_pendente', JSON.stringify({ em:Date.now(), d:{ aula_nome:cAula.nome, duracao_sec:totS, zona_predominante:_zP, badge:cAula.badge||'', sem_pausas:true, zonas:_zp,
-        watts_med:prWattsMed(), rpm_med:(cntRpm>0?Math.round(sumRpm/cntRpm):0), kcal:prKcal(prWattsMed(),totS,prPesoKg()), serie_min:prSerieMin(typeof _lsAcc!=='undefined'?_lsAcc.am:null) } }));
+        watts_med:prWattsMed(), rpm_med:(cntRpm>0?Math.round(sumRpm/cntRpm):0), kcal:prKcal(prWattsMed(),totS,prPesoKg()), serie_min:prSerieMin(typeof _lsAcc!=='undefined'?_lsAcc.am:null), ...prPontosDados() } }));
       prConviteConta();
     } }catch(e){}
     go('sResults');
@@ -6211,7 +6215,7 @@ function showFtpResult(){
   try{ if(prToken){ var _dur=ftpTestWatts.length, _sw=0; ftpTestWatts.forEach(function(w){ _sw+=w; }); var _wm=_dur?Math.round(_sw/_dur):0;
     fetch(SERVER_HTTP+'/aula/complete',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+prToken},
       body:JSON.stringify({ aula_nome:(cAula&&cAula.nome)||'Teste de FTP', duracao_sec:totS||_dur, zona_predominante:'z4', badge:'', sem_pausas:true, zonas:{},
-        watts_med:_wm, rpm_med:(cntRpm>0?Math.round(sumRpm/cntRpm):0), kcal:prKcal(_wm,totS||_dur,prPesoKg()), serie_min:prSerieMin(typeof _lsAcc!=='undefined'?_lsAcc.am:null) })}).catch(function(){}); } }catch(e){}
+        watts_med:_wm, rpm_med:(cntRpm>0?Math.round(sumRpm/cntRpm):0), kcal:prKcal(_wm,totS||_dur,prPesoKg()), serie_min:prSerieMin(typeof _lsAcc!=='undefined'?_lsAcc.am:null), wpp:0, ftp:true })}).catch(function(){}); } }catch(e){}
   go('sFtpResult');
 }
 // ══════════════════════════════════════════════════════════════
@@ -7756,7 +7760,21 @@ function _shMarcar(i){ _shAtual=i; var c=document.getElementById('shCar');
   if(i===1){ _shViu2=true; var d=document.getElementById('shDica'); if(d) d.style.display='none'; } }
 function _shCanvasAtual(){ return document.getElementById('shareCanvas'+(_shAtual+1)); }
 // os números do aluno (os mesmos da tela de resultado)
+// 15/10: link "Compartilhar a aula" do e-mail (/aluno#compartilhar=<código>): as artes saem com os dados daquela aula
+var _shOverride=null;
+function prCompartilharDoEmail(){
+  var m=/^#compartilhar=([A-Za-z0-9_-]{10,40})$/.exec(String(location.hash||'')); if(!m) return;
+  try{ history.replaceState(null,'',location.pathname+location.search); }catch(e){}
+  fetch(SERVER_HTTP+'/compartilhar/'+m[1]).then(function(r){ return r.json().then(function(d){ return {ok:r.ok,d:d}; }); }).then(function(x){
+    if(!x.ok||!x.d||x.d.error){ try{ showToast((x.d&&x.d.error)||'Não encontrei esta aula.'); }catch(e){} return; }
+    _shOverride=x.d; shareCard();
+  }).catch(function(){ try{ showToast('Sem conexão para abrir a aula.'); }catch(e){} });
+}
+function shFechar(){ var o=document.getElementById('shareOverlay'); if(o) o.style.display='none'; _shOverride=null; }
 function _shDados(){
+  if(_shOverride){ var o=_shOverride, z=o.seg||0;
+    return { w:o.w||0, kcal:o.kcal||0, rpm:o.rpm||0, dur:_rsDur(z), min:o.min||Math.round(z/60), km:o.km||0, hr:0, zona:o.zona||null, tss:0, ftpPct:o.ftpPct||0,
+      serie:Array.isArray(o.serie)?o.serie:[], ftp:o.ftp||0, data:o.data||'', nome:o.nome||'' }; }
   var am=(typeof _lsAcc!=='undefined'&&_lsAcc.am)||[], hs=0, hn=0; am.forEach(function(x){ if(x[3]>0){ hs+=x[3]; hn++; } });
   var zO=['z7','z6','z5','z4','z3','z2','z1'], zp=null; for(var i=0;i<zO.length;i++){ if(zoneTime[zO[i]]>0){ zp=zO[i]; break; } }
   var ftp=0; try{ ftp=parseInt(_ftpDoAluno(),10)||0; }catch(e){}
@@ -8502,6 +8520,7 @@ function _tentarConexaoWS(wsUrl, token, dadosSessao){
       }
       if(data.tipo==='aula_reiniciada'){ try{ _lsReset(); }catch(e){} if(typeof showToast==='function') showToast('A aula foi recomeçada: seus números voltaram a zero.'); }
       if(data.tipo==='fim_desafio'){ _desafioResultadoApp(data); }
+      if(data.tipo==='iniciar_ftp'||data.tipo==='ftp_resultado'){ try{ _lsAcc.ftp=true; }catch(e){} }   // 15/10: teste de FTP não pontua
       if(data.tipo==='ftp_resultado' && data.nome){
         try{ var _eu=_entrarNome||(prUser&&prUser.name)||''; if(!_eu || String(data.nome)===String(_eu) || (prUser&&String(data.nome)===String(prUser.name))) _ftpResultadoApp(data); }catch(e){ _ftpResultadoApp(data); }
       }
@@ -8669,8 +8688,31 @@ var _liveTelInt=null;
 // ── Acumulador de estatísticas ao vivo (independente do tick) ──
 // Garante que a tela de RESULTADO tenha dados (duração, médias, zonas) mesmo
 // quando o tick da aula não rodou. Só conta na tela da aula (sLive) e com dado fresco.
-var _lsAcc={dur:0,rpmSum:0,rpmCnt:0,rpmMax:0,ftpSum:0,ftpCnt:0,wSum:0,wCnt:0,zt:{z1:0,z2:0,z3:0,z4:0,z5:0,z6:0,z7:0}};
-function _lsReset(){ _lsAcc={dur:0,rpmSum:0,rpmCnt:0,rpmMax:0,ftpSum:0,ftpCnt:0,wSum:0,wCnt:0,zt:{z1:0,z2:0,z3:0,z4:0,z5:0,z6:0,z7:0}}; }
+var _lsAcc={dur:0,rpmSum:0,rpmCnt:0,rpmMax:0,ftpSum:0,ftpCnt:0,wSum:0,wCnt:0,zt:{z1:0,z2:0,z3:0,z4:0,z5:0,z6:0,z7:0},wpp:0,alvoSeg:0,parado:0,ftp:false};
+function _lsReset(){ _lsAcc={dur:0,rpmSum:0,rpmCnt:0,rpmMax:0,ftpSum:0,ftpCnt:0,wSum:0,wCnt:0,zt:{z1:0,z2:0,z3:0,z4:0,z5:0,z6:0,z7:0},wpp:0,alvoSeg:0,parado:0,ftp:false}; }
+// 15/10: PONTUAÇÃO POR APROXIMAÇÃO (a mesma conta do WPP da TV): a cada segundo com alvo, 1/60 se está na zona
+// pedida, metade com 1 zona de distância, 1/4 com 2… Parado não pontua. Teste de FTP não pontua.
+// Alvo: aula gravada → bloco do vídeo; aula da TV → o alvo que a TV manda (na aula livre, a zona do professor
+// na bike 99); aula do app → o bloco atual. Bloco "Livre" sem professor = sem alvo.
+var _ZS7A=['z1','z2','z3','z4','z5','z6','z7'];
+function _prZonaDoBloco(b){
+  if(!b) return null; if(b.pos==='Livre'||b.position==='Livre') return null;
+  var z=b.z||b.intensity; if(z&&_ZS7A.indexOf(z)>=0) return z;
+  var mn=parseFloat(b.ftpMin)||0, mx=parseFloat(b.ftpMax)||0; if(!mn&&!mx) return null; if(!mx||mx>200) mx=mn+20;
+  return _lsZonaFromFtp((mn+mx)/2);
+}
+function _prAlvoZonaApp(){
+  if(_lsAcc.ftp || (typeof isFtpTest!=='undefined'&&isFtpTest)) return null;
+  var g=window._prErgGrv; if(g&&Date.now()-g.ts<3000) return g.pausa?null:_prZonaDoBloco(g.b);
+  var t=window._prAlvoTV; if(t&&Date.now()-t.ts<4000) return t.z||null;
+  return _prZonaDoBloco((aulaGrafico||[])[aulaBlocoIdx]);
+}
+function prPontosDados(){   // vai junto no /aula/complete
+  var tot=0; try{ tot=window._prAulaTotSeg||0; if(!tot&&cAula&&cAula.blocos) cAula.blocos.forEach(function(b){ tot+=(b.durationSec!=null?+b.durationSec:((+b.dur||+b.duration||0)*60))||0; }); }catch(e){}
+  var feito=_lsAcc.dur||0;
+  return { wpp:Math.round((_lsAcc.wpp||0)*100)/100, alvo_seg:_lsAcc.alvoSeg||0, ftp:!!(_lsAcc.ftp||(typeof isFtpTest!=='undefined'&&isFtpTest)),
+    completou: tot>0 ? feito>=tot*0.85 : feito>=600, sem_pausas:(_lsAcc.parado||0)<60 };
+}
 function _lsZonaFromFtp(p){ var i; for(i=0;i<7;i++){ if(p<ZEDGES[i+1]||i===6) break; } return 'z'+(i+1); }
 function _lsTick(){
   try{
@@ -8691,6 +8733,10 @@ function _lsTick(){
     _lsAcc.wSum+=src.w; _lsAcc.wCnt++;
     var z=src.z||_lsZonaFromFtp(src.ftp);
     if(_lsAcc.zt[z]!==undefined) _lsAcc.zt[z]++;
+    var _tz=_prAlvoZonaApp();   // 15/10: pontuação por aproximação
+    if(_tz){ _lsAcc.alvoSeg=(_lsAcc.alvoSeg||0)+1;
+      if((src.w||0)>0||(src.r||0)>0) _lsAcc.wpp=(_lsAcc.wpp||0)+Math.pow(0.5,Math.abs(_ZS7A.indexOf(z)-_ZS7A.indexOf(_tz)))/60;
+      else _lsAcc.parado=(_lsAcc.parado||0)+1; }
     // 02/10d: um ponto por segundo (potência, cadência, FC) para o arquivo do Strava/Garmin
     var _hr=0; try{ _hr=parseInt((document.getElementById('bigHR')||{}).textContent,10)||0; }catch(e){}
     if(!_lsAcc.am) _lsAcc.am=[]; if(_lsAcc.am.length<14400) _lsAcc.am.push([Date.now(),Math.round(src.w||0),Math.round(src.r||0),_hr>30&&_hr<230?_hr:0]);
@@ -9052,11 +9098,13 @@ updateProfileUI = function() {
          + ' fill="none" stroke="'+col(fm)+'" stroke-width="30" stroke-linecap="'+cap+'"/>';
     }
     g.innerHTML=out;
-    try{ console.log('%c[ProRider Aluno] BUILD 07/10k — pedalar DE CASA numa aula da academia (rolo/bike propria no celular, sem ocupar bike da sala) + 07/10g: compartilhar igual a arte (logo da arte, distancia), botoes menores; faixa da aula so com QR aberto ou em aula; datas locais; agenda rola + 07/10f: tela de fim da aula nova (cartoes, grafico minuto a minuto, zonas, pontos); compartilhar com 2 modelos (foto do aluno de fundo); botao CONTROLES laranja de um toque (iPhone na tela de inicio fechava o app ao arrastar); sem login: convite e a aula vai para a conta ao criar/entrar; teste de FTP do app gravado + 07/10e: aula da TV (entrou pelo QR) volta a ser gravada no servidor: historico, pontos e e-mail do resumo + 07/10d: nota da aula (1 a 5 estrelas no fim da aula) + 07/10c: Keiser sem nome aparece como Keiser M3 nº X; manda a potencia minuto a minuto (grafico do e-mail) + 07/10a: app das lojas le a Keiser direto (anuncio), lista com o numero de cada Keiser + 03/10z: aviso "TV da academia sem internet" e internet lenta sem conexao dupla + 03/10x: servidor reiniciou no meio da aula: o celular espera a TV voltar (ate 90 s) em vez de encerrar a aula + 03/10h: erro mostra codigo (E-XXXX) e vai junto no Reportar + 03/10f: erros do app chegam sozinhos na Saude do sistema + 03/10e: esqueci a senha por e-mail, reportar problema, excluir conta + 03/10c: loja (comprar aulas, pacotes, assinatura), desafios reais (21 dias, Quebra FTP, ranking, grupos), pré-treino igual ao da TV, Bluetooth novo + 02/10f: aula recomeçada zera os números da largada + 02/10d: caixas da aula gravada mais justas e nas pontas da tela; aulas gravadas abertas a qualquer login na fase de teste + 02/10b: aula gravada na Loja (vídeo do professor + gráfico e números do próprio aluno, ranking com quem fez ao vivo) + lista de espera na reserva, assistir a aula ao vivo, arquivo .tcx para Strava/Garmin, desafio entre academias no início + 01/10b: reserva com escolha da bike (mapa das bikes, a reservada aparece como SUA na hora de entrar) + 01/10a: campeonato no app (posição, camisas, próxima etapa) + camisas conquistadas no perfil + logo original no início + 30/09e: Construtor do celular = o mesmo Construtor online do computador (mesmas funções, mesma conta) + Perto de mim na lupinha (GPS do celular, distância até a academia, aula ao vivo no topo) + faixa verde da aula ao vivo na academia + aulas de hoje na grade + brasões novos (subiu de nível) + Criar aula do Portal abre direto o Construtor (/aluno#construtor) + FC da cinta do celular vai para o Ginasio; Avg. HR = media da aula; aula termina quando a sala some + resultado do teste de FTP da aula no celular (1 min; automatico grava, senao pergunta) + home do professor: sai o Build Workout antigo (com senha), fica Agenda + Treino do Treinador + Construtor de Treino + voltar para a propria bike depois de reabrir o app + relogio do bloco anda sem bike transmitindo + vigia: reentra na sala se a aula parar de chegar + resultado do desafio no celular (10 s, toque fecha) + sexo enviado na entrada da sala (desafio Homens x Mulheres) + aluno sem nome nao entra mais como "-" na sala + leitor do app aceita o QR de Minhas Aulas do Ginasio + aula anterior nao fica mais grudada (fim da aula fecha o socket em qualquer tela; QR de outra sala troca de sala) + gauge com FTP e BLOCO simetricos + marcha e FC na aula da academia + %FTP com o FTP da gaveta na hora + FTP da gaveta vai para a sala na hora + FTP tambem na entrada pela reserva + Revisar o treino mostra a aula do Ginasio + caloria por watt (kJ/eficiencia) + basal Mifflin-St Jeor no cadastro + historico gravado no aparelho + FTP na gaveta + card 1080x1920 reposicionado + 6 protocolos de FTP + TSS + teste de 3 min + fator do teste de 5 min corrigido (era 1,05) + explicacao de FTP em cada teste + gaveta esconde pela propria altura + importacao de treino do TrainingPeaks (grade 2x2 na tela inicial + construtor) com tela de conferencia (botoes acima da navegacao) + corrigido: aula aberta por objeto agora e a que roda + botao Revisar o treino na gaveta + FTP e peso persistem no aparelho + gauge reequilibrado + textos do Brasil + codigo de sala normalizado (QR do navegador deixava a sala inexistente) + faixa de voltar corrigida + reconexao nao trava mais + sala encerrada limpa o codigo guardado + VISTA DA SALA + card comprido de Construtor para professor + fim da corrida no login','color:#ea860c;font-weight:700;'); }catch(e){}
+    try{ console.log('%c[ProRider Aluno] BUILD 07/10m — pontos por aproximacao (wpp segundo a segundo, completou, sem parar; FTP nao pontua) + link Compartilhar do e-mail abre as artes da aula + 07/10k: pedalar DE CASA numa aula da academia (rolo/bike propria no celular, sem ocupar bike da sala) + 07/10g: compartilhar igual a arte (logo da arte, distancia), botoes menores; faixa da aula so com QR aberto ou em aula; datas locais; agenda rola + 07/10f: tela de fim da aula nova (cartoes, grafico minuto a minuto, zonas, pontos); compartilhar com 2 modelos (foto do aluno de fundo); botao CONTROLES laranja de um toque (iPhone na tela de inicio fechava o app ao arrastar); sem login: convite e a aula vai para a conta ao criar/entrar; teste de FTP do app gravado + 07/10e: aula da TV (entrou pelo QR) volta a ser gravada no servidor: historico, pontos e e-mail do resumo + 07/10d: nota da aula (1 a 5 estrelas no fim da aula) + 07/10c: Keiser sem nome aparece como Keiser M3 nº X; manda a potencia minuto a minuto (grafico do e-mail) + 07/10a: app das lojas le a Keiser direto (anuncio), lista com o numero de cada Keiser + 03/10z: aviso "TV da academia sem internet" e internet lenta sem conexao dupla + 03/10x: servidor reiniciou no meio da aula: o celular espera a TV voltar (ate 90 s) em vez de encerrar a aula + 03/10h: erro mostra codigo (E-XXXX) e vai junto no Reportar + 03/10f: erros do app chegam sozinhos na Saude do sistema + 03/10e: esqueci a senha por e-mail, reportar problema, excluir conta + 03/10c: loja (comprar aulas, pacotes, assinatura), desafios reais (21 dias, Quebra FTP, ranking, grupos), pré-treino igual ao da TV, Bluetooth novo + 02/10f: aula recomeçada zera os números da largada + 02/10d: caixas da aula gravada mais justas e nas pontas da tela; aulas gravadas abertas a qualquer login na fase de teste + 02/10b: aula gravada na Loja (vídeo do professor + gráfico e números do próprio aluno, ranking com quem fez ao vivo) + lista de espera na reserva, assistir a aula ao vivo, arquivo .tcx para Strava/Garmin, desafio entre academias no início + 01/10b: reserva com escolha da bike (mapa das bikes, a reservada aparece como SUA na hora de entrar) + 01/10a: campeonato no app (posição, camisas, próxima etapa) + camisas conquistadas no perfil + logo original no início + 30/09e: Construtor do celular = o mesmo Construtor online do computador (mesmas funções, mesma conta) + Perto de mim na lupinha (GPS do celular, distância até a academia, aula ao vivo no topo) + faixa verde da aula ao vivo na academia + aulas de hoje na grade + brasões novos (subiu de nível) + Criar aula do Portal abre direto o Construtor (/aluno#construtor) + FC da cinta do celular vai para o Ginasio; Avg. HR = media da aula; aula termina quando a sala some + resultado do teste de FTP da aula no celular (1 min; automatico grava, senao pergunta) + home do professor: sai o Build Workout antigo (com senha), fica Agenda + Treino do Treinador + Construtor de Treino + voltar para a propria bike depois de reabrir o app + relogio do bloco anda sem bike transmitindo + vigia: reentra na sala se a aula parar de chegar + resultado do desafio no celular (10 s, toque fecha) + sexo enviado na entrada da sala (desafio Homens x Mulheres) + aluno sem nome nao entra mais como "-" na sala + leitor do app aceita o QR de Minhas Aulas do Ginasio + aula anterior nao fica mais grudada (fim da aula fecha o socket em qualquer tela; QR de outra sala troca de sala) + gauge com FTP e BLOCO simetricos + marcha e FC na aula da academia + %FTP com o FTP da gaveta na hora + FTP da gaveta vai para a sala na hora + FTP tambem na entrada pela reserva + Revisar o treino mostra a aula do Ginasio + caloria por watt (kJ/eficiencia) + basal Mifflin-St Jeor no cadastro + historico gravado no aparelho + FTP na gaveta + card 1080x1920 reposicionado + 6 protocolos de FTP + TSS + teste de 3 min + fator do teste de 5 min corrigido (era 1,05) + explicacao de FTP em cada teste + gaveta esconde pela propria altura + importacao de treino do TrainingPeaks (grade 2x2 na tela inicial + construtor) com tela de conferencia (botoes acima da navegacao) + corrigido: aula aberta por objeto agora e a que roda + botao Revisar o treino na gaveta + FTP e peso persistem no aparelho + gauge reequilibrado + textos do Brasil + codigo de sala normalizado (QR do navegador deixava a sala inexistente) + faixa de voltar corrigida + reconexao nao trava mais + sala encerrada limpa o codigo guardado + VISTA DA SALA + card comprido de Construtor para professor + fim da corrida no login','color:#ea860c;font-weight:700;'); }catch(e){}
   }
   if(document.readyState!=='loading') buildGaugeArc();
   else document.addEventListener('DOMContentLoaded', buildGaugeArc);
 })();
+// 15/10: e-mail do resumo → "Compartilhar a aula" abre direto as artes (logado ou não)
+(function(){ var go=function(){ setTimeout(function(){ try{ prCompartilharDoEmail(); }catch(e){} },1200); }; if(document.readyState==='complete') go(); else window.addEventListener('load',go); window.addEventListener('hashchange',function(){ try{ prCompartilharDoEmail(); }catch(e){} }); })();
 
 // ── Voltar pra última aula (rejoin) — usa a máquina de conexão existente ──
 (function(){
@@ -9231,7 +9279,7 @@ function grvTick(primeiro){
   var ac=_grv.ac, contando=!v.paused&&!pausaTV&&tem;
   if(contando){
     ac.tot++; ac.wS+=w; ac.wN++; if(rpm>0){ ac.rS+=rpm; ac.rN++; } ac.zt[zMeu]=(ac.zt[zMeu]||0)+1; if(hr>30){ ac.hrS+=hr; ac.hrN++; }
-    var zs=['z1','z2','z3','z4','z5','z6','z7'], diff=Math.abs(zs.indexOf(zMeu)-zs.indexOf(b.z||'z1')); ac.wpp+=Math.pow(0.5,diff)/60;
+    var zs=['z1','z2','z3','z4','z5','z6','z7'], diff=Math.abs(zs.indexOf(zMeu)-zs.indexOf(b.z||'z1')); if(w>0||rpm>0) ac.wpp+=Math.pow(0.5,diff)/60; else ac.parado=(ac.parado||0)+1;   // 15/10: parado não pontua
     if(ac.am.length<14400) ac.am.push([Date.now(),w,rpm,hr>30?hr:0]);
   }
   // desafio: o mesmo da TV, só com ele (base no começo do desafio)
@@ -9296,7 +9344,7 @@ async function grvTerminar(){
   try{ var r=await fetch(SERVER_HTTP+'/user/gravadas/'+_grv.id+'/resultado',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+tok},body:JSON.stringify({wpp:Math.round(ac.wpp*100)/100,kcal:kcal,watts:wMed})}); var d=await r.json(); rk=d.ranking||[]; }catch(e){}
   if(ac.tot>=120){ try{ var zp={}, zt=0; Object.keys(ac.zt).forEach(function(z){ zt+=ac.zt[z]; }); ['z1','z2','z3','z4','z5','z6','z7'].forEach(function(z){ zp[z]=zt?Math.round((ac.zt[z]||0)/zt*100):0; });
     var zPred=Object.keys(ac.zt).sort(function(a,b){ return ac.zt[b]-ac.zt[a]; })[0]||'z2';
-    fetch(SERVER_HTTP+'/aula/complete',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+tok},body:JSON.stringify({aula_nome:(_grv.d.nome_aula||'Aula')+' (gravada)',duracao_sec:ac.tot,zona_predominante:zPred,badge:'',sem_pausas:true,zonas:zp,watts_med:wMed,rpm_med:rpmMed,kcal:kcal,serie_min:prSerieMin(ac.am)})}).catch(function(){}); }catch(e){} }
+    fetch(SERVER_HTTP+'/aula/complete',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+tok},body:JSON.stringify({aula_nome:(_grv.d.nome_aula||'Aula')+' (gravada)',duracao_sec:ac.tot,zona_predominante:zPred,badge:'',sem_pausas:(ac.parado||0)<60,zonas:zp,watts_med:wMed,rpm_med:rpmMed,kcal:kcal,serie_min:prSerieMin(ac.am),wpp:Math.round(ac.wpp*100)/100,alvo_seg:ac.tot,completou:ac.tot>=(_grv.totSeg||0)*0.85})}).catch(function(){}); }catch(e){} }
   var eu=_prNomeAluno();
   var f=document.getElementById('grvFim'); f.style.display='block';
   f.innerHTML='<div style="display:flex;gap:16px;flex-wrap:wrap;max-width:900px;margin:0 auto;">'
@@ -9840,7 +9888,7 @@ go=function(id){
   if(id==='sDetail'||id==='sConnect'){ var n=document.getElementById('bNav'); if(n) n.style.display='none'; }
 };
 
-var APP_BUILD='07/10k';
+var APP_BUILD='07/10m';
 try{ if(typeof prErroConfig==='function') prErroConfig(SERVER_HTTP,'app',function(){ return (typeof prToken!=='undefined'&&prToken)||localStorage.getItem('pr_token')||''; },APP_BUILD); }catch(e){}   // 03/10f: erros do app chegam na Saúde
 // ── 03/10e: no Perfil — reportar um problema e excluir a conta (LGPD) ──
 (function(){

@@ -987,7 +987,7 @@ function lpLogoToque(){}
 setTimeout(lpStats, 300); setInterval(lpStats, 30000);
 
 var adminToken = localStorage.getItem('pr_admin_token') || '';
-try { if (typeof prErroConfig === 'function') prErroConfig(SERVER, 'admin', function () { return adminToken; }, 'Admin 07/10k'); } catch (e) {}   // 03/10f
+try { if (typeof prErroConfig === 'function') prErroConfig(SERVER, 'admin', function () { return adminToken; }, 'Admin 07/10m'); } catch (e) {}   // 03/10f
 var adminUser  = JSON.parse(localStorage.getItem('pr_admin_user') || 'null');
 var allLicencas = [];
 var allAlunos   = [];
@@ -1869,10 +1869,40 @@ function ljAba(t){
 }
 async function ljRepasse(mes){
   const r=await api('/admin/loja/repasse?mes='+mes); _ljA.rep=r; const el=document.getElementById('ljRep'); if(!el) return;
-  el.innerHTML='<div class="stats-grid" style="margin-bottom:12px"><div class="stat-card"><div class="label">Vendas pagas no mês</div><div class="value">'+((r.vendas||{}).n||0)+'</div></div><div class="stat-card"><div class="label">Total recebido</div><div class="value" style="color:var(--green)">'+ljBRL((r.vendas||{}).total)+'</div></div></div>'
-    +'<div class="table-wrap"><div class="table-header"><h2>Repasse por professor</h2></div><table><thead><tr><th>Professor</th><th>Itens</th><th>Valor bruto</th></tr></thead><tbody>'
-    +((r.professores||[]).map(p=>'<tr><td>'+ljEsc(p.professor)+'</td><td>'+p.itens+'</td><td>'+ljBRL(p.valor)+'</td></tr>').join('')||'<tr><td colspan="3" style="text-align:center;padding:20px;color:var(--muted)">Nada no mês.</td></tr>')
-    +'</tbody></table></div><p class="lj-hint" style="margin-top:8px">Aula avulsa conta para o professor da aula; crédito de pacote conta quando o aluno usa (valor do crédito); assinatura de um professor conta para ele. O percentual de repasse você combina com cada professor.</p>';
+  const v=r.vendas||{}, ps=r.professores||[], tot=ps.reduce((a,p)=>a+Number(p.a_pagar||0),0);
+  // 15/10: repasse sobre o LÍQUIDO (depois das taxas do Asaas), % por professor (vazio = padrão)
+  el.innerHTML='<div class="stats-grid" style="margin-bottom:12px">'
+      +'<div class="stat-card"><div class="label">Vendas pagas no mês</div><div class="value">'+(v.n||0)+'</div></div>'
+      +'<div class="stat-card"><div class="label">Total recebido (bruto)</div><div class="value">'+ljBRL(v.total)+'</div></div>'
+      +'<div class="stat-card"><div class="label">Líquido (depois das taxas)</div><div class="value" style="color:var(--green)">'+ljBRL(v.liquido)+'</div></div>'
+      +'<div class="stat-card"><div class="label">Repasse do mês</div><div class="value" style="color:var(--accent)">'+ljBRL(tot)+'</div></div></div>'
+    +'<div class="table-wrap"><div class="table-header" style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><h2>Repasse por professor</h2>'
+      +'<label style="display:flex;gap:8px;align-items:center;font-size:13px">Padrão para professor novo <input id="ljPadrao" type="number" min="0" max="100" step="1" value="'+r.padrao+'" style="width:70px;padding:6px 8px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:#fff">% <button class="btn btn-outline btn-sm" onclick="ljPadraoSalvar()">Salvar</button></label></div>'
+    +'<table id="ljRepTab"><thead><tr><th>Professor</th><th>Itens</th><th>Bruto</th><th>Líquido</th><th>%</th><th>A pagar</th><th>Situação</th></tr></thead><tbody>'
+    +(ps.map(p=>'<tr data-prof="'+(p.professor_id||'')+'"><td>'+ljEsc(p.professor)+(p.email?'<div style="font-size:11px;color:var(--muted)">'+ljEsc(p.email)+'</div>':'')+'</td><td>'+p.itens+'</td><td>'+ljBRL(p.valor)+'</td><td>'+ljBRL(p.liquido)+'</td>'
+      +'<td>'+(!p.professor_id?'<span style="color:var(--muted)">ProRider</span>':(p.pago?p.pct+'%':'<button class="btn btn-outline btn-sm" title="Mudar o % deste professor" onclick="ljPctEditar('+p.professor_id+','+(p.pct_proprio?p.pct:'null')+')">'+p.pct+'%'+(p.pct_proprio?'':' <small style="color:var(--muted)">(padrão)</small>')+'</button>'))+'</td>'
+      +'<td><b>'+(p.professor_id?ljBRL(p.a_pagar):'—')+'</b></td>'
+      +'<td>'+(!p.professor_id?'':(p.pago?'<span class="badge badge-ativa">pago '+new Date(p.pago.em).toLocaleDateString('pt-BR')+'</span> <button class="btn btn-outline btn-sm" style="font-size:11px" onclick="ljPagar('+p.professor_id+',true,this)">desfazer</button>'
+        :'<button class="btn btn-primary btn-sm" onclick="ljPagar('+p.professor_id+',false,this)">Marcar como pago</button>'))+'</td></tr>').join('')||'<tr><td colspan="7" style="text-align:center;padding:20px;color:var(--muted)">Nada no mês.</td></tr>')
+    +'</tbody></table></div><p class="lj-hint" style="margin-top:8px">O repasse é sobre o <b>líquido</b>: o que o Asaas deixa depois das taxas. Cada professor tem o próprio % (toque no % para mudar; vazio = o padrão). Mês marcado como pago guarda o % e o valor daquele dia: mudar o % depois vale só para o que ainda não foi pago. Aula avulsa conta para o professor da aula; crédito de pacote conta quando o aluno usa; assinatura de um professor conta para ele; assinatura geral fica com a ProRider.</p>';
+}
+async function ljPadraoSalvar(){
+  const n=document.getElementById('ljPadrao').value; const d=await api('/admin/loja/repasse/padrao',{method:'PUT',body:JSON.stringify({pct:n})});
+  if(d.error){ alert(d.error); return; } ljRepasse(document.getElementById('ljMes').value);
+}
+function ljPctEditar(id,atual){
+  const td=document.querySelector('#ljRepTab tr[data-prof="'+id+'"] td:nth-child(5)'); if(!td) return;
+  td.innerHTML='<input type="number" min="0" max="100" step="1" placeholder="padrão" value="'+(atual==null?'':atual)+'" style="width:72px;padding:6px 8px;border-radius:8px;border:1px solid var(--accent);background:var(--card);color:#fff"> <button class="btn btn-primary btn-sm">OK</button>';
+  const i=td.querySelector('input'), b=td.querySelector('button'); i.focus();
+  const ok=async()=>{ const d=await api('/admin/loja/professores/'+id,{method:'PUT',body:JSON.stringify({repasse_pct:i.value})}); if(d.error){ alert(d.error); return; }
+    try{ const p=(_ljA.d.professores||[]).find(x=>x.id===id); if(p) p.repasse_pct=d.repasse_pct; }catch(e){}
+    ljRepasse(document.getElementById('ljMes').value); };
+  b.onclick=ok; i.onkeydown=e=>{ if(e.key==='Enter') ok(); if(e.key==='Escape') ljRepasse(document.getElementById('ljMes').value); };
+}
+async function ljPagar(id,desfazer,bt){
+  if(!bt.dataset.conf){ bt.dataset.conf='1'; const t=bt.textContent; bt.textContent=desfazer?'Confirmar desfazer?':'Confirmar?'; setTimeout(()=>{ if(bt.isConnected){ delete bt.dataset.conf; bt.textContent=t; } },4000); return; }
+  const d=await api('/admin/loja/repasse/pagar',{method:'POST',body:JSON.stringify({mes:document.getElementById('ljMes').value,professor_id:id,desfazer:!!desfazer})});
+  if(d.error){ alert(d.error); return; } ljRepasse(document.getElementById('ljMes').value);
 }
 // formulário genérico
 function ljForm(titulo,campos,valores,salvar){
@@ -1910,7 +1940,7 @@ function ljAulaForm(id){
   ],a,ljSalvarEm('aulas',id));
 }
 function ljProfForm(id){
-  ljForm(id?'Editar professor':'Novo professor',[{k:'nome',l:'Nome'},{k:'cidade',l:'Cidade'},{k:'foto_url',l:'Foto (link da imagem, opcional)'},{k:'bio',l:'Sobre o professor',tipo:'txt'},{k:'email',l:'E-mail (para o repasse)'},{k:'ordem',l:'Ordem na loja',tipo:'number',padrao:0},{k:'ativo',l:'Visível na loja',tipo:'chk',padrao:true}],
+  ljForm(id?'Editar professor':'Novo professor',[{k:'nome',l:'Nome'},{k:'cidade',l:'Cidade'},{k:'foto_url',l:'Foto (link da imagem, opcional)'},{k:'bio',l:'Sobre o professor',tipo:'txt'},{k:'email',l:'E-mail (para o repasse)'},{k:'repasse_pct',l:'Repasse (% do líquido) — vazio = o padrão da loja',tipo:'number'},{k:'ordem',l:'Ordem na loja',tipo:'number',padrao:0},{k:'ativo',l:'Visível na loja',tipo:'chk',padrao:true}],
     id?_ljA.d.professores.find(x=>x.id===id):{},ljSalvarEm('professores',id));
 }
 function ljProdForm(id){

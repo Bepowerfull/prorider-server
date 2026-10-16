@@ -36,7 +36,7 @@ const hook=(event,payment)=>j('POST','/webhook/asaas',{event,payment},null,{'asa
   let st=(await j('GET',M+'/_state')).d, pay=Object.values(st.pays).find(x=>x.externalReference==='loja:'+c.d.pedido_id);
   ok(pay&&pay.billingType==='UNDEFINED'&&pay.value===19.9,'Asaas: PIX/cartão/boleto, R$ 19,90');
   ok(await sql("select count(*) from information_schema.columns where table_name='users' and column_name like 'cpf%'")==='0', 'CPF não é guardado');
-  await hook('PAYMENT_RECEIVED',{...pay,status:'RECEIVED',billingType:'PIX'});
+  await hook('PAYMENT_RECEIVED',{...pay,status:'RECEIVED',billingType:'PIX',netValue:18.91});   // 15/10: líquido depois da taxa
   ok((await j('GET','/loja/pedidos/'+c.d.pedido_id,null,A)).d.status==='pago','pedido pago');
   v=(await j('GET','/loja',null,A)).d; ok(v.aulas.find(x=>x.id===a1.id).tem_acesso,'aula liberada');
   ok((await j('GET','/gravadas/'+g1+'/roteiro',null,A)).s===200,'roteiro abre');
@@ -54,6 +54,37 @@ const hook=(event,payment)=>j('POST','/webhook/asaas',{event,payment},null,{'asa
   ok((await j('POST','/admin/loja/cortesia',{email:'al1@x.com',tipo:'produto',id:as.id},SA)).d.ok,'cortesia: assinatura');
   v=(await j('GET','/loja',null,A)).d; ok(v.aulas.every(x=>x.tem_acesso)&&v.minha.assinaturas.length===1,'assinatura libera todas');
   let rp=(await j('GET','/admin/loja/repasse',null,SA)).d; ok(rp.professores.length&&Number(rp.vendas.total)>0,'repasse do mês',rp);
+  console.log('6) Repasse sobre o líquido, % ajustável (15/10)');
+  const mes=rp.mes, mp=()=>j('GET','/admin/loja/repasse?mes='+mes,null,SA).then(x=>x.d.professores.find(p=>p.professor_id===pr.id));
+  let x=await mp(); ok(x&&x.valor==='19.90'&&x.liquido==='18.91'&&x.pct===50&&!x.pct_proprio&&x.a_pagar==='9.46','líquido do Asaas (R$ 18,91) × padrão 50% = R$ 9,46',x);
+  ok(Number(rp.vendas.liquido)===18.91,'total líquido do mês',rp.vendas);
+  ok((await j('PUT','/admin/loja/professores/'+pr.id,{repasse_pct:'60'},SA)).d.repasse_pct==60,'professor com 60%');
+  x=await mp(); ok(x.pct===60&&x.pct_proprio&&x.a_pagar==='11.35','60% do líquido = R$ 11,35',x.a_pagar);
+  ok((await j('POST','/admin/loja/repasse/pagar',{mes,professor_id:pr.id},SA)).d.ok,'marcado como pago');
+  await j('PUT','/admin/loja/professores/'+pr.id,{repasse_pct:70},SA);
+  x=await mp(); ok(x.pago&&x.pct===60&&x.a_pagar==='11.35','mudar o % depois não muda o mês já pago',x);
+  await j('POST','/admin/loja/repasse/pagar',{mes,professor_id:pr.id,desfazer:true},SA);
+  x=await mp(); ok(!x.pago&&x.pct===70&&x.a_pagar==='13.24','desfazer: volta a valer o % atual (70% = R$ 13,24)',x);
+  ok((await j('PUT','/admin/loja/repasse/padrao',{pct:40},SA)).d.padrao===40 && (await j('PUT','/admin/loja/repasse/padrao',{pct:140},SA)).s===400,'padrão 40% (e 140% recusado)');
+  await j('PUT','/admin/loja/professores/'+pr.id,{repasse_pct:''},SA);
+  x=await mp(); ok(x.pct===40&&!x.pct_proprio&&x.a_pagar==='7.56','% vazio volta ao padrão (40% = R$ 7,56)',x);
+  const sem=(await j('GET','/admin/loja/repasse?mes='+mes,null,SA)).d.professores.find(p=>!p.professor_id);
+  ok(!sem||(sem.pct===0),'assinatura geral fica com a ProRider (0%)',sem);
+  ok((await j('POST','/admin/loja/repasse/pagar',{mes,professor_id:pr.id},A)).s===403,'aluno não mexe no repasse');
+  let chromium; try { chromium=require(require('path').join(require('child_process').execSync('npm root -g',{encoding:'utf8'}).trim(),'playwright')).chromium; } catch(e){}
+  if(chromium){ const nav=await chromium.launch(), pg=await nav.newPage({viewport:{width:1440,height:900}}), er=[]; pg.on('pageerror',e=>er.push(e.message.slice(0,150)));
+    await pg.route(/^https?:\/\/(?!127\.0\.0\.1)/,rt=>rt.abort());
+    await pg.addInitScript(([t])=>{ localStorage.setItem('pr_admin_token',t); localStorage.setItem('pr_admin_user',JSON.stringify({name:'Admin',email:'a@a',role:'super_admin'})); },[SA]);
+    await pg.goto(B+'/index.html'); await new Promise(r=>setTimeout(r,1500));
+    await pg.evaluate(()=>showPage('loja')); await new Promise(r=>setTimeout(r,1500)); await pg.evaluate(()=>ljAba('vendas')); await new Promise(r=>setTimeout(r,2000));
+    let t=await pg.evaluate(()=>(document.getElementById('ljRep')||{}).innerText||'');
+    ok(/Líquido/i.test(t)&&/Mario Elite/.test(t)&&/40%/.test(t)&&/7,56/.test(t)&&/Marcar como pago/.test(t),'Admin → Loja → Vendas e repasse: líquido, %, a pagar e o botão',t.replace(/\s+/g,' ').slice(0,200));
+    await pg.evaluate(()=>{ const b=[...document.querySelectorAll('#ljRepTab button')].find(x=>/40%/.test(x.textContent)); b.click(); });
+    await pg.evaluate(()=>{ const i=document.querySelector('#ljRepTab td:nth-child(5) input'); i.value='55'; document.querySelector('#ljRepTab td:nth-child(5) button').click(); }); await new Promise(r=>setTimeout(r,1500));
+    t=await pg.evaluate(()=>document.getElementById('ljRep').innerText);
+    ok(/55%/.test(t)&&/10,40/.test(t),'mudar o % na própria tabela (55% = R$ 10,40)',t.replace(/\s+/g,' ').slice(0,200));
+    await pg.screenshot({path:require('path').join(require('os').tmpdir(),'prorider-repasse.png')}).catch(()=>{});
+    ok(!er.length,'sem erro de JavaScript no Admin',er); await nav.close(); }
   ok((await j('DELETE','/admin/loja/aulas/'+a1.id,null,SA)).d.desativado,'aula vendida só desativa');
   let ad=(await j('GET','/admin/loja',null,SA)).d; ok(ad.gravacoes.length>=2&&ad.pedidos.length>=3,'admin vê gravações e pedidos');
   console.log(f?f+' FALHA(S)':'TUDO OK'); await pool.end(); process.exit(f?1:0);

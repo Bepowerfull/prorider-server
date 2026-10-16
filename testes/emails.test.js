@@ -65,6 +65,24 @@ const limpo = h => !/\{[a-z_]+\}|undefined|NaN|\[object/.test(h);
   // 15/10: brasão no topo — 150 pts (Z4) = Aquecimento, faltam 50 para Cadência
   ok(/img\/brasoes\/aquecimento\.png/.test(h) && /SEU NÍVEL/.test(h) && />Aquecimento</.test(h) && /\+150 pts<\/b> nesta aula · 150 pts no total/.test(h) && /Faltam <b[^>]*>50 pts<\/b> para <b[^>]*>Cadência/.test(h) && /Como ganhar pontos/.test(h),
     'brasão: nível (imagem), pontos da aula e do total, quanto falta e como ganhar');
+  // 15/10: botão "Compartilhar a aula" → /aluno#compartilhar=<código> → o app abre as 2 artes desta aula
+  const tk = (h.match(/aluno#compartilhar=([A-Za-z0-9_-]+)/) || [])[1];
+  ok(!!tk && /Abrir o app<\/a>/.test(h) && /📤 Compartilhar a aula<\/a>/.test(h), 'e-mail com os dois botões: Abrir o app e Compartilhar a aula', tk);
+  const cp = await j('GET', '/compartilhar/' + tk);
+  ok(cp.s === 200 && cp.d.nome === 'HIIT Threshold #3' && cp.d.w === 205 && cp.d.kcal === 312 && cp.d.serie.length === 47 && cp.d.ftpPct === 89 && cp.d.zona === 'z4', 'o link traz os números da aula (sem login)', cp.d && { nome: cp.d.nome, w: cp.d.w, ftpPct: cp.d.ftpPct });
+  ok((await j('GET', '/compartilhar/naoexiste12345')).s === 404 && (await j('GET', '/compartilhar/../x')).s === 404, 'código que não existe: 404');
+  let chromium; try { chromium = require(path.join(require('child_process').execSync('npm root -g', { encoding: 'utf8' }).trim(), 'playwright')).chromium; } catch (e) {}
+  if (chromium && tk) {
+    const nav = await chromium.launch(); const ap = await nav.newPage({ viewport: { width: 390, height: 844 } }); const ea = []; ap.on('pageerror', x => ea.push(x.message.slice(0, 160)));
+    await ap.route(/^https?:\/\/(?!127\.0\.0\.1)/, rt => rt.abort());
+    await ap.goto(B + '/aluno/#compartilhar=' + tk); await espera(3500);
+    const sh = await ap.evaluate(() => { const o = document.getElementById('shareOverlay'), c = document.getElementById('shareCanvas1');
+      return { aberto: o && getComputedStyle(o).display === 'flex', w: c && c.width, hash: location.hash, dados: (typeof _shDados === 'function') ? _shDados() : null }; });
+    ok(sh.aberto && sh.w === 1080 && sh.hash === '' && sh.dados && sh.dados.nome === 'HIIT Threshold #3' && sh.dados.w === 205, 'app abre direto nas artes desta aula (e limpa o link)', { aberto: sh.aberto, nome: sh.dados && sh.dados.nome });
+    await ap.screenshot({ path: path.join(require('os').tmpdir(), 'prorider-compartilhar-email.png') }).catch(() => {});
+    await ap.evaluate(() => shFechar()); ok(await ap.evaluate(() => _shOverride === null && getComputedStyle(document.getElementById('shareOverlay')).display === 'none'), 'fechar volta ao app (e esquece a aula do e-mail)');
+    ok(!ea.length, 'sem erro de JavaScript no app', ea); await nav.close();
+  }
   await sql(`UPDATE users SET points=150 WHERE email='bia@em.test'`);   // a aula de 100 pts leva a 250: sobe para Cadência
   await j('POST', '/aula/complete', { aula_nome: 'Aula antiga', duracao_sec: 1800, zona_predominante: 'z3', zonas: { z1: 20, z3: 80 }, watts_med: 150, rpm_med: 85, kcal: 200 }, A2);
   e = await chegou('bia@em.test', /resumo da aula/);
