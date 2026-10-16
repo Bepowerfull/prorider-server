@@ -464,6 +464,34 @@ function emailTopoTipo(tipo, v) {
   if (tipo === 'vaga_aberta') return emailSelo({ cor: '#5db13d', corTxt: '#111', marca: v.bike || '—', sub2: 'BIKE', rotulo: 'VAGA GARANTIDA', titulo: v.aula || 'Aula', texto: (v.data || '') + (v.hora ? ' às ' + v.hora : '') });
   return '';
 }
+// 15/10: BRASÃO no e-mail do resumo — nível atual (imagem), pontos, barra até o próximo e como ganhar mais.
+// As imagens ficam em public/img/brasoes/<nível>.png (o e-mail não mostra SVG). Mesmos degraus de NIVEIS.
+const NIVEL_NOME = { aquecimento: 'Aquecimento', cadencia: 'Cadência', pelotao: 'Pelotão', bronze: 'Bronze', prata: 'Prata', ouro: 'Ouro', platina: 'Platina', diamante: 'Diamante', mestre: 'Mestre', lenda: 'Lenda' };
+const NIVEL_COR = { aquecimento: '#a1a1aa', cadencia: '#7f97b3', pelotao: '#c98a6a', bronze: '#c9814a', prata: '#b9c2cc', ouro: '#f0b92a', platina: '#7fd8cf', diamante: '#5bc4ff', mestre: '#b05cff', lenda: '#ea860c' };
+function nivelInfo(pontos) {
+  const p = parseInt(pontos) || 0; let i = 0;
+  NIVEIS.forEach((n, k) => { if (p >= n[1]) i = k; });
+  const nome = k => { const m = /^([a-z]+)(\d)?$/.exec(k); return (NIVEL_NOME[m[1]] || k) + (m[2] ? ' ' + ['', 'I', 'II', 'III'][+m[2]] : ''); };
+  const at = NIVEIS[i], px = NIVEIS[i + 1] || null, tier = /^[a-z]+/.exec(at[0])[0];
+  return { key: at[0], nome: nome(at[0]), cor: NIVEL_COR[tier] || '#ea860c', pts: p, prox: px ? nome(px[0]) : null, faltam: px ? px[1] - p : 0,
+    pct: px ? Math.max(0, Math.min(100, Math.round((p - at[1]) / (px[1] - at[1]) * 100))) : 100 };
+}
+function emailNivel(total, ganhos, img) {
+  const n = nivelInfo(total), antes = nivelInfo(Math.max(0, (parseInt(total) || 0) - (parseInt(ganhos) || 0))), subiu = n.key !== antes.key;
+  img = img || (PORTAL_URL + '/img');
+  const barra = `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:10px 0 6px"><tr>
+      <td width="${Math.max(2, n.pct)}%" style="height:10px;background:${n.cor};border-radius:5px 0 0 5px;font-size:0;line-height:0">&nbsp;</td>
+      <td style="height:10px;background:#26262d;border-radius:0 5px 5px 0;font-size:0;line-height:0">&nbsp;</td></tr></table>`;
+  return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#17171c;border:1px solid ${subiu ? n.cor : '#2a2a31'};border-radius:14px;margin:8px 0 12px"><tr>
+    <td width="96" valign="middle" style="padding:14px 6px 14px 16px"><img src="${img}/brasoes/${n.key}.png" alt="${_esc(n.nome)}" width="80" style="display:block;width:80px;height:auto;border:0"></td>
+    <td valign="middle" style="padding:14px 16px 14px 8px;${EF}">
+      ${subiu ? `<div style="font-size:11px;letter-spacing:2px;font-weight:800;color:${n.cor}">🎉 SUBIU DE NÍVEL!</div>` : `<div style="font-size:10px;letter-spacing:2px;color:#8d8d96">SEU NÍVEL</div>`}
+      <div style="font-size:24px;line-height:28px;font-weight:900;color:#fff">${_esc(n.nome)}</div>
+      <div style="font-size:13px;color:#d5d5da;margin-top:2px"><b style="color:#ffd23f">+${_nBR(ganhos)} pts</b> nesta aula · ${_nBR(n.pts)} pts no total</div>
+      ${n.prox ? barra + `<div style="font-size:12px;color:#9a9aa2">Faltam <b style="color:#fff">${_nBR(n.faltam)} pts</b> para <b style="color:#fff">${_esc(n.prox)}</b></div>` : `<div style="font-size:12px;color:#9a9aa2;margin-top:6px">Você está no topo. Lenda!</div>`}
+    </td></tr>
+    <tr><td colspan="2" style="padding:0 16px 14px;${EF};font-size:11.5px;line-height:17px;color:#8d8d96">Como ganhar pontos: aula completa <b style="color:#d5d5da">100</b> · na Z4 ou Z5 <b style="color:#d5d5da">+50</b> · na Z6 ou Z7 <b style="color:#d5d5da">+75</b> · sem pausas <b style="color:#d5d5da">+25</b></td></tr></table>`;
+}
 // 07/10c: números dos e-mails no modelo novo
 const _nBR = n => Number(n || 0).toLocaleString('pt-BR');
 function emailNumsResumo(x, serie, ftp, zonas) {
@@ -543,7 +571,7 @@ function _numBox(v, l, cor) {
   return `<td style="text-align:center;padding:10px"><div style="font-size:28px;font-weight:900;color:${cor || '#fff'}">${v}</div><div style="font-size:10px;color:#8a8a92;letter-spacing:1px">${l}</div></td>`;
 }
 async function _userLic(uid) {
-  const r = await db.query(`SELECT u.id, u.name, u.email, u.ftp, u.license_id, l.nome AS academia
+  const r = await db.query(`SELECT u.id, u.name, u.email, u.ftp, u.license_id, COALESCE(u.points,0) AS points, l.nome AS academia
                             FROM users u LEFT JOIN licencas l ON l.codigo=u.license_id WHERE u.id=$1`, [uid]);
   return r.rows[0] || null;
 }
@@ -575,8 +603,8 @@ async function emailResumoAula(uid, a) {
   const v = { nome: String(u.name || '').split(' ')[0], nome_completo: u.name || '', academia: u.academia || 'ProRider', aula: a.aula_nome || 'Aula',
     duracao: min + ' min', kcal: parseInt(a.kcal) || 0, potencia: (parseInt(a.watts_med) || 0) + ' W', rpm: parseInt(a.rpm_med) || 0,
     zona: String(a.zona_predominante || '—').toUpperCase(), pontos: parseInt(a.pontos) || 0 };
-  const nums = emailNumsResumo({ min, kcal: v.kcal, w: parseInt(a.watts_med) || 0, rpm: v.rpm, zona: v.zona, pontos: v.pontos },
-    a.serie_min, parseInt(u.ftp) || 0, a.zonas);
+  const nums = emailNivel(u.points, v.pontos) + emailNumsResumo({ min, kcal: v.kcal, w: parseInt(a.watts_med) || 0, rpm: v.rpm, zona: v.zona, pontos: v.pontos },
+    a.serie_min, parseInt(u.ftp) || 0, a.zonas);   // 15/10: brasão no topo
   const m = emailMontar('resumo_aula', c, v, nums, '', PORTAL_URL + '/aluno', u.academia);
   await emailUmaVez('resumo_aula', 'u' + uid + ':' + Date.now(), uid, u.email, m.subject, m.html);
 }
@@ -3354,7 +3382,7 @@ const EMAIL_SERIE_EXEMPLO = [80, 85, 90, 95, 100, 110, 120, 130, 135, 140, 145, 
 function emailPrevia(tipo, cfg, academia) {
   const v = Object.assign({}, EMAIL_EXEMPLO, { academia });
   let nums = null;
-  if (tipo === 'resumo_aula') nums = emailNumsResumo({ min: 55, kcal: 512, w: 168, rpm: 88, zona: 'Z3', pontos: 152 }, EMAIL_SERIE_EXEMPLO, 180, null);
+  if (tipo === 'resumo_aula') nums = emailNivel(1850, 152) + emailNumsResumo({ min: 55, kcal: 512, w: 168, rpm: 88, zona: 'Z3', pontos: 152 }, EMAIL_SERIE_EXEMPLO, 180, null);
   if (tipo === 'novo_ftp') nums = emailNumsFtp(180, 192);
   if (tipo === 'relatorio_mensal') nums = emailNumsMes(214, 63, 96400);
   if (tipo === 'conquista_camisa') return emailCamisaMontar(cfg, v, { k: 'amarela', cat: 'lider', cor: '#ffd400', rotulo: 'Camisa amarela', pontos: 1840 }, academia);
@@ -6845,7 +6873,7 @@ app.post('/display/gravacao/:id/enviar', displayAuth, async (req, res) => {
 // 03/10e — SEGURANÇA E SAÚDE: esqueci a senha, reportar problema,
 // excluir minha conta (LGPD) e a página "Saúde do sistema" do admin
 // ══════════════════════════════════════════════════════════════
-const SERVIDOR_VERSAO = '07/10k';
+const SERVIDOR_VERSAO = '07/10l';
 // 03/10y: versão do Ginásio que vai junto com este servidor. Pacote só de servidor/site não muda isto,
 // e as TVs não precisam ser reinstaladas. Mude junto com o PR_BUILD do Ginásio.
 const GINASIO_VERSAO = '07/10k';

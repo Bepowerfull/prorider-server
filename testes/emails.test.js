@@ -40,6 +40,7 @@ const limpo = h => !/\{[a-z_]+\}|undefined|NaN|\[object/.test(h);
     && />18:30<\/div>/.test(todos.lembrete_aula) && /VAGA GARANTIDA/.test(todos.vaga_aberta) && />192<\/span>/.test(todos.novo_ftp) && /Imprevisto\?/.test(todos.vaga_aberta), 'cada tipo com o seu selo/cartões e o recado em caixa');
   const pr = (await j('POST', '/gestor/emails/previa', { tipo: 'resumo_aula' }, G)).d.html;
   ok(/POTÊNCIA MINUTO A MINUTO · 55 MIN/.test(pr) && /Excelente trabalho!/.test(pr) && />Ana! 🔥</.test(pr), 'resumo: gráfico de 55 min, recado e o nome em destaque');
+  ok(/img\/brasoes\/prata1\.png/.test(pr) && />Prata I</.test(pr) && /Faltam <b[^>]*>250 pts<\/b> para <b[^>]*>Prata II/.test(pr), 'prévia do resumo: brasão Prata I e quanto falta para Prata II');
   const pt = (await j('POST', '/gestor/emails/previa', { tipo: 'resumo_aula', texto: { titulo: 'Valeu, {nome}!', fechamento: 'Até quinta <b>!' } }, G)).d.html;
   ok(/Valeu,<\/div>/.test(pt) && />Ana!</.test(pt) && /Até quinta &lt;b&gt;!/.test(pt), 'texto próprio da academia: título dividido no nome e HTML escapado');
   const pc = (await j('POST', '/gestor/emails/previa', { tipo: 'conquista_camisa' }, G)).d;
@@ -61,10 +62,15 @@ const limpo = h => !/\{[a-z_]+\}|undefined|NaN|\[object/.test(h);
   // escala: 100 W / FTP 230 = 43% → Z1 cinza ; 240 W = 104% → Z4 ; 270 W = 117% → Z5
   ok(/height:39px;background:#a1a1a1/.test(h) && /height:93px;background:#d7c414/.test(h) && /height:104px;background:#ea860c/.test(h), 'barras na altura e na cor da zona (FTP 230 do aluno)');
   ok(limpo(h) && /Excelente trabalho!/.test(h), 'sem {palavra}, undefined ou NaN');
+  // 15/10: brasão no topo — 150 pts (Z4) = Aquecimento, faltam 50 para Cadência
+  ok(/img\/brasoes\/aquecimento\.png/.test(h) && /SEU NÍVEL/.test(h) && />Aquecimento</.test(h) && /\+150 pts<\/b> nesta aula · 150 pts no total/.test(h) && /Faltam <b[^>]*>50 pts<\/b> para <b[^>]*>Cadência/.test(h) && /Como ganhar pontos/.test(h),
+    'brasão: nível (imagem), pontos da aula e do total, quanto falta e como ganhar');
+  await sql(`UPDATE users SET points=150 WHERE email='bia@em.test'`);   // a aula de 100 pts leva a 250: sobe para Cadência
   await j('POST', '/aula/complete', { aula_nome: 'Aula antiga', duracao_sec: 1800, zona_predominante: 'z3', zonas: { z1: 20, z3: 80 }, watts_med: 150, rpm_med: 85, kcal: 200 }, A2);
   e = await chegou('bia@em.test', /resumo da aula/);
   const h2 = e[0] && e[0].html || '';
   ok(/TEMPO EM CADA ZONA/.test(h2) && !/MINUTO A MINUTO/.test(h2) && /width="80%"/.test(h2), 'app antigo / sem FTP: barra com o tempo em cada zona', e.length);
+  ok(/SUBIU DE NÍVEL/.test(h2) && /img\/brasoes\/cadencia\.png/.test(h2) && />Cadência</.test(h2), 'passou de nível na aula: "SUBIU DE NÍVEL!" com o brasão novo');
 
   console.log('3) Desafio 21 dias');
   for (let d = 0; d < 21; d++) await sql(`INSERT INTO aula_historico (user_id, nome, dur_seg, kcal, zona_pct, avg_ftp, avg_rpm, avg_watts, data_aula) VALUES (${idA},'x',1800,200,'{}',80,85,180, NOW() - INTERVAL '${d} days')`);
