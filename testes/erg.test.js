@@ -19,9 +19,14 @@ const espera = ms => new Promise(r => setTimeout(r, ms));
     const ev = () => { const l = []; return { addEventListener: (n, fn) => l.push(fn), _l: l }; };
     const dados = Object.assign(ev(), { startNotifications: () => Promise.resolve() });
     const cp = Object.assign(ev(), { startNotifications: () => Promise.resolve(),
-      writeValueWithResponse(v) { const b = [...v]; __cmd.push(b); const r = new DataView(new Uint8Array([0x80, b[0], window.__recusar ? 3 : 1]).buffer); setTimeout(() => cp._l.forEach(fn => fn({ target: { value: r } })), 5); return Promise.resolve(); } });
+      writeValueWithResponse(v) { const b = [...v]; __cmd.push(b); const r = new DataView(new Uint8Array([0x80, b[0], window.__recusar ? (window.__codRec || 3) : 1]).buffer); setTimeout(() => cp._l.forEach(fn => fn({ target: { value: r } })), 5); return Promise.resolve(); } });
     window.__rolo = { server: { getPrimaryService: u => Promise.resolve({ getCharacteristic: c => /2ad2/.test(c) ? Promise.resolve(dados) : /2ad9/.test(c) ? Promise.resolve(cp) : Promise.reject(new Error('sem')) }) },
       device: { name: 'KICKR TESTE', addEventListener() {} } };
+    // rolo que só aceita NÍVEL DE RESISTÊNCIA (Fitness Machine Feature: bit 2) com faixa 0–100,0
+    const feat = { readValue: () => { const v = new DataView(new ArrayBuffer(8)); v.setUint32(0, 0, true); v.setUint32(4, 1 << 2, true); return Promise.resolve(v); } };
+    const faixa = { readValue: () => { const v = new DataView(new ArrayBuffer(6)); v.setInt16(0, 0, true); v.setInt16(2, 1000, true); v.setUint16(4, 10, true); return Promise.resolve(v); } };
+    window.__roloRes = { server: { getPrimaryService: u => Promise.resolve({ getCharacteristic: c => /2ad2/.test(c) ? Promise.resolve(dados) : /2ad9/.test(c) ? Promise.resolve(cp) : /2acc/.test(c) ? Promise.resolve(feat) : /2ad6/.test(c) ? Promise.resolve(faixa) : Promise.reject(new Error('sem')) }) },
+      device: { name: 'ROLO SÓ RESISTÊNCIA', addEventListener() {} } };
     window.__soLe = { server: { getPrimaryService: u => /1826/.test(u) ? Promise.resolve({ getCharacteristic: c => /2ad2/.test(c) ? Promise.resolve(dados) : Promise.reject(new Error('sem controle')) }) : Promise.reject(new Error('x')) },
       device: { name: 'BIKE SÓ LÊ', addEventListener() {} } };
   });
@@ -65,9 +70,36 @@ const espera = ms => new Promise(r => setTimeout(r, ms));
   await p.evaluate(() => { __cmd = []; window._prErgGrv.pausa = true; _ergTick(); }); await espera(100);
   c = await p.evaluate(() => __cmd.map(x => x.join(','))); ok(c.join('|') === '8,1', 'vídeo pausado: solta o rolo', c);
   await p.evaluate(() => { __cmd = []; window._prErgGrv = null; _ftpDaAula = 0; profData.ftp = ''; try { localStorage.removeItem('pr_ftp'); } catch (e) {} document.getElementById('sLive').classList.add('active'); _ergTick(); }); await espera(100);
-  ok(await p.evaluate(() => __cmd.length === 0), 'aluno sem FTP: não força carga nenhuma');
+  c = await p.evaluate(() => __cmd.map(x => x.join(','))); ok(c.join('|') === '0|7|5,127,0', 'aluno sem FTP no perfil: usa 130 (padrão do app) → 127 W', c);
   await p.evaluate(() => { __cmd = []; _ftpDaAula = 200; window.__recusar = true; _ergTick(); }); await espera(150);
-  s = await p.evaluate(() => ({ n: __cmd.length, rec: _erg.recusas })); ok(s.n === 3 && s.rec >= 1, 'aparelho recusa o comando: o app não trava (fica registrado no console)', s);
+  s = await p.evaluate(() => ({ n: __cmd.length, rec: _erg.recusas, modo: _erg.modo })); ok(s.n === 1 && s.rec >= 1 && s.modo === 'sim', 'rolo recusa a POTÊNCIA: o app não trava e passa para SUBIDA', s);
+  await p.evaluate(() => { __cmd = []; window.__recusar = false; _ergTick(); }); await espera(150);
+  s = await p.evaluate(() => ({ c: __cmd.map(x => x.join(',')), pill: document.getElementById('ergPill').innerText }));
+  ok(s.c.join('|') === '17,0,0,18,2,40,51' && /196 W/.test(s.pill) && /subida 5,3%/.test(s.pill), 'modo subida: 98% FTP → inclinação 5,3% (e a etiqueta mostra)', s);
+  await p.evaluate(() => { __cmd = []; aulaGrafico = [{ ftpMin: 50, ftpMax: 150, pos: 'Livre' }]; aulaBlocoIdx = 0; _ergTick(); }); await espera(100);
+  s = await p.evaluate(() => ({ c: __cmd.map(x => x.join(',')), pill: document.getElementById('ergPill').innerText }));
+  ok(s.c.join('|') === '8,1' && /sem alvo/.test(s.pill), 'bloco LIVRE: solta o rolo e a etiqueta diz "sem alvo"', s);
+  await p.evaluate(() => { __cmd = []; aulaGrafico = [{ ftpMin: 91, ftpMax: 105 }]; window.__recusar = true; window.__codRec = 5; _ergTick(); }); await espera(150);
+  s = await p.evaluate(() => ({ e: _erg.estado, pill: document.getElementById('ergPill').innerText }));
+  ok(s.e === 'bloqueado' && /não liberou/.test(s.pill), 'outro app com o controle (código 5): a etiqueta avisa para fechar o outro app', s);
+  await p.evaluate(() => { window.__recusar = false; window.__codRec = 0; __cmd = []; _erg.ctrlTs = 0; _ergTick(); }); await espera(150);
+  s = await p.evaluate(() => ({ c: __cmd.map(x => x.join(',')), e: _erg.estado })); ok(s.c[0] === '0' && s.e !== 'bloqueado', 'depois de 10 s pede o controle de novo e volta ao normal', s);
+
+  console.log('4) Rolo que só aceita nível de resistência');
+  await p.evaluate(() => { _erg.ctrl = false; return btConnectBike(__roloRes.server, __roloRes.device); }); await espera(250);
+  s = await p.evaluate(() => ({ modo: _erg.modo, fx: _erg.faixaRes })); ok(s.modo === 'res' && s.fx && s.fx.max === 1000, 'lê o que o rolo aceita (só resistência) e a faixa 0–100,0', s);
+  await p.evaluate(() => { __cmd = []; _ergTick(); }); await espera(150);
+  c = await p.evaluate(() => __cmd.map(x => x.join(','))); ok(c.join('|') === '0|7|4,132,2', 'manda o NÍVEL: 98% FTP → 64% da faixa (raw 644)', c);
+
+  console.log('5) Rolo de cilindro da Elite (Arion / Nero): trabalha por subida, como no Zwift');
+  await p.evaluate(() => { _erg.ctrl = false; return btConnectBike(__rolo.server, { name: 'ARION 52831', addEventListener() {} }); }); await espera(250);
+  await p.evaluate(() => { __cmd = []; aulaGrafico = [{ ftpMin: 91, ftpMax: 105 }]; aulaBlocoIdx = 0; _ergTick(); }); await espera(150);
+  s = await p.evaluate(() => ({ modo: _erg.modo, c: __cmd.map(x => x.join(',')), pill: document.getElementById('ergPill').innerText }));
+  ok(s.modo === 'sim' && s.c.join('|') === '0|7|17,0,0,18,2,40,51' && /subida/.test(s.pill), 'Elite ARION: começa direto pela SUBIDA (5,3%)', s);
+  await p.evaluate(() => { _erg.ctrl = false; return btConnectBike(__rolo.server, { name: 'NERO 10442', addEventListener() {} }); }); await espera(250);
+  ok(await p.evaluate(() => _erg.modo === 'sim'), 'Elite NERO: também pela subida');
+  await p.evaluate(() => { _erg.ctrl = false; return btConnectBike(__rolo.server, { name: 'KICKR TESTE', addEventListener() {} }); }); await espera(250);
+  ok(await p.evaluate(() => _erg.modo === 'pot'), 'rolo de roda tirada (KICKR): continua por POTÊNCIA (watts fixos)');
   ok(erros.length === 0, 'nenhum erro de JavaScript no app', erros.slice(0, 3));
   await nav.close(); process.exit(f ? 1 : 0);
 })().catch(e => { console.error(e); process.exit(1); });

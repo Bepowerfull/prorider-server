@@ -449,12 +449,37 @@
       var _emElectron = /Electron/i.test(navigator.userAgent);
       var abriu = false;
       if (_emElectron) {
+        // 16/10 (07/10o): no Electron tambem tenta PRIMEIRO as portas ja autorizadas
+        // (getPorts nao precisa de clique). So depois pede a porta (requestPort), que
+        // o Chromium pode recusar sem um clique — e era isso que deixava as bikes da
+        // sala apagadas ate alguem abrir o pareamento.
         try {
-          _port = await navigator.serial.requestPort({ filters: [{ usbVendorId: 0x2458 }] });
-          await _port.open({ baudRate: (_baudOk || 256000) });
-          abriu = await _provaDeVida();
-        } catch(e) {
-          console.warn('[BLED112] Electron requestPort falhou:', e && e.message ? e.message : e);
+          var _gp = navigator.serial.getPorts ? await navigator.serial.getPorts() : [];
+          for (var gi = 0; gi < _gp.length && !abriu; gi++) {
+            var _gi = _gp[gi].getInfo ? _gp[gi].getInfo() : {};
+            if (_gi.usbVendorId && _gi.usbVendorId !== 0x2458) continue;
+            try { _port = _gp[gi]; if (!_port.readable) await _port.open({ baudRate: (_baudOk || 256000) }); }
+            catch(eo) { _port = null; continue; }
+            abriu = await _provaDeVida();
+            if (!abriu) { await _soltarPorta(); try { await _gp[gi].close(); } catch(_){} _port = null; }
+          }
+          if (_gp.length) console.log('[BLED112] Electron: ' + _gp.length + ' porta(s) ja autorizada(s)' + (abriu ? ' — dongle ligado sem clique.' : ' — nenhuma respondeu.'));
+        } catch(e) { console.warn('[BLED112] Electron getPorts falhou:', e && e.message ? e.message : e); }
+        if (!abriu) {
+          try {
+            _port = await navigator.serial.requestPort({ filters: [{ usbVendorId: 0x2458 }] });
+            if (!_port.readable) await _port.open({ baudRate: (_baudOk || 256000) });
+            abriu = await _provaDeVida();
+          } catch(e) {
+            var _me = e && e.message ? e.message : String(e);
+            console.warn('[BLED112] Electron requestPort falhou:', _me);
+            if (/user gesture/i.test(_me)) {
+              _port = null;
+              var _ec = new Error('Porta serial nao selecionada: ' + _me);
+              _ec.precisaDeClique = true;
+              throw _ec;
+            }
+          }
         }
       } else {
 

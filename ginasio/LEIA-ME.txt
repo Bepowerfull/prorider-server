@@ -1,4 +1,13 @@
-ProRider — BUILD 07/10m (Ginasio)
+ProRider — BUILD 07/10o (Ginasio)
+
+07/10o: BIKES DA SALA NAO FICAM MAIS APAGADAS AO ABRIR. O programa tenta primeiro o dongle ja
+autorizado (sem clique). Se o Windows/navegador exigir um clique, aparece no alto a faixa azul
+"BIKES DESLIGADAS" — um clique do mouse ou ENTER no teclado liga o dongle e as bikes. O controle
+(joystick) nao conta como clique. Demo nao infla mais o WPP.
+
+07/10n: SEM BIKE SIMULADA. Se o dongle (BLED112) nao responde, o pareamento mostra o aviso
+"Nao encontrei o dongle" e NAO cria bike (antes criava uma bike de mentira com o cartao SIMULADO
+e numeros sorteados). Bikes simuladas guardadas antes sao removidas ao abrir o programa.
 
 07/10m: PONTOS POR APROXIMACAO. O WPP soma pelo tempo na zona que o bloco pede (perto vale
 metade); parado nao pontua. Aula/sessao LIVRE: a zona do professor na BIKE 99 e a base de todos

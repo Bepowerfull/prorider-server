@@ -1,9 +1,9 @@
 {
- "versao": "07/10m",
- "arquivo": "07-10m.prpack",
- "tamanho": 617324,
- "sha256": "209f813d8ec952de9350c71da072a4d9538ae57ab7e1a850dbdae95bd4b6cd49",
- "assinatura": "wevO2Hrt6dED6frA2RAJ6obpdrSMpRmQug9AA4acZrib78+4PdDkDTizmJwoYzNGlbjb5PE1WGHX4QanUeYUDg==",
+ "versao": "07/10o",
+ "arquivo": "07-10o.prpack",
+ "tamanho": 620356,
+ "sha256": "72cee70eb22d5d98bb0f9b08f2750e482589be2d5a971f418c291b844338d4f1",
+ "assinatura": "kBTrjaf/AIARVH0RElnsGGM0cfQQCe3D12gtCbDmBikpPz3k/HVUKff1GtLHGAcO+8lzsQSO/HmYpkdKUSuzDQ==",
  "arquivos": 12,
- "criado_em": "2026-10-16T16:48:26.954Z"
+ "criado_em": "2026-10-17T00:05:04.584Z"
 }

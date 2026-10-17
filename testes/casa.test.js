@@ -108,6 +108,14 @@ const FOTOS = fs.mkdtempSync(path.join(os.tmpdir(), 'prorider-telas-tv-'));
     const m = env.find(x => x.tipo === 'entrar_sala') || {};
     return { tem: !!bt && /pedalar de casa/i.test(bt.innerText), bike: m.bike, remoto: m.remoto, marcado: /VOCÊ/.test((document.getElementById('bikeSelCasa') || {}).innerText || ''), casa: _prCasa }; });
   ok(app.tem && app.bike === 0 && app.remoto === true && app.casa === true && app.marcado, 'app: "Vou pedalar de casa" entra sem bike e marcado como de casa', app);
+  // 16/10: depois de entrar de casa, abre "Conectar aparelhos" (rolo e cinta); "Ir para a aula" volta para a aula da TV
+  const cn = await ap.evaluate(async () => { _prConnCasa(); await new Promise(r => setTimeout(r, 300));
+    const sc = document.getElementById('sConnect'), st = { tela: sc.classList.contains('active'), titulo: document.getElementById('connAulaName').textContent, dica: document.getElementById('cnDica').innerText, botao: document.getElementById('btnStartSem').textContent, gaveta: getComputedStyle(document.getElementById('dCasaConn')).display };
+    document.getElementById('btnStartSem').click(); await new Promise(r => setTimeout(r, 300));
+    st.depois = document.getElementById('sLive').classList.contains('active'); st.contagem = document.getElementById('sCountdown').classList.contains('active');
+    st.restaurado = document.getElementById('btnStartSem').textContent; st.modo = !!window._prConnModoTV; return st; });
+  ok(cn.tela && cn.titulo === 'Pedalar de casa' && /rolo/.test(cn.dica) && /Ir para a aula/.test(cn.botao) && cn.gaveta === 'block', 'de casa: abre a tela de conectar o rolo e a cinta (e o botão fica na gaveta)', cn);
+  ok(cn.depois && !cn.contagem && !cn.modo && cn.restaurado === 'Começar sem aparelho', '"Ir para a aula" volta para a aula da TV (não começa aula do app)', cn);
   await ap.screenshot({ path: path.join(FOTOS, 'casa_app.png') }).catch(() => {});
   ok(!ea.length, 'sem erro de JavaScript no app', ea);
   ok(!erros.length, 'sem erro de JavaScript na TV', erros.slice(0, 3));

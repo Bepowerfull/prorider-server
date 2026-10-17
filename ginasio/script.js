@@ -1,6 +1,6 @@
 // Versao visivel na tela inicial (canto inferior direito) — 24/09b.
 // Trocar AQUI e na linha do BUILD no fim do arquivo a cada versao.
-var PR_BUILD='BUILD 07/10m';
+var PR_BUILD='BUILD 07/10o';
 // ═══ 03/10f — A TV NÃO PERDE NADA SEM INTERNET + ERROS CHEGAM SOZINHOS NA SAÚDE ═══
 // _prFilaPost(caminho, corpo, rotulo, extra): manda agora; se a internet ou o servidor
 // falharem, guarda no computador (localStorage 'pr_fila', até 7 dias) e tenta de novo a
@@ -985,9 +985,10 @@ window.addEventListener('load', function(){
   setTimeout(function(){
     try{
       if(typeof parBLED112Init==='undefined'||typeof BLED112==='undefined') return;
+      try{ BLED112.onPrecisaClique=_prDongleCliqueArmar; }catch(e){}
       parBLED112Init(function(){
         _parIniciarLiveBLED112(); // scan permanente desde o boot
-      }, null); // falha silenciosa se porta não autorizada (utilizador não ligou o dongle)
+      }, function(e){ if(e&&e.precisaDeClique) _prDongleCliqueArmar(); }); // 07/10o: sem clique o navegador não libera a porta → faixa pedindo um clique
     }catch(e){}
   }, 3500);
   // 07/10b: bikes ANT+ pareadas → liga o pendrive ANT+ (separado do BLED112: um não segura o outro)
@@ -998,6 +999,34 @@ window.addEventListener('load', function(){
   // Tick sempre-ativo da grade de Potência (não depende do dongle nem de isPlaying)
   if(APP_MODE!=='builder') _gymIniciarLiveTick();
 });
+
+// 16/10 (07/10o): o navegador só libera a porta do dongle com um CLIQUE (ou tecla do teclado).
+// Antes a TV ficava com as bikes apagadas, sem aviso, até alguém abrir o pareamento.
+// Agora aparece uma faixa e o primeiro clique/tecla em qualquer lugar liga o dongle e o scan.
+var _prDongleArmado=false;
+function _prDongleCliqueArmar(){
+  if(_prDongleArmado) return; _prDongleArmado=true;
+  console.warn('[BLED112] precisa de um clique para ligar o dongle — faixa na tela.');
+  try{
+    var f=document.getElementById('prDongleFaixa');
+    if(!f){ f=document.createElement('div'); f.id='prDongleFaixa';
+      f.style.cssText='position:fixed;left:50%;top:18px;transform:translateX(-50%);z-index:2147483000;padding:14px 26px;border-radius:14px;background:#1d3fa8;border:2px solid #7fb0ff;color:#fff;font:800 22px Barlow,Arial,sans-serif;box-shadow:0 8px 30px rgba(0,0,0,.5);cursor:pointer;text-align:center;';
+      f.innerHTML='🔵 BIKES DESLIGADAS — clique aqui (mouse) ou aperte ENTER no teclado para ligar o Bluetooth';
+      document.body.appendChild(f); }
+  }catch(e){}
+  function ligar(){
+    document.removeEventListener('pointerdown',ligar,true); document.removeEventListener('keydown',ligar,true);
+    _prDongleArmado=false;
+    try{ var f=document.getElementById('prDongleFaixa'); if(f) f.remove(); }catch(e){}
+    try{ BLED112.retomarReconexao&&BLED112.retomarReconexao(); }catch(e){}
+    if(BLED112.connected){ _bled112LiveActive=false; _parIniciarLiveBLED112(); return; }
+    parBLED112Init(function(){
+      _bled112LiveActive=false; _parIniciarLiveBLED112();
+      try{ _parToast&&_parToast('Bluetooth das bikes ligado.'); }catch(e){}
+    }, function(e){ if(e&&e.precisaDeClique) _prDongleCliqueArmar(); });
+  }
+  document.addEventListener('pointerdown',ligar,true); document.addEventListener('keydown',ligar,true);
+}
 
 // START na tela de countdown: antecipa início
 document.addEventListener('keydown', function(e){
@@ -5405,6 +5434,11 @@ function _parCarregarSalvo(){
   try{
     var s=localStorage.getItem('prorider_bike_map');
     if(s) parBikeMap=JSON.parse(s);
+    // 16/10: tira as bikes de mentira que o pareamento sem dongle guardava ("Keiser M3i #1234", sem MAC)
+    var _fal=/^(Keiser M3i|Stages SB20|Wahoo KICKR|Tacx Neo|Elite Suito|Schwinn IC8) #\d{4}$/, _tir=[];
+    Object.keys(parBikeMap||{}).forEach(function(k){ var b=parBikeMap[k]; if(b && !b.mac && !b.id && !b.antId && _fal.test(String(b.nome||''))){ _tir.push(k); delete parBikeMap[k]; } });
+    if(_tir.length){ console.warn('[ProRider] removidas bikes simuladas do pareamento: '+_tir.join(', ')); try{ localStorage.setItem('prorider_bike_map',JSON.stringify(parBikeMap)); }catch(e){}
+      setTimeout(function(){ try{ prErroTv('Pareamento: bike(s) '+_tir.join(', ')+' eram simuladas (sem dongle) e foram removidas — parear de novo com o dongle','aviso'); }catch(e){} },5000); }
     var n=parseInt(localStorage.getItem('prorider_num_bikes'));
     if(n>=4&&n<=40) parNumBikes=n;
     var _tl=window.licencaMaxBikes||0; if(_tl>0 && parNumBikes>_tl) parNumBikes=_tl;   // 24/09: teto da licenca
@@ -5779,8 +5813,7 @@ function _parScanBike(num){
       optionalServices:['00001818-0000-1000-8000-00805f9b34fb','00001826-0000-1000-8000-00805f9b34fb','0bf669f0-45f2-11e7-9598-0800200c9a66']
     }).then(function(device){
       parBikeMap[num]={tipo:'bt',nome:device.name||'BT Device',id:device.id||'',watts:0,rpm:0,device:device};
-      _parPararScanDe();
-      _parIniciarLiveSimulado(num);
+      _parPararScanDe();   // 16/10: sem números sorteados (antes: _parIniciarLiveSimulado)
       _parAtualizarCard(null,num,parBikeMap[num]);
       if(instr) instr.textContent='Bike '+num+' conectada! Confirma com START para guardar.';
     }).catch(function(){
@@ -6225,7 +6258,8 @@ function _parIniciarLiveBLED112(){
       // Conexão perdida → reconectar silenciosamente e retomar
       setTimeout(function(){
         if(!_bled112LiveActive) return;
-        parBLED112Init(function(){ _scanLoop(); }, function(){
+        parBLED112Init(function(){ _scanLoop(); }, function(e){
+          if(e&&e.precisaDeClique){ _bled112LiveActive=false; _prDongleCliqueArmar(); return; }   // 07/10o: insistir sem clique não adianta
           if(_bled112LiveActive) setTimeout(_scanLoop, 5000);
         });
       }, 2000);
@@ -6309,19 +6343,16 @@ function _parCancelarBLED112(){
   if(instr) instr.textContent='Scan cancelado.';
 }
 
+// 16/10: SEM BIKE INVENTADA. Antes, sem o dongle, o pareamento criava uma bike de mentira ("Keiser M3i #1234")
+// com watts e rotação sorteados (cartão "SIMULADO") e ainda a GUARDAVA. Visto numa TV de verdade na véspera
+// da aula. Agora: não pareia nada, explica o que fazer e avisa a Saúde do sistema.
 function _parScanFallback(num){
-  setTimeout(function(){
-    var nomes=['Keiser M3i','Stages SB20','Wahoo KICKR','Tacx Neo','Elite Suito','Schwinn IC8'];
-    var nome=nomes[Math.floor(Math.random()*nomes.length)]+' #'+(1000+Math.floor(Math.random()*9000));
-    parBikeMap[num]={tipo:parTipo,nome:nome,id:'',watts:0,rpm:0};
-    _parPararScanDe();
-    _parIniciarLiveSimulado(num);
-    _parSalvar(); // guardar automaticamente ao conectar
-    _parAtualizarCard(null,num,parBikeMap[num]);
-    var instr=document.getElementById('parInstrucao');
-    if(instr) instr.textContent='✓ Bike '+num+' guardada automaticamente.';
-    _parAbrirOpMenu(num); // abrir menu de opções após pareamento
-  },1500);
+  _parPararScanDe(num);
+  _parAtualizarCard(null,num,parBikeMap[num]||null);
+  var instr=document.getElementById('parInstrucao');
+  if(instr) instr.textContent='⚠ Não encontrei o dongle (BLED112). Confira se ele está espetado no computador da TV, tire e coloque de novo, feche e abra o ProRider. Nenhuma bike foi pareada.';
+  try{ if(typeof _parToast==='function') _parToast('Dongle não encontrado — nenhuma bike pareada'); }catch(e){}
+  try{ prErroTv('Pareamento: dongle BLED112 não encontrado (bike '+num+' não pareada)','aviso'); }catch(e){}
 }
 
 // ── DADOS SIMULADOS DE PAREAMENTO ─────────────────────────────────
@@ -7136,7 +7167,7 @@ function simularAlunos(){
     var watts=Math.round(al.ftpBase*(ftpPct/100));
     demoState[nome]={zi:zi,rpm:65+zi*8+Math.floor(Math.random()*10),ftp:ftpPct,watts:watts,dir:1,kcal:0,dist:0,potMax:watts};
     alunosMap[nome]={_demo:true,nome:nome,genero:al.genero,ftpBase:al.ftpBase,rpm:demoState[nome].rpm,watts:watts,bpm:130+zi*8,zona:zb,ftp:ftpPct,kcal:0,dist:0,potMax:watts};
-    wppScores[nome]=Math.random()*8+2;
+    wppScores[nome]=0;   // 07/10o: demo começa do zero (antes 2–10 sorteados)
   });
   if(typeof renderAlunos==='function') renderAlunos();
   demoInterval=setInterval(function(){
@@ -7181,7 +7212,8 @@ function simularAlunos(){
       alunosMap[nome].kcal=Math.round(s.kcal);
       alunosMap[nome].dist=parseFloat(s.dist.toFixed(2));
       alunosMap[nome].potMax=s.potMax;
-      wppScores[nome]+=(zi>=2&&zi<=4)?.08:.03;
+      // 16/10: o demo NÃO soma WPP por conta própria (somava 0,03–0,08 a cada 1,2 s, até na tela do QR → 100+ WPP em 4 min).
+      // Agora o aluno demo pontua igual aos reais, pela aproximação do startWPP (só com a aula rodando).
       // Envia dados ao servidor para aparecer no mini PC
       if(wsProf&&wsProf.readyState===1){
         wsProf.send(JSON.stringify({
@@ -9654,6 +9686,8 @@ function runTimer(timestamp){
     // registra na hora, com quem estava antes e quem ficou. E o suspeito
     // principal da repeticao da tela relatada em 19/09.
     try{
+      if(window._pgUltEl!=null && elapsed < window._pgUltEl-2000) window._pgUltBloco=null;   // 07/10o: aula nova/recomeçada — não é recuo
+      window._pgUltEl=elapsed;
       if(window._pgUltBloco!=null && currentBlockIndex < window._pgUltBloco){
         console.error('[pg2] BLOCO RECUOU: '+window._pgUltBloco+' -> '+currentBlockIndex
           + ' | aula '+Math.round(elapsed/1000)+'s. Isto nao deveria acontecer numa aula a correr.');
@@ -10894,7 +10928,7 @@ checkSpotifyCallback();
   v.addEventListener('emptied',function(){ _amostras=[]; document.documentElement.style.removeProperty('--prVidCrop'); });
   v.addEventListener('playing',function(){ setTimeout(medir,500); });
 })();
-try{ console.log('%c[ProRider] BUILD 07/10m — pontos por aproximacao: parado nao pontua; aula livre usa a zona do professor na bike 99 como base (e manda o alvo aos celulares) + 07/10k: aluno pedalando DE CASA: faixa DE CASA na tela do QR (nao ocupa bike) e cartao EM CASA + 07/10j: atualizador corrigido + 07/10i: brasao do aluno no cartao de potencia e na tela final (podio e lista) + 07/10h: aula automatica com a aula escolhida na grade (biblioteca da academia: grafico, musica e video) e sem professor + 07/10g: aula automatica: contagem nova, QR 5 min antes com relogio e START sozinho; controle na tela do QR nao volta ao menu; TV avisa a tela e por que nao atualizou + 07/10d: diagnostico da sala (LB+RB 2 s na tela do QR) + alunos demo ficam ligados + 07/10c: relatorio da aula (falhas por bike, quedas, fps) na Saude + 07/10b: pendrive ANT+ na TV (bikes que so falam ANT+: Schwinn Echelon2, Spinner Blade ION, ICG TFT 1.0...) lidas todas ao mesmo tempo, como a Keiser + 07/10a: atualizacao automatica pelo servidor (assinada, de madrugada, volta sozinha se falhar), Keiser: resumo (review) ignorado e nº da Keiser enviado ao app + 03/10z: internet da academia caindo: a TV percebe em 15 s e religa sozinha, o aluno que cai continua na bike (sem aluno fantasma no resumo), o fim da aula chega aos celulares quando a internet volta + 03/10x: TV volta sozinha quando o servidor reinicia no meio da aula (tenta de 5 em 5 s) e manda a propria saude (memoria, fps, tempo ligada) para a Saude + 03/10w: ativacao pelo codigo da TV (secreto, Admin > Licencas) + 03/10v: GERAR_PROGRAMA_DA_TV.bat confere a versao antes de gerar o programa + 03/10s: fim de aula nao conta mais como queda do servidor (sem aviso falso na Saude), resumo da aula com o codigo da sala, cartoes com o numero sempre inteiro (100% e zona nao cortam) e nome sem passar por baixo da bike + 03/10r: TV conversa com o servidor pelo endereco novo app.prorider.app.br + 03/10q: musica e video do Dropbox baixados pelo endereco direto do arquivo + 03/10p: bike/rolo de outras marcas (FTMS, potencia) ligado no celular do aluno aparece na TV; a Keiser continua pelo dongle + 03/10n: TV parada volta sozinha para a tela de espera (aulas de hoje) depois de 10 min sem uso, mesmo com o controle ligado; nunca durante a aula, aula pausada, contagem, gravacao, sessao livre ou na tela do QR + 03/10h: erro da TV mostra um codigo pequeno no canto (E-XXXX) para buscar na lupinha da Saude + 03/10f: sem internet a TV guarda o resumo da aula, o resultado do campeonato e a ficha da gravacao e envia sozinha quando a conexao volta (ate 7 dias); erros e avisos da TV chegam sozinhos na Saude do sistema + 03/10c: gravacao avisa na TV (nao comecou / salva / enviada ao app / falhou) + 03/10a: tela de transicao de segmento entra cobrindo a tela principal (sem o corte do grafico/video) + 02/10j: aula em rede: nas outras academias o professor principal vira o fundo (sem video) ou um quadrinho no canto (com video); na principal, com video escolhido, a camera so grava/transmite; musica e video por link baixados antes da aula (C:\ProRider\Cache, apagados em 2 dias); video da aula por link + 02/10f: musica por LINK (Dropbox/Google Drive) com o pendrive de reserva; aula em rede: START da mae libera 5 min antes do horario, as outras seguem sozinhas 5 min depois se ela nao comecar, RECOMECAR em todas nos primeiros 5 min (alunos continuam conectados) + 02/10e: AULA AO VIVO EM REDE: a academia que criou o desafio ao vivo da a aula; as outras entram por "Aula ao vivo em rede" no inicio, comecam junto com o START dela, seguem pausa e avanco, e mostram o video e a voz do professor num quadro + 02/10c: trilha do Construtor: varias musicas em sequencia, cada uma no trecho escolhido (de/ate), no mesmo relogio da aula + 02/10b: gravação = câmera limpa + roteiro da aula (aula gravada no app com os números do aluno), envio para teste + 02/10a: desafio entre academias (resumo de cada aula, placar ao vivo entre academias), gravar a aula (câmera + faixa da aula) e transmitir no app (WebRTC) e no YouTube Live (ffmpeg), quem está na bike reservada vira presente + 01/10f: reservas com bike: quem reservou aparece na bike reservada na tela do QR (amarelo; verde pedalando) e a bike fica bloqueada para os outros no app + 01/10e: telas de preparar a aula com o visual de volta (CSS completo), graficos de perfil proporcionais ao tempo, START responde na hora, menos carga + 01/10d: tela de espera opcao 2: logo original centralizado (maior) e as aulas de hoje passando embaixo + 01/10c: logo original em todas as telas + logo original (raio + PRO RIDER) em todas as telas + 01/10a: CAMPEONATO (Tour/Giro/Vuelta/Mundial): a TV acha a etapa de hoje, soma sprint e montanha bloco a bloco, manda o resultado no fim e mostra a classificacao como 3a tela do fim da aula; camisa ao lado do nome (grade de bikes, ranking) + 30/09f: camera ao vivo em cartao proprio na tela de configurar a aula + telas de preparar a aula no visual do Portal (inicio com 3 opcoes, Minhas aulas com QR no card e pendrive, aulas do sistema em grade com perfil, lista com detalhe, configurar aula com MP3/Spotify/sem musica e pendrive/YouTube/camera/sem video, QR com os dois codigos grandes e as bikes ao vivo) + YouTube de fundo sincronizado + contagem 3-2-1 com o play do Spotify + tela final com jornada, zonas e destaques + logo original em todas as telas + desafio do Construtor chega na aula + grafico 2 ~25% maior (sobe 32 px acima dos circulos) + grafico 2 no tamanho do projeto em qualquer TV (alturas no desenho 1920x1080, nao em vh) + tela de imersao cobrindo a TV inteira + SELECT: para teste/desafio, 2o SELECT volta ao grafico, sai da imersao + brasões novos (Aquecimento, Cadência, Pelotão antes do Bronze) + aulas do dia em cartões grandes na tela de espera (professor, tipo, duração, reservas, contagem regressiva, km e kcal do clube) + brasão ao lado do nome no ranking + aluno do totem (sem celular) na bike + nome/professor da aula aberta vão ao servidor (faixa verde do app) + ranking da TV com os campos escolhidos no Portal (ordem e colunas) + versao do Ginasio aparece no Portal + aluno da sala fica ligado a academia + novo mapa (RB=QR, Y=FC, LB+RB 5 s=espaco) + tela de frequencia cardiaca (bike ou cinta do celular) + fim de aula chega ao celular (pendente, ao fechar, sala encerrada) + fim de aula e ranking no padrao novo + modo espaco (LB+RB 1 s: tela escura com estrelas na velocidade da sala) + teste FTP: so entra quem pedala nos 10 primeiros s; resultado vai ao celular + lista da tela do QR sem rolagem + ranking >20 em rodizio de 10 s, nome e foto maiores + fluidez: anel do teste FTP a cada quadro pelo relogio real, desafio e FTP 10x/s, cartoes e ranking ~7x/s atualizados no lugar, agulha do perfil 5x/s + trocas de tela com esmaecimento rapido + teste de FTP na tela nova (ao vivo e resultado com podio por evolucao) + FTP pela MEDIA do teste x fator (antes: instante / fator) + grafico antigo desativado; esconder as caixas faz o grafico descer e crescer 30% + desafio fluido (4x/s, atualiza no lugar, kcal fracionaria, corda e barras deslizando; pico de potencia so dentro do desafio) + resultado do desafio congelado no fim + ranking com muitos alunos sem corte (linhas encolhem para caber, nome maior em duas colunas) + desafio automatico no bloco (construtor: tipo, modo e segundos; comeca sozinho e termina com o bloco) + desafio CABO DE GUERRA (corda pelo esforco de agora em %FTP) + podio no resultado final + barra de progresso por aluno + desafios equilibrados pelo FTP (kcal em pontos, potencia media em %FTP; potencia maxima bruta) + reconexao: confere os alunos com o servidor e libera a bike de quem nao voltou + desafio Homens x Mulheres com tela nova (10 por lado, troca a cada 5 s, sem rolagem) + resultado individual enviado ao celular + grafico 2 cabe entre os circulos + INICIO/FIM so no comeco e no fim da aula + mini grafico das telas de cartoes no mesmo eixo de tempo (sem os ~5 s de diferenca) + lobby: linha branca do perfil removida + coluna 3 sem sobreposicao (so CSS) + agulha do progresso andando no perfil da tela do QR + grafico 2 25% maior + altura 15% mais contrastada + largura mais proporcional ao tempo + caixas do rodape 25% maiores (texto se ajusta) + linha do perfil da pre-aula atras das barras + TrainingPeaks do pendrive + faixa preta gravada no video cortada sozinha + versao na tela inicial + linha do BUILD consertada + grade da sala limitada pelas bikes da licenca (/display/licenca) + grafico 2 troca de pagina na hora (nao fica atrasado conforme a tela) + bike 99 do professor aparece na aula e vai no relay + marcha e FC tambem nas bikes sem login + bled112.js unificado (Electron + Chrome) + marcha e FC nos cartoes + FC na lista do lobby + perfil do lobby alinhado (barras e linha no mesmo eixo) + cartao AULA SELECIONADA sem transbordar + QR sem dica flutuante + Meta FTP < 55% + 401 no pareamento oferece reativar + video travado no topo (faixa preta) + grafico 2: veu virou apagamento so nos cartoes + em pe/sentado pela borda de cima (sem P/S) + video de fundo cobrindo a tela inteira + gasto calorico pela mesma conta do app do aluno + painel de opcoes (quickbar) no visual das caixas do rodape + barra ao vivo ocupando a largura toda e com a posicao (de pe/sentado) + apagamento recortado bloco a bloco + pre-aula reorganizada + grafico pagina em telas + tela final: nome da aula, legenda alinhada + TSS na pre-aula e na tela final + protocolo de 60 min e fatores alinhados + grafico do topo acompanha pausa/avanco + lista de alunos sem rolagem + barras de rolagem removidas + dongle BLE: prova de vida, deteccao da velocidade e liberacao correta do leitor entre tentativas','color:#ea860c;font-weight:700;'); }catch(e){}
+try{ console.log('%c[ProRider] BUILD 07/10o — dongle: no Electron tenta antes as portas ja autorizadas (sem clique); se o navegador exigir clique, faixa BIKES DESLIGADAS e o primeiro clique/ENTER liga o dongle e o scan + demo sem WPP inflado + vigia do bloco zera na aula nova + 07/10n: pareamento sem dongle nao inventa bike (fim do SIMULADO) e remove as simuladas guardadas + 07/10m: pontos por aproximacao: parado nao pontua; aula livre usa a zona do professor na bike 99 como base (e manda o alvo aos celulares) + 07/10k: aluno pedalando DE CASA: faixa DE CASA na tela do QR (nao ocupa bike) e cartao EM CASA + 07/10j: atualizador corrigido + 07/10i: brasao do aluno no cartao de potencia e na tela final (podio e lista) + 07/10h: aula automatica com a aula escolhida na grade (biblioteca da academia: grafico, musica e video) e sem professor + 07/10g: aula automatica: contagem nova, QR 5 min antes com relogio e START sozinho; controle na tela do QR nao volta ao menu; TV avisa a tela e por que nao atualizou + 07/10d: diagnostico da sala (LB+RB 2 s na tela do QR) + alunos demo ficam ligados + 07/10c: relatorio da aula (falhas por bike, quedas, fps) na Saude + 07/10b: pendrive ANT+ na TV (bikes que so falam ANT+: Schwinn Echelon2, Spinner Blade ION, ICG TFT 1.0...) lidas todas ao mesmo tempo, como a Keiser + 07/10a: atualizacao automatica pelo servidor (assinada, de madrugada, volta sozinha se falhar), Keiser: resumo (review) ignorado e nº da Keiser enviado ao app + 03/10z: internet da academia caindo: a TV percebe em 15 s e religa sozinha, o aluno que cai continua na bike (sem aluno fantasma no resumo), o fim da aula chega aos celulares quando a internet volta + 03/10x: TV volta sozinha quando o servidor reinicia no meio da aula (tenta de 5 em 5 s) e manda a propria saude (memoria, fps, tempo ligada) para a Saude + 03/10w: ativacao pelo codigo da TV (secreto, Admin > Licencas) + 03/10v: GERAR_PROGRAMA_DA_TV.bat confere a versao antes de gerar o programa + 03/10s: fim de aula nao conta mais como queda do servidor (sem aviso falso na Saude), resumo da aula com o codigo da sala, cartoes com o numero sempre inteiro (100% e zona nao cortam) e nome sem passar por baixo da bike + 03/10r: TV conversa com o servidor pelo endereco novo app.prorider.app.br + 03/10q: musica e video do Dropbox baixados pelo endereco direto do arquivo + 03/10p: bike/rolo de outras marcas (FTMS, potencia) ligado no celular do aluno aparece na TV; a Keiser continua pelo dongle + 03/10n: TV parada volta sozinha para a tela de espera (aulas de hoje) depois de 10 min sem uso, mesmo com o controle ligado; nunca durante a aula, aula pausada, contagem, gravacao, sessao livre ou na tela do QR + 03/10h: erro da TV mostra um codigo pequeno no canto (E-XXXX) para buscar na lupinha da Saude + 03/10f: sem internet a TV guarda o resumo da aula, o resultado do campeonato e a ficha da gravacao e envia sozinha quando a conexao volta (ate 7 dias); erros e avisos da TV chegam sozinhos na Saude do sistema + 03/10c: gravacao avisa na TV (nao comecou / salva / enviada ao app / falhou) + 03/10a: tela de transicao de segmento entra cobrindo a tela principal (sem o corte do grafico/video) + 02/10j: aula em rede: nas outras academias o professor principal vira o fundo (sem video) ou um quadrinho no canto (com video); na principal, com video escolhido, a camera so grava/transmite; musica e video por link baixados antes da aula (C:\ProRider\Cache, apagados em 2 dias); video da aula por link + 02/10f: musica por LINK (Dropbox/Google Drive) com o pendrive de reserva; aula em rede: START da mae libera 5 min antes do horario, as outras seguem sozinhas 5 min depois se ela nao comecar, RECOMECAR em todas nos primeiros 5 min (alunos continuam conectados) + 02/10e: AULA AO VIVO EM REDE: a academia que criou o desafio ao vivo da a aula; as outras entram por "Aula ao vivo em rede" no inicio, comecam junto com o START dela, seguem pausa e avanco, e mostram o video e a voz do professor num quadro + 02/10c: trilha do Construtor: varias musicas em sequencia, cada uma no trecho escolhido (de/ate), no mesmo relogio da aula + 02/10b: gravação = câmera limpa + roteiro da aula (aula gravada no app com os números do aluno), envio para teste + 02/10a: desafio entre academias (resumo de cada aula, placar ao vivo entre academias), gravar a aula (câmera + faixa da aula) e transmitir no app (WebRTC) e no YouTube Live (ffmpeg), quem está na bike reservada vira presente + 01/10f: reservas com bike: quem reservou aparece na bike reservada na tela do QR (amarelo; verde pedalando) e a bike fica bloqueada para os outros no app + 01/10e: telas de preparar a aula com o visual de volta (CSS completo), graficos de perfil proporcionais ao tempo, START responde na hora, menos carga + 01/10d: tela de espera opcao 2: logo original centralizado (maior) e as aulas de hoje passando embaixo + 01/10c: logo original em todas as telas + logo original (raio + PRO RIDER) em todas as telas + 01/10a: CAMPEONATO (Tour/Giro/Vuelta/Mundial): a TV acha a etapa de hoje, soma sprint e montanha bloco a bloco, manda o resultado no fim e mostra a classificacao como 3a tela do fim da aula; camisa ao lado do nome (grade de bikes, ranking) + 30/09f: camera ao vivo em cartao proprio na tela de configurar a aula + telas de preparar a aula no visual do Portal (inicio com 3 opcoes, Minhas aulas com QR no card e pendrive, aulas do sistema em grade com perfil, lista com detalhe, configurar aula com MP3/Spotify/sem musica e pendrive/YouTube/camera/sem video, QR com os dois codigos grandes e as bikes ao vivo) + YouTube de fundo sincronizado + contagem 3-2-1 com o play do Spotify + tela final com jornada, zonas e destaques + logo original em todas as telas + desafio do Construtor chega na aula + grafico 2 ~25% maior (sobe 32 px acima dos circulos) + grafico 2 no tamanho do projeto em qualquer TV (alturas no desenho 1920x1080, nao em vh) + tela de imersao cobrindo a TV inteira + SELECT: para teste/desafio, 2o SELECT volta ao grafico, sai da imersao + brasões novos (Aquecimento, Cadência, Pelotão antes do Bronze) + aulas do dia em cartões grandes na tela de espera (professor, tipo, duração, reservas, contagem regressiva, km e kcal do clube) + brasão ao lado do nome no ranking + aluno do totem (sem celular) na bike + nome/professor da aula aberta vão ao servidor (faixa verde do app) + ranking da TV com os campos escolhidos no Portal (ordem e colunas) + versao do Ginasio aparece no Portal + aluno da sala fica ligado a academia + novo mapa (RB=QR, Y=FC, LB+RB 5 s=espaco) + tela de frequencia cardiaca (bike ou cinta do celular) + fim de aula chega ao celular (pendente, ao fechar, sala encerrada) + fim de aula e ranking no padrao novo + modo espaco (LB+RB 1 s: tela escura com estrelas na velocidade da sala) + teste FTP: so entra quem pedala nos 10 primeiros s; resultado vai ao celular + lista da tela do QR sem rolagem + ranking >20 em rodizio de 10 s, nome e foto maiores + fluidez: anel do teste FTP a cada quadro pelo relogio real, desafio e FTP 10x/s, cartoes e ranking ~7x/s atualizados no lugar, agulha do perfil 5x/s + trocas de tela com esmaecimento rapido + teste de FTP na tela nova (ao vivo e resultado com podio por evolucao) + FTP pela MEDIA do teste x fator (antes: instante / fator) + grafico antigo desativado; esconder as caixas faz o grafico descer e crescer 30% + desafio fluido (4x/s, atualiza no lugar, kcal fracionaria, corda e barras deslizando; pico de potencia so dentro do desafio) + resultado do desafio congelado no fim + ranking com muitos alunos sem corte (linhas encolhem para caber, nome maior em duas colunas) + desafio automatico no bloco (construtor: tipo, modo e segundos; comeca sozinho e termina com o bloco) + desafio CABO DE GUERRA (corda pelo esforco de agora em %FTP) + podio no resultado final + barra de progresso por aluno + desafios equilibrados pelo FTP (kcal em pontos, potencia media em %FTP; potencia maxima bruta) + reconexao: confere os alunos com o servidor e libera a bike de quem nao voltou + desafio Homens x Mulheres com tela nova (10 por lado, troca a cada 5 s, sem rolagem) + resultado individual enviado ao celular + grafico 2 cabe entre os circulos + INICIO/FIM so no comeco e no fim da aula + mini grafico das telas de cartoes no mesmo eixo de tempo (sem os ~5 s de diferenca) + lobby: linha branca do perfil removida + coluna 3 sem sobreposicao (so CSS) + agulha do progresso andando no perfil da tela do QR + grafico 2 25% maior + altura 15% mais contrastada + largura mais proporcional ao tempo + caixas do rodape 25% maiores (texto se ajusta) + linha do perfil da pre-aula atras das barras + TrainingPeaks do pendrive + faixa preta gravada no video cortada sozinha + versao na tela inicial + linha do BUILD consertada + grade da sala limitada pelas bikes da licenca (/display/licenca) + grafico 2 troca de pagina na hora (nao fica atrasado conforme a tela) + bike 99 do professor aparece na aula e vai no relay + marcha e FC tambem nas bikes sem login + bled112.js unificado (Electron + Chrome) + marcha e FC nos cartoes + FC na lista do lobby + perfil do lobby alinhado (barras e linha no mesmo eixo) + cartao AULA SELECIONADA sem transbordar + QR sem dica flutuante + Meta FTP < 55% + 401 no pareamento oferece reativar + video travado no topo (faixa preta) + grafico 2: veu virou apagamento so nos cartoes + em pe/sentado pela borda de cima (sem P/S) + video de fundo cobrindo a tela inteira + gasto calorico pela mesma conta do app do aluno + painel de opcoes (quickbar) no visual das caixas do rodape + barra ao vivo ocupando a largura toda e com a posicao (de pe/sentado) + apagamento recortado bloco a bloco + pre-aula reorganizada + grafico pagina em telas + tela final: nome da aula, legenda alinhada + TSS na pre-aula e na tela final + protocolo de 60 min e fatores alinhados + grafico do topo acompanha pausa/avanco + lista de alunos sem rolagem + barras de rolagem removidas + dongle BLE: prova de vida, deteccao da velocidade e liberacao correta do leitor entre tentativas','color:#ea860c;font-weight:700;'); }catch(e){}
 
 // 26/09d: fechar o programa (ou a janela) avisa os celulares que a aula acabou.
 // Sem isto, o celular so descobria 3 minutos depois (prazo do servidor).

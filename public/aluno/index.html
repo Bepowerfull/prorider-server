@@ -1485,6 +1485,8 @@ input[type=file]{display:none}
       <div class="drawer-next-zone" id="dNextZone">–</div>
       <div class="drawer-next-info" id="dNextInfo">–</div>
     </div>
+    <!-- 16/10: de casa — reabrir "Conectar aparelhos" sem sair da aula -->
+    <button type="button" id="dCasaConn" onclick="_prConnCasa()" style="display:none;width:calc(100% - 32px);margin:0 16px 12px;padding:12px 16px;border-radius:12px;background:rgba(41,95,232,.14);border:1px solid rgba(77,134,255,.45);color:#fff;font-weight:800;font-size:14px;text-align:left;cursor:pointer;">🏠 Conectar rolo e cinta</button>
     <!-- FTP na gaveta: o aluno ajusta sem sair da aula. aplicarFtpResultado()
          ja trata "so nesta aula" x "salvar no perfil" conforme o automatico. -->
     <div class="drawer-ftp" style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 16px;margin:0 16px 12px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.10);border-radius:14px;">
@@ -2486,6 +2488,7 @@ function _renderBikeGrid(){
 
 function selectBike(num){
   if(num==='casa'){ _prCasa=true; num=0; } else _prCasa=false;   // 13/10: de casa = sem bike da sala
+  window._prCasaConectou=false; try{ var _dc=document.getElementById('dCasaConn'); if(_dc) _dc.style.display=_prCasa?'block':'none'; }catch(e){}
   _bikeSelNum=num;
   try{ localStorage.setItem('pr_ult_bike_'+(lastCode||''), String(num)); }catch(e){}
   _renderBikeGrid();
@@ -2658,6 +2661,7 @@ function connectQR(code){
         pararCamera();
         // Navega para sLive com pequeno delay para iOS processar
         setTimeout(function(){
+          if(_prCasa && !(connected&&connected.bike) && !window._prCasaConectou){ _prConnCasa(); return; }   // 16/10: de casa → conectar rolo e cinta primeiro
           go('sLive');
           // Força scroll para o topo
           var sl=document.getElementById('sLive');
@@ -5414,7 +5418,25 @@ function connDev(type,name,id){
 }
 
 // \u2550\u2550 COUNTDOWN \u2550\u2550
+// 16/10: PEDALAR DE CASA — depois de entrar na aula da academia, a tela "Conectar aparelhos" abre para o rolo
+// (ou bike própria) e a cinta. "Ir para a aula" volta para a aula da TV (não começa uma aula do app).
+function _prConnCasa(){
+  window._prConnModoTV=true;
+  var n=document.getElementById('connAulaName'); if(n){ n.dataset.ant=n.textContent; n.textContent='Pedalar de casa'; }
+  var d=document.getElementById('cnDica'); if(d){ d.dataset.ant=d.innerHTML; d.innerHTML='🏠 Você entrou na aula <b>de casa</b>. Conecte o <b>rolo</b> (ou a sua bike) e a <b>cinta</b>, ligue a <b>carga automática</b> se quiser, e toque em <b>IR PARA A AULA</b>.'; d.style.display='block'; }
+  var m=document.querySelector('#btnStartMain b'); if(m){ m.dataset.ant=m.textContent; m.textContent='▶ IR PARA A AULA'; }
+  var sm=document.getElementById('btnStartSem'); if(sm){ sm.dataset.ant=sm.textContent; sm.textContent='Ir para a aula sem aparelho'; }
+  go('sConnect');
+}
+function _prConnCasaSair(){
+  window._prConnModoTV=false; window._prCasaConectou=true;
+  [['connAulaName','textContent'],['cnDica','innerHTML'],['btnStartSem','textContent']].forEach(function(x){ var e=document.getElementById(x[0]); if(e&&e.dataset.ant!=null){ e[x[1]]=e.dataset.ant; delete e.dataset.ant; } });
+  var m=document.querySelector('#btnStartMain b'); if(m&&m.dataset.ant!=null){ m.textContent=m.dataset.ant; delete m.dataset.ant; }
+  var d=document.getElementById('cnDica'); if(d&&!d.innerHTML) d.style.display='';
+  go('sLive'); var sl=document.getElementById('sLive'); if(sl) sl.scrollTop=0;
+}
 function startCountdown(){
+  if(window._prConnModoTV){ _prConnCasaSair(); return; }   // 16/10: de casa — volta para a aula da TV
   go('sCountdown');
   var n=3;
   document.getElementById('cdNum').textContent=n;
@@ -6694,47 +6716,105 @@ function btConnectBike(server, device){
 // Comandos FTMS: 0x00 pedir controle · 0x07 começar · 0x05 potência (W, int16)
 //                0x08 0x01 parar (o rolo volta a ficar livre). Resposta: 0x80, comando, 1=ok.
 BTUUID.CHAR_FTMS_CP='00002ad9-0000-1000-8000-00805f9b34fb';
-var _erg={cp:null, fila:Promise.resolve(), ctrl:false, alvo:0, env:0, envTs:0, liga:false, recusas:0};
+// 07/10o (16/10): o rolo do teste de 16/10 lia certo mas não mudava a carga. Muitos rolos (ex.: Elite)
+// não aceitam "potência-alvo" (0x05) — só "simulação de subida" (0x11) ou "nível de resistência" (0x04).
+// Agora o app lê o que o rolo aceita (Fitness Machine Feature 0x2ACC) e, se ele recusar um modo,
+// passa sozinho para o próximo. A etiqueta ERG mostra na tela o que está acontecendo.
+BTUUID.CHAR_FTMS_FEAT='00002acc-0000-1000-8000-00805f9b34fb';
+BTUUID.CHAR_FTMS_RES='00002ad6-0000-1000-8000-00805f9b34fb';
+var _erg={cp:null, fila:Promise.resolve(), ctrl:false, ctrlTs:0, alvo:0, pct:0, env:0, envTs:0, liga:false, recusas:0,
+  modo:'pot', feat:null, faixaRes:null, ruins:{}, estado:'', erroTxt:''};
 try{ _erg.liga=localStorage.getItem('pr_erg')==='1'; }catch(e){}
+var _ERG_OP={pot:0x05, sim:0x11, res:0x04};
 function _ergEscrever(bytes){
   var cp=_erg.cp; if(!cp) return Promise.resolve(false);
   var v=new Uint8Array(bytes);
   _erg.fila=_erg.fila.then(function(){ return cp.writeValueWithResponse?cp.writeValueWithResponse(v):cp.writeValue(v); })
-    .then(function(){ return true; },function(e){ console.warn('[ERG] comando não chegou ao rolo: '+((e&&e.message)||e)); return false; });
+    .then(function(){ return true; },function(e){ var m=(e&&e.message)||String(e); console.warn('[ERG] comando não chegou ao rolo: '+m); _erg.estado='erro'; _erg.erroTxt=m; _ergUI(); return false; });
   return _erg.fila;
 }
+// ordem de preferência; o rolo diz o que aceita (bits de "Target Setting": 2 resistência, 3 potência, 13 simulação)
+// 07/10p: rolo de CILINDRO da Elite (Arion, Nero) não segura watts fixos: no Zwift ele trabalha por SUBIDA.
+// Para eles a ordem é subida → nível → potência (mesmo que o rolo diga que aceita potência).
+function _ergRoloCilindro(){ return /\b(ARION|NERO)/i.test(_erg.nome||''); }
+function _ergEscolherModo(){
+  var f=_erg.feat, ordem=_ergRoloCilindro()?['sim','res','pot']:['pot','sim','res'];
+  if(f!=null){ var tem={pot:!!(f&(1<<3)), sim:!!(f&(1<<13)), res:!!(f&(1<<2))};
+    var aceitos=ordem.filter(function(m){ return tem[m]; }); if(aceitos.length) ordem=aceitos.concat(ordem.filter(function(m){ return !tem[m]; })); }
+  for(var i=0;i<ordem.length;i++) if(!_erg.ruins[ordem[i]]) return ordem[i];
+  return null;   // nenhum modo funcionou
+}
+function _ergResposta(d){
+  if(d.byteLength<3||d.getUint8(0)!==0x80) return;
+  var op=d.getUint8(1), cod=d.getUint8(2);
+  if(cod===1){ if(op===0x05||op===0x11||op===0x04){ _erg.estado='ok'; } if(op===0x00&&_erg.estado==='bloqueado') _erg.estado=''; _ergUI(); return; }
+  _erg.recusas++;
+  console.warn('[ERG] o aparelho recusou o comando 0x'+op.toString(16)+' (código '+cod+')'+(cod===5?' — outro app está com o controle do rolo':''));
+  if(op===0x00){ if(cod===5){ _erg.estado='bloqueado'; _erg.ctrl=false; _erg.ctrlTs=Date.now(); } }
+  else { var m=null; for(var k in _ERG_OP) if(_ERG_OP[k]===op) m=k;
+    if(m&&m===_erg.modo&&cod!==5){ _erg.ruins[m]=true; var nv=_ergEscolherModo(); console.warn('[ERG] modo "'+m+'" recusado pelo rolo → '+(nv?'tentando "'+nv+'"':'nenhum modo funcionou'));
+      _erg.modo=nv; _erg.env=0; _erg.envTs=0; _erg.estado=nv?'':'sem_modo'; }
+    else if(cod===5){ _erg.estado='bloqueado'; _erg.ctrl=false; _erg.ctrlTs=Date.now(); } }
+  _ergUI();
+}
 function _ergPreparar(server, device){
-  _erg.cp=null; _erg.ctrl=false; _erg.env=0;
-  return server.getPrimaryService(BTUUID.FTMS).then(function(s){ return s.getCharacteristic(BTUUID.CHAR_FTMS_CP); })
-    .then(function(cp){ return cp.startNotifications().then(function(){
-      cp.addEventListener('characteristicvaluechanged',function(ev){ var d=ev.target.value;
-        if(d.byteLength>=3&&d.getUint8(0)===0x80&&d.getUint8(2)!==1){ _erg.recusas++; console.warn('[ERG] o aparelho recusou o comando 0x'+d.getUint8(1).toString(16)+' (código '+d.getUint8(2)+')'); } });
-      _erg.cp=cp;
-      if(device&&!device._prErgOuvindo){ device._prErgOuvindo=true; device.addEventListener('gattserverdisconnected',function(){ _erg.cp=null; _erg.ctrl=false; _erg.env=0; _ergUI(); }); }
-      _ergUI(); }); })
+  _erg.cp=null; _erg.ctrl=false; _erg.env=0; _erg.feat=null; _erg.faixaRes=null; _erg.ruins={}; _erg.estado=''; _erg.nome=(device&&device.name)||''; _erg.modo=_ergEscolherModo()||'pot';
+  return server.getPrimaryService(BTUUID.FTMS).then(function(s){
+      return s.getCharacteristic(BTUUID.CHAR_FTMS_CP).then(function(cp){ return cp.startNotifications().then(function(){
+        cp.addEventListener('characteristicvaluechanged',function(ev){ try{ _ergResposta(ev.target.value); }catch(e){} });
+        _erg.cp=cp;
+        if(device&&!device._prErgOuvindo){ device._prErgOuvindo=true; device.addEventListener('gattserverdisconnected',function(){ _erg.cp=null; _erg.ctrl=false; _erg.env=0; _ergUI(); }); }
+        // o que o rolo aceita (opcional: sem isso tenta potência e cai para os outros modos sozinho)
+        return s.getCharacteristic(BTUUID.CHAR_FTMS_FEAT).then(function(c){ return c.readValue(); }).then(function(v){
+            if(v&&v.byteLength>=8){ _erg.feat=v.getUint32(4,true); _erg.modo=_ergEscolherModo()||'pot'; console.log('[ERG] o rolo aceita: '+['pot','sim','res'].filter(function(m){ return _erg.feat&(1<<({pot:3,sim:13,res:2})[m]); }).join(', ')+' → modo "'+_erg.modo+'"'); }
+          }).catch(function(){})
+          .then(function(){ return s.getCharacteristic(BTUUID.CHAR_FTMS_RES).then(function(c){ return c.readValue(); }).then(function(v){
+            if(v&&v.byteLength>=4){ _erg.faixaRes={min:v.getInt16(0,true), max:v.getInt16(2,true)}; } }).catch(function(){}); })
+          .then(function(){ _ergUI(); });
+      }); });
+    })
     .catch(function(){ _erg.cp=null; _ergUI(); });   // aparelho só mostra os números (sem controle): segue normal
 }
 var _btConnectFTMSSoLer=btConnectFTMS;
 btConnectFTMS=function(server, device){ return _btConnectFTMSSoLer(server, device).then(function(){ return _ergPreparar(server, device); }); };
-// potência-alvo agora (0 = sem alvo: fora da aula, pausada ou bloco sem %FTP)
-function _ergAlvoAgora(){
+// %FTP-alvo agora (0 = sem alvo: fora da aula, pausada ou bloco sem %FTP)
+function _ergPctAgora(){
   var b=null, g=window._prErgGrv;
   if(g&&Date.now()-g.ts<3000){ if(g.pausa) return 0; b=g.b; }
-  else { var t=document.getElementById('sLive'); if(!t||!t.classList.contains('active')||isPaused) return 0; b=(aulaGrafico||[])[aulaBlocoIdx]; }
+  else { var t=document.getElementById('sLive'); if(!t||!t.classList.contains('active')) return 0;
+    var _tv=window._ultUpdateAula&&Date.now()-window._ultUpdateAula<5000&&!_graficoLocalAtivo;   // aula da TV: quem pausa é a TV (o isPaused é da aula do app)
+    if(isPaused&&!_tv) return 0;
+    b=(aulaGrafico||[])[aulaBlocoIdx]; }
   if(!b) return 0;
+  if(b.pos==='Livre'||b.position==='Livre') return 0;   // bloco livre: o rolo fica livre
   var mn=parseFloat(b.ftpMin)||0, mx=parseFloat(b.ftpMax)||0;
   if(!mn&&!mx) return 0;
   if(!mx||mx>200) mx=mn+20;          // Z7 vem como 150–999
   if(!mn) mn=Math.max(0,mx-20);
-  var ftp=parseInt(_ftpDoAluno(),10)||0; if(ftp<=0) return 0;
-  return Math.max(30,Math.min(1500,Math.round(ftp*(mn+mx)/200)));
+  return (mn+mx)/2;
+}
+function _ergFtp(){ var f=parseInt(_ftpDoAluno(),10)||0; return f>0?f:130; }   // 07/10o: sem FTP no perfil usa 130 (o mesmo padrão do app)
+function _ergAlvoAgora(){
+  var p=_ergPctAgora(); if(!p) return 0;
+  return Math.max(30,Math.min(1500,Math.round(_ergFtp()*p/100)));
+}
+function _ergComando(alvo, pct){
+  if(_erg.modo==='sim'){   // subida: 45% FTP = plano; +1% de inclinação a cada 10% FTP (máx. 12%)
+    var gr=Math.max(0,Math.min(1200,Math.round((pct-45)*10)));
+    return [0x11, 0,0, gr&255,(gr>>8)&255, 40, 51]; }
+  if(_erg.modo==='res'){   // nível: 40% FTP = mínimo · 130% FTP = máximo
+    var fr=Math.max(0,Math.min(1,(pct-40)/90)), fx=_erg.faixaRes, raw=fx&&fx.max>fx.min?Math.round(fx.min+fr*(fx.max-fx.min)):Math.round(fr*100);
+    raw=Math.max(0,raw);
+    return raw<=255?[0x04, raw]:[0x04, raw&255,(raw>>8)&255]; }
+  return [0x05, alvo&255,(alvo>>8)&255];
 }
 function _ergTick(){
-  var alvo=(_erg.liga&&_erg.cp)?_ergAlvoAgora():0;
-  _erg.alvo=alvo;
-  if(alvo>0){
-    if(!_erg.ctrl){ _erg.ctrl=true; _ergEscrever([0x00]); _ergEscrever([0x07]); }
-    if(Math.abs(alvo-_erg.env)>=3||Date.now()-_erg.envTs>15000){ _erg.env=alvo; _erg.envTs=Date.now(); _ergEscrever([0x05,alvo&255,(alvo>>8)&255]); }
+  var alvo=(_erg.liga&&_erg.cp)?_ergAlvoAgora():0, pct=alvo?_ergPctAgora():0;
+  _erg.alvo=alvo; _erg.pct=pct;
+  if(alvo>0&&_erg.modo){
+    if(_erg.estado==='bloqueado'&&Date.now()-_erg.ctrlTs>10000){ _erg.ctrl=false; }   // tenta pegar o controle de novo a cada 10 s
+    if(!_erg.ctrl){ _erg.ctrl=true; _erg.ctrlTs=Date.now(); _erg.env=0; _ergEscrever([0x00]); _ergEscrever([0x07]); }
+    if(Math.abs(alvo-_erg.env)>=3||Date.now()-_erg.envTs>15000){ _erg.env=alvo; _erg.envTs=Date.now(); _ergEscrever(_ergComando(alvo,pct)); }
   } else if(_erg.ctrl){ _erg.ctrl=false; _erg.env=0; _ergEscrever([0x08,0x01]); }
   _ergUI();
 }
@@ -6744,16 +6824,26 @@ function prErgAlternar(){
   try{ showToast(_erg.liga?'Carga automática ligada: o rolo segue o alvo de cada bloco.':'Carga automática desligada: o rolo fica livre.',_erg.liga?'#1f5a2a':'#333'); }catch(e){}
   _ergTick();
 }
+function _ergNaAula(){ var g=window._prErgGrv; if(g&&Date.now()-g.ts<3000) return true; var t=document.getElementById('sLive'); return !!(t&&t.classList.contains('active')); }
 function _ergUI(){
   var r=document.getElementById('cnErg');
   if(r){ r.style.display=_erg.cp?'flex':'none';
     r.innerHTML='<div style="flex:1;min-width:0"><b style="display:block;font-size:14px">⚙️ Carga automática (ERG)</b><small style="color:rgba(255,255,255,.55);font-size:12px">o rolo ajusta a força sozinho para o alvo de cada bloco</small></div>'
       +'<span style="flex-shrink:0;padding:6px 12px;border-radius:20px;font-weight:800;font-size:12px;'+(_erg.liga?'background:#5db13d;color:#08130a':'background:rgba(255,255,255,.1);color:rgba(255,255,255,.7)')+'">'+(_erg.liga?'LIGADA':'DESLIGADA')+'</span>'; }
-  var p=document.getElementById('ergPill'), ver=!!(_erg.cp&&_erg.liga&&_erg.alvo>0);
+  var p=document.getElementById('ergPill'), ver=!!(_erg.cp&&_erg.liga&&_ergNaAula());
   if(!p&&ver){ p=document.createElement('div'); p.id='ergPill'; p.onclick=prErgAlternar;
-    p.style.cssText='position:fixed;left:12px;bottom:138px;z-index:9999;padding:7px 12px;border-radius:18px;background:rgba(20,20,26,.88);border:1px solid #5db13d;color:#fff;font:700 13px Barlow,Arial,sans-serif;';
+    p.style.cssText='position:fixed;left:12px;bottom:138px;z-index:9999;max-width:calc(100% - 24px);padding:7px 12px;border-radius:18px;background:rgba(20,20,26,.88);border:1px solid #5db13d;color:#fff;font:700 13px Barlow,Arial,sans-serif;';
     document.body.appendChild(p); }
-  if(p){ p.style.display=ver?'block':'none'; if(ver) p.innerHTML='⚙️ ERG <b style="color:#8fe06a">'+_erg.alvo+' W</b> <small style="opacity:.6">· tocar para soltar</small>'; }
+  if(!p) return;
+  p.style.display=ver?'block':'none'; if(!ver) return;
+  var txt, cor='#5db13d';
+  if(_erg.estado==='bloqueado'){ txt='⚠️ ERG: o rolo não liberou o controle. Feche outros apps do rolo (Zwift, Elite…)'; cor='#ea860c'; }
+  else if(!_erg.modo||_erg.estado==='sem_modo'){ txt='⚠️ ERG: este rolo não aceita carga automática'; cor='#d62d2d'; }
+  else if(_erg.estado==='erro'){ txt='⚠️ ERG: o comando não chegou ao rolo · tocar para soltar'; cor='#ea860c'; }
+  else if(_erg.alvo>0){ var ex=_erg.modo==='sim'?' <small style="opacity:.7">· subida '+(Math.max(0,Math.min(12,(_erg.pct-45)/10))).toFixed(1).replace('.',',')+'%</small>':_erg.modo==='res'?' <small style="opacity:.7">· nível '+Math.round(Math.max(0,Math.min(1,(_erg.pct-40)/90))*100)+'%</small>':'';
+    txt='⚙️ ERG <b style="color:#8fe06a">'+_erg.alvo+' W</b>'+ex+' <small style="opacity:.6">· tocar para soltar</small>'; }
+  else { txt='⚙️ ERG <small style="opacity:.7">· sem alvo agora (bloco livre ou pausa)</small>'; cor='rgba(255,255,255,.3)'; }
+  p.style.borderColor=cor; p.innerHTML=txt;
 }
 
 // \u2500\u2500 Polar H10, Polar H9, Garmin HRM, Wahoo TICKR \u2500\u2500
@@ -8536,7 +8626,7 @@ function _tentarConexaoWS(wsUrl, token, dadosSessao){
         if(wsConn && wsConn !== ws) try{ wsConn.close(); }catch(e){}
         wsConn = ws;
         pararCamera();
-        setTimeout(function(){ go('sLive'); var sl=document.getElementById('sLive'); if(sl) sl.scrollTop=0; }, 300);
+        setTimeout(function(){ if(_prCasa && !(connected&&connected.bike) && !window._prCasaConectou){ _prConnCasa(); return; } go('sLive'); var sl=document.getElementById('sLive'); if(sl) sl.scrollTop=0; }, 300);
         resolve(ws);
       }
       // ── O PROFESSOR MEXEU NA MINHA BIKE (23/09) ───────────────────
@@ -9098,7 +9188,7 @@ updateProfileUI = function() {
          + ' fill="none" stroke="'+col(fm)+'" stroke-width="30" stroke-linecap="'+cap+'"/>';
     }
     g.innerHTML=out;
-    try{ console.log('%c[ProRider Aluno] BUILD 07/10m — pontos por aproximacao (wpp segundo a segundo, completou, sem parar; FTP nao pontua) + link Compartilhar do e-mail abre as artes da aula + 07/10k: pedalar DE CASA numa aula da academia (rolo/bike propria no celular, sem ocupar bike da sala) + 07/10g: compartilhar igual a arte (logo da arte, distancia), botoes menores; faixa da aula so com QR aberto ou em aula; datas locais; agenda rola + 07/10f: tela de fim da aula nova (cartoes, grafico minuto a minuto, zonas, pontos); compartilhar com 2 modelos (foto do aluno de fundo); botao CONTROLES laranja de um toque (iPhone na tela de inicio fechava o app ao arrastar); sem login: convite e a aula vai para a conta ao criar/entrar; teste de FTP do app gravado + 07/10e: aula da TV (entrou pelo QR) volta a ser gravada no servidor: historico, pontos e e-mail do resumo + 07/10d: nota da aula (1 a 5 estrelas no fim da aula) + 07/10c: Keiser sem nome aparece como Keiser M3 nº X; manda a potencia minuto a minuto (grafico do e-mail) + 07/10a: app das lojas le a Keiser direto (anuncio), lista com o numero de cada Keiser + 03/10z: aviso "TV da academia sem internet" e internet lenta sem conexao dupla + 03/10x: servidor reiniciou no meio da aula: o celular espera a TV voltar (ate 90 s) em vez de encerrar a aula + 03/10h: erro mostra codigo (E-XXXX) e vai junto no Reportar + 03/10f: erros do app chegam sozinhos na Saude do sistema + 03/10e: esqueci a senha por e-mail, reportar problema, excluir conta + 03/10c: loja (comprar aulas, pacotes, assinatura), desafios reais (21 dias, Quebra FTP, ranking, grupos), pré-treino igual ao da TV, Bluetooth novo + 02/10f: aula recomeçada zera os números da largada + 02/10d: caixas da aula gravada mais justas e nas pontas da tela; aulas gravadas abertas a qualquer login na fase de teste + 02/10b: aula gravada na Loja (vídeo do professor + gráfico e números do próprio aluno, ranking com quem fez ao vivo) + lista de espera na reserva, assistir a aula ao vivo, arquivo .tcx para Strava/Garmin, desafio entre academias no início + 01/10b: reserva com escolha da bike (mapa das bikes, a reservada aparece como SUA na hora de entrar) + 01/10a: campeonato no app (posição, camisas, próxima etapa) + camisas conquistadas no perfil + logo original no início + 30/09e: Construtor do celular = o mesmo Construtor online do computador (mesmas funções, mesma conta) + Perto de mim na lupinha (GPS do celular, distância até a academia, aula ao vivo no topo) + faixa verde da aula ao vivo na academia + aulas de hoje na grade + brasões novos (subiu de nível) + Criar aula do Portal abre direto o Construtor (/aluno#construtor) + FC da cinta do celular vai para o Ginasio; Avg. HR = media da aula; aula termina quando a sala some + resultado do teste de FTP da aula no celular (1 min; automatico grava, senao pergunta) + home do professor: sai o Build Workout antigo (com senha), fica Agenda + Treino do Treinador + Construtor de Treino + voltar para a propria bike depois de reabrir o app + relogio do bloco anda sem bike transmitindo + vigia: reentra na sala se a aula parar de chegar + resultado do desafio no celular (10 s, toque fecha) + sexo enviado na entrada da sala (desafio Homens x Mulheres) + aluno sem nome nao entra mais como "-" na sala + leitor do app aceita o QR de Minhas Aulas do Ginasio + aula anterior nao fica mais grudada (fim da aula fecha o socket em qualquer tela; QR de outra sala troca de sala) + gauge com FTP e BLOCO simetricos + marcha e FC na aula da academia + %FTP com o FTP da gaveta na hora + FTP da gaveta vai para a sala na hora + FTP tambem na entrada pela reserva + Revisar o treino mostra a aula do Ginasio + caloria por watt (kJ/eficiencia) + basal Mifflin-St Jeor no cadastro + historico gravado no aparelho + FTP na gaveta + card 1080x1920 reposicionado + 6 protocolos de FTP + TSS + teste de 3 min + fator do teste de 5 min corrigido (era 1,05) + explicacao de FTP em cada teste + gaveta esconde pela propria altura + importacao de treino do TrainingPeaks (grade 2x2 na tela inicial + construtor) com tela de conferencia (botoes acima da navegacao) + corrigido: aula aberta por objeto agora e a que roda + botao Revisar o treino na gaveta + FTP e peso persistem no aparelho + gauge reequilibrado + textos do Brasil + codigo de sala normalizado (QR do navegador deixava a sala inexistente) + faixa de voltar corrigida + reconexao nao trava mais + sala encerrada limpa o codigo guardado + VISTA DA SALA + card comprido de Construtor para professor + fim da corrida no login','color:#ea860c;font-weight:700;'); }catch(e){}
+    try{ console.log('%c[ProRider Aluno] BUILD 07/10p — ERG: rolo de cilindro Elite (Arion, Nero) trabalha por subida, como no Zwift + 07/10o: ERG: le o que o rolo aceita (potencia, subida ou nivel) e troca sozinho se o rolo recusar; etiqueta ERG mostra o estado; sem FTP usa 130 + 07/10n: de casa: tela Conectar aparelhos (rolo e cinta) logo depois de entrar, e botao na gaveta + 07/10m: pontos por aproximacao (wpp segundo a segundo, completou, sem parar; FTP nao pontua) + link Compartilhar do e-mail abre as artes da aula + 07/10k: pedalar DE CASA numa aula da academia (rolo/bike propria no celular, sem ocupar bike da sala) + 07/10g: compartilhar igual a arte (logo da arte, distancia), botoes menores; faixa da aula so com QR aberto ou em aula; datas locais; agenda rola + 07/10f: tela de fim da aula nova (cartoes, grafico minuto a minuto, zonas, pontos); compartilhar com 2 modelos (foto do aluno de fundo); botao CONTROLES laranja de um toque (iPhone na tela de inicio fechava o app ao arrastar); sem login: convite e a aula vai para a conta ao criar/entrar; teste de FTP do app gravado + 07/10e: aula da TV (entrou pelo QR) volta a ser gravada no servidor: historico, pontos e e-mail do resumo + 07/10d: nota da aula (1 a 5 estrelas no fim da aula) + 07/10c: Keiser sem nome aparece como Keiser M3 nº X; manda a potencia minuto a minuto (grafico do e-mail) + 07/10a: app das lojas le a Keiser direto (anuncio), lista com o numero de cada Keiser + 03/10z: aviso "TV da academia sem internet" e internet lenta sem conexao dupla + 03/10x: servidor reiniciou no meio da aula: o celular espera a TV voltar (ate 90 s) em vez de encerrar a aula + 03/10h: erro mostra codigo (E-XXXX) e vai junto no Reportar + 03/10f: erros do app chegam sozinhos na Saude do sistema + 03/10e: esqueci a senha por e-mail, reportar problema, excluir conta + 03/10c: loja (comprar aulas, pacotes, assinatura), desafios reais (21 dias, Quebra FTP, ranking, grupos), pré-treino igual ao da TV, Bluetooth novo + 02/10f: aula recomeçada zera os números da largada + 02/10d: caixas da aula gravada mais justas e nas pontas da tela; aulas gravadas abertas a qualquer login na fase de teste + 02/10b: aula gravada na Loja (vídeo do professor + gráfico e números do próprio aluno, ranking com quem fez ao vivo) + lista de espera na reserva, assistir a aula ao vivo, arquivo .tcx para Strava/Garmin, desafio entre academias no início + 01/10b: reserva com escolha da bike (mapa das bikes, a reservada aparece como SUA na hora de entrar) + 01/10a: campeonato no app (posição, camisas, próxima etapa) + camisas conquistadas no perfil + logo original no início + 30/09e: Construtor do celular = o mesmo Construtor online do computador (mesmas funções, mesma conta) + Perto de mim na lupinha (GPS do celular, distância até a academia, aula ao vivo no topo) + faixa verde da aula ao vivo na academia + aulas de hoje na grade + brasões novos (subiu de nível) + Criar aula do Portal abre direto o Construtor (/aluno#construtor) + FC da cinta do celular vai para o Ginasio; Avg. HR = media da aula; aula termina quando a sala some + resultado do teste de FTP da aula no celular (1 min; automatico grava, senao pergunta) + home do professor: sai o Build Workout antigo (com senha), fica Agenda + Treino do Treinador + Construtor de Treino + voltar para a propria bike depois de reabrir o app + relogio do bloco anda sem bike transmitindo + vigia: reentra na sala se a aula parar de chegar + resultado do desafio no celular (10 s, toque fecha) + sexo enviado na entrada da sala (desafio Homens x Mulheres) + aluno sem nome nao entra mais como "-" na sala + leitor do app aceita o QR de Minhas Aulas do Ginasio + aula anterior nao fica mais grudada (fim da aula fecha o socket em qualquer tela; QR de outra sala troca de sala) + gauge com FTP e BLOCO simetricos + marcha e FC na aula da academia + %FTP com o FTP da gaveta na hora + FTP da gaveta vai para a sala na hora + FTP tambem na entrada pela reserva + Revisar o treino mostra a aula do Ginasio + caloria por watt (kJ/eficiencia) + basal Mifflin-St Jeor no cadastro + historico gravado no aparelho + FTP na gaveta + card 1080x1920 reposicionado + 6 protocolos de FTP + TSS + teste de 3 min + fator do teste de 5 min corrigido (era 1,05) + explicacao de FTP em cada teste + gaveta esconde pela propria altura + importacao de treino do TrainingPeaks (grade 2x2 na tela inicial + construtor) com tela de conferencia (botoes acima da navegacao) + corrigido: aula aberta por objeto agora e a que roda + botao Revisar o treino na gaveta + FTP e peso persistem no aparelho + gauge reequilibrado + textos do Brasil + codigo de sala normalizado (QR do navegador deixava a sala inexistente) + faixa de voltar corrigida + reconexao nao trava mais + sala encerrada limpa o codigo guardado + VISTA DA SALA + card comprido de Construtor para professor + fim da corrida no login','color:#ea860c;font-weight:700;'); }catch(e){}
   }
   if(document.readyState!=='loading') buildGaugeArc();
   else document.addEventListener('DOMContentLoaded', buildGaugeArc);
@@ -9665,6 +9755,7 @@ goConnect=function(){
   clearInterval(_cnTimer); _cnTimer=setInterval(function(){ var s=document.getElementById('sConnect'); if(!s||!s.classList.contains('active')){ clearInterval(_cnTimer); return; } _cnAoVivo(); },500);
 };
 function connVoltar(){
+  if(window._prConnModoTV){ _prConnCasaSair(); return; }   // 16/10: de casa
   if(window._grvPend){ window._grvPend=false; goTab('sLoja','navLoja'); return; }   // veio da loja (aula gravada)
   if(cAula&&cAula.tipo==='free'){ go('sHome'); return; }                            // pedal livre não tem tela de aula
   go('sDetail');
@@ -9888,7 +9979,7 @@ go=function(id){
   if(id==='sDetail'||id==='sConnect'){ var n=document.getElementById('bNav'); if(n) n.style.display='none'; }
 };
 
-var APP_BUILD='07/10m';
+var APP_BUILD='07/10p';
 try{ if(typeof prErroConfig==='function') prErroConfig(SERVER_HTTP,'app',function(){ return (typeof prToken!=='undefined'&&prToken)||localStorage.getItem('pr_token')||''; },APP_BUILD); }catch(e){}   // 03/10f: erros do app chegam na Saúde
 // ── 03/10e: no Perfil — reportar um problema e excluir a conta (LGPD) ──
 (function(){

@@ -84,6 +84,13 @@ const espera = ms => new Promise(r => setTimeout(r, ms));
     ok(w.alvo === null && w.a === 0, 'aula livre sem o professor na 99: ninguém pontua', w);
     const msg = await tv.evaluate(() => { let m = null; wsProf = { readyState: 1, send: x => { m = JSON.parse(x); } }; window._prAlvoZona = 'z4'; wsBroadcast(workout[0], 10, 5, null, 100, 10); wsProf = null; return m; });
     ok(msg && msg.tipo === 'update_aula' && msg.alvoZona === 'z4', 'a TV manda o alvo (zona do professor) para os celulares', msg && msg.alvoZona);
+    // 16/10: sem dongle, o pareamento não inventa bike (antes: cartão "SIMULADO" com watts sorteados, e guardava)
+    const pa = await tv.evaluate(() => { let el = document.getElementById('parInstrucao'), novo = !el; if (novo) { el = document.createElement('div'); el.id = 'parInstrucao'; document.body.appendChild(el); }
+      delete parBikeMap[3]; _parScanFallback(3); const i = el.textContent; if (novo) el.remove();
+      localStorage.setItem('prorider_bike_map', JSON.stringify({ 3: { tipo: 'bt', nome: 'Keiser M3i #4821', id: '', watts: 0, rpm: 0 }, 5: { tipo: 'keiser', nome: 'Keiser M3 nº 5', mac: 'AA:BB:CC:00:00:05' } }));
+      _parCarregarSalvo(); return { tem3: !!parBikeMap[3], instr: i, ficou5: !!parBikeMap[5], salvo: JSON.parse(localStorage.getItem('prorider_bike_map')) }; });
+    ok(!pa.tem3 && /dongle/.test(pa.instr) && /Nenhuma bike foi pareada/.test(pa.instr), 'pareamento sem dongle: não cria bike, avisa o que fazer', pa.instr);
+    ok(pa.ficou5 && !pa.salvo[3] && pa.salvo[5], 'bike simulada guardada antes é removida ao abrir; a de verdade fica', Object.keys(pa.salvo));
     ok(!et.length, 'sem erro de JavaScript na TV', et);
     await nav.close();
   }
