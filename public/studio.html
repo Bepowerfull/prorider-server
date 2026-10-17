@@ -235,6 +235,7 @@ td .zb{display:inline-block;width:10px;height:10px;border-radius:3px;margin-righ
       <div id="ytBox" style="display:none;margin-top:10px"><div style="display:flex;gap:8px"><input class="in" id="ytUrl" placeholder="Cole o link do YouTube" style="flex:1" onkeydown="if(event.key==='Enter')ytUsar()"><button class="btn bp bs" onclick="ytUsar()">OK</button></div></div>
       <input type="file" id="fVid" accept="video/*" style="display:none">
       <div id="vidInfo" style="margin-top:10px"></div>
+      <div id="vidPrevBox" style="margin-top:10px"></div>
     </div>
 
     <div class="card">
@@ -742,11 +743,48 @@ window.addEventListener('resize',function(){ pintarPerfil(); muDesenhar(); });
 $('fVid').addEventListener('change',function(){
   var f=this.files[0]; this.value=''; if(!f) return;
   var v=document.createElement('video'); v.preload='metadata'; v.src=URL.createObjectURL(f);
-  var lk=(video&&video.arquivo===f.name&&video.link)||''; v.onloadedmetadata=function(){ video={arquivo:f.name,link:lk,dur:v.duration,chegada:Math.round(v.duration)}; URL.revokeObjectURL(v.src); pintarVideo(); rascunho(); };
-  v.onerror=function(){ video={arquivo:f.name,link:lk,dur:0,chegada:0}; pintarVideo(); rascunho(); };
+  var lk=(video&&video.arquivo===f.name&&video.link)||''; var _u=v.src; if(window._vidBlob&&window._vidBlob!==_u){ try{ URL.revokeObjectURL(window._vidBlob); }catch(e){} } window._vidBlob=_u;   // 16/10: o arquivo fica aberto para a prévia
+  v.onloadedmetadata=function(){ video={arquivo:f.name,link:lk,dur:v.duration,chegada:Math.round(v.duration)}; window._vidPrevSrc=_u; window._vidPrevArq=f.name; pintarVideo(); rascunho(); };
+  v.onerror=function(){ video={arquivo:f.name,link:lk,dur:0,chegada:0}; window._vidPrevSrc=''; pintarVideo(); rascunho(); };
 });
-function pintarVideo(){
-  var el=$('vidInfo'); if(!video){ el.innerHTML=''; return; }
+// 16/10: PRÉVIA DO VÍDEO — ver o vídeo aqui e escolher onde ele termina (a chegada = fim do bloco principal).
+// Arquivo do computador ou link (Dropbox/Drive). YouTube: abrir no YouTube.
+function vidPrevSrc(){ if(!video||video.yt) return ''; if(window._vidPrevSrc&&video.arquivo&&video.arquivo===window._vidPrevArq) return window._vidPrevSrc; return video.link?muLinkDireto(video.link):''; }
+function vidPreview(){
+  var box=$('vidPrevBox'); if(!box) return; var src=vidPrevSrc();
+  if(!video||video.yt){ box.innerHTML=''; box.dataset.src=''; return; }
+  if(!src){ box.innerHTML='<div class="note">Para ver o vídeo aqui e escolher a chegada, escolha o arquivo de novo em 🎬 Arquivo de vídeo (ou ponha o link 🔗).</div>'; box.dataset.src=''; return; }
+  if(box.dataset.src!==src){
+    box.dataset.src=src;
+    box.innerHTML='<video id="vidPrev" src="'+esc(src)+'" muted playsinline controls preload="metadata" style="width:100%;max-height:260px;border-radius:10px;background:#000;display:block"></video>'
+      +'<input type="range" id="vidSl" min="0" max="1" step="1" value="0" style="width:100%;margin-top:8px" oninput="vidSlide(this.value)">'
+      +'<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px">'
+      +'<button class="btn bg bs" onclick="vidVer(\'ini\')">▶ Ver o começo</button>'
+      +'<button class="btn bg bs" onclick="vidVer(\'fim\')">▶ Ver a chegada</button>'
+      +'<button class="btn bp bs" onclick="vidMarcar()">📍 Chegada = ponto atual</button></div>'
+      +'<div class="note" id="vidPrevTxt" style="margin-top:6px"></div>';
+    var v=$('vidPrev');
+    v.onloadedmetadata=function(){ if(video&&!video.dur&&isFinite(v.duration)){ video.dur=v.duration; if(!video.chegada) video.chegada=Math.round(v.duration); pintarVideo(); rascunho(); } else vidPreviewSync(true); };
+    v.onerror=function(){ var t=$('vidPrevTxt'); if(t) t.innerHTML='<span style="color:#ff8a8a">⚠ Não consegui abrir o vídeo aqui'+(video&&video.link?' pelo link (confira se o link abre no navegador)':'')+'.</span>'; };
+    v.ontimeupdate=function(){ var t=$('vidPrevTxt'); if(t&&video) t.textContent='Agora: '+mmss(Math.floor(v.currentTime))+' · chegada marcada: '+mmss(video.chegada||0)+(video.dur?' · vídeo: '+mmss(video.dur):''); };
+  }
+  vidPreviewSync(true);
+}
+function vidPreviewSync(mover){
+  var v=$('vidPrev'), sl=$('vidSl'); if(!v||!sl||!video) return;
+  var d=video.dur||(isFinite(v.duration)?v.duration:0); sl.max=Math.max(1,Math.floor(d)); sl.value=Math.round(video.chegada||0);
+  if(mover&&v.paused&&isFinite(v.duration)) try{ v.currentTime=Math.min(Math.max(0,video.chegada||0),v.duration||0); }catch(e){}
+  try{ v.ontimeupdate&&v.ontimeupdate(); }catch(e){}
+}
+function vidSlide(x){ if(!video) return; video.chegada=Math.round(+x)||0; var v=$('vidPrev'); if(v){ v.pause(); try{ v.currentTime=video.chegada; }catch(e){} } pintarVideo(true); rascunho(); }
+function vidMarcar(){ var v=$('vidPrev'); if(!v||!video) return; video.chegada=Math.round(v.currentTime); v.pause(); pintarVideo(true); rascunho(); toast('📍 Chegada em '+mmss(video.chegada)); }
+function vidVer(q){ var v=$('vidPrev'); if(!v||!video) return;
+  var ws=workout.filter(function(b){ var s=segDe(b.segmentId); return s&&s.type!=='cooldown'; }).reduce(function(a,b){return a+durB(b);},0);
+  var t=q==='ini'?Math.max(0,(video.chegada||0)-ws):Math.max(0,(video.chegada||0)-8);
+  try{ v.currentTime=t; }catch(e){} v.play().catch(function(){});
+  clearTimeout(window._vidParar); window._vidParar=setTimeout(function(){ v.pause(); if(q==='fim') try{ v.currentTime=video.chegada; }catch(e){} }, q==='ini'?6000:8000); }
+function pintarVideo(doSlider){
+  var el=$('vidInfo'); if(!video){ el.innerHTML=''; vidPreview(); return; }
   var ws=workout.filter(function(b){ var s=segDe(b.segmentId); return s&&s.type!=='cooldown'; }).reduce(function(a,b){return a+durB(b);},0);
   var ini=video.chegada-ws;
   var cab = video.yt
@@ -756,6 +794,7 @@ function pintarVideo(){
   el.innerHTML=cab+
     '<label class="lbl">Chegada (fim do principal) no vídeo</label><div style="display:flex;gap:8px;align-items:center"><input class="in" style="width:110px" value="'+mmss(video.chegada)+'" onchange="vidChegada(this.value)"><button class="btn bd bs" onclick="video=null;pintarVideo();rascunho()">Tirar</button></div>'+
     '<div class="note" style="margin-top:6px">'+(vidFormatoRuim()?'<span style="color:#ff8a8a">⚠ Este vídeo é '+vidFormatoRuim()+' e não roda na TV: converta para MP4 (por exemplo no HandBrake, grátis) e escolha de novo.</span>':ws?(ini<0?'<span style="color:#ff8a8a">⚠ O vídeo é '+mmss(-ini)+' mais curto que aquecimento + principal.</span>':'O vídeo começa em '+mmss(ini)+' para chegar junto com o fim do bloco principal.'):'')+'</div>';
+  if(doSlider) vidPreviewSync(false); else vidPreview();
 }
 // ── YouTube (30/09d): o link fica gravado na aula (video.fonte='youtube').
 // A duração vem da API do YouTube quando o navegador consegue carregá-la;

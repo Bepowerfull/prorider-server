@@ -130,6 +130,23 @@ const hoje = new Date(Date.now() - 3 * 3600000).toISOString().slice(0, 10);
 
   console.log('7) Sem erros');
   ok(erros.length === 0, 'nenhum erro de JavaScript no Portal e no app', erros.slice(0, 4));
+  console.log('X) Construtor: prévia do vídeo para escolher a chegada (16/10)');
+  { const os2 = require('os'), cp = require('child_process'); const vid = path.join(os2.tmpdir(), 'pr-prev-' + process.pid + '.webm');
+    let temFf = true; try { cp.execSync('ffmpeg -loglevel error -y -f lavfi -i testsrc=size=160x90:rate=5 -t 600 -c:v libvpx -deadline realtime -cpu-used 8 -b:v 40k ' + vid, { stdio: 'ignore' }); } catch (e) { temFf = false; }
+    if (!temFf) console.log('  ⚠ sem ffmpeg: prévia do vídeo não testada');
+    else { const c = await nav.newContext({ viewport: { width: 1400, height: 900 } }); const p = await c.newPage(); const er = []; p.on('pageerror', e => er.push(e.message));
+      await p.goto(B + '/studio.html'); await espera(1200);
+      await p.evaluate(() => carregar({ nome: 'Prévia', segments: [{ id: 'warmup', name: 'Aq', type: 'warmup' }, { id: 'main_1', name: 'P', type: 'main' }, { id: 'cooldown', name: 'V', type: 'cooldown' }],
+        workout: [{ durationSec: 120, intensity: 'z2', segmentId: 'warmup' }, { durationSec: 300, intensity: 'z4', segmentId: 'main_1' }, { durationSec: 60, intensity: 'z1', segmentId: 'cooldown' }] }));
+      await p.setInputFiles('#fVid', vid); await espera(2500);
+      let s = await p.evaluate(() => ({ prev: !!document.getElementById('vidPrev'), max: (document.getElementById('vidSl') || {}).max, ch: video && video.chegada }));
+      ok(s.prev && s.max === '600' && s.ch === 600, 'vídeo do computador aparece para assistir, com a barra da chegada', s);
+      await p.evaluate(() => { const sl = document.getElementById('vidSl'); sl.value = 500; sl.dispatchEvent(new Event('input')); }); await espera(600);
+      s = await p.evaluate(() => ({ ch: video.chegada, cur: Math.round(document.getElementById('vidPrev').currentTime), txt: document.getElementById('vidInfo').innerText, off: montar().video.syncOffset }));
+      ok(s.ch === 500 && s.cur === 500 && /começa em 1:20/.test(s.txt) && s.off === 500, 'arrastar a barra muda a chegada, mostra a imagem nesse ponto e vai para a aula (começa em 1:20)', s);
+      await p.evaluate(() => { const v = document.getElementById('vidPrev'); v.pause(); v.currentTime = 450; }); await espera(500); await p.evaluate(() => vidMarcar());
+      ok(await p.evaluate(() => video.chegada === 450 && document.getElementById('vidSl').value === '450'), '"Chegada = ponto atual" marca onde o vídeo está');
+      ok(er.length === 0, 'Construtor sem erro de JavaScript', er.slice(0, 3)); await c.close(); try { fs.unlinkSync(vid); } catch (e) {} } }
   await nav.close();
   await sql(`DELETE FROM aulas_agenda WHERE license_id='${LIC}'`);
   console.log('  fotos das telas: ' + FOTOS);
